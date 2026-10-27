@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 3: Multiplication and Inverse Matrices · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li class="current"><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 4 / 37</p><h1>Lecture 3: Multiplication and Inverse Matrices</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Two topics:</strong></p>
+<ol>
+<li><strong>Matrix multiplication:</strong> five ways to compute \(AB\). They all give the same answer, and each one is useful.</li>
+<li><strong>Inverses:</strong> when \(A^{-1}\) exists, and how to compute it with Gauss–Jordan elimination.</li>
+</ol>
+<hr />
+<h2>Part 1: Five ways to multiply \(AB = C\)</h2>
+<p><strong>Shapes.</strong> If \(A\) is \(m \times n\) and \(B\) is \(n \times p\), then \(C\) is \(m \times p\). The number of columns of \(A\) must equal the number of rows of \(B\).</p>
+<h3>Way 1: One entry at a time (row · column)</h3>
+<p>Each entry of \(C\) is a row of \(A\) dotted with a column of \(B\):
+<div class="math-display">\[c_{ij} = (\text{row } i \text{ of } A) \cdot (\text{column } j \text{ of } B) = \sum_{k=1}^n a_{ik}\, b_{kj}\]</div>
+</p>
+<p>Strang's example is \(c_{34} = a_{31}b_{14} + a_{32}b_{24} + \cdots\). This is the standard rule.</p>
+<h3>Way 2: One column at a time</h3>
+<p>Treat \(B\) as \(p\) columns sitting side by side, and multiply \(A\) by each one:
+<div class="math-display">\[C = A\,[\,b_1 \;\cdots\; b_p\,] = [\,Ab_1 \;\cdots\; Ab_p\,]\]</div>
+</p>
+<p><strong>Takeaway:</strong> each column of \(C\) is a <strong>combination of the columns of \(A\)</strong>. The entries of the matching column of \(B\) say which combination.</p>
+<h3>Way 3: One row at a time</h3>
+<p>Each row of \(C\) is the matching row of \(A\) times the whole matrix \(B\).</p>
+<p><strong>Takeaway:</strong> each row of \(C\) is a <strong>combination of the rows of \(B\)</strong>.</p>
+<h3>Way 4: Columns times rows (sum of outer products)</h3>
+<p><strong>A column times a row gives a full matrix.</strong> An \(m \times 1\) column times a \(1 \times p\) row is an \(m \times p\) matrix. Example:
+<div class="math-display">\[\begin{bmatrix} 2\\3\\4 \end{bmatrix}\begin{bmatrix} 1 &amp; 6 \end{bmatrix} = \begin{bmatrix} 2 &amp; 12 \\ 3 &amp; 18 \\ 4 &amp; 24 \end{bmatrix}\]</div>
+</p>
+<p>This is a very special matrix:</p>
+<ul>
+<li>Every <strong>column</strong> is a multiple of \((2,3,4)\), so the column space is a single line.</li>
+<li>Every <strong>row</strong> is a multiple of \((1,6)\), so the row space is a single line.</li>
+</ul>
+<p>Strang previews the terms <strong>row space</strong> and <strong>column space</strong> here.</p>
+<p><strong>The rule:</strong> \(AB\) equals the sum of (column \(k\) of \(A\)) times (row \(k\) of \(B\)):
+<div class="math-display">\[AB = \sum_{k=1}^{n} (\text{col}_k A)(\text{row}_k B)\]</div>
+</p>
+<p><strong>Example:</strong>
+<div class="math-display">\[\begin{bmatrix} 2 &amp; 7\\3 &amp; 8\\4 &amp; 9 \end{bmatrix}\begin{bmatrix} 1 &amp; 6\\0 &amp; 0 \end{bmatrix} = \begin{bmatrix} 2\\3\\4 \end{bmatrix}\begin{bmatrix} 1 &amp; 6 \end{bmatrix} + \begin{bmatrix} 7\\8\\9 \end{bmatrix}\begin{bmatrix} 0 &amp; 0 \end{bmatrix}\]</div>
+
+The second term is zero, so the product equals the matrix above.</p>
+<h3>Way 5: Block multiplication</h3>
+<p>Cut \(A\) and \(B\) into blocks whose sizes match. Then multiply block rows by block columns, exactly as if the blocks were numbers:
+<div class="math-display">\[\begin{bmatrix} A_1 &amp; A_2 \\ A_3 &amp; A_4 \end{bmatrix}\begin{bmatrix} B_1 &amp; B_2 \\ B_3 &amp; B_4 \end{bmatrix} \;\Rightarrow\; \text{top-left block} = A_1B_1 + A_2B_3\]</div>
+</p>
+<p>Strang's point: <strong>all five ways perform the same multiplications</strong>, just grouped differently.</p>
+<hr />
+<h2>Part 2: Inverses of square matrices</h2>
+<p><strong>Definition:</strong>
+<div class="math-display">\[A^{-1}A = I = AA^{-1}\]</div>
+</p>
+<p><strong>Left and right inverses agree.</strong> For square matrices, a left inverse is automatically a right inverse. This is not obvious to prove, but it is true. For rectangular matrices, left and right inverses differ, and that comes later in the course.</p>
+<p><strong>The key question about any square matrix: is it invertible?</strong></p>
+<ul>
+<li>The good matrices are called <strong>invertible</strong> or <strong>non-singular</strong>.</li>
+</ul>
+<h3>The singular case: example with no inverse</h3>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 3 \\ 2 &amp; 6 \end{bmatrix}\]</div>
+<p>Here are three reasons \(A\) has no inverse:</p>
+<ol>
+<li>
+<p><strong>Determinant.</strong> \(\det A = 0\). Strang notes this is the reason students reach for first, even though determinants haven't been covered yet.</p>
+</li>
+<li>
+<p><strong>Column picture.</strong> Every product \(AX\) has columns that are combinations of \(A\)'s columns. Both columns, \((1,2)\) and \((3,6)\), lie on the same line. So no product can produce the identity's column \((1,0)\).</p>
+</li>
+<li>
+<p><strong>The null-vector argument (Strang's favorite).</strong> There is a <strong>nonzero</strong> \(x\) with \(Ax = 0\). Take \(x = (3, -1)\):
+<div class="math-display">\[3\begin{bmatrix}1\\2\end{bmatrix} - 1\begin{bmatrix}3\\6\end{bmatrix} = \begin{bmatrix}0\\0\end{bmatrix}\]</div>
+
+If \(A^{-1}\) existed, multiplying \(Ax = 0\) by it would give \(x = A^{-1}0 = 0\). That contradicts \(x \neq 0\). Once \(A\) sends a nonzero vector to zero, nothing can recover it.</p>
+</li>
+</ol>
+<p><strong>Conclusion:</strong> \(A\) is singular exactly when some combination of its columns gives the zero column, that is, when \(Ax = 0\) has a nonzero solution.</p>
+<h3>Finding the inverse: Gauss–Jordan elimination</h3>
+<p><strong>Reformulation.</strong> Read \(AA^{-1} = I\) column by column:
+<div class="math-display">\[A \cdot (\text{column } j \text{ of } A^{-1}) = (\text{column } j \text{ of } I)\]</div>
+</p>
+<p>Finding \(A^{-1}\) means solving \(n\) systems that share the same matrix \(A\) but have different right-hand sides. <strong>Jordan's idea is to solve them all at once.</strong></p>
+<p><strong>Example:</strong>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 3 \\ 2 &amp; 7 \end{bmatrix}\]</div>
+</p>
+<p><strong>Step 1.</strong> Augment with the identity:
+<div class="math-display">\[\left[\begin{array}{cc|cc} 1 &amp; 3 &amp; 1 &amp; 0 \\ 2 &amp; 7 &amp; 0 &amp; 1 \end{array}\right]\]</div>
+</p>
+<p><strong>Step 2.</strong> Eliminate downward: subtract 2 × row 1 from row 2.
+<div class="math-display">\[\left[\begin{array}{cc|cc} 1 &amp; 3 &amp; 1 &amp; 0 \\ 0 &amp; 1 &amp; -2 &amp; 1 \end{array}\right]\]</div>
+
+Gauss would stop here, since the left side is now upper triangular.</p>
+<p><strong>Step 3.</strong> Jordan keeps going and eliminates <strong>upward</strong>: subtract 3 × row 2 from row 1.
+<div class="math-display">\[\left[\begin{array}{cc|cc} 1 &amp; 0 &amp; 7 &amp; -3 \\ 0 &amp; 1 &amp; -2 &amp; 1 \end{array}\right]\]</div>
+</p>
+<p><strong>Result:</strong>
+<div class="math-display">\[A^{-1} = \begin{bmatrix} 7 &amp; -3 \\ -2 &amp; 1 \end{bmatrix}\]</div>
+</p>
+<p><strong>Check:</strong>
+<div class="math-display">\[\begin{bmatrix} 7 &amp; -3 \\ -2 &amp; 1 \end{bmatrix}\begin{bmatrix} 1 &amp; 3 \\ 2 &amp; 7 \end{bmatrix} = \begin{bmatrix} 7-6 &amp; 21-21 \\ -2+2 &amp; -6+7 \end{bmatrix} = I\]</div>
+</p>
+<h3>Why Gauss–Jordan works</h3>
+<p>Each elimination step is a left multiplication by some \(E_{ij}\). Combine all the steps into one matrix \(E\). Applying it to the augmented matrix gives
+<div class="math-display">\[E\,[\,A \mid I\,] = [\,EA \mid E\,]\]</div>
+</p>
+<p>Elimination is carried out until the left half becomes \(I\). So \(EA = I\), which means <strong>\(E = A^{-1}\)</strong>.</p>
+<p>The right half started as \(I\) and became \(EI = E = A^{-1}\). In short, the identity attached on the right records every step and ends up as the inverse.</p>
+<hr />
+<h2>Big ideas from Lecture 3</h2>
+<ol>
+<li><strong>Five views of \(AB\):</strong>
+<ul>
+<li>entries (row · column)</li>
+<li>columns of \(C\) as combinations of columns of \(A\)</li>
+<li>rows of \(C\) as combinations of rows of \(B\)</li>
+<li>a sum of column × row matrices</li>
+<li>blocks</li>
+</ul>
+</li>
+<li><strong>A column times a row</strong> gives a matrix whose rows all lie on one line and whose columns all lie on one line. This is the simplest building block, later called a rank-1 matrix.</li>
+<li><strong>For square matrices</strong>, a left inverse is also a right inverse.</li>
+<li><strong>Singular:</strong> \(A\) is singular if and only if \(Ax = 0\) for some nonzero \(x\). Then \(A^{-1}\) cannot exist, since it would have to send 0 back to a nonzero vector.</li>
+<li><strong>Gauss–Jordan:</strong> row-reduce \([A \mid I]\) to \([I \mid A^{-1}]\). It works because the combined elimination matrix \(E\) satisfies \(EA = I\).</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-02.html"><small>Previous</small>L2 · Elimination with Matrices</a><a class="next" href="lecture-04.html"><small>Next</small>L4 · Factorization into \(A = LU\)</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

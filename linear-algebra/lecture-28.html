@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 28: Similar Matrices and Jordan Form · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li class="current"><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 30 / 37</p><h1>Lecture 28: Similar Matrices and Jordan Form</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Two parts:</strong></p>
+<ol>
+<li>A short recap on <strong>where positive definite matrices come from</strong>, including why \(A^\top A\) is positive definite.</li>
+<li><strong>Similar matrices.</strong> These are matrices that share eigenvalues. The nicest member of each family is its <strong>Jordan form</strong>.</li>
+</ol>
+<hr />
+<h2>Part 1: More on positive definite matrices</h2>
+<p>Throughout, &quot;positive definite&quot; includes &quot;symmetric&quot;.</p>
+<h3>Is \(A^{-1}\) positive definite?</h3>
+<p><strong>Yes.</strong> The eigenvalues of \(A^{-1}\) are \(1/\lambda_i\), and these are positive whenever every \(\lambda_i &gt; 0\).</p>
+<p><strong>Which test to use.</strong> Pivots of \(A^{-1}\) are hard to predict, but its eigenvalues are known exactly. So the eigenvalue test is the natural one here.</p>
+<h3>Is \(A + B\) positive definite?</h3>
+<p><strong>Yes,</strong> if \(A\) and \(B\) both are.</p>
+<p><strong>Which tests don't work.</strong> We don't know the eigenvalues or pivots of \(A + B\).</p>
+<p><strong>The energy test works immediately:</strong>
+<div class="math-display">\[x^\top(A + B)x = x^\top Ax + x^\top Bx &gt; 0\]</div>
+</p>
+<p><strong>General lesson.</strong> Keep all four tests in mind and pick whichever one the problem makes easy.</p>
+<h3>Is \(A^\top A\) positive definite? (\(A\) rectangular, \(m \times n\))</h3>
+<p><strong>What we already know.</strong> \(A^\top A\) is square and symmetric, from the least-squares lectures.</p>
+<p><strong>Use the energy test, and group the factors well:</strong>
+<div class="math-display">\[x^\top(A^\top A)x = (Ax)^\top(Ax) = \|Ax\|^2 \geq 0\]</div>
+</p>
+<p><strong>When is it strictly positive?</strong> The length \(\|Ax\|\) is zero only when \(Ax = 0\). To rule that out for every nonzero \(x\), \(A\) must have <strong>no nullspace</strong> other than \(0\). That means:</p>
+<ul>
+<li><strong>independent columns</strong>, or equivalently</li>
+<li><strong>rank \(n\)</strong>.</li>
+</ul>
+<div class="math-display">\[\boxed{A^\top A \text{ is positive definite} \iff A \text{ has independent columns}}\]</div>
+<p><strong>Without independent columns,</strong> \(A^\top A\) is positive <strong>semidefinite</strong>.</p>
+<p><strong>Numerical bonus.</strong> Elimination on a positive definite matrix <strong>never needs row exchanges</strong>. No zero or dangerously small pivots appear.</p>
+<hr />
+<h2>Part 2: Similar matrices</h2>
+<h3>Definition</h3>
+<p>Square \(n \times n\) matrices \(A\) and \(B\) are <strong>similar</strong> if, for some <strong>invertible</strong> \(M\):
+<div class="math-display">\[\boxed{B = M^{-1}AM}\]</div>
+</p>
+<h3>The model example: diagonalization</h3>
+<div class="math-display">\[S^{-1}AS = \Lambda\]</div>
+<p>So <strong>\(A\) is similar to \(\Lambda\)</strong>. Here the connecting matrix \(M\) is the eigenvector matrix \(S\).</p>
+<p><strong>Similarity groups matrices into families.</strong></p>
+<ul>
+<li>Any invertible \(M\) produces another member of \(A\)'s family.</li>
+<li>Most choices of \(M\) won't produce a diagonal matrix.</li>
+<li>The diagonal \(\Lambda\) is the <strong>best member</strong> of the family.</li>
+</ul>
+<h3>Numerical example</h3>
+<p><strong>Start with</strong>
+<div class="math-display">\[A = \begin{bmatrix} 2 &amp; 1 \\ 1 &amp; 2 \end{bmatrix}\]</div>
+
+Its eigenvalues are 3 and 1, so it is similar to \(\Lambda = \begin{bmatrix} 3 &amp; 0 \\ 0 &amp; 1 \end{bmatrix}\).</p>
+<p><strong>Pick an arbitrary invertible \(M\):</strong>
+<div class="math-display">\[M = \begin{bmatrix} 1 &amp; 4 \\ 0 &amp; 1 \end{bmatrix}, \qquad M^{-1} = \begin{bmatrix} 1 &amp; -4 \\ 0 &amp; 1 \end{bmatrix}\]</div>
+</p>
+<p><strong>Compute \(B\):</strong>
+<div class="math-display">\[B = M^{-1}AM = \begin{bmatrix} 1 &amp; -4 \\ 0 &amp; 1 \end{bmatrix}\begin{bmatrix} 2 &amp; 9 \\ 1 &amp; 6 \end{bmatrix} = \begin{bmatrix} -2 &amp; -15 \\ 1 &amp; 6 \end{bmatrix}\]</div>
+</p>
+<p><strong>Check that \(B\) has eigenvalues 3 and 1:</strong></p>
+<ul>
+<li>Trace: \(-2 + 6 = 4 = 3 + 1\).</li>
+<li>Determinant: \(-12 + 15 = 3 = 3 \times 1\).</li>
+</ul>
+<p><strong>Other members of this family.</strong> Any triangular matrix such as \(\begin{bmatrix} 3 &amp; * \\ 0 &amp; 1 \end{bmatrix}\). In fact, <strong>every</strong> \(2\times2\) matrix with eigenvalues 3 and 1 belongs to this family.</p>
+<h3>Key theorem: similar matrices have the same eigenvalues</h3>
+<p><strong>Proof.</strong> Start from \(Ax = \lambda x\). Insert \(MM^{-1} = I\):
+<div class="math-display">\[AMM^{-1}x = \lambda x\]</div>
+
+Multiply on the left by \(M^{-1}\):
+<div class="math-display">\[\underbrace{M^{-1}AM}_{B}\,(M^{-1}x) = \lambda\,(M^{-1}x)\]</div>
+</p>
+<p>So <strong>\(\lambda\) is an eigenvalue of \(B\)</strong>, with eigenvector \(M^{-1}x\).</p>
+<p><strong>What changes and what doesn't.</strong></p>
+<ul>
+<li>The <strong>eigenvalues stay the same</strong>.</li>
+<li>The <strong>eigenvectors move</strong>, from \(x\) to \(M^{-1}x\).</li>
+</ul>
+<p><strong>Diagonalization fits this picture.</strong> Going from \(A\) to \(\Lambda\) keeps the eigenvalues and moves the eigenvectors to the nicest possible ones: \((1,0)\) and \((0,1)\).</p>
+<p><strong>Same number of independent eigenvectors.</strong> Because \(x \mapsto M^{-1}x\) is invertible, independent eigenvectors of \(A\) map to independent eigenvectors of \(B\).</p>
+<hr />
+<h2>Part 3: The bad case — repeated eigenvalues</h2>
+<h3>Eigenvalues 4 and 4 split into two families</h3>
+<p><strong>Family 1: \(4I\) alone.</strong>
+<div class="math-display">\[M^{-1}(4I)M = 4M^{-1}M = 4I \quad\text{for every } M\]</div>
+
+So \(4I\) is similar <strong>only to itself</strong>. It is a family of one.</p>
+<p><strong>Family 2: everything else with eigenvalues 4, 4.</strong> Every member has <strong>only one independent eigenvector</strong>, so none of them is diagonalizable. If one were diagonalizable, it would be similar to \(4I\), which is impossible.</p>
+<p><strong>The best member of family 2:</strong>
+<div class="math-display">\[J = \begin{bmatrix} 4 &amp; 1 \\ 0 &amp; 4 \end{bmatrix}\]</div>
+
+This is the <strong>Jordan form</strong>: as close to diagonal as possible, with a single 1 above the diagonal.</p>
+<p><strong>Other members of family 2.</strong> Any matrix with trace 8 and determinant 16, other than \(4I\). For example:
+<div class="math-display">\[\begin{bmatrix} 5 &amp; 1 \\ -1 &amp; 3 \end{bmatrix}, \qquad \begin{bmatrix} 4 &amp; 0 \\ 17 &amp; 4 \end{bmatrix}\]</div>
+
+The entry 17 could be any nonzero number.</p>
+<h3>Counting eigenvectors is not enough</h3>
+<p>Consider two \(4\times4\) matrices. Both have eigenvalues \(0, 0, 0, 0\), rank 2, and therefore 2 independent eigenvectors:
+<div class="math-display">\[J_1 = \begin{bmatrix} 0 &amp; 1 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 0 &amp; 0 \end{bmatrix} \quad (\text{blocks } 3 + 1), \qquad J_2 = \begin{bmatrix} 0 &amp; 1 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 0 &amp; 1 \\ 0 &amp; 0 &amp; 0 &amp; 0 \end{bmatrix} \quad (\text{blocks } 2 + 2)\]</div>
+</p>
+<p><strong>Changing an off-diagonal entry doesn't matter.</strong> Replacing one of the 1s in \(J_1\) with, say, 7 keeps the rank at 2 and gives a matrix similar to \(J_1\). Jordan's choice of 1s is just the cleanest version.</p>
+<p><strong>But \(J_1\) and \(J_2\) are not similar.</strong> The <strong>block sizes</strong> differ.</p>
+<p><strong>Why not (my justification; Strang just states it).</strong> If \(B = M^{-1}AM\), then \(B^2 = M^{-1}A^2M\), so the squares must also be similar and have the same rank.</p>
+<ul>
+<li>\(J_1^2 \neq 0\): it has rank 1.</li>
+<li>\(J_2^2 = 0\).</li>
+</ul>
+<p>So the two matrices cannot be similar.</p>
+<hr />
+<h2>Part 4: Jordan's theorem</h2>
+<h3>Jordan blocks</h3>
+<p>A <strong>Jordan block</strong> has:</p>
+<ul>
+<li>a single repeated eigenvalue \(\lambda_i\) on the diagonal,</li>
+<li>1s directly above the diagonal,</li>
+<li>zeros everywhere else.</li>
+</ul>
+<div class="math-display">\[J_i = \begin{bmatrix} \lambda_i &amp; 1 &amp; &amp; \\ &amp; \lambda_i &amp; \ddots &amp; \\ &amp; &amp; \ddots &amp; 1 \\ &amp; &amp; &amp; \lambda_i \end{bmatrix}\]</div>
+<p><strong>Each block has exactly one eigenvector.</strong></p>
+<h3>The theorem</h3>
+<blockquote>
+<p><strong>Every square matrix \(A\) is similar to a Jordan matrix</strong>
+<div class="math-display">\[J = \begin{bmatrix} J_1 &amp; &amp; \\ &amp; \ddots &amp; \\ &amp; &amp; J_d \end{bmatrix}\]</div>
+</p>
+</blockquote>
+<p><strong>Number of blocks.</strong> \(d\) equals the number of independent eigenvectors, since each block contributes one.</p>
+<p><strong>The good case.</strong> If all \(n\) eigenvalues are distinct, then \(d = n\) and every block is \(1\times1\). So \(J = \Lambda\) and \(A\) is diagonalizable.</p>
+<p><strong>What Jordan's theorem achieves.</strong> It completes diagonalization for <strong>every</strong> matrix, including the defective ones.</p>
+<h3>Strang's verdict</h3>
+<p><strong>Jordan form used to be the climax of 18.06.</strong> When Strang took the course, the course built up to it.</p>
+<p><strong>It no longer is. Jordan form is numerically fragile:</strong></p>
+<ul>
+<li>It depends on eigenvalues being <strong>exactly</strong> equal and ranks being <strong>exactly</strong> known.</li>
+<li>The slightest perturbation changes the eigenvalues or the rank, and the whole structure collapses.</li>
+</ul>
+<p><strong>What matters more now:</strong></p>
+<ul>
+<li>positive definite matrices,</li>
+<li>the <strong>SVD</strong>, which is next lecture.</li>
+</ul>
+<hr />
+<h2>Big ideas from Lecture 28</h2>
+<ol>
+<li><strong>Positive definite is preserved:</strong>
+<ul>
+<li>\(A^{-1}\) is positive definite (eigenvalue test).</li>
+<li>\(A + B\) is positive definite (energy test).</li>
+<li>\(A^\top A\) is positive definite exactly when \(A\) has independent columns, because \(x^\top A^\top Ax = \|Ax\|^2\).</li>
+</ul>
+</li>
+<li><strong>Similar:</strong> \(B = M^{-1}AM\). Similar matrices have the <strong>same eigenvalues</strong>, and the eigenvectors map as \(x \mapsto M^{-1}x\).</li>
+<li><strong>Families:</strong> similarity groups matrices into families. The best member of a diagonalizable family is \(\Lambda\).</li>
+<li><strong>Repeated eigenvalues:</strong> \(\lambda I\) is alone in its family. All other matrices with the same repeated eigenvalue are defective.</li>
+<li><strong>Jordan form:</strong> every matrix is similar to a block-diagonal \(J\) with one block per independent eigenvector. Block sizes matter, not just counts.</li>
+<li><strong>Practicality:</strong> Jordan form is theoretically complete but numerically unstable.</li>
+</ol>
+<p><strong>Connection to ML and interpretability.</strong></p>
+<ul>
+<li><strong>Similarity is a change of basis.</strong> \(A\) and \(M^{-1}AM\) describe the same linear map in different coordinates.</li>
+<li><strong>What survives a basis change.</strong> Eigenvalues, trace, determinant, rank, and Jordan structure are <strong>basis-independent</strong>. Individual matrix entries are not.</li>
+<li><strong>Why that matters for weight matrices.</strong> A model's weights can often be reparameterized by an invertible \(M\) without changing the function the model computes. So spectral quantities are meaningful to analyze, while specific coordinates may not be.</li>
+</ul>
+</article>
+<nav class="pager"><a class="prev" href="lecture-27.html"><small>Previous</small>L27 · Positive Definite Matrices and Minima</a><a class="next" href="lecture-29.html"><small>Next</small>L29 · Singular Value Decomposition</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 9: Independence, Basis, and Dimension · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li class="current"><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 10 / 37</p><h1>Lecture 9: Independence, Basis, and Dimension</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Topic.</strong> This lecture gives precise meanings to four words:</p>
+<ul>
+<li><strong>independence</strong></li>
+<li><strong>spanning</strong></li>
+<li><strong>basis</strong></li>
+<li><strong>dimension</strong></li>
+</ul>
+<p><strong>What each word applies to.</strong> Strang stresses this point:</p>
+<ul>
+<li>A <em>set of vectors</em> can be independent, can span a space, or can be a basis.</li>
+<li>A <em>space</em> has a dimension.</li>
+<li>A <em>matrix</em> has a rank.</li>
+</ul>
+<hr />
+<h2>1. A key fact to start: more unknowns than equations</h2>
+<p>Suppose \(A\) is \(m \times n\) with \(n &gt; m\). Then <strong>\(Ax = 0\) has a nonzero solution.</strong></p>
+<p><strong>Why:</strong></p>
+<ol>
+<li>Elimination produces at most \(m\) pivots, since each row holds at most one pivot.</li>
+<li>There are \(n\) variables, so at least \(n - m \ge 1\) variables must be free.</li>
+<li>Set a free variable to 1 and solve for the pivot variables. This gives a nonzero vector in \(N(A)\).</li>
+</ol>
+<hr />
+<h2>2. Independence</h2>
+<p><strong>Definition.</strong> Vectors \(x_1, \dots, x_n\) are <strong>(linearly) independent</strong> if no combination of them gives the zero vector, except the zero combination:
+<div class="math-display">\[c_1x_1 + c_2x_2 + \cdots + c_nx_n = 0 \;\;\Longrightarrow\;\; c_1 = c_2 = \cdots = c_n = 0\]</div>
+</p>
+<p>They are <strong>dependent</strong> if some combination with not all \(c_i = 0\) gives \(0\).</p>
+<h3>Examples in \(\mathbb{R}^2\)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Vectors</th>
+<th>Independent?</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(v\) and \(2v\)</td>
+<td><strong>No</strong></td>
+<td>\(2v_1 - v_2 = 0\)</td>
+</tr>
+<tr>
+<td>\(v_1\) and \(v_2 = 0\)</td>
+<td><strong>No</strong></td>
+<td>\(0\cdot v_1 + 6\cdot v_2 = 0\). Any set containing the zero vector is dependent.</td>
+</tr>
+<tr>
+<td>Two vectors in different directions</td>
+<td><strong>Yes</strong></td>
+<td>Only \(c_1 = c_2 = 0\) works</td>
+</tr>
+<tr>
+<td>Any <strong>three</strong> vectors in the plane</td>
+<td><strong>No</strong></td>
+<td>See below</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Three vectors in \(\mathbb{R}^2\).</strong> Put them as the columns of a \(2 \times 3\) matrix \(A\). This matrix has more unknowns than equations. By Section 1, some nonzero \(c\) satisfies \(Ac = 0\), and that \(c\) is a dependency among the columns. Strang's example uses columns that look like \((2,1)\), \((1,2)\), and \((2.5,-1)\).</p>
+<h3>Matrix test for independence</h3>
+<p>Put \(v_1, \dots, v_n\) in the columns of \(A\). Then \(Ac\) is exactly the combination \(c_1v_1 + \cdots + c_nv_n\).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Columns are independent</th>
+<th>Columns are dependent</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(N(A) = \{0\}\)</td>
+<td>\(N(A)\) contains some \(c \neq 0\)</td>
+</tr>
+<tr>
+<td>rank \(r = n\)</td>
+<td>rank \(r &lt; n\)</td>
+</tr>
+<tr>
+<td>no free variables</td>
+<td>free variables exist</td>
+</tr>
+<tr>
+<td>every column is a pivot column</td>
+<td>some column is a combination of earlier columns</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Relation to earlier lectures:</strong> &quot;dependent&quot; is the official name for &quot;some combination of the columns gives the zero column.&quot;</p>
+<hr />
+<h2>3. Spanning</h2>
+<p><strong>Definition.</strong> Vectors \(v_1, \dots, v_\ell\) <strong>span</strong> a space if the space consists of <strong>all their combinations</strong>.</p>
+<p><strong>Example.</strong> The columns of \(A\) span \(C(A)\).</p>
+<p><strong>The smallest space.</strong> The span of a set of vectors is the smallest space containing them. Any space that contains the vectors must contain all their combinations.</p>
+<p><strong>Spanning says nothing about independence.</strong> A spanning set may or may not be independent.</p>
+<hr />
+<h2>4. Basis</h2>
+<p><strong>Definition.</strong> A <strong>basis</strong> for a space is a sequence of vectors that is:</p>
+<ol>
+<li><strong>independent</strong>, and</li>
+<li><strong>spans</strong> the space.</li>
+</ol>
+<p>In Strang's words, it has enough vectors and not too many. Giving a basis tells you everything about the subspace, because the subspace is exactly all combinations of the basis vectors.</p>
+<h3>Examples in \(\mathbb{R}^3\)</h3>
+<p><strong>Standard basis.</strong> \((1,0,0)\), \((0,1,0)\), \((0,0,1)\). As columns they form \(I\), and \(N(I) = \{0\}\), so they are independent.</p>
+<p><strong>Two vectors that don't span.</strong> \((1,1,2)\) and \((2,2,5)\) are independent, but they don't span \(\mathbb{R}^3\). They are a <strong>basis for the plane they span</strong>.</p>
+<p><strong>Adding \((3,3,7)\) fails.</strong> It is the sum of the first two, so it lies in their plane and the set becomes dependent.</p>
+<p><strong>Adding \((3,3,8)\) also fails. Correction to the lecture:</strong> Strang offers \((3,3,8)\) as a third vector that should complete a basis. <strong>It does not.</strong></p>
+<ul>
+<li>All three vectors, \((1,1,2)\), \((2,2,5)\), and \((3,3,8)\), have equal first and second components. So they all lie in the plane \(x_1 = x_2\).</li>
+<li>As the columns of a \(3\times3\) matrix, they give rows 1 and 2 equal to each other, so the matrix is singular.</li>
+<li>Explicitly: \((3,3,8) = -\tfrac{1}{1}(1,1,2)\cdot 1 + \ldots\) is not needed; the equal-rows argument already settles it. A vector with \(x_1 \neq x_2\), such as \((1,0,0)\), <em>would</em> complete a basis.</li>
+</ul>
+<p>Strang's general method below is correct; only this particular numerical choice was wrong.</p>
+<h3>Test for a basis of \(\mathbb{R}^n\)</h3>
+<p>\(n\) vectors in \(\mathbb{R}^n\) form a basis <strong>exactly when the \(n \times n\) matrix with those columns is invertible.</strong></p>
+<p><strong>Bases are not unique.</strong> The columns of any invertible matrix form a basis for \(\mathbb{R}^n\).</p>
+<hr />
+<h2>5. Dimension</h2>
+<blockquote>
+<p><strong>Key fact:</strong> Every basis for a given space has the <strong>same number of vectors</strong>.</p>
+</blockquote>
+<p><strong>Definition.</strong> That number is the <strong>dimension</strong> of the space.</p>
+<p>For \(\mathbb{R}^n\), the dimension is \(n\). Fewer than \(n\) vectors cannot span. More than \(n\) vectors cannot be independent.</p>
+<p><strong>Shortcut.</strong> If you know a space has dimension \(d\), then:</p>
+<ul>
+<li>any \(d\) independent vectors in it automatically span it, so they form a basis;</li>
+<li>any \(d\) vectors that span it are automatically independent.</li>
+</ul>
+<p><strong>Why the shortcut holds.</strong> If \(d\) independent vectors failed to span, you could add another independent vector. That would give \(d+1\) independent vectors in a space of dimension \(d\), which is impossible.</p>
+<hr />
+<h2>6. Worked example: \(C(A)\) and \(N(A)\)</h2>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 2 &amp; 3 &amp; 1 \\ 1 &amp; 1 &amp; 2 &amp; 1 \\ 1 &amp; 2 &amp; 3 &amp; 1 \end{bmatrix}\]</div>
+<p>The columns satisfy two relations: column 3 = column 1 + column 2, and column 4 = column 1.</p>
+<h3>Column space</h3>
+<p><strong>Do the 4 columns span \(C(A)\)?</strong> Yes, by definition.</p>
+<p><strong>Are they independent?</strong> No. For example, \((-1,-1,1,0)\) is in \(N(A)\).</p>
+<p><strong>The natural basis is the pivot columns:</strong> columns 1 and 2. Columns 3 and 4 add nothing new.</p>
+<p><strong>Other valid bases:</strong></p>
+<ul>
+<li>columns 1 and 3</li>
+<li>columns 2 and 3</li>
+<li>columns 2 and 4</li>
+<li>vectors not taken from the columns at all, such as \((2,2,2)\) and \((7,5,7)\). Both lie in \(C(A)\) and they are independent. Since \(\dim C(A) = 2\), they must form a basis.</li>
+</ul>
+<p><strong>Rank equals the dimension of the column space:</strong>
+<div class="math-display">\[\text{rank}(A) = r = \#\text{pivot columns} = \dim C(A) = 2\]</div>
+</p>
+<h3>Nullspace</h3>
+<p><strong>Free variables:</strong> \(x_3\) and \(x_4\). Each gives one special solution:
+<div class="math-display">\[s_1 = \begin{bmatrix} -1 \\ -1 \\ 1 \\ 0 \end{bmatrix}, \qquad s_2 = \begin{bmatrix} -1 \\ 0 \\ 0 \\ 1 \end{bmatrix}\]</div>
+</p>
+<p><strong>Reading them.</strong></p>
+<ul>
+<li>\(s_1\) says column 3 minus column 1 minus column 2 equals 0.</li>
+<li>\(s_2\) says column 4 minus column 1 equals 0.</li>
+</ul>
+<p>Each special solution records one way the columns are dependent.</p>
+<p><strong>Basis.</strong> The special solutions are independent and span \(N(A)\), so they form a basis for \(N(A)\).</p>
+<p><strong>Dimension of the nullspace:</strong>
+<div class="math-display">\[\dim N(A) = \#\text{free variables} = n - r = 4 - 2 = 2\]</div>
+</p>
+<hr />
+<h2>Summary of definitions</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Applies to</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Independent</strong></td>
+<td>a set of vectors</td>
+<td>Only the zero combination gives \(0\)</td>
+</tr>
+<tr>
+<td><strong>Span</strong></td>
+<td>a set of vectors</td>
+<td>The space equals all their combinations</td>
+</tr>
+<tr>
+<td><strong>Basis</strong></td>
+<td>a set of vectors</td>
+<td>Independent and spanning</td>
+</tr>
+<tr>
+<td><strong>Dimension</strong></td>
+<td>a space</td>
+<td>The number of vectors in any basis</td>
+</tr>
+<tr>
+<td><strong>Rank</strong></td>
+<td>a matrix</td>
+<td>The number of pivots, equal to \(\dim C(A)\)</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Big ideas from Lecture 9</h2>
+<ol>
+<li><strong>\(n &gt; m\) forces dependence.</strong> If \(n &gt; m\), then \(Ax = 0\) has nonzero solutions. So more than \(m\) vectors in \(\mathbb{R}^m\) are always dependent.</li>
+<li><strong>Columns are independent exactly when</strong> \(N(A) = \{0\}\), equivalently when \(r = n\).</li>
+<li><strong>Basis = independent + spanning.</strong> A basis is not unique, but every basis of a space has the same size, and that size is the dimension.</li>
+<li><strong>\(\dim C(A) = r\).</strong> The pivot columns form a basis for \(C(A)\).</li>
+<li><strong>\(\dim N(A) = n - r\).</strong> The special solutions form a basis for \(N(A)\).</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-08.html"><small>Previous</small>L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a><a class="next" href="lecture-10.html"><small>Next</small>L10 · The Four Fundamental Subspaces</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

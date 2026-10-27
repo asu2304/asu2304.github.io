@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 24: Markov Matrices; Fourier Series · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li class="current"><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 25 / 37</p><h1>Lecture 24: Markov Matrices; Fourier Series</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror.</p><article class="post"><p><strong>Two applications:</strong></p>
+<ol>
+<li><strong>Markov matrices.</strong> Powers of \(A\), with a steady state that comes from the eigenvalue \(\lambda = 1\).</li>
+<li><strong>Fourier series.</strong> Projection onto an orthogonal basis, carried over to an <strong>infinite-dimensional</strong> space of functions.</li>
+</ol>
+<hr />
+<h2>Part 1: Markov matrices</h2>
+<h3>Definition</h3>
+<p>A <strong>Markov matrix</strong> has two properties:</p>
+<ol>
+<li><strong>All entries are \(\ge 0\).</strong> They are probabilities.</li>
+<li><strong>Every column sums to 1.</strong> Everything is accounted for.</li>
+</ol>
+<p>Strang's invented \(3\times3\) example, written column by column:
+<div class="math-display">\[A = \begin{bmatrix} .1 &amp; .01 &amp; .3 \\ .2 &amp; .99 &amp; .3 \\ .7 &amp; 0 &amp; .4 \end{bmatrix}\]</div>
+</p>
+<p><strong>Powers stay Markov.</strong> Both properties survive multiplication, so every power \(A^k\) is also a Markov matrix.</p>
+<h3>Key facts</h3>
+<ol>
+<li><strong>\(\lambda = 1\) is always an eigenvalue.</strong></li>
+<li><strong>Every other eigenvalue has \(|\lambda| \le 1\).</strong> No eigenvalue is ever larger than 1. Strang mentions that exceptional cases with \(|\lambda| = 1\) can occur. He does not prove this fact.</li>
+<li><strong>The eigenvector \(x_1\) for \(\lambda = 1\) has no negative components.</strong> This is the <strong>steady state</strong>. Strang does not prove this fact either.</li>
+</ol>
+<p><strong>Why the steady state appears.</strong> Expand \(u_0\) in eigenvectors:
+<div class="math-display">\[u_k = A^ku_0 = c_1(1)^kx_1 + c_2\lambda_2^kx_2 + \cdots\]</div>
+</p>
+<p>When \(|\lambda_i| &lt; 1\) for \(i \ge 2\), those terms die out, and \(u_k \to c_1x_1\). As always, this argument assumes a complete set of eigenvectors.</p>
+<p><strong>Contrast with Lecture 23.</strong></p>
+<ul>
+<li>For powers \(A^k\), the <strong>steady state comes from \(\lambda = 1\)</strong>.</li>
+<li>For \(e^{At}\), it came from \(\lambda = 0\).</li>
+<li>For powers, a zero eigenvalue's component vanishes after a single step.</li>
+</ul>
+<h3>Proof that \(\lambda = 1\) is an eigenvalue</h3>
+<p><strong>Step 1: subtract \(I\).</strong> The columns of \(A\) sum to 1, so the columns of \(A - I\) <strong>sum to 0</strong>.</p>
+<p><strong>Step 2: the rows of \(A - I\) are dependent.</strong> &quot;Every column sums to 0&quot; means the sum of all the rows is the zero row:
+<div class="math-display">\[(1, 1, \dots, 1)\,(A - I) = 0\]</div>
+</p>
+<p><strong>Step 3: conclude.</strong> A square matrix with dependent rows is <strong>singular</strong>, so \(\det(A - I) = 0\) and \(\lambda = 1\) is an eigenvalue.</p>
+<p><strong>Interpretation.</strong> \((1, \dots, 1)\) lies in the <strong>left nullspace</strong> of \(A - I\). Equivalently, it is an eigenvector of \(A^\top\) with \(\lambda = 1\).</p>
+<p><strong>Finding the eigenvector of \(A\) itself.</strong> The steady state \(x_1\) lies in the <strong>nullspace</strong> of \(A - I\). It is generally a different vector from \((1, \dots, 1)\).</p>
+<h3>Side fact: \(A\) and \(A^\top\) have the same eigenvalues</h3>
+<div class="math-display">\[\det(A^\top - \lambda I) = \det\big((A - \lambda I)^\top\big) = \det(A - \lambda I)\]</div>
+<p>This uses Property 10, \(\det M^\top = \det M\), together with \((\lambda I)^\top = \lambda I\).</p>
+<p><strong>Eigenvalues match, eigenvectors don't.</strong> The same \(\lambda\)'s appear, but the eigenvectors are generally different.</p>
+<h3>Steady state for the \(3\times3\) example</h3>
+<p><strong>Strang finds it on the spot.</strong> Solving \((A - I)x = 0\) gives
+<div class="math-display">\[x_1 = (0.6,\; 33,\; 0.7)\]</div>
+</p>
+<p><strong>Check.</strong></p>
+<ul>
+<li>Row 3: \(0.7(0.6) - 0.6(0.7) = 0\).</li>
+<li>Row 1: \(-0.54 + 0.33 + 0.21 = 0\).</li>
+<li>Row 2: \(0.12 - 0.33 + 0.21 = 0\).</li>
+</ul>
+<p><strong>All components are positive</strong>, as the theory predicts.</p>
+<p><strong>Normalized</strong> so the components sum to 1: approximately \((0.017,\; 0.962,\; 0.020)\). Nearly everything ends in state 2, which keeps 99% of its population each step.</p>
+<hr />
+<h2>The California–Massachusetts example</h2>
+<p><strong>Setup.</strong> Each year, people move between two states:
+<div class="math-display">\[\begin{bmatrix} u_{\text{Cal}} \\ u_{\text{Mass}} \end{bmatrix}_{k+1} = \begin{bmatrix} .9 &amp; .2 \\ .1 &amp; .8 \end{bmatrix}\begin{bmatrix} u_{\text{Cal}} \\ u_{\text{Mass}} \end{bmatrix}_k\]</div>
+</p>
+<p><strong>Reading the columns.</strong></p>
+<ul>
+<li><strong>Column 1:</strong> 90% of Californians stay and 10% move to Massachusetts.</li>
+<li><strong>Column 2:</strong> 80% of the people in Massachusetts stay and 20% move to California.</li>
+</ul>
+<p><strong>Total population is conserved.</strong> No one is gained or lost.</p>
+<p><strong>Limitation.</strong> The same matrix applies every year.</p>
+<p><strong>Start.</strong> \(u_0 = (0, 1000)\), with everyone in Massachusetts.</p>
+<p><strong>After one step.</strong> \(u_1 = 1000 \times (\text{column 2}) = (200, 800)\). The total is still 1000.</p>
+<h3>Eigenvalues</h3>
+<p><strong>\(\lambda_1 = 1\)</strong>, as for every Markov matrix.</p>
+<p><strong>\(\lambda_2 = 0.7\)</strong>, from the trace: \(1.7 - 1\). The determinant confirms it: \(0.72 - 0.02 = 0.7\).</p>
+<h3>Eigenvectors</h3>
+<p><strong>For \(\lambda_1 = 1\):</strong> \(A - I = \begin{bmatrix} -.1 &amp; .2 \\ .1 &amp; -.2 \end{bmatrix}\), so \(x_1 = (2, 1)\). It is positive.</p>
+<p><strong>For \(\lambda_2 = 0.7\):</strong> \(A - 0.7I = \begin{bmatrix} .2 &amp; .2 \\ .1 &amp; .1 \end{bmatrix}\), so \(x_2 = (-1, 1)\).</p>
+<h3>The solution</h3>
+<p><strong>General form:</strong>
+<div class="math-display">\[u_k = c_1(1)^k\begin{bmatrix} 2 \\ 1 \end{bmatrix} + c_2(0.7)^k\begin{bmatrix} -1 \\ 1 \end{bmatrix}\]</div>
+</p>
+<p><strong>Constants from \(u_0 = (0, 1000)\):</strong> \(c_1 = \tfrac{1000}{3}\) and \(c_2 = \tfrac{2000}{3}\).</p>
+<p><strong>Check \(u_1\):</strong> \(\left(\tfrac{2000}{3} - \tfrac{1400}{3},\; \tfrac{1000}{3} + \tfrac{1400}{3}\right) = (200, 800)\). ✓</p>
+<p><strong>Steady state:</strong>
+<div class="math-display">\[u_\infty = \tfrac{1000}{3}(2, 1) \approx (667, 333)\]</div>
+
+The \((0.7)^k\) term decays away.</p>
+<h3>Row-vector convention</h3>
+<p><strong>Many texts use row vectors.</strong> In many engineering and probability texts, including most ML references, the distribution is a <strong>row vector</strong> multiplied from the left.</p>
+<p><strong>Effect on the matrix.</strong> That uses the transpose, so the <strong>rows</strong> sum to 1 instead of the columns. The stationary distribution then satisfies \(\pi P = \pi\).</p>
+<hr />
+<h2>Part 2: Projection with an orthonormal basis</h2>
+<p><strong>Setup.</strong> \(q_1, \dots, q_n\) is an orthonormal basis of \(\mathbb{R}^n\). Expand any vector \(v\):
+<div class="math-display">\[v = x_1q_1 + x_2q_2 + \cdots + x_nq_n\]</div>
+</p>
+<p><strong>Finding \(x_1\).</strong> Take the dot product of both sides with \(q_1\). Every other term gives 0, and \(q_1^\top q_1 = 1\):
+<div class="math-display">\[\boxed{x_i = q_i^\top v}\]</div>
+</p>
+<p><strong>In matrix form.</strong> The expansion is \(Qx = v\), so
+<div class="math-display">\[x = Q^{-1}v = Q^\top v\]</div>
+
+No system needs to be solved, because \(Q^{-1} = Q^\top\).</p>
+<hr />
+<h2>Part 3: Fourier series</h2>
+<p><strong>The expansion.</strong> Write a \(2\pi\)-periodic function as
+<div class="math-display">\[f(x) = a_0 + a_1\cos x + b_1\sin x + a_2\cos 2x + b_2\sin 2x + \cdots\]</div>
+</p>
+<p><strong>Fourier's idea.</strong> This is the same problem as the vector expansion above, but now:</p>
+<ul>
+<li>the <strong>vectors are functions</strong>,</li>
+<li>the <strong>basis is infinite</strong>: \(1, \cos x, \sin x, \cos 2x, \sin 2x, \dots\),</li>
+<li>the <strong>space is infinite-dimensional</strong>.</li>
+</ul>
+<h3>Inner product of functions</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Vectors</th>
+<th>Functions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(v^\top w = v_1w_1 + \cdots + v_nw_n\)</td>
+<td>\(\displaystyle\langle f, g\rangle = \int_0^{2\pi} f(x)\,g(x)\,dx\)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>What changes.</strong></p>
+<ul>
+<li>Multiplying component by component becomes multiplying the functions <strong>at every \(x\)</strong>.</li>
+<li>Summation becomes <strong>integration</strong>.</li>
+<li>The interval is \([0, 2\pi]\) because every basis function is periodic with period \(2\pi\), and \(f(x + 2\pi) = f(x)\).</li>
+</ul>
+<p><strong>The basis is orthogonal.</strong> For example:
+<div class="math-display">\[\int_0^{2\pi}\sin x\cos x\,dx = \left[\tfrac12\sin^2 x\right]_0^{2\pi} = 0\]</div>
+
+Every other pair of distinct basis functions also integrates to 0, with the help of trig identities.</p>
+<h3>Finding the coefficients</h3>
+<p><strong>Same trick as for vectors.</strong> Multiply both sides by \(\cos x\) and integrate. Every term but one gives 0:
+<div class="math-display">\[\int_0^{2\pi} f(x)\cos x\,dx = a_1\int_0^{2\pi}\cos^2 x\,dx = a_1\,\pi\]</div>
+</p>
+<p>So
+<div class="math-display">\[\boxed{a_1 = \frac{1}{\pi}\int_0^{2\pi} f(x)\cos x\,dx}\]</div>
+</p>
+<p><strong>The constant term.</strong> \(a_0\) is the <strong>average value</strong> of \(f\) over a period.</p>
+<p><strong>A precision note.</strong> Strang calls the basis &quot;orthonormal&quot;. Strictly it is only <strong>orthogonal</strong>:</p>
+<ul>
+<li>\(\int_0^{2\pi}\cos^2 x\,dx = \pi\), not 1.</li>
+<li>\(\int_0^{2\pi} 1\,dx = 2\pi\), not 1.</li>
+</ul>
+<p>This is why the formula divides by \(\pi\), and by \(2\pi\) for \(a_0\). Normalizing the basis would make the formula exactly \(x_i = q_i^\top v\).</p>
+<hr />
+<h2>Big ideas from Lecture 24</h2>
+<ol>
+<li><strong>Markov matrices</strong> have nonnegative entries and columns summing to 1.</li>
+<li><strong>\(\lambda = 1\) is always an eigenvalue.</strong> The columns of \(A - I\) sum to 0, so \((1, \dots, 1)\) is in its left nullspace.</li>
+<li><strong>Other eigenvalues</strong> satisfy \(|\lambda| \le 1\), and the \(\lambda = 1\) eigenvector is nonnegative. That eigenvector is the <strong>steady state</strong>.</li>
+<li><strong>\(\text{eig}(A) = \text{eig}(A^\top)\)</strong>, but the eigenvectors are generally different.</li>
+<li><strong>Orthonormal expansion:</strong> \(x_i = q_i^\top v\), since \(Q^{-1} = Q^\top\).</li>
+<li><strong>Fourier series</strong> are the same expansion in function space, with \(\langle f, g\rangle = \int fg\). Each coefficient is an inner product divided by the basis function's squared length.</li>
+</ol>
+<p><strong>Connection to your research.</strong></p>
+<ul>
+<li><strong>Spectral gap.</strong> The rate of convergence to the stationary distribution is set by \(|\lambda_2|\), here \(0.7^k\). The gap \(1 - |\lambda_2|\) is what controls mixing time in Markov-chain sequence tasks.</li>
+<li><strong>When convergence fails.</strong> The caveat &quot;\(|\lambda| \le 1\)&quot; is exactly where convergence can fail. A <strong>periodic</strong> chain such as \(\begin{bmatrix} 0 &amp; 1 \\ 1 &amp; 0\end{bmatrix}\) has \(\lambda = -1\) and oscillates forever. With <strong>all entries strictly positive</strong>, every other eigenvalue satisfies \(|\lambda| &lt; 1\) (Perron–Frobenius), and convergence is guaranteed.</li>
+</ul>
+</article>
+<nav class="pager"><a class="prev" href="lecture-23.html"><small>Previous</small>L23 · Differential Equations and \(e^{At}\)</a><a class="next" href="lecture-24b.html"><small>Next</small>L24b · Quiz 2 Review</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

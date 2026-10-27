@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 14: Orthogonal Vectors and Subspaces · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li class="current"><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 15 / 37</p><h1>Lecture 14: Orthogonal Vectors and Subspaces</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror.</p><article class="post"><p><strong>Chapter 4 begins: orthogonality.</strong> Strang calls it a &quot;ninety-degree chapter&quot;.</p>
+<ul>
+<li><strong>Goal 1:</strong> show that the four subspaces meet at right angles, in pairs.</li>
+<li><strong>Goal 2:</strong> set up the main problem of the chapter, which is solving \(Ax = b\) &quot;as well as possible&quot; when no exact solution exists.</li>
+</ul>
+<hr />
+<h2>1. Orthogonal vectors</h2>
+<p><strong>Test:</strong> \(x\) and \(y\) are orthogonal exactly when
+<div class="math-display">\[x^\top y = x_1y_1 + x_2y_2 + \cdots + x_ny_n = 0\]</div>
+</p>
+<p><strong>Length squared:</strong> \(\|x\|^2 = x^\top x = x_1^2 + \cdots + x_n^2\). This is positive unless \(x = 0\).</p>
+<h3>Why the dot-product test is correct (via Pythagoras)</h3>
+<p>For a right triangle with legs \(x\) and \(y\), the hypotenuse is \(x + y\), and Pythagoras says
+<div class="math-display">\[\|x\|^2 + \|y\|^2 = \|x + y\|^2\]</div>
+
+This holds <strong>only</strong> for right triangles.</p>
+<p>Expand the right side:
+<div class="math-display">\[(x+y)^\top(x+y) = x^\top x + y^\top y + x^\top y + y^\top x\]</div>
+</p>
+<p>The \(x^\top x\) and \(y^\top y\) terms cancel against the left side. For real vectors \(x^\top y = y^\top x\), so what remains is
+<div class="math-display">\[2\,x^\top y = 0 \quad\Longleftrightarrow\quad x^\top y = 0\]</div>
+</p>
+<h3>Numerical check</h3>
+<ul>
+<li>\(x = (1, 2, 3)\), so \(\|x\|^2 = 14\).</li>
+<li>\(y = (2, -1, 0)\), so \(\|y\|^2 = 5\), and \(x^\top y = 2 - 2 + 0 = 0\).</li>
+<li>\(x + y = (3, 1, 3)\), so \(\|x+y\|^2 = 19\).</li>
+<li>Pythagoras checks: \(14 + 5 = 19\).</li>
+</ul>
+<p>On the board Strang says \((1,2,3)\) &quot;has length fourteen&quot;. Strictly, \(14\) is the length <em>squared</em>; the length is \(\sqrt{14}\).</p>
+<p><strong>The zero vector is orthogonal to every vector</strong>, since \(0^\top y = 0\).</p>
+<hr />
+<h2>2. Orthogonal subspaces</h2>
+<blockquote>
+<p><strong>Definition:</strong> Subspace \(S\) is orthogonal to subspace \(T\) if <strong>every</strong> vector in \(S\) is orthogonal to <strong>every</strong> vector in \(T\).</p>
+</blockquote>
+<h3>Example: the blackboard and the floor</h3>
+<p><strong>The setup.</strong> In \(\mathbb{R}^3\), take the plane of the wall and the plane of the floor, both through the origin.</p>
+<p><strong>Not orthogonal.</strong> They share a nonzero vector along the line where they meet, and that vector is not orthogonal to itself. You can also find many non-perpendicular pairs, such as a 45° vector in the wall and a vector in the floor.</p>
+<p><strong>General consequence.</strong> Orthogonal subspaces can intersect <strong>only in \(\{0\}\)</strong>. But meeting only at \(\{0\}\) is not enough by itself to make subspaces orthogonal.</p>
+<h3>Subspaces of \(\mathbb{R}^2\)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Pair</th>
+<th>Orthogonal?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A line and the whole plane</td>
+<td><strong>Never</strong></td>
+</tr>
+<tr>
+<td>A line and \(\{0\}\)</td>
+<td><strong>Always</strong></td>
+</tr>
+<tr>
+<td>Two lines through 0</td>
+<td>Only if they meet at 90°</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2>3. Row space ⊥ nullspace</h2>
+<blockquote>
+<p><strong>The row space is orthogonal to the nullspace.</strong> The same holds for \(A^\top\), so <strong>the column space is orthogonal to the left nullspace</strong>.</p>
+</blockquote>
+<h3>Proof</h3>
+<p>Write out \(Ax = 0\) row by row:
+<div class="math-display">\[\begin{bmatrix} \text{row}_1 \\ \text{row}_2 \\ \vdots \\ \text{row}_m \end{bmatrix} x = \begin{bmatrix} 0 \\ 0 \\ \vdots \\ 0 \end{bmatrix}\]</div>
+</p>
+<p>Each entry says \((\text{row}_i)^\top x = 0\). So <strong>\(x\) is orthogonal to every row</strong>.</p>
+<p>The row space also contains all <strong>combinations</strong> of the rows. Multiply each equation by \(c_i\) and add:
+<div class="math-display">\[(c_1\,\text{row}_1 + \cdots + c_m\,\text{row}_m)^\top x = 0\]</div>
+</p>
+<p>So \(x\) is orthogonal to the entire row space.</p>
+<p><strong>Applying the same argument to \(A^\top\)</strong> shows that \(C(A)\) is orthogonal to \(N(A^\top)\) in \(\mathbb{R}^m\).</p>
+<hr />
+<h2>4. Orthogonal complements</h2>
+<p><strong>Orthogonality alone is not the whole story.</strong> Two perpendicular lines in \(\mathbb{R}^3\) are orthogonal, but they <strong>cannot</strong> be a row space and a nullspace. The dimensions must add to \(n\): \(r + (n - r) = 3\), and \(1 + 1 \neq 3\).</p>
+<h3>Example</h3>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 2 &amp; 5 \\ 2 &amp; 4 &amp; 10 \end{bmatrix}\]</div>
+<ul>
+<li>The rank is 1, so the row space is the <strong>line</strong> through \((1,2,5)\).</li>
+<li>The nullspace has dimension \(3 - 1 = 2\). It is the <strong>plane</strong> \(x_1 + 2x_2 + 5x_3 = 0\), the plane perpendicular to \((1,2,5)\).</li>
+<li>In calculus language, \((1,2,5)\) is the plane's <strong>normal vector</strong>.</li>
+<li>Row 2 adds nothing to either subspace, since it is twice row 1.</li>
+</ul>
+<h3>Definition</h3>
+<p>The <strong>orthogonal complement</strong> \(V^\perp\) of a subspace \(V\) contains <strong>all</strong> vectors orthogonal to \(V\), not just some of them.</p>
+<h3>Fundamental Theorem of Linear Algebra, Part 2</h3>
+<div class="math-display">\[N(A) = C(A^\top)^\perp \;\text{ in } \mathbb{R}^n, \qquad N(A^\top) = C(A)^\perp \;\text{ in } \mathbb{R}^m\]</div>
+<p><strong>What this means.</strong> The nullspace contains <strong>every</strong> vector perpendicular to the row space. Each pair of subspaces carves its whole space into two perpendicular pieces whose dimensions add up correctly.</p>
+<p><strong>The three parts of the theorem:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Part 1</td>
+<td>The dimensions: \(r\), \(n-r\), \(r\), \(m-r\)</td>
+</tr>
+<tr>
+<td><strong>Part 2</strong></td>
+<td><strong>The orthogonality, as orthogonal complements</strong></td>
+</tr>
+<tr>
+<td>Part 3</td>
+<td>Orthogonal bases for the subspaces (still to come)</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2>5. Preview: solving \(Ax = b\) when there is no solution</h2>
+<p><strong>The problem.</strong> In practice you often have <strong>more equations than unknowns</strong> (\(m &gt; n\)), and \(b\) contains measurement noise. Then \(b \notin C(A)\), so no exact solution exists. Yet \(b\) still contains a lot of information about \(x\).</p>
+<p><strong>Examples:</strong></p>
+<ul>
+<li>Tracking a satellite: thousands of position measurements, but only about 6 unknown parameters.</li>
+<li>Measuring a pulse rate repeatedly: one unknown, many noisy readings.</li>
+</ul>
+<p><strong>A bad approach.</strong> Throwing away equations until the system is square and solvable. No measurement deserves to be singled out as perfect while the others are discarded. You want to use all the data.</p>
+<p><strong>The equation of the chapter:</strong>
+<div class="math-display">\[\boxed{A^\top A\,\hat{x} = A^\top b}\]</div>
+</p>
+<p><strong>Notation.</strong> The hat on \(\hat{x}\) marks the &quot;best&quot; solution. What &quot;best&quot; means is explained next lecture.</p>
+<hr />
+<h2>6. The matrix \(A^\top A\)</h2>
+<p>For \(A\) of size \(m \times n\):</p>
+<ul>
+<li><strong>\(A^\top A\) is square</strong>, of size \(n \times n\).</li>
+<li><strong>\(A^\top A\) is symmetric</strong>, since \((A^\top A)^\top = A^\top A\).</li>
+</ul>
+<h3>Examples</h3>
+<p><strong>Independent columns:</strong>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 2 \\ 1 &amp; 5 \end{bmatrix} \;\Rightarrow\; A^\top A = \begin{bmatrix} 3 &amp; 8 \\ 8 &amp; 30 \end{bmatrix}\]</div>
+
+This is <strong>invertible</strong>: \((3, 8)\) is not a multiple of \((8, 30)\).</p>
+<p>Here \(Ax = b\) is 3 equations in 2 unknowns. It is solvable only when \(b\) lies in the plane \(C(A)\), and most \(b\) do not.</p>
+<p><strong>Dependent columns (rank 1):</strong>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 3 \\ 1 &amp; 3 \\ 1 &amp; 3 \end{bmatrix} \;\Rightarrow\; A^\top A = \begin{bmatrix} 3 &amp; 9 \\ 9 &amp; 27 \end{bmatrix}\]</div>
+
+This is <strong>singular</strong>, with rank 1.</p>
+<h3>Key facts</h3>
+<div class="math-display">\[N(A^\top A) = N(A), \qquad \text{rank}(A^\top A) = \text{rank}(A)\]</div>
+<blockquote>
+<p><strong>\(A^\top A\) is invertible exactly when \(A\) has independent columns.</strong></p>
+</blockquote>
+<p><strong>Proof (standard; not proved in this lecture — Strang defers it).</strong></p>
+<ul>
+<li>If \(Ax = 0\), then \(A^\top A x = 0\).</li>
+<li>Conversely, if \(A^\top A x = 0\), multiply on the left by \(x^\top\):
+<div class="math-display">\[x^\top A^\top A x = \|Ax\|^2 = 0\]</div>
+
+so \(Ax = 0\).</li>
+</ul>
+<hr />
+<h2>Big ideas from Lecture 14</h2>
+<ol>
+<li><strong>Orthogonal vectors:</strong> \(x^\top y = 0\), which is equivalent to Pythagoras holding for \(x\), \(y\), and \(x + y\).</li>
+<li><strong>Orthogonal subspaces:</strong> every vector in one is perpendicular to every vector in the other. Such subspaces can share only \(0\).</li>
+<li><strong>Row space ⊥ nullspace</strong> in \(\mathbb{R}^n\), and <strong>column space ⊥ left nullspace</strong> in \(\mathbb{R}^m\). This can be read directly from \(Ax = 0\).</li>
+<li><strong>Orthogonal complements:</strong> the dimensions add to \(n\) (or \(m\)), so each subspace contains <em>all</em> vectors perpendicular to its partner.</li>
+<li><strong>Unsolvable \(Ax = b\):</strong> the plan is to solve \(A^\top A \hat{x} = A^\top b\) instead.</li>
+<li><strong>\(A^\top A\)</strong> is square and symmetric, has the same nullspace and rank as \(A\), and is invertible exactly when the columns of \(A\) are independent.</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-13.html"><small>Previous</small>L13 · Quiz 1 Review</a><a class="next" href="lecture-15.html"><small>Next</small>L15 · Projections onto Subspaces</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

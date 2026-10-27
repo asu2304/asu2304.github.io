@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 4: Factorization into $A = LU$ · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li class="current"><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 5 / 37</p><h1>Lecture 4: Factorization into \(A = LU\)</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Topics:</strong></p>
+<ol>
+<li>Inverse of a product, and inverse of a transpose</li>
+<li><strong>\(A = LU\)</strong>, the matrix form of Gaussian elimination</li>
+<li>The cost of elimination (operation count)</li>
+<li>Permutation matrices, as a preview of row exchanges</li>
+</ol>
+<hr />
+<h2>1. Inverse of a product</h2>
+<div class="math-display">\[(AB)^{-1} = B^{-1}A^{-1}\]</div>
+<p>The inverses come in <strong>reverse order</strong>. Check it using associativity:
+<div class="math-display">\[(AB)(B^{-1}A^{-1}) = A(BB^{-1})A^{-1} = AA^{-1} = I\]</div>
+</p>
+<p>Strang's analogy: you put on socks, then shoes. To undo this, you take off the shoes first, then the socks.</p>
+<h2>2. Inverse of a transpose</h2>
+<p>Start from \(AA^{-1} = I\) and transpose both sides. A transpose of a product also reverses order, \((AB)^\top = B^\top A^\top\), and \(I^\top = I\). So
+<div class="math-display">\[(A^{-1})^\top A^\top = I \quad\Longrightarrow\quad (A^\top)^{-1} = (A^{-1})^\top\]</div>
+</p>
+<p>For a single matrix, <strong>transposing and inverting can be done in either order</strong>.</p>
+<hr />
+<h2>3. \(A = LU\) for a 2×2 matrix</h2>
+<p>Take
+<div class="math-display">\[A = \begin{bmatrix} 2 &amp; 1 \\ 8 &amp; 7 \end{bmatrix}\]</div>
+
+Strang avoids a 4 in the (2,2) position, because that would make the second pivot 0 and the matrix singular.</p>
+<p><strong>Elimination.</strong> The multiplier is 4. Subtracting 4 × row 1 from row 2 is the matrix
+<div class="math-display">\[E_{21} = \begin{bmatrix} 1 &amp; 0 \\ -4 &amp; 1 \end{bmatrix}, \qquad E_{21}A = U = \begin{bmatrix} 2 &amp; 1 \\ 0 &amp; 3 \end{bmatrix}\]</div>
+</p>
+<p><strong>Move \(E\) to the other side.</strong> Multiply both sides by \(E_{21}^{-1}\):
+<div class="math-display">\[A = E_{21}^{-1}U = LU, \qquad L = \begin{bmatrix} 1 &amp; 0 \\ 4 &amp; 1 \end{bmatrix}\]</div>
+
+The inverse has a plus sign, because it adds back what \(E_{21}\) removed.</p>
+<p><strong>What \(L\) and \(U\) look like.</strong></p>
+<ul>
+<li>\(L\) is <strong>lower triangular</strong> with 1s on the diagonal.</li>
+<li>\(U\) is <strong>upper triangular</strong> with the pivots on the diagonal.</li>
+</ul>
+<h3>The \(LDU\) variant</h3>
+<p>Pull the pivots out of \(U\) into a diagonal matrix \(D\). Dividing each row of \(U\) by its pivot leaves 1s on the diagonal:
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 0 \\ 4 &amp; 1 \end{bmatrix}\begin{bmatrix} 2 &amp; 0 \\ 0 &amp; 3 \end{bmatrix}\begin{bmatrix} 1 &amp; \tfrac12 \\ 0 &amp; 1 \end{bmatrix} = LDU\]</div>
+</p>
+<p>Now both triangular factors have 1s on the diagonal, and the pivots sit in \(D\). Strang mostly uses plain \(LU\).</p>
+<hr />
+<h2>4. \(A = LU\) for a 3×3 matrix (no row exchanges)</h2>
+<p><strong>Forward elimination as matrices:</strong>
+<div class="math-display">\[E_{32}\,E_{31}\,E_{21}\,A = U\]</div>
+</p>
+<p><strong>Moving the \(E\)'s to the right.</strong> Invert each one, in reverse order:
+<div class="math-display">\[A = E_{21}^{-1}\,E_{31}^{-1}\,E_{32}^{-1}\,U = LU\]</div>
+</p>
+<h3>Why \(L\) is better than \(E\)</h3>
+<p><strong>Example.</strong> Suppose the multiplier for step (2,1) is 2, step (3,1) needs nothing (\(E_{31} = I\)), and the multiplier for step (3,2) is 5.</p>
+<p><strong>The forward product \(E = E_{32}E_{21}\) is messy:</strong>
+<div class="math-display">\[E = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; -5 &amp; 1 \end{bmatrix}\begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -2 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -2 &amp; 1 &amp; 0 \\ \mathbf{10} &amp; -5 &amp; 1 \end{bmatrix}\]</div>
+</p>
+<p>The 10 appears because row 1 affects row 3 indirectly. Two copies of row 1 were removed from row 2, and then five copies of the new row 2 were removed from row 3. In total, 10 copies of row 1 entered row 3.</p>
+<p><strong>The inverse product \(L = E_{21}^{-1}E_{32}^{-1}\) is clean:</strong>
+<div class="math-display">\[L = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 2 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix}\begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; 5 &amp; 1 \end{bmatrix} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 2 &amp; 1 &amp; 0 \\ 0 &amp; 5 &amp; 1 \end{bmatrix}\]</div>
+</p>
+<p>In this order, the multipliers don't interfere with each other. No 10 appears.</p>
+<h3>The key result</h3>
+<blockquote>
+<p><strong>If there are no row exchanges, the multipliers go directly into \(L\).</strong></p>
+</blockquote>
+<p>Building \(L\) takes no extra work: record each multiplier \(\ell_{ij}\) in position \((i,j)\).</p>
+<p><strong>Practical consequence.</strong> As elimination proceeds, you save each new row of \(U\) and each multiplier into \(L\). After that, you no longer need \(A\), because everything is stored in \(L\) and \(U\).</p>
+<hr />
+<h2>5. How much does elimination cost?</h2>
+<p><strong>What counts as one operation:</strong> one multiply plus one subtract, as in &quot;multiply row 1 by \(\ell\) and subtract it from row \(i\)&quot;.</p>
+<p><strong>Cost step by step, for an \(n\times n\) matrix with no zeros:</strong></p>
+<ul>
+<li>The first stage clears column 1. It touches about \(n^2\) entries.</li>
+<li>The second stage works on the remaining \((n-1)\times(n-1)\) block, costing about \((n-1)^2\).</li>
+<li>The stages keep shrinking down to \(1^2\).</li>
+</ul>
+<p><strong>Total cost for \(A\):</strong>
+<div class="math-display">\[n^2 + (n-1)^2 + \cdots + 1^2 \;\approx\; \int_0^n x^2\,dx = \frac{n^3}{3}\]</div>
+</p>
+<p>The cost is not the full \(n \cdot n^2 = n^3\), because the matrices being worked on get smaller at each stage. That shrinking is where the factor \(\tfrac13\) comes from.</p>
+<p><strong>Cost for each right-hand side \(b\):</strong> about \(n^2\). This covers carrying \(b\) through elimination plus back substitution.</p>
+<p><strong>Practical consequence.</strong> Factor \(A = LU\) once, at a cost of \(\sim n^3/3\). Then each new \(b\) costs only \(\sim n^2\).</p>
+<p><strong>Comparison with determinants.</strong> Strang gives determinants a &quot;bad mark&quot;: computing them by expansion costs on the order of \(n!\), which is far worse.</p>
+<hr />
+<h2>6. Permutation matrices</h2>
+<p>Row exchanges are needed when a zero appears in a pivot position. A <strong>permutation matrix</strong> is the identity matrix with its rows reordered.</p>
+<p><strong>All 3×3 permutation matrices (there are 6):</strong></p>
+<ul>
+<li>The identity \(I\) (no exchange).</li>
+<li>Three that exchange one pair of rows: \(P_{12}\), \(P_{13}\), \(P_{23}\).</li>
+<li>Two that cycle all three rows. For example, \(\begin{bmatrix} 0&amp;1&amp;0\\0&amp;0&amp;1\\1&amp;0&amp;0\end{bmatrix}\) moves row 2 up to row 1, row 3 up to row 2, and row 1 down to row 3.</li>
+</ul>
+<p><strong>Properties:</strong></p>
+<ul>
+<li><strong>The 6 matrices form a group.</strong> The product of two permutation matrices is again on the list, and so is the inverse of any one.</li>
+<li><strong>The inverse is the transpose:</strong> \(P^{-1} = P^\top\).</li>
+<li><strong>A single exchange undoes itself.</strong> For example, \(P_{12}^{-1} = P_{12}\).</li>
+<li><strong>The count is \(n!\).</strong> There are 6 for 3×3 and 24 for 4×4.</li>
+</ul>
+<p>In the next lecture, permutation matrices are used to handle elimination when row exchanges are needed.</p>
+<hr />
+<h2>Big ideas from Lecture 4</h2>
+<ol>
+<li><strong>Reverse order:</strong> \((AB)^{-1} = B^{-1}A^{-1}\) and \((AB)^\top = B^\top A^\top\).</li>
+<li><strong>Transpose and inverse commute:</strong> \((A^\top)^{-1} = (A^{-1})^\top\).</li>
+<li><strong>\(A = LU\):</strong> \(L\) is lower triangular with 1s on the diagonal and holds the multipliers. \(U\) is upper triangular with the pivots on the diagonal. This is Gaussian elimination written as a factorization.</li>
+<li><strong>\(L\) is clean, \(E\) is not:</strong> in \(L\) the multipliers sit untouched, while in \(E\) they mix (the stray 10).</li>
+<li><strong>Cost:</strong> about \(\tfrac{n^3}{3}\) operations to factor \(A\), and about \(n^2\) for each right-hand side.</li>
+<li><strong>Permutations:</strong> there are \(n!\) of them, they form a group, and \(P^{-1} = P^\top\).</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-03.html"><small>Previous</small>L3 · Multiplication and Inverse Matrices</a><a class="next" href="lecture-05.html"><small>Next</small>L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

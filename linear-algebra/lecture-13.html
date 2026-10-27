@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 13: Quiz 1 Review · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li class="current"><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 14 / 37</p><h1>Lecture 13: Quiz 1 Review</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror. The transcript is badly garbled in places. Where it was unclear, I reconstructed the problems from the surrounding context and checked every answer independently.</p><article class="post"><p><strong>Format.</strong> Strang works through problems from old exams. The emphasis is on <strong>Chapter 3</strong>: rectangular matrices, the four subspaces, rank, and dimension.</p>
+<hr />
+<h2>Problem 1: Dimension of a span</h2>
+<p><strong>Question.</strong> \(u, v, w\) are nonzero vectors in \(\mathbb{R}^7\). What are the possible dimensions of the subspace they span?</p>
+<p><strong>Answer: 1, 2, or 3.</strong></p>
+<ul>
+<li>At most 3, because there are only three vectors.</li>
+<li>At least 1, because the vectors are nonzero. Dimension 0 would require all three to be the zero vector.</li>
+</ul>
+<hr />
+<h2>Problem 2: Block matrices built from \(U\)</h2>
+<p>\(U\) is a \(5 \times 3\) matrix in echelon form with \(r = 3\) pivots. Treat it as already in reduced form.</p>
+<p><strong>(a) What is \(N(U)\)?</strong>
+The rank equals the number of columns, so the 3 columns are independent:
+<div class="math-display">\[N(U) = \{(0,0,0)\}\]</div>
+</p>
+<p><strong>(b) \(B = \begin{bmatrix} U \\ 2U \end{bmatrix}\) (\(10 \times 3\)). What are its reduced form and rank?</strong>
+Subtract 2 × the top block from the bottom block:
+<div class="math-display">\[\begin{bmatrix} U \\ 0 \end{bmatrix}, \qquad \text{rank}(B) = 3\]</div>
+</p>
+<p><strong>(c) \(C = \begin{bmatrix} U &amp; U \\ U &amp; 0 \end{bmatrix}\) (\(10 \times 6\)). What are its reduced form and rank?</strong></p>
+<ol>
+<li>Subtract the top block row from the bottom: \(\begin{bmatrix} U &amp; U \\ 0 &amp; -U \end{bmatrix}\).</li>
+<li>Add the new bottom block row to the top: \(\begin{bmatrix} U &amp; 0 \\ 0 &amp; -U \end{bmatrix}\).</li>
+<li>Multiply the bottom block row by \(-1\): \(\begin{bmatrix} U &amp; 0 \\ 0 &amp; U \end{bmatrix}\).</li>
+</ol>
+<p>The rank is \(\text{rank}(C) = 6\).</p>
+<p>One last cosmetic step for true reduced form: each \(U\) has zero rows, and those would be moved to the bottom.</p>
+<p><strong>(d) What is \(\dim N(C^\top)\)?</strong>
+\(C\) is \(10 \times 6\), so \(m = 10\). Therefore
+<div class="math-display">\[\dim N(C^\top) = m - r = 10 - 6 = 4\]</div>
+</p>
+<hr />
+<h2>Problem 3: Reconstructing \(A\) from its complete solution</h2>
+<p><strong>Given.</strong> The complete solution of \(Ax = (2,4,2)\) is
+<div class="math-display">\[x = \begin{bmatrix}2\\0\\0\end{bmatrix} + c\begin{bmatrix}1\\1\\0\end{bmatrix} + d\begin{bmatrix}0\\0\\1\end{bmatrix}\]</div>
+</p>
+<p><strong>Rank and dimensions.</strong></p>
+<ul>
+<li>Two independent vectors span the nullspace, so \(\dim N(A) = 2\).</li>
+<li>\(A\) has 3 columns, so \(r = 3 - 2 = 1\).</li>
+<li>The row space therefore has dimension 1.</li>
+</ul>
+<p><strong>Recovering \(A\), one column at a time.</strong></p>
+<ul>
+<li>\(A(2,0,0) = (2,4,2)\) gives 2 × column 1 = \((2,4,2)\), so <strong>column 1 is \((1,2,1)\)</strong>.</li>
+<li>\((0,0,1) \in N(A)\) means column 3 times 1 gives zero, so <strong>column 3 is \(0\)</strong>.</li>
+<li>\((1,1,0) \in N(A)\) means column 1 + column 2 = 0, so <strong>column 2 is \(-(1,2,1)\)</strong>.</li>
+</ul>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; -1 &amp; 0 \\ 2 &amp; -2 &amp; 0 \\ 1 &amp; -1 &amp; 0 \end{bmatrix}\]</div>
+<p><strong>For which \(b\) is \(Ax = b\) solvable?</strong>
+Exactly when \(b \in C(A)\), that is, when <strong>\(b\) is a multiple of \((1,2,1)\)</strong>. The given \(b = (2,4,2)\) is such a multiple, which is consistent.</p>
+<p><strong>The lesson.</strong> A complete solution \(x_p + x_n\) carries a lot of information about \(A\).</p>
+<hr />
+<h2>Problem 4: Null space of a product</h2>
+<div class="math-display">\[B = \underbrace{\begin{bmatrix} 1 &amp; 1 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 1 &amp; 0 &amp; 1 \end{bmatrix}}_{C}\;\underbrace{\begin{bmatrix} 1 &amp; 0 &amp; -1 &amp; 2 \\ 0 &amp; 1 &amp; 1 &amp; -1 \\ 0 &amp; 0 &amp; 0 &amp; 0 \end{bmatrix}}_{D}\]</div>
+<p>\(B\) is \(3 \times 4\), so \(N(B)\) is a subspace of \(\mathbb{R}^4\).</p>
+<h3>Key fact: an invertible left factor doesn't change the nullspace</h3>
+<blockquote>
+<p><strong>If \(C\) is invertible, then \(N(CD) = N(D)\).</strong></p>
+</blockquote>
+<p><strong>Proof, in both directions.</strong></p>
+<ul>
+<li>If \(Dx = 0\), then \(CDx = C\,0 = 0\).</li>
+<li>If \(CDx = 0\), multiply on the left by \(C^{-1}\) to get \(Dx = 0\).</li>
+</ul>
+<p><strong>\(C\) is invertible here.</strong> The middle column is \((1,1,0)\). In any combination of the columns that gives zero, look at the second row: only the middle column has a nonzero entry there, so its coefficient must be 0. The remaining two columns, \((1,0,1)\) and \((0,0,1)\), are clearly independent. Alternatively, \(\det C = 1\).</p>
+<h3>Basis for \(N(B)\)</h3>
+<p><strong>Read it from \(D\).</strong> \(D\) is already in reduced form, with pivot columns 1, 2 and free columns 3, 4. The rank is 2.</p>
+<p><strong>Special solutions:</strong></p>
+<ul>
+<li>Set \(x_3 = 1\): \(s_1 = (1, -1, 1, 0)\).</li>
+<li>Set \(x_4 = 1\): \(s_2 = (-2, 1, 0, 1)\).</li>
+</ul>
+<p><strong>Check with \(-F\).</strong> The free block of \(D\) is \(F = \begin{bmatrix} -1 &amp; 2 \\ 1 &amp; -1 \end{bmatrix}\). The pivot entries of the special solutions are exactly \(-F\).</p>
+<h3>Complete solution of \(Bx = (1, 0, 1)\)</h3>
+<p><strong>A particular solution.</strong> Column 1 of \(B\) is \(C \cdot (\text{column 1 of } D) = C\,(1,0,0)^\top = (1,0,1)\), which equals \(b\). So \(x_p = (1,0,0,0)\).</p>
+<p><strong>The complete solution:</strong>
+<div class="math-display">\[x = \begin{bmatrix}1\\0\\0\\0\end{bmatrix} + c\begin{bmatrix}1\\-1\\1\\0\end{bmatrix} + d\begin{bmatrix}-2\\1\\0\\1\end{bmatrix}\]</div>
+</p>
+<p><strong>Any solution can serve as \(x_p\).</strong> A student asked about this. &quot;Particular&quot; means <em>one</em> solution, not a specific required one. You pick the most convenient. The pattern &quot;particular solution plus nullspace&quot; holds for all linear systems, not just matrices.</p>
+<hr />
+<h2>True / False round</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Statement</th>
+<th>Answer</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(A\) square and \(N(A) = \{0\}\) \(\Rightarrow\) \(N(A^\top) = \{0\}\)</td>
+<td><strong>True</strong></td>
+<td>Full rank: \(r = n = m\)</td>
+</tr>
+<tr>
+<td>Invertible \(5\times5\) matrices form a subspace of the 25-dimensional space \(M\)</td>
+<td><strong>False</strong></td>
+<td>The zero matrix isn't invertible, and sums can be singular. Singular matrices don't form a subspace either, because sums can be invertible.</td>
+</tr>
+<tr>
+<td>\(B^2 = 0 \Rightarrow B = 0\)</td>
+<td><strong>False</strong></td>
+<td>\(B = \begin{bmatrix} 0 &amp; 1 \\ 0 &amp; 0 \end{bmatrix}\) has \(B^2 = 0\). Strang flags this matrix as a recurring source of trouble later in the course.</td>
+</tr>
+<tr>
+<td>\(m \times m\) system with independent columns is solvable for every \(b\)</td>
+<td><strong>True</strong></td>
+<td>Rank \(m\), so the matrix is invertible</td>
+</tr>
+<tr>
+<td>\(m = n\) \(\Rightarrow\) row space = column space</td>
+<td><strong>False</strong></td>
+<td>For \(\begin{bmatrix} 0&amp;1\\0&amp;0 \end{bmatrix}\), the row space is multiples of \((0,1)\) and the column space is multiples of \((1,0)\). It is true for symmetric matrices.</td>
+</tr>
+<tr>
+<td>\(A\) and \(-A\) have the same four subspaces</td>
+<td><strong>True</strong></td>
+<td>Scaling by \(-1\) changes neither the spans nor the nullspaces</td>
+</tr>
+<tr>
+<td>Same four subspaces \(\Rightarrow\) \(A\) is a multiple of \(B\)</td>
+<td><strong>False</strong></td>
+<td>Any two invertible \(6\times6\) matrices share the same subspaces: \(\mathbb{R}^6\), \(\mathbb{R}^6\), \(\{0\}\), \(\{0\}\). They do share the same rank.</td>
+</tr>
+<tr>
+<td>Exchanging two rows of \(A\) preserves which subspaces?</td>
+<td><strong>Row space and nullspace</strong></td>
+<td>The column space generally changes</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2>Closing question: a preview of orthogonality</h2>
+<p><strong>Question.</strong> Why can't \(v = (1,2,3)\) be both <strong>a row of \(A\)</strong> and <strong>in \(N(A)\)</strong>?</p>
+<p><strong>Answer.</strong> If \((1,2,3)\) were a row of \(A\), then that row's entry in \(Av\) would be
+<div class="math-display">\[1\cdot1 + 2\cdot2 + 3\cdot3 = 14 \neq 0\]</div>
+
+So \(Av \neq 0\), and \(v \notin N(A)\).</p>
+<p><strong>The general fact.</strong> The row space and the nullspace, both subspaces of \(\mathbb{R}^n\), <strong>share only the zero vector</strong>. More strongly, <strong>the nullspace is perpendicular to the row space</strong>. This is the topic of Lecture 14.</p>
+<hr />
+<h2>Review checklist</h2>
+<ol>
+<li><strong>Four dimensions:</strong> \(\dim C(A) = \dim C(A^\top) = r\), \(\dim N(A) = n - r\), \(\dim N(A^\top) = m - r\).</li>
+<li><strong>Complete solution</strong> \(x = x_p + x_n\). This form can be used in reverse to reconstruct \(A\).</li>
+<li><strong>Invertible factors:</strong> \(N(CD) = N(D)\) when \(C\) is invertible.</li>
+<li><strong>Block elimination:</strong> the same row operations work on blocks.</li>
+<li><strong>Sets that are not subspaces:</strong> invertible matrices, singular matrices, matrices of a fixed rank.</li>
+<li><strong>Row operations</strong> preserve the row space and the nullspace, but not the column space.</li>
+<li><strong>Full-rank cases:</strong> don't overlook \(r = m\) and \(r = n\).</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-12.html"><small>Previous</small>L12 · Graphs, Networks, Incidence Matrices</a><a class="next" href="lecture-14.html"><small>Next</small>L14 · Orthogonal Vectors and Subspaces</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

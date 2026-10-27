@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 24b: Quiz 2 Review · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li class="current"><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 26 / 37</p><h1>Lecture 24b: Quiz 2 Review</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror. Where Strang stops short of a final number, I've finished the computation and marked it as mine.</p><article class="post"><p><strong>What the quiz covers.</strong></p>
+<ul>
+<li><strong>Chapter 4, orthogonality:</strong> \(Q^\top Q = I\), projections, least squares, Gram–Schmidt.</li>
+<li><strong>Chapter 5, determinants:</strong> Properties 1–10, the big formula, cofactors, the inverse formula.</li>
+<li><strong>Sections 6.1–6.2:</strong> eigenvalues and eigenvectors, \(A = S\Lambda S^{-1}\), powers \(A^k\).</li>
+<li><strong>Not covered:</strong> differential equations (Section 6.3), which go on Quiz 3.</li>
+</ul>
+<p><strong>Format.</strong> As in Lecture 13, Strang works through problems from old exams, mainly 1984 and 1992.</p>
+<hr />
+<h2>Problem 1: Projection onto a line, then iterating it (1984)</h2>
+<p><strong>Setup.</strong> \(a = (2, 1, 2)\). Find \(P\), the projection matrix onto the line through \(a\).</p>
+<h3>(a) The projection matrix</h3>
+<p>For a single column, the general formula \(A(A^\top A)^{-1}A^\top\) reduces to \(\dfrac{aa^\top}{a^\top a}\). Here \(a^\top a = 9\):
+<div class="math-display">\[P = \frac{aa^\top}{a^\top a} = \frac19\begin{bmatrix} 4 &amp; 2 &amp; 4 \\ 2 &amp; 1 &amp; 2 \\ 4 &amp; 2 &amp; 4 \end{bmatrix}\]</div>
+</p>
+<h3>(b) Rank, column space, eigenvalues</h3>
+<ul>
+<li><strong>Rank:</strong> 1.</li>
+<li><strong>Column space:</strong> the line through \(a\).</li>
+<li><strong>\(\lambda = 0\), repeated twice.</strong> \(P\) has rank 1, so its nullspace is 2-dimensional. That gives two independent eigenvectors with \(\lambda = 0\).</li>
+<li><strong>\(\lambda = 1\).</strong> Two ways to see it:
+<ul>
+<li>The trace is \(9/9 = 1\), and the other two eigenvalues are 0.</li>
+<li>\(Pa = a\), because the projection leaves \(a\) in place. So <strong>\(a\) is the eigenvector for \(\lambda = 1\)</strong>.</li>
+</ul>
+</li>
+</ul>
+<h3>(c) Solve \(u_{k+1} = Pu_k\) with \(u_0 = (9, 9, 0)\)</h3>
+<p><strong>First step:</strong>
+<div class="math-display">\[u_1 = Pu_0 = \frac{a^\top u_0}{a^\top a}\,a = \frac{27}{9}\,a = 3a = (6, 3, 6)\]</div>
+</p>
+<p><strong>All later steps.</strong> \(u_1\) already lies on the line, and \(P^2 = P\), so projecting again changes nothing:
+<div class="math-display">\[u_k = (6, 3, 6) \quad\text{for all } k \geq 1\]</div>
+</p>
+<p><strong>For a general matrix, not a projection,</strong> use the full method:
+<div class="math-display">\[u_0 = c_1x_1 + c_2x_2 + c_3x_3, \qquad u_k = c_1\lambda_1^kx_1 + c_2\lambda_2^kx_2 + c_3\lambda_3^kx_3\]</div>
+
+That means finding all the \(\lambda\)'s, all the \(x\)'s, and the \(c\)'s.</p>
+<p>For this \(P\), two eigenvalues are 0, so those terms vanish after one step. The remaining term is \(c_3(1)^kx_3\), which stays constant.</p>
+<hr />
+<h2>Problem 2: Least squares and Gram–Schmidt (1984)</h2>
+<h3>(a) Best line through the origin</h3>
+<p><strong>Data.</strong> \((t, y) = (1, 4),\ (2, 5),\ (3, 8)\). The model is \(y = Dt\), with <strong>one</strong> unknown \(D\).</p>
+<p><strong>The equations we'd like to solve:</strong>
+<div class="math-display">\[\begin{bmatrix} 1 \\ 2 \\ 3 \end{bmatrix} D = \begin{bmatrix} 4 \\ 5 \\ 8 \end{bmatrix}\]</div>
+</p>
+<p><strong>Normal equation.</strong> \(A^\top A\hat{D} = A^\top b\), with \(A^\top A = 14\) and \(A^\top b = 4 + 10 + 24 = 38\):
+<div class="math-display">\[\hat{D} = \frac{38}{14} = \frac{19}{7}\]</div>
+</p>
+<h3>(b) Which vector is projected onto which line?</h3>
+<p>Strang stresses that least squares has <strong>two different pictures</strong>.</p>
+<p><strong>Picture 1: the \(t\)–\(y\) plane.</strong> It shows the three data points and the fitted line. There is <strong>no projection</strong> in this picture. The points are not being projected onto the line.</p>
+<p><strong>Picture 2: \(\mathbb{R}^3\).</strong> The <strong>vector \(b = (4, 5, 8)\) is projected onto the line through \((1, 2, 3)\)</strong>, which is \(C(A)\). \(\hat{D}\) is the multiple of \((1,2,3)\) that gives the projection.</p>
+<h3>(c) Gram–Schmidt</h3>
+<p><strong>Setup.</strong> Make \(a_1 = (1, 2, 3)\) and \(a_2 = (1, 1, 1)\) orthogonal, staying in the plane they span.</p>
+<p><strong>Keep \(a_1\).</strong> Then subtract from \(a_2\) its projection onto \(a_1\):
+<div class="math-display">\[B = a_2 - \frac{a_1^\top a_2}{a_1^\top a_1}\,a_1 = (1,1,1) - \frac{6}{14}(1,2,3)\]</div>
+</p>
+<p><strong>Finishing the arithmetic (my computation):</strong>
+<div class="math-display">\[B = \left(\tfrac47,\; \tfrac17,\; -\tfrac27\right)\]</div>
+
+Check: \(a_1^\top B = \tfrac{4 + 2 - 6}{7} = 0\).</p>
+<p><strong>No square roots.</strong> Only orthogonality was asked for, so there is no need to normalize.</p>
+<p><strong>Not unique.</strong> Any rotation of this orthogonal pair within the same plane would also work.</p>
+<hr />
+<h2>Problem 3: Eigenvalue facts (1984)</h2>
+<p>\(A\) is \(4\times4\) with eigenvalues \(\lambda_1, \lambda_2, \lambda_3, \lambda_4\).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Answer</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>When is \(A\) invertible?</td>
+<td>No \(\lambda_i = 0\)</td>
+<td>\(\lambda = 0\) means a nonzero vector in the nullspace</td>
+</tr>
+<tr>
+<td>\(\det(A^{-1})\)?</td>
+<td>\(\dfrac{1}{\lambda_1\lambda_2\lambda_3\lambda_4}\)</td>
+<td>The eigenvalues of \(A^{-1}\) are \(1/\lambda_i\), and det = product of eigenvalues</td>
+</tr>
+<tr>
+<td>\(\text{trace}(A + I)\)?</td>
+<td>\(\lambda_1 + \lambda_2 + \lambda_3 + \lambda_4 + 4\)</td>
+<td>Adding \(I\) shifts every eigenvalue by 1</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2>Problem 4: Tridiagonal determinants and period 6 (1984)</h2>
+<p><strong>The family.</strong> \(A_n\) has 1s on the main diagonal and on the diagonals just above and below. Write \(D_n = \det A_n\).</p>
+<h3>(a) Recurrence by cofactors</h3>
+<p>Expand along row 1:</p>
+<ul>
+<li><strong>The \((1,1)\) entry</strong> contributes \(1 \cdot D_{n-1}\).</li>
+<li><strong>The \((1,2)\) entry</strong> sits in a minus position. Its minor has a single 1 at the top of its first column, so expanding down that column gives \(D_{n-2}\). The contribution is \(-D_{n-2}\).</li>
+</ul>
+<div class="math-display">\[D_n = D_{n-1} - D_{n-2}, \qquad D_1 = 1,\; D_2 = 0\]</div>
+<p>This is the same result as in Lecture 19.</p>
+<h3>(b) Write it as a first-order system</h3>
+<p>Use the vector unknown \((D_n, D_{n-1})\), as with Fibonacci:
+<div class="math-display">\[\begin{bmatrix} D_n \\ D_{n-1} \end{bmatrix} = \underbrace{\begin{bmatrix} 1 &amp; -1 \\ 1 &amp; 0 \end{bmatrix}}_{A}\begin{bmatrix} D_{n-1} \\ D_{n-2} \end{bmatrix}\]</div>
+</p>
+<h3>(c) Eigenvalues</h3>
+<div class="math-display">\[\det(A - \lambda I) = \lambda^2 - \lambda + 1 = 0 \;\Rightarrow\; \lambda = \frac{1 \pm i\sqrt3}{2}\]</div>
+<p><strong>This is not Fibonacci.</strong> The sign change in the recurrence makes the eigenvalues <strong>complex</strong>.</p>
+<p><strong>Magnitude.</strong>
+<div class="math-display">\[|\lambda|^2 = \tfrac14 + \tfrac34 = 1\]</div>
+
+Both eigenvalues lie <strong>on the unit circle</strong>:
+<div class="math-display">\[\lambda = \cos 60° \pm i\sin 60° = e^{\pm i\pi/3}\]</div>
+</p>
+<h3>(d) What happens to \(D_n\)?</h3>
+<p><strong>Sixth power.</strong> \(\lambda^6 = e^{\pm 2\pi i} = 1\).</p>
+<p><strong>So \(A^6 = I\).</strong> The two eigenvalues are distinct, so \(A\) is diagonalizable. Then
+<div class="math-display">\[A^6 = S\Lambda^6S^{-1} = SIS^{-1} = I\]</div>
+</p>
+<p><strong>Behavior.</strong> The sequence neither decays nor blows up. It <strong>cycles with period 6</strong>: \(1, 0, -1, -1, 0, 1, \dots\)</p>
+<hr />
+<h2>Problem 5: A family of matrices from the 1992 final</h2>
+<p><strong>The family.</strong> \(A_n\) is symmetric and tridiagonal, with <strong>zeros on the diagonal</strong> and off-diagonal entries \(1, 2, 3, \dots\) For example:
+<div class="math-display">\[A_3 = \begin{bmatrix} 0 &amp; 1 &amp; 0 \\ 1 &amp; 0 &amp; 2 \\ 0 &amp; 2 &amp; 0 \end{bmatrix}, \qquad A_4 = \begin{bmatrix} 0 &amp; 1 &amp; 0 &amp; 0 \\ 1 &amp; 0 &amp; 2 &amp; 0 \\ 0 &amp; 2 &amp; 0 &amp; 3 \\ 0 &amp; 0 &amp; 3 &amp; 0 \end{bmatrix}\]</div>
+</p>
+<h3>(a) Is \(A_3\) singular? What is the projection onto \(C(A_3)\)?</h3>
+<p><strong>Singular.</strong> Column 3 is \(2 \times\) column 1. So \(C(A_3)\) is a plane, and \(P\) is \(3\times3\).</p>
+<p><strong>The projection.</strong> Strang says to use \(A(A^\top A)^{-1}A^\top\), and hints that a quicker route exists.</p>
+<p><strong>The quicker route (my computation).</strong> The pivot columns \((0,1,0)\) and \((1,0,2)\) are <strong>already orthogonal</strong>. So \(P\) is just the sum of the two one-dimensional projections:
+<div class="math-display">\[P = \begin{bmatrix} 0&amp;0&amp;0 \\ 0&amp;1&amp;0 \\ 0&amp;0&amp;0 \end{bmatrix} + \frac15\begin{bmatrix} 1&amp;0&amp;2 \\ 0&amp;0&amp;0 \\ 2&amp;0&amp;4 \end{bmatrix} = \begin{bmatrix} 1/5&amp;0&amp;2/5 \\ 0&amp;1&amp;0 \\ 2/5&amp;0&amp;4/5 \end{bmatrix}\]</div>
+</p>
+<h3>(b) Eigenvalues of \(A_3\)</h3>
+<p><strong>Expand with the big formula:</strong>
+<div class="math-display">\[\det(A_3 - \lambda I) = -\lambda^3 + 5\lambda = -\lambda(\lambda^2 - 5)\]</div>
+</p>
+<ul>
+<li>The down-right products give \(-\lambda^3\).</li>
+<li>The down-left products give \(-(-\lambda - 4\lambda) = +5\lambda\).</li>
+</ul>
+<p><strong>Eigenvalues:</strong> \(\lambda = 0,\; \sqrt5,\; -\sqrt5\).</p>
+<p><strong>Strang's habit: check the trace.</strong> The eigenvalues sum to 0, matching the trace of 0. He also notes the limitation of this check: it would not have caught an error that changed \(5\lambda\) to \(4\lambda\), since that still gives eigenvalues summing to 0.</p>
+<h3>(c) Projection onto \(C(A_4)\)</h3>
+<p>The exam said this is &quot;not difficult&quot;. Strang wonders aloud whether that comment was meant to be helpful or insulting.</p>
+<p><strong>The trick.</strong> If \(A_4\) is invertible, then \(C(A_4) = \mathbb{R}^4\), and the projection is <strong>\(P = I\)</strong>.</p>
+<p><strong>Check invertibility with cofactors.</strong></p>
+<ul>
+<li>Row 1 has a single nonzero entry, \(a_{12} = 1\), in a minus position.</li>
+<li>Its minor has a single nonzero entry in its first column, a 1, and its own minor is \(\begin{vmatrix} 0 &amp; 3 \\ 3 &amp; 0 \end{vmatrix} = -9\).</li>
+<li>Tracking the signs gives:</li>
+</ul>
+<div class="math-display">\[\det A_4 = 9 \neq 0\]</div>
+<p>So \(A_4\) is invertible and \(P = I\).</p>
+<p><strong>Strang's guess.</strong> Odd-numbered members of the family are singular, and even-numbered ones are invertible.</p>
+<p><strong>Confirming the guess (my addition).</strong></p>
+<ul>
+<li><strong>Odd \(n\) is always singular.</strong> The eigenvalues of a zero-diagonal symmetric tridiagonal matrix come in \(\pm\) pairs. With an odd count, one of them must be 0.</li>
+<li><strong>Even \(n\) is always invertible.</strong> The determinant is \(\pm(b_1b_3b_5\cdots)^2\), where \(b_1, b_3, \dots\) are the 1st, 3rd, 5th, … off-diagonal entries. For \(n = 4\) this is \((1 \cdot 3)^2 = 9\). Since every \(b_i \neq 0\), the determinant is never zero.</li>
+</ul>
+<hr />
+<h2>Quick review checklist</h2>
+<ol>
+<li><strong>Projection onto a line:</strong> \(P = aa^\top/a^\top a\). It has rank 1, eigenvalues \(1, 0, \dots, 0\), and \(Pa = a\).</li>
+<li><strong>Projections are idempotent:</strong> \(P^k = P\), so \(u_{k+1} = Pu_k\) stops changing after one step.</li>
+<li><strong>Least squares:</strong> solve \(A^\top A\hat{x} = A^\top b\). The geometric picture is \(b\) projected onto \(C(A)\) in \(\mathbb{R}^m\), not points projected onto the fitted line.</li>
+<li><strong>Gram–Schmidt:</strong> \(B = a_2 - \dfrac{a_1^\top a_2}{a_1^\top a_1}a_1\).</li>
+<li><strong>Eigenvalue shortcuts:</strong>
+<ul>
+<li>\(\det = \prod\lambda_i\) and \(\text{trace} = \sum\lambda_i\).</li>
+<li>\(A^{-1}\) has eigenvalues \(1/\lambda_i\).</li>
+<li>\(A + cI\) has eigenvalues \(\lambda_i + c\).</li>
+</ul>
+</li>
+<li><strong>Recurrences:</strong> convert to \(u_{k+1} = Au_k\). Then \(|\lambda| &gt; 1\) grows, \(|\lambda| &lt; 1\) decays, and \(|\lambda| = 1\) oscillates. For example, \(e^{\pm i\pi/3}\) gives period 6.</li>
+<li><strong>Invertible means \(C(A)\) is the whole space</strong>, so the projection onto it is \(I\).</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-24.html"><small>Previous</small>L24 · Markov Matrices; Fourier Series</a><a class="next" href="lecture-25.html"><small>Next</small>L25 · Symmetric Matrices and Positive Definiteness</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

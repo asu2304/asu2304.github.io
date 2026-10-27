@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 6: Column Space and Nullspace · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li class="current"><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 7 / 37</p><h1>Lecture 6: Column Space and Nullspace</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Topics:</strong></p>
+<ol>
+<li>Review of subspaces, plus unions vs. intersections.</li>
+<li><strong>Column space \(C(A)\)</strong>, which tells you <em>which \(b\)</em> make \(Ax = b\) solvable.</li>
+<li><strong>Nullspace \(N(A)\)</strong>, which is <em>all \(x\)</em> that solve \(Ax = 0\).</li>
+<li>Why the solutions of \(Ax = b\) with \(b \neq 0\) do <strong>not</strong> form a subspace.</li>
+</ol>
+<hr />
+<h2>1. Subspace review</h2>
+<p><strong>Requirement.</strong> A subspace must be closed under linear combinations: if \(v, w\) are in it, so is \(cv + dw\).</p>
+<p><strong>Subspaces of \(\mathbb{R}^3\):</strong> all of \(\mathbb{R}^3\), any plane \(P\) through \(0\), any line \(L\) through \(0\), and \(\{0\}\).</p>
+<h3>Union vs. intersection</h3>
+<p>Let \(P\) be a plane and \(L\) a line, both through 0, with \(L\) not inside \(P\).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Set</th>
+<th>Subspace?</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(P \cup L\) (in \(P\) <strong>or</strong> \(L\))</td>
+<td><strong>No</strong></td>
+<td>Add a vector from \(P\) to one from \(L\). The sum usually lies in neither.</td>
+</tr>
+<tr>
+<td>\(P \cap L\) (in <strong>both</strong>)</td>
+<td><strong>Yes</strong></td>
+<td>Here it is just \(\{0\}\), which is a subspace.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>General fact.</strong> For any subspaces \(S\) and \(T\), the intersection \(S \cap T\) is a subspace.</p>
+<p><strong>Proof.</strong> Take \(v, w \in S \cap T\).</p>
+<ul>
+<li>\(v + w \in S\), because \(S\) is a subspace. Likewise \(v + w \in T\). So \(v + w \in S \cap T\).</li>
+<li>\(cv \in S\) and \(cv \in T\) for the same reason. So \(cv \in S \cap T\).</li>
+</ul>
+<p>The intersection is usually smaller, but it is always a subspace.</p>
+<hr />
+<h2>2. The column space \(C(A)\)</h2>
+<p><strong>Example:</strong>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 1 &amp; 2 \\ 2 &amp; 1 &amp; 3 \\ 3 &amp; 1 &amp; 4 \\ 4 &amp; 1 &amp; 5 \end{bmatrix} \quad (4 \times 3)\]</div>
+</p>
+<p><strong>Definition.</strong> \(C(A)\) is the set of <strong>all linear combinations of the columns</strong> of \(A\).</p>
+<ul>
+<li>Here the columns have 4 components, so \(C(A)\) is a subspace of \(\mathbb{R}^4\).</li>
+<li>In general, an \(m \times n\) matrix has \(C(A) \subseteq \mathbb{R}^m\).</li>
+</ul>
+<p><strong>Does \(C(A)\) fill all of \(\mathbb{R}^4\)?</strong> No. Combinations of 3 vectors cannot fill a 4-dimensional space.</p>
+<h3>Connection to \(Ax = b\)</h3>
+<div class="math-display">\[x_1\begin{bmatrix}1\\2\\3\\4\end{bmatrix} + x_2\begin{bmatrix}1\\1\\1\\1\end{bmatrix} + x_3\begin{bmatrix}2\\3\\4\\5\end{bmatrix} = \begin{bmatrix}b_1\\b_2\\b_3\\b_4\end{bmatrix}\]</div>
+<p>This is 4 equations in 3 unknowns, so <strong>not every \(b\)</strong> has a solution. Some \(b\) do:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>\(b\)</th>
+<th>Solution \(x\)</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\((0,0,0,0)\)</td>
+<td>\((0,0,0)\)</td>
+<td>Always works</td>
+</tr>
+<tr>
+<td>\((1,2,3,4)\)</td>
+<td>\((1,0,0)\)</td>
+<td>\(b\) is column 1</td>
+</tr>
+<tr>
+<td>\((1,1,1,1)\)</td>
+<td>\((0,1,0)\)</td>
+<td>\(b\) is column 2</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Strang's tip.</strong> Pick any \(x\) first, then compute \(Ax\). That \(Ax\) is automatically a good \(b\).</p>
+<blockquote>
+<p><strong>Key result: \(Ax = b\) is solvable exactly when \(b \in C(A)\).</strong></p>
+<p>\(C(A)\) is precisely the set of all products \(Ax\). If \(b\) is a combination of the columns, the weights in that combination give \(x\). If \(b\) is not a combination, no \(x\) exists.</p>
+</blockquote>
+<h3>How big is \(C(A)\) here?</h3>
+<p><strong>Column 3 adds nothing.</strong> Column 3 equals column 1 plus column 2. It lies in the plane of the first two and contributes no new direction.</p>
+<p><strong>Result.</strong> \(C(A)\) is a <strong>2-dimensional subspace (a plane) of \(\mathbb{R}^4\)</strong>.</p>
+<p><strong>Which column to drop.</strong> You could drop column 1 instead, since it equals column 3 minus column 2. But the convention is to keep the earliest columns that are independent. Strang previews that these will be called <strong>pivot columns</strong>, here columns 1 and 2. The words &quot;independent&quot; and &quot;dependent&quot; are previewed but not yet defined.</p>
+<hr />
+<h2>3. The nullspace \(N(A)\)</h2>
+<p><strong>Definition.</strong> \(N(A)\) is the set of <strong>all solutions \(x\) to \(Ax = 0\)</strong>.</p>
+<ul>
+<li>It contains \(x\)'s, not \(b\)'s.</li>
+<li>So \(N(A) \subseteq \mathbb{R}^n\), where \(n\) is the number of columns (unknowns).</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Subspace</th>
+<th>Contains</th>
+<th>Lives in (for \(m\times n\) \(A\))</th>
+<th>Here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(C(A)\)</td>
+<td>right-hand sides \(b\)</td>
+<td>\(\mathbb{R}^m\)</td>
+<td>\(\mathbb{R}^4\)</td>
+</tr>
+<tr>
+<td>\(N(A)\)</td>
+<td>solutions \(x\) of \(Ax=0\)</td>
+<td>\(\mathbb{R}^n\)</td>
+<td>\(\mathbb{R}^3\)</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Finding \(N(A)\) for the example</h3>
+<p><strong>Always present:</strong> \(x = 0\).</p>
+<p><strong>One nonzero solution.</strong> Since \(\text{col}_1 + \text{col}_2 - \text{col}_3 = 0\), the vector \((1, 1, -1)\) works.</p>
+<p><strong>All solutions.</strong> Every multiple works:
+<div class="math-display">\[N(A) = \left\{ c\begin{bmatrix}1\\1\\-1\end{bmatrix} : c \in \mathbb{R} \right\}\]</div>
+</p>
+<p>So \(N(A)\) is a <strong>line through the origin in \(\mathbb{R}^3\)</strong>.</p>
+<h3>Why \(N(A)\) is always a subspace</h3>
+<p>Suppose \(Av = 0\) and \(Aw = 0\).</p>
+<ul>
+<li><strong>Sums:</strong> \(A(v + w) = Av + Aw = 0 + 0 = 0\). This uses the distributive law.</li>
+<li><strong>Multiples:</strong> \(A(cv) = c(Av) = c \cdot 0 = 0\).</li>
+</ul>
+<p>Both requirements hold for any matrix \(A\).</p>
+<hr />
+<h2>4. Solutions of \(Ax = b\) with \(b \neq 0\) are not a subspace</h2>
+<p>Take \(b = (1,2,3,4)\).</p>
+<p><strong>Solutions exist.</strong> For example:</p>
+<ul>
+<li>\((1, 0, 0)\)</li>
+<li>\((0, -1, 1)\), because column 3 minus column 2 equals \((1,2,3,4)\)</li>
+</ul>
+<p><strong>But they do not form a subspace.</strong> The zero vector is not a solution, since \(A \cdot 0 = 0 \neq b\).</p>
+<p><strong>What the solution set looks like.</strong> Strang describes it as a line or plane that does not pass through the origin. For this example it is the line \((1,0,0) + c(1,1,-1)\): the nullspace line, shifted away from the origin. This form follows from the example; Strang develops it properly in later lectures.</p>
+<hr />
+<h2>5. Two ways to describe a subspace</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Example</th>
+<th>How it works</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Give vectors, take their combinations</strong></td>
+<td>Column space</td>
+<td>Start from the columns and fill out all combinations</td>
+</tr>
+<tr>
+<td><strong>Give equations that must hold</strong></td>
+<td>Nullspace</td>
+<td>Describe the \(x\)'s by the condition \(Ax = 0\), then work out what satisfies it</td>
+</tr>
+</tbody>
+</table></div>
+<p>Both always produce subspaces. These are the two standard ways to construct one.</p>
+<p><strong>Next lecture:</strong> a systematic method, using elimination, to compute \(N(A)\) when the matrix is too big to solve by inspection.</p>
+<hr />
+<h2>Big ideas from Lecture 6</h2>
+<ol>
+<li><strong>Intersection vs. union:</strong> the intersection of two subspaces is a subspace. The union is generally not.</li>
+<li><strong>\(C(A)\)</strong> consists of all combinations of the columns, lies in \(\mathbb{R}^m\), and <strong>\(Ax = b\) is solvable exactly when \(b \in C(A)\)</strong>.</li>
+<li><strong>Redundant columns:</strong> a column that is a combination of earlier columns adds nothing to \(C(A)\).</li>
+<li><strong>\(N(A)\)</strong> consists of all solutions of \(Ax = 0\), lies in \(\mathbb{R}^n\), and is always a subspace.</li>
+<li><strong>\(Ax = b\) with \(b \neq 0\):</strong> the solution set is not a subspace, because it does not contain 0. It is a shifted copy of \(N(A)\).</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-05.html"><small>Previous</small>L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a><a class="next" href="lecture-07.html"><small>Next</small>L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 11: Matrix Spaces; Rank 1; Small World Graphs · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li class="current"><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 12 / 37</p><h1>Lecture 11: Matrix Spaces; Rank 1; Small World Graphs</h1><p class="source-note">The OCW 2010 page has no transcript for this lecture, so this summary is based on the same lecture's transcript from an OCW mirror.</p><article class="post"><p><strong>Topics:</strong></p>
+<ol>
+<li>Vector spaces whose &quot;vectors&quot; are matrices or functions.</li>
+<li>Rank-1 matrices.</li>
+<li>A complete four-subspace example.</li>
+<li>A preview of graphs and &quot;small world&quot; networks.</li>
+</ol>
+<hr />
+<h2>1. Matrix spaces</h2>
+<p><strong>The space \(M\).</strong> \(M\) is the set of all \(3\times3\) matrices.</p>
+<ul>
+<li>You can add matrices and multiply them by scalars, so \(M\) is a vector space.</li>
+<li>Matrix multiplication is <strong>not part of the vector-space structure</strong>.</li>
+</ul>
+<h3>Basis and dimension of \(M\)</h3>
+<p><strong>The standard basis.</strong> It consists of 9 matrices, each with a single 1 and zeros elsewhere.</p>
+<p><strong>Dimension.</strong> \(\dim M = 9\).</p>
+<p>Strang notes that \(M\) is essentially \(\mathbb{R}^9\) with its nine entries arranged in a square instead of a column.</p>
+<h3>Subspaces</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Subspace</th>
+<th>Dimension</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(S\) = symmetric \(3\times3\)</td>
+<td><strong>6</strong></td>
+<td>Choose 3 diagonal entries and 3 entries above the diagonal. The entries below are then determined.</td>
+</tr>
+<tr>
+<td>\(U\) = upper triangular \(3\times3\)</td>
+<td><strong>6</strong></td>
+<td>3 diagonal entries and 3 entries above the diagonal</td>
+</tr>
+<tr>
+<td>\(D = S \cap U\) = diagonal</td>
+<td><strong>3</strong></td>
+<td>A symmetric matrix with zeros below the diagonal must also have zeros above it</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>\(S\) is closed under addition but not multiplication.</strong> The sum of two symmetric matrices is symmetric, so \(S\) is a subspace. The product of two symmetric matrices is generally not symmetric, but that doesn't matter, since products play no role here.</p>
+<h3>A basis for \(M\) need not contain a basis for a subspace</h3>
+<p><strong>For \(U\), it happens to work.</strong> Six of the nine standard basis matrices are upper triangular, and together they form a basis for \(U\).</p>
+<p><strong>For \(S\), it does not.</strong> Only 3 of the 9 standard basis matrices are symmetric: the three with a single 1 on the diagonal. A basis for \(S\) also needs matrices like
+<div class="math-display">\[\begin{bmatrix} 0&amp;1&amp;0\\1&amp;0&amp;0\\0&amp;0&amp;0\end{bmatrix}\]</div>
+
+which is <strong>not</strong> in the standard basis for \(M\).</p>
+<p>In general, you have to construct a basis for a subspace from scratch.</p>
+<h3>Union vs. sum</h3>
+<p><strong>The union \(S \cup U\) is not a subspace.</strong> Adding a symmetric matrix to an upper triangular one usually gives a matrix in neither set. Strang compares it to taking two lines in the plane and stopping there.</p>
+<p><strong>The sum fills in the gap:</strong>
+<div class="math-display">\[S + U = \{\, s + u : s \in S,\; u \in U \,\}\]</div>
+
+Here this gives <strong>all of \(M\)</strong>. Every \(3\times3\) matrix is a symmetric matrix plus an upper triangular one.</p>
+<h3>Dimension formula</h3>
+<p>For any two subspaces \(S\) and \(U\):
+<div class="math-display">\[\dim S + \dim U = \dim(S \cap U) + \dim(S + U)\]</div>
+</p>
+<p>Here: \(6 + 6 = 3 + 9\).</p>
+<hr />
+<h2>2. Function spaces: solutions of a differential equation</h2>
+<p>Consider the differential equation
+<div class="math-display">\[\frac{d^2y}{dx^2} + y = 0\]</div>
+</p>
+<p><strong>The solutions.</strong> All solutions have the form
+<div class="math-display">\[y = c_1 \cos x + c_2 \sin x\]</div>
+</p>
+<ul>
+<li>The solution set is a <strong>vector space</strong>. In effect it is the nullspace of the operator \(\frac{d^2}{dx^2} + 1\).</li>
+<li><strong>Basis:</strong> \(\{\cos x,\; \sin x\}\). These play the role of special solutions.</li>
+<li><strong>Dimension:</strong> 2. This matches the order of the equation.</li>
+</ul>
+<p><strong>Bases are not unique here either.</strong> \(\{e^{ix},\; e^{-ix}\}\) is another basis.</p>
+<p><strong>Why functions count as vectors.</strong> You can add them and multiply them by constants. Strang's remark: a course on linear differential equations is largely about finding a basis for a solution space.</p>
+<hr />
+<h2>3. Rank-1 matrices</h2>
+<p><strong>Example:</strong>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 4 &amp; 5 \\ 2 &amp; 8 &amp; 10 \end{bmatrix}\]</div>
+</p>
+<ul>
+<li>Row 2 is 2 × row 1.</li>
+<li>A basis for the row space is \((1,4,5)\).</li>
+<li>A basis for the column space is \((1,2)\).</li>
+<li>Row space and column space both have dimension \(r = 1\).</li>
+</ul>
+<p><strong>Every rank-1 matrix is a column times a row:</strong>
+<div class="math-display">\[A = \begin{bmatrix} 1 \\ 2 \end{bmatrix}\begin{bmatrix} 1 &amp; 4 &amp; 5 \end{bmatrix} = uv^\top\]</div>
+</p>
+<p><strong>Building blocks.</strong> Rank-1 matrices are the building blocks of all matrices. A matrix of rank \(r\) can be written as a <strong>sum of \(r\) rank-1 matrices</strong>. For example, a \(5\times17\) matrix of rank 4 is a sum of 4 rank-1 matrices.</p>
+<p><strong>Coming later.</strong> Determinants and eigenvalues of rank-1 matrices turn out to be easy and interesting.</p>
+<h3>Matrices of a fixed rank do not form a subspace</h3>
+<p>Take \(M\) to be all \(5 \times 17\) matrices.</p>
+<p><strong>Rank-1 matrices.</strong> The sum of two rank-1 matrices usually has rank 2. So the rank-1 matrices are <strong>not a subspace</strong>.</p>
+<p><strong>Rank-4 matrices.</strong> Same problem. The sum of two of them can have rank 5. Note that 5 is the maximum possible rank for a \(5\times17\) matrix.</p>
+<p><strong>General inequality:</strong>
+<div class="math-display">\[\text{rank}(A + B) \le \text{rank}(A) + \text{rank}(B)\]</div>
+</p>
+<hr />
+<h2>4. Worked example: all four subspaces</h2>
+<p><strong>The subspace.</strong> In \(\mathbb{R}^4\), let
+<div class="math-display">\[S = \{v : v_1 + v_2 + v_3 + v_4 = 0\}\]</div>
+</p>
+<p><strong>\(S\) is a subspace.</strong> Scaling or adding vectors whose components sum to zero gives another vector whose components sum to zero.</p>
+<p><strong>\(S\) is a nullspace.</strong> It is \(N(A)\) for the \(1 \times 4\) matrix
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 1 &amp; 1 &amp; 1 \end{bmatrix}\]</div>
+</p>
+<p><strong>Dimension.</strong> \(A\) has \(m = 1\), \(n = 4\), and \(r = 1\). So
+<div class="math-display">\[\dim S = n - r = 4 - 1 = 3\]</div>
+</p>
+<p><strong>Basis for \(S\) (the special solutions).</strong> The pivot variable is \(v_1\), and the free variables are \(v_2, v_3, v_4\). Setting each free variable to 1 in turn gives
+<div class="math-display">\[\begin{bmatrix}-1\\1\\0\\0\end{bmatrix},\; \begin{bmatrix}-1\\0\\1\\0\end{bmatrix},\; \begin{bmatrix}-1\\0\\0\\1\end{bmatrix}\]</div>
+</p>
+<h3>The four subspaces of \(A = [1\;1\;1\;1]\)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Subspace</th>
+<th>Lives in</th>
+<th>Dimension</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Row space \(C(A^\top)\)</td>
+<td>\(\mathbb{R}^4\)</td>
+<td>1</td>
+<td>\((1,1,1,1)\)</td>
+</tr>
+<tr>
+<td>Nullspace \(N(A)\)</td>
+<td>\(\mathbb{R}^4\)</td>
+<td>3</td>
+<td>the three special solutions above</td>
+</tr>
+<tr>
+<td>Column space \(C(A)\)</td>
+<td>\(\mathbb{R}^1\)</td>
+<td>1</td>
+<td>\((1)\), so \(C(A)\) is all of \(\mathbb{R}^1\)</td>
+</tr>
+<tr>
+<td>Left nullspace \(N(A^\top)\)</td>
+<td>\(\mathbb{R}^1\)</td>
+<td><strong>0</strong></td>
+<td><strong>empty set</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Dimension checks:</strong></p>
+<ul>
+<li>In \(\mathbb{R}^4\): \(1 + 3 = 4 = n\).</li>
+<li>In \(\mathbb{R}^1\): \(1 + 0 = 1 = m\).</li>
+</ul>
+<p><strong>The zero subspace.</strong> \(\{0\}\) has dimension 0, and its basis is the <strong>empty set</strong>. A basis with zero vectors fits a space of dimension zero.</p>
+<hr />
+<h2>5. Preview: graphs and the small-world question</h2>
+<p><strong>What a graph is.</strong> A <strong>graph</strong> is a set of <strong>nodes</strong> together with <strong>edges</strong> that connect pairs of nodes. This is not a graph of a function. Strang sketches a graph with 5 nodes and 6 edges. In the next lecture, a \(6 \times 5\) matrix will describe it completely.</p>
+<p><strong>The friendship graph.</strong></p>
+<ul>
+<li><strong>Nodes:</strong> people.</li>
+<li><strong>Edges:</strong> an edge joins two people who are friends.</li>
+</ul>
+<p><strong>The question.</strong> What is the largest distance between two people, where distance means the number of steps along edges?</p>
+<p><strong>&quot;Six degrees of separation.&quot;</strong> This phrase reflects the observation that most people are connected through only a few intermediaries. The familiar remark &quot;it's a small world&quot; comes from discovering such connections.</p>
+<p><strong>The mathematical point.</strong> Adding a few <strong>shortcut</strong> edges reduces distances dramatically. The same questions arise for the web graph, where websites are nodes and links are edges.</p>
+<p><strong>Next lecture:</strong> linear algebra applied to graphs.</p>
+<hr />
+<h2>Big ideas from Lecture 11</h2>
+<ol>
+<li><strong>Vectors don't have to be columns of numbers.</strong> Matrices and functions qualify, because you can add them and multiply them by scalars.</li>
+<li><strong>Matrix spaces.</strong> \(\dim M = 9\), \(\dim S = \dim U = 6\), and \(\dim D = 3\).</li>
+<li><strong>Sum vs. union.</strong> \(S + U\) is a subspace, while \(S \cup U\) is not. Their dimensions satisfy \(\dim S + \dim U = \dim(S\cap U) + \dim(S+U)\).</li>
+<li><strong>Differential equations.</strong> The solutions of \(y&#x27;&#x27; + y = 0\) form a 2-dimensional space with basis \(\{\cos x, \sin x\}\).</li>
+<li><strong>Rank 1.</strong> A rank-1 matrix equals \(uv^\top\). Rank-\(r\) matrices are sums of \(r\) such matrices. Matrices of a fixed rank do <strong>not</strong> form a subspace.</li>
+<li><strong>The zero subspace</strong> has dimension 0 and an empty basis.</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-10.html"><small>Previous</small>L10 · The Four Fundamental Subspaces</a><a class="next" href="lecture-12.html"><small>Next</small>L12 · Graphs, Networks, Incidence Matrices</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

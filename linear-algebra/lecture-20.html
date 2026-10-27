@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 20: Cramer&#x27;s Rule, Inverse Matrix, and Volume · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li class="current"><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 21 / 37</p><h1>Lecture 20: Cramer's Rule, Inverse Matrix, and Volume</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror.</p><article class="post"><p><strong>The final lecture on determinants: three applications.</strong></p>
+<ol>
+<li>An explicit <strong>formula for \(A^{-1}\)</strong>.</li>
+<li><strong>Cramer's rule</strong> for solving \(Ax = b\).</li>
+<li><strong>\(|\det A|\) = the volume of a box.</strong></li>
+</ol>
+<hr />
+<h2>1. Formula for the inverse</h2>
+<p><strong>The \(2\times2\) case:</strong>
+<div class="math-display">\[\begin{bmatrix} a &amp; b \\ c &amp; d \end{bmatrix}^{-1} = \frac{1}{ad - bc}\begin{bmatrix} d &amp; -b \\ -c &amp; a \end{bmatrix}\]</div>
+</p>
+<p><strong>The entries are cofactors.</strong></p>
+<ul>
+<li>\(d\) is the cofactor of \(a\).</li>
+<li>\(-b\) is the cofactor of \(c\). Its sign is minus because \(c\) sits in position \((2,1)\), and \(2+1\) is odd.</li>
+<li>The cofactors land in <strong>transposed</strong> positions.</li>
+</ul>
+<p><strong>The general formula:</strong>
+<div class="math-display">\[\boxed{A^{-1} = \frac{1}{\det A}\,C^\top}\]</div>
+
+Here \(C\) is the <strong>cofactor matrix</strong>, with entries \(C_{ij}\).</p>
+<p><strong>Degree count.</strong> For \(3\times3\), \(\det A\) is a sum of products of <strong>3</strong> entries, such as \(aei\). Each cofactor is a product of <strong>2</strong> entries, such as \(ei - fh\). In general, \(\det A\) has degree \(n\) and the cofactors have degree \(n-1\).</p>
+<p><strong>What the formula adds.</strong> Gauss–Jordan computes \(A^{-1}\) numerically, but never shows what the inverse <em>is</em>. This formula gives the <strong>algebra</strong>, not just the algorithm.</p>
+<h3>Proof: \(AC^\top = (\det A)\,I\)</h3>
+<p><strong>Diagonal entries.</strong> Row \(i\) of \(A\) times its own cofactors gives
+<div class="math-display">\[a_{i1}C_{i1} + \cdots + a_{in}C_{in} = \det A\]</div>
+
+This is exactly the cofactor formula from Lecture 19.</p>
+<p><strong>Off-diagonal entries are 0.</strong> Row \(i\) of \(A\) times the cofactors of a <em>different</em> row \(k\) is the cofactor expansion, along row \(k\), of a matrix \(A_S\). Here \(A_S\) is \(A\) with <strong>row \(k\) replaced by row \(i\)</strong>. Strang calls it &quot;A screwed up.&quot;</p>
+<ul>
+<li>\(A_S\) has two equal rows, so \(\det A_S = 0\).</li>
+</ul>
+<p><strong>\(2\times2\) illustration.</strong> Row 1 is \((a, b)\), and the cofactors of row 2 are \((-b, a)\). Their product is \(-ab + ba = 0\), which is the expansion of \(\det\begin{bmatrix} a &amp; b \\ a &amp; b\end{bmatrix}\).</p>
+<p><strong>Payoff.</strong> The formula shows how \(A^{-1}\) changes when one entry of \(A\) changes: you can track the effect on \(\det A\) and on each cofactor.</p>
+<hr />
+<h2>2. Cramer's rule</h2>
+<p><strong>Start from the inverse formula:</strong>
+<div class="math-display">\[x = A^{-1}b = \frac{1}{\det A}\,C^\top b\]</div>
+</p>
+<p><strong>The \(j\)-th component of \(C^\top b\):</strong>
+<div class="math-display">\[C_{1j}b_1 + C_{2j}b_2 + \cdots + C_{nj}b_n\]</div>
+
+This is the cofactor expansion <strong>down column \(j\)</strong> of a new matrix.</p>
+<p><strong>Define \(B_j\):</strong> \(A\) with <strong>column \(j\) replaced by \(b\)</strong>.</p>
+<div class="math-display">\[\boxed{x_j = \frac{\det B_j}{\det A}}\]</div>
+<p><strong>Example.</strong> For \(x_1\), use \(B_1 = [\,b \;\; a_2 \;\cdots\; a_n\,]\). Expanding down column 1 multiplies \(b_1\) by \(C_{11}\), \(b_2\) by \(C_{21}\), and so on. Those are exactly the cofactors of column 1 of \(A\).</p>
+<h3>Is Cramer's rule practical?</h3>
+<p><strong>No.</strong> It requires \(n + 1\) determinants. Computing them is hopelessly slow compared with elimination, and MATLAB never uses it.</p>
+<p><strong>Strang's anecdote.</strong> A popular book he read as a child, <em>Mathematics for the Million</em>, promoted Cramer's rule over elimination. Strang jokes it should have been called <em>Mathematics for the Millionaire</em>, since only a millionaire could pay for the computation.</p>
+<p>He attributes the book to Bell. It is actually by <strong>Lancelot Hogben</strong>; E. T. Bell wrote the similarly popular <em>Men of Mathematics</em>.</p>
+<p><strong>Where its value lies.</strong> Like the inverse formula, Cramer's rule gives <strong>explicit algebraic formulas</strong> you can reason with. Use elimination for numbers.</p>
+<hr />
+<h2>3. Determinant = volume</h2>
+<blockquote>
+<p><strong>\(|\det A|\) = volume of the box whose edges are the rows of \(A\).</strong>
+Using columns gives the same result, since \(\det A^\top = \det A\).</p>
+</blockquote>
+<p><strong>The box.</strong> For \(3\times3\), the three rows are vectors from the origin. Completing them gives a <strong>parallelepiped</strong> whose faces are parallelograms.</p>
+<p><strong>The sign.</strong> The sign of \(\det A\) records <strong>orientation</strong>: whether the box is right-handed or left-handed. Swapping two edges flips the orientation but not the volume.</p>
+<h3>Proof strategy: show volume satisfies Properties 1, 2, 3</h3>
+<p>If volume obeys the same three defining properties as the determinant, it must equal the determinant (up to sign).</p>
+<p><strong>Property 1. \(A = I\).</strong> The box is the <strong>unit cube</strong>, with volume 1 and \(\det I = 1\).</p>
+<p><strong>Bonus: orthogonal \(Q\).</strong> The box is the unit cube, <strong>rotated</strong>, so its volume is still 1. Check against the determinant:
+<div class="math-display">\[Q^\top Q = I \;\Rightarrow\; \det Q^\top\det Q = 1 \;\Rightarrow\; (\det Q)^2 = 1 \;\Rightarrow\; \det Q = \pm1\]</div>
+
+This uses Properties 9 and 10. Strang notes it is a homework exercise.</p>
+<p><strong>Property 2. Row exchange.</strong> The box is the same. Only the sign changes, and \(|\det A|\) ignores sign.</p>
+<p><strong>Property 3A. Scaling a row by \(t\).</strong> One edge is stretched by \(t\), so the volume is multiplied by \(t\). For example, doubling one edge stacks two identical boxes.</p>
+<p><strong>Property 3B. Linearity in one row.</strong> Strang leaves this to the book's figure and does not prove it in lecture.</p>
+<h3>Area of a parallelogram</h3>
+<p><strong>The formula.</strong> For the parallelogram with edges \((a, b)\) and \((c, d)\):
+<div class="math-display">\[\text{Area} = |ad - bc|\]</div>
+</p>
+<p><strong>Why this is good.</strong> Base × height requires lengths, square roots, and angles. This formula uses <strong>only the coordinates</strong>. Strang emphasizes that this formula impresses him far more than Cramer's rule.</p>
+<h3>Area of a triangle</h3>
+<p><strong>With one vertex at the origin.</strong> The triangle with vertices \((0,0)\), \((a,b)\), \((c,d)\) is half the parallelogram:
+<div class="math-display">\[\text{Area} = \tfrac12|ad - bc|\]</div>
+</p>
+<p><strong>With arbitrary vertices</strong> \((x_1,y_1)\), \((x_2,y_2)\), \((x_3,y_3)\):
+<div class="math-display">\[\text{Area} = \frac12\left|\det\begin{bmatrix} x_1 &amp; y_1 &amp; 1 \\ x_2 &amp; y_2 &amp; 1 \\ x_3 &amp; y_3 &amp; 1 \end{bmatrix}\right|\]</div>
+</p>
+<p><strong>Why it works.</strong> Subtract row 1 from rows 2 and 3. This zeroes the 1s in the last column and leaves the coordinate <strong>differences</strong>. That is the same as translating the triangle so one vertex sits at the origin. Strang moves fast at this point because time runs out; the \(\tfrac12\) and the absolute value follow from the case above.</p>
+<hr />
+<h2>Big ideas from Lecture 20</h2>
+<ol>
+<li><strong>Inverse formula:</strong> \(A^{-1} = C^\top/\det A\), which rests on the identity \(AC^\top = (\det A)I\).</li>
+<li><strong>Off-diagonal zeros:</strong> entries of one row times cofactors of another row give the determinant of a matrix with two equal rows, which is 0.</li>
+<li><strong>Cramer's rule:</strong> \(x_j = \det B_j/\det A\), where \(B_j\) is \(A\) with column \(j\) replaced by \(b\). It is elegant algebra but useless for computation.</li>
+<li><strong>Volume:</strong> \(|\det A|\) is the volume of the box spanned by the rows. The sign gives orientation.</li>
+<li><strong>Orthogonal matrices:</strong> \(\det Q = \pm1\), so the rotated unit cube has volume 1.</li>
+<li><strong>Coordinate formulas:</strong> a parallelogram has area \(|ad - bc|\), and a triangle has half that, with no lengths or angles needed.</li>
+</ol>
+<hr />
+<h2>Side question: do determinants matter for ML?</h2>
+<div class="qa-q"><span class="qa-tag">Your question</span> Is this (determinants, cofactors, Cramer&#x27;s rule) important for ML and AI?</div>
+<p>Partly. Two of the three topics matter little for ML, but one matters a lot.</p>
+<h2>Low priority: Cramer's rule and the cofactor formula for \(A^{-1}\)</h2>
+<p>You will essentially never use these in ML.</p>
+<ul>
+<li><strong>Computation.</strong> Nobody computes inverses or solves systems this way. Libraries use LU, Cholesky, or QR, and good practice avoids forming \(A^{-1}\) at all (<code>solve</code>, not <code>inv</code>).</li>
+<li><strong>The one indirect use.</strong> The cofactor matrix shows up in <strong>Jacobi's formula</strong>, \(d(\det A) = \operatorname{tr}(\text{adj}(A)\,dA)\), which gives
+<div class="math-display">\[\frac{\partial}{\partial A}\log\det A = A^{-\top}\]</div>
+
+That derivative does appear in ML derivations (Gaussian likelihoods, covariance learning). You don't need cofactors to use it, though.</li>
+</ul>
+<h2>High priority: determinant as volume</h2>
+<p>This idea is everywhere in probabilistic ML, because <strong>\(|\det|\) measures how a linear map scales volume</strong>, and volume scaling is exactly what changes a probability density.</p>
+<p><strong>Change of variables / normalizing flows.</strong> If \(y = f(x)\), then
+<div class="math-display">\[p_Y(y) = p_X(x)\,\left|\det J_f(x)\right|^{-1}\]</div>
+
+Normalizing flows (RealNVP, Glow, etc.) are designed so that \(\log|\det J|\) is cheap to compute, typically with triangular Jacobians, where the determinant is the product of the diagonal. That's Property 7 from Lecture 18.</p>
+<p><strong>Multivariate Gaussians.</strong> The density contains \((\det \Sigma)^{-1/2}\):</p>
+<ul>
+<li>\(\log\det\Sigma\) appears in the log-likelihood, entropy, and KL divergence between Gaussians (as in VAEs).</li>
+<li>It is the main expensive term in Gaussian process marginal likelihoods. It is computed via Cholesky: \(\log\det\Sigma = 2\sum_i \log L_{ii}\).</li>
+</ul>
+<p><strong>Determinantal point processes (DPPs).</strong> These are used for diverse subset selection. The probability of a set is \(\det K_S\), which equals the squared volume spanned by the items' feature vectors. Larger volume means more diverse items.</p>
+<p><strong>Orthogonal matrices and \(\det = \pm1\).</strong> Orthogonal matrices preserve volume. This is relevant to orthogonal initialization and to volume-preserving layers.</p>
+<h2>What matters more for you</h2>
+<p>Everything from the next lecture onward is core ML material:</p>
+<ul>
+<li><strong>Eigenvalues and eigenvectors:</strong> PCA, spectral methods, Hessian analysis, training dynamics.</li>
+<li><strong>Symmetric and positive definite matrices:</strong> covariances, kernels, convexity.</li>
+<li><strong>SVD:</strong> low-rank structure, compression, and the rank-1 decompositions widely used in interpretability work on weight matrices.</li>
+</ul>
+<p>So skim Cramer's rule, keep <strong>&quot;det = volume scaling&quot;</strong> firmly in mind, and give your full attention to Lectures 21 onward.</p>
+</article>
+<nav class="pager"><a class="prev" href="lecture-19.html"><small>Previous</small>L19 · Determinant Formulas and Cofactors</a><a class="next" href="lecture-21.html"><small>Next</small>L21 · Eigenvalues and Eigenvectors</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

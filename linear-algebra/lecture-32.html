@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 32: Quiz 3 Review · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li class="current"><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 34 / 37</p><h1>Lecture 32: Quiz 3 Review</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Scope of Quiz 3: Chapter 6, eigenvalues.</strong> Chapter 7 (linear transformations) is saved for the final.</p>
+<p><strong>Topics Strang lists:</strong></p>
+<ol>
+<li>Finding eigenvalues and eigenvectors, including shortcuts that avoid \(\det(A - \lambda I)\).</li>
+<li>Differential equations \(du/dt = Au\) and the matrix exponential \(e^{At}\).</li>
+<li><strong>Symmetric</strong> matrices: real \(\lambda\), orthogonal eigenvectors, \(A = Q\Lambda Q^\top\).</li>
+<li><strong>Positive definite</strong> matrices.</li>
+<li><strong>Similar</strong> matrices, \(B = M^{-1}AM\). Same eigenvalues, and \(B^k = M^{-1}A^kM\), so powers behave alike.</li>
+<li><strong>SVD.</strong></li>
+</ol>
+<hr />
+<h2>Problem 1: A differential equation with an antisymmetric matrix</h2>
+<div class="math-display">\[\frac{du}{dt} = Au, \qquad A = \begin{bmatrix} 0 &amp; -1 &amp; 0 \\ 1 &amp; 0 &amp; -1 \\ 0 &amp; 1 &amp; 0 \end{bmatrix}\]</div>
+<h3>General solution</h3>
+<div class="math-display">\[u(t) = c_1e^{\lambda_1t}x_1 + c_2e^{\lambda_2t}x_2 + c_3e^{\lambda_3t}x_3\]</div>
+<p>The three constants are fixed by the initial vector \(u(0)\).</p>
+<h3>Eigenvalues without much computing</h3>
+<p><strong>One eigenvalue is 0.</strong> Row 1 and row 3 are negatives of each other, so \(A\) is singular.</p>
+<p><strong>The others are imaginary.</strong> \(A^\top = -A\), so \(A\) is <strong>antisymmetric</strong> (skew-symmetric). Antisymmetric matrices have <strong>purely imaginary</strong> eigenvalues.</p>
+<p><strong>Confirm with the determinant:</strong>
+<div class="math-display">\[\det(A - \lambda I) = -\lambda^3 - 2\lambda = -\lambda(\lambda^2 + 2)\]</div>
+
+So \(\lambda = 0,\ \pm i\sqrt2\).</p>
+<h3>Behavior of the solution</h3>
+<p><strong>Neither decay nor blow-up.</strong></p>
+<ul>
+<li>\(e^{0t} = 1\) stays constant.</li>
+<li>\(e^{\pm i\sqrt2\,t}\) has magnitude 1 and just circles the unit circle.</li>
+</ul>
+<p><strong>Periodic.</strong> The solution returns to its starting value when \(\sqrt2\,T = 2\pi\):
+<div class="math-display">\[T = \pi\sqrt2\]</div>
+</p>
+<h3>Which matrices have orthogonal eigenvectors?</h3>
+<p><strong>The eigenvectors here are orthogonal.</strong> This holds for every antisymmetric matrix, and not only for symmetric ones.</p>
+<p><strong>Exact condition (stated without proof):</strong>
+<div class="math-display">\[\boxed{AA^\top = A^\top A}\]</div>
+
+Such matrices are called <strong>normal</strong>. For complex eigenvectors, &quot;orthogonal&quot; uses the complex inner product \(x^Hy\).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Why it satisfies \(AA^\top = A^\top A\)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Symmetric, \(A^\top = A\)</td>
+<td>both sides equal \(A^2\)</td>
+</tr>
+<tr>
+<td>Antisymmetric, \(A^\top = -A\)</td>
+<td>both sides equal \(-A^2\)</td>
+</tr>
+<tr>
+<td>Orthogonal, \(Q^\top Q = I\)</td>
+<td>both sides equal \(I\)</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Computing \(e^{At}\)</h3>
+<p>If \(A\) is diagonalizable,
+<div class="math-display">\[e^{At} = S\,e^{\Lambda t}\,S^{-1}, \qquad e^{\Lambda t} = \text{diag}(e^{\lambda_1t}, \dots, e^{\lambda_nt})\]</div>
+
+Then \(u(t) = e^{At}u(0)\).</p>
+<hr />
+<h2>Problem 2: What can a matrix be, knowing only its eigen-data?</h2>
+<p><strong>Given:</strong> a \(3\times3\) matrix with eigenvalues \(0,\ c,\ 2\), where \(c\) is unknown, and three given eigenvectors. Those eigenvectors turn out to be <strong>mutually orthogonal</strong>.</p>
+<p><strong>Format.</strong> Each answer must give <strong>all</strong> values of \(c\) that work.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Answer</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Diagonalizable?</td>
+<td><strong>All \(c\)</strong></td>
+<td>Three independent eigenvectors are given. Repeated eigenvalues don't matter when the eigenvectors are there.</td>
+</tr>
+<tr>
+<td>Symmetric?</td>
+<td><strong>All real \(c\)</strong></td>
+<td>Orthogonal eigenvectors plus real eigenvalues give a symmetric matrix. Complex \(c\) would not.</td>
+</tr>
+<tr>
+<td>Positive definite?</td>
+<td><strong>Never</strong></td>
+<td>One eigenvalue is 0.</td>
+</tr>
+<tr>
+<td>Positive semidefinite?</td>
+<td><strong>\(c \geq 0\)</strong></td>
+<td>The &quot;consolation prize&quot;.</td>
+</tr>
+<tr>
+<td>Markov matrix?</td>
+<td><strong>Never</strong></td>
+<td>A Markov matrix has no eigenvalue larger than 1, and this one has \(\lambda = 2\).</td>
+</tr>
+<tr>
+<td>Is \(\tfrac12A\) a projection?</td>
+<td><strong>\(c = 0\) or \(c = 2\)</strong></td>
+<td>A projection satisfies \(P^2 = P\), so \(\lambda^2 = \lambda\) and every eigenvalue is 0 or 1. Halving \(0, c, 2\) must give only 0s and 1s.</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The lesson.</strong> The <strong>orthogonality of the eigenvectors</strong> did most of the work. Without it, symmetric, positive definite, and projection would all have been ruled out immediately.</p>
+<hr />
+<h2>Problem 3: The SVD, including the sign correction from Lecture 29</h2>
+<div class="math-display">\[A = U\Sigma V^\top\]</div>
+<p>This holds for <strong>every</strong> matrix, rectangular included.</p>
+<h3>Computing it</h3>
+<p><strong>Step 1: find \(V\) and the \(\sigma\)'s from \(A^\top A\).</strong>
+<div class="math-display">\[A^\top A = V\,\Sigma^\top\Sigma\,V^\top\]</div>
+</p>
+<ul>
+<li>This is \(Q\Lambda Q^\top\) for the symmetric matrix \(A^\top A\).</li>
+<li><strong>\(V\) = eigenvectors of \(A^\top A\).</strong></li>
+<li><strong>\(\sigma_i = \sqrt{\lambda_i(A^\top A)}\)</strong>, taking the positive square root.</li>
+</ul>
+<p><strong>Step 2: find \(U\) from \(V\), not separately.</strong></p>
+<p>\(AA^\top = U\,\Sigma\Sigma^\top\,U^\top\) shows that \(U\) holds the eigenvectors of \(AA^\top\). But eigenvectors are determined <strong>only up to sign</strong>. That is exactly what went wrong in Lecture 29: Strang picked a sign at random and was wrong on one of them.</p>
+<p><strong>The correct rule.</strong> Once the \(v_i\) are chosen, compute
+<div class="math-display">\[u_i = \frac{Av_i}{\sigma_i}\]</div>
+
+This forces the right signs, so that \(AV = U\Sigma\). It is the same fix I gave in the Lecture 29 summary.</p>
+<h3>Reading the SVD</h3>
+<p><strong>\(\Sigma = \text{diag}(3, 2)\).</strong> Both singular values are nonzero, so \(A\) is invertible.</p>
+<p><strong>\(\Sigma = \text{diag}(3, -5)\).</strong> This is <strong>not an SVD</strong>. Singular values are never negative.</p>
+<p><strong>\(\Sigma = \text{diag}(3, 0)\).</strong> Then:</p>
+<ul>
+<li>\(A\) is singular, with <strong>rank 1</strong>.</li>
+<li>\(\dim N(A) = 1\), and <strong>\(v_2\) spans the nullspace</strong>, since \(Av_2 = 0 \cdot u_2 = 0\).</li>
+<li>By the same reasoning (my addition): \(u_1\) spans \(C(A)\), \(u_2\) spans \(N(A^\top)\), and \(v_1\) spans \(C(A^\top)\).</li>
+</ul>
+<p><strong>Strang's point.</strong> The SVD takes more work to compute, but it <strong>displays everything</strong>: rank, all four subspaces, and orthonormal bases for each.</p>
+<hr />
+<h2>Problem 4: A matrix that is both symmetric and orthogonal</h2>
+<h3>Possible eigenvalues</h3>
+<p><strong>Symmetric</strong> means \(\lambda\) is real.</p>
+<p><strong>Orthogonal</strong> means \(|\lambda| = 1\), because \(Q\) preserves length:
+<div class="math-display">\[\|Qx\| = \|x\| \;\Rightarrow\; |\lambda|\,\|x\| = \|x\| \;\Rightarrow\; |\lambda| = 1\]</div>
+</p>
+<p><strong>Together:</strong> \(\lambda = \pm1\).</p>
+<h3>True or false</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Statement</th>
+<th>Answer</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sure to be positive definite</td>
+<td><strong>False</strong></td>
+<td>It can have \(\lambda = -1\).</td>
+</tr>
+<tr>
+<td>Has no repeated eigenvalues</td>
+<td><strong>False</strong></td>
+<td>For \(n \geq 3\), the only two possible values must repeat.</td>
+</tr>
+<tr>
+<td>Diagonalizable</td>
+<td><strong>True</strong></td>
+<td>Symmetric and orthogonal matrices are always diagonalizable, with orthogonal eigenvectors.</td>
+</tr>
+<tr>
+<td>Nonsingular</td>
+<td><strong>True</strong></td>
+<td>Orthogonal matrices are always invertible, and no eigenvalue is 0.</td>
+</tr>
+<tr>
+<td>\(\tfrac12(A + I)\) is a projection</td>
+<td><strong>True</strong></td>
+<td>See below.</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Proof that \(P = \tfrac12(A + I)\) is a projection</h3>
+<p><strong>Key fact.</strong> \(A = A^\top = A^{-1}\), so \(A^2 = I\).</p>
+<p><strong>Method 1: check the two properties directly.</strong></p>
+<ul>
+<li>\(P\) is symmetric, because \(A\) is.</li>
+<li>Squaring:
+<div class="math-display">\[P^2 = \tfrac14(A^2 + 2A + I) = \tfrac14(2I + 2A) = \tfrac12(A + I) = P\]</div>
+</li>
+</ul>
+<p><strong>Method 2: use eigenvalues.</strong></p>
+<ul>
+<li>\(A\) has eigenvalues \(\pm1\).</li>
+<li>So \(A + I\) has eigenvalues \(2\) and \(0\).</li>
+<li>So \(\tfrac12(A + I)\) has eigenvalues \(1\) and \(0\).</li>
+<li>A symmetric matrix whose eigenvalues are all 0 or 1 is a projection.</li>
+</ul>
+<hr />
+<h2>Review checklist for Chapter 6</h2>
+<ol>
+<li><strong>Spot eigenvalues fast.</strong>
+<ul>
+<li>Singular means \(\lambda = 0\).</li>
+<li>Trace and determinant give the sum and product.</li>
+<li>Triangular matrices show them on the diagonal.</li>
+</ul>
+</li>
+<li><strong>Structure determines the spectrum:</strong></li>
+</ol>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Matrix type</th>
+<th>Eigenvalues</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Symmetric</td>
+<td>real</td>
+</tr>
+<tr>
+<td>Antisymmetric</td>
+<td>imaginary</td>
+</tr>
+<tr>
+<td>Orthogonal</td>
+<td>\(\lvert\lambda\rvert = 1\)</td>
+</tr>
+<tr>
+<td>Projection</td>
+<td>0 or 1</td>
+</tr>
+<tr>
+<td>Markov</td>
+<td>\(\lambda = 1\) appears, the rest \(\lvert\lambda\rvert \leq 1\)</td>
+</tr>
+<tr>
+<td>Positive definite</td>
+<td>\(\lambda &gt; 0\)</td>
+</tr>
+</tbody>
+</table></div>
+<ol start="3">
+<li><strong>Orthogonal eigenvectors</strong> exactly when \(AA^\top = A^\top A\) (normal). This covers symmetric, antisymmetric, and orthogonal matrices.</li>
+<li><strong>\(du/dt = Au\):</strong> the solution is \(u = e^{At}u(0)\) with \(e^{At} = Se^{\Lambda t}S^{-1}\). \(\text{Re}(\lambda)\) controls growth; imaginary \(\lambda\) means oscillation.</li>
+<li><strong>SVD:</strong> get \(V\) and \(\sigma\) from \(A^\top A\), then <strong>\(u_i = Av_i/\sigma_i\)</strong>.</li>
+<li><strong>Similar matrices</strong> have the same eigenvalues, and their powers satisfy \(B^k = M^{-1}A^kM\).</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-31.html"><small>Previous</small>L31 · Change of Basis; Image Compression</a><a class="next" href="lecture-33.html"><small>Next</small>L33 · Left and Right Inverses; Pseudoinverse</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

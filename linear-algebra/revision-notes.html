@@ -1,0 +1,1554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revision Notes &amp; Formula Sheet (all 34 lectures, ML lens) · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li class="current"><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 37 / 37</p><h1>Revision Notes &amp; Formula Sheet (all 34 lectures, ML lens)</h1><p class="source-note">The whole course condensed into one page, with lecture citations [L#], corrections, ML links and a one-page formula sheet at the end.</p><article class="post"><h2>How to use this doc</h2>
+<p>This doc condenses all 34 lectures of MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang) into one place. It is written in the same style as our chat and read through an ML/DL/AI lens. It ends where it started: PCA from your MLT lecture, rebuilt from the course.</p>
+<p><strong>Markings used throughout</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Mark</strong></th>
+<th style="text-align:left"><strong>Meaning</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left"><strong>[L7]</strong></td>
+<td style="text-align:left">Lecture citation: where this was taught in 18.06 (2010 numbering; L24b and L32 are quiz reviews)</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong>[MLT L5]</strong></td>
+<td style="text-align:left">Your IIT Madras MLT lecture on representation learning / PCA</td>
+</tr>
+<tr>
+<td style="text-align:left"><em>(my addition)</em></td>
+<td style="text-align:left">Not said in the lecture; added or computed by me to complete a point</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><span class="mk-corr">Correction</span></strong></td>
+<td style="text-align:left">A mistake made on the board (by Strang, or by me in the chat) and its fix</td>
+</tr>
+<tr>
+<td style="text-align:left"><strong><span class="mk-ml">ML link</span></strong></td>
+<td style="text-align:left">Why it matters for ML / DL / AI</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Notation.</strong> Matrices are \(m\times n\) with rank \(r\). \(A^{\mathsf{T}}\) is the transpose, \(\hat{x}\) a least-squares solution, \(Q\) a matrix with orthonormal columns, \(\Lambda\) a diagonal eigenvalue matrix, \(S\) an eigenvector matrix, \(\Sigma\) a singular-value matrix.</p>
+<p><strong>If you need X for ML, go to Y</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>ML topic</strong></th>
+<th style="text-align:left"><strong>Where to look</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">PCA, dimensionality reduction</td>
+<td style="text-align:left">Capstone; Part VI spectral theorem; Part VII SVD</td>
+</tr>
+<tr>
+<td style="text-align:left">Linear regression, least squares, ridge, min-norm solutions</td>
+<td style="text-align:left">Part III; Part VII pseudoinverse</td>
+</tr>
+<tr>
+<td style="text-align:left">Covariance, kernels, Hessians, convexity</td>
+<td style="text-align:left">Part VI positive definite</td>
+</tr>
+<tr>
+<td style="text-align:left">Training dynamics, exploding/vanishing gradients, RNNs, SSMs</td>
+<td style="text-align:left">Part V powers and \(e^{At}\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Markov chains, stationary distributions, mixing</td>
+<td style="text-align:left">Part V Markov matrices</td>
+</tr>
+<tr>
+<td style="text-align:left">Normalizing flows, Gaussian likelihoods, \(\log\det\)</td>
+<td style="text-align:left">Part IV determinants</td>
+</tr>
+<tr>
+<td style="text-align:left">Low-rank structure, weight-matrix analysis, interpretability</td>
+<td style="text-align:left">Part VII SVD, change of basis</td>
+</tr>
+<tr>
+<td style="text-align:left">Convolutions, FFT, Fourier features</td>
+<td style="text-align:left">Part V Fourier series; Part VI FFT</td>
+</tr>
+<tr>
+<td style="text-align:left">Rank, nullspaces, what a linear layer can and cannot represent</td>
+<td style="text-align:left">Part II four subspaces</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Part I — Solving \(Ax=b\) (L1–L4)</h2>
+<p>The one idea to keep from Part I: <strong>\(Ax\) is a combination of the columns of \(A\)</strong> <strong>[L1]</strong>. Everything else is elimination organized as matrix factorization.</p>
+<h2>Three pictures of \(Ax=b\) <strong>[L1]</strong></h2>
+<ul>
+<li>
+<p><strong>Row picture.</strong> Each equation is a line (2D) or plane (3D); the solution is where they meet. Hard to see beyond 3D.</p>
+</li>
+<li>
+<p><strong>Column picture (the important one).</strong> Find the weights \(x_1,\dots,x_n\) so that \(x_1\,\mathrm{col}_1+\cdots+x_n\,\mathrm{col}_n=b\).</p>
+</li>
+<li>
+<p><strong>Matrix form.</strong> \(Ax=b\).</p>
+</li>
+</ul>
+<p>Example: \(2x-y=0,\ -x+2y=3\) has solution \((1,2)\), and indeed <div class="math-display">\[1\begin{bmatrix}2\\-1\end{bmatrix}+2\begin{bmatrix}-1\\2\end{bmatrix}=\begin{bmatrix}0\\3\end{bmatrix}.\]</div>
+ <strong>Solvable for every \(b\)</strong> exactly when the columns’ combinations fill the whole space. If the columns lie in a lower-dimensional plane (e.g. \(\mathrm{col}_3=\mathrm{col}_1+\mathrm{col}_2\)), most \(b\) are unreachable: the matrix is <strong>singular</strong>.</p>
+<p class="box box-ml"><strong>ML link.</strong> A linear layer \(y=Wx\) outputs a combination of \(W\)’s columns, so every output lives in the column space of \(W\). Its rank caps what the layer can represent.</p>
+<h2>Elimination and pivots <strong>[L2]</strong></h2>
+<ul>
+<li>
+<p>Subtract multiples of a pivot row to create zeros below each pivot. \(A\) goes to upper-triangular \(U\); \(b\) goes to \(c\). Then <strong>back substitution</strong> solves \(Ux=c\) from the bottom.</p>
+</li>
+<li>
+<p>Example: \(A=\left[\begin{smallmatrix}1&amp;2&amp;1\\3&amp;8&amp;1\\0&amp;4&amp;1\end{smallmatrix}\right]\), \(b=(2,12,2)\) \(\to\) pivots \(1,2,5\); solution \((2,1,-2)\).</p>
+</li>
+<li>
+<p><strong>Pivots cannot be zero.</strong> A zero with a nonzero below it \(\to\) row exchange (temporary failure). A zero with only zeros below \(\to\) singular (complete failure).</p>
+</li>
+<li>
+<p>\(\det A=\pm\,\)<strong>product of pivots</strong> (sign flips per row exchange).</p>
+</li>
+</ul>
+<p><strong>Elimination matrices.</strong> Each step is a left-multiplication by \(E_{ij}\): the identity with \(-(\text{multiplier})\) in position \((i,j)\). Example: \(E_{21}=\left[\begin{smallmatrix}1&amp;0&amp;0\\-3&amp;1&amp;0\\0&amp;0&amp;1\end{smallmatrix}\right]\).</p>
+<ul>
+<li>
+<p>Left multiplication does <strong>row</strong> operations; right multiplication does <strong>column</strong> operations.</p>
+</li>
+<li>
+<p>Matrix multiplication is <strong>associative</strong> (move parentheses freely) but <strong>not commutative</strong> (\(AB\neq BA\)).</p>
+</li>
+<li>
+<p><strong>Permutation matrices</strong> \(P\) = identity with rows reordered.</p>
+</li>
+</ul>
+<p><strong>Singular, in one place</strong> <em>(your question)</em>: a square matrix is singular <div class="math-display">\[\begin{aligned}
+&amp;\iff \det A=0 \iff \text{fewer than $n$ pivots} \iff \text{dependent columns}\\
+&amp;\iff Ax=0 \text{ has a nonzero solution} \iff 0 \text{ is an eigenvalue.}
+\end{aligned}\]</div>
+</p>
+<h2>Five ways to multiply \(AB\) <strong>[L3]</strong></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>View</strong></th>
+<th style="text-align:left"><strong>What it says</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Entry</td>
+<td style="text-align:left">\(c_{ij}=(\text{row } i \text{ of } A)\cdot(\text{column } j \text{ of } B)\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Columns</td>
+<td style="text-align:left">each column of \(C\) is \(A\) times a column of \(B\), so a combination of \(A\)’s columns</td>
+</tr>
+<tr>
+<td style="text-align:left">Rows</td>
+<td style="text-align:left">each row of \(C\) is a row of \(A\) times \(B\), so a combination of \(B\)’s rows</td>
+</tr>
+<tr>
+<td style="text-align:left">Column \(\times\) row</td>
+<td style="text-align:left">\(AB=\sum_k (\mathrm{col}_k \text{ of } A)(\mathrm{row}_k \text{ of } B)\), a sum of rank-1 matrices</td>
+</tr>
+<tr>
+<td style="text-align:left">Blocks</td>
+<td style="text-align:left">multiply blocks as if they were numbers</td>
+</tr>
+</tbody>
+</table></div>
+<p class="box box-ml"><strong>ML link.</strong> The column \(\times\) row view is the outer-product view behind low-rank factorizations, LoRA (\(W+BA\)), and attention as a sum over keys.</p>
+<h2>Inverses and Gauss–Jordan <strong>[L3]</strong></h2>
+<ul>
+<li>
+<p>For square \(A\), a left inverse is automatically a right inverse.</p>
+</li>
+<li>
+<p><strong>\(A\) is singular \(\iff\) some \(x\neq0\) has \(Ax=0\).</strong> Proof: if \(A^{-1}\) existed, \(x=A^{-1}0=0\). Example: \(A=\left[\begin{smallmatrix}1&amp;3\\2&amp;6\end{smallmatrix}\right]\) kills \((3,-1)\).</p>
+</li>
+<li>
+<p><strong>Gauss–Jordan:</strong> row-reduce \([\,A\mid I\,]\) to \([\,I\mid A^{-1}\,]\). This works because the combined elimination matrix \(E\) satisfies \(EA=I\), so \(E=A^{-1}\).</p>
+</li>
+<li>
+<p>Example: \(\left[\begin{smallmatrix}1&amp;3\\2&amp;7\end{smallmatrix}\right]^{-1}=\left[\begin{smallmatrix}7&amp;-3\\-2&amp;1\end{smallmatrix}\right]\).</p>
+</li>
+</ul>
+<h2>\(A=LU\), cost, and \(PA=LU\) <strong>[L4, L5]</strong></h2>
+<ul>
+<li>
+<p>\(\bm{(AB)^{-1}=B^{-1}A^{-1}}\) and \(\bm{(AB)^{\mathsf{T}}=B^{\mathsf{T}}A^{\mathsf{T}}}\) (reverse order: socks then shoes). Also \((A^{\mathsf{T}})^{-1}=(A^{-1})^{\mathsf{T}}\).</p>
+</li>
+<li>
+<p><strong>\(A=LU\)</strong>: \(L\) is lower triangular with 1s on the diagonal and <strong>the multipliers sitting untouched below it</strong>; \(U\) holds the pivots. The forward product \(E=E_{32}E_{21}\) mixes multipliers (a stray 10 appears); \(L\) does not.</p>
+</li>
+<li>
+<p>The <strong>\(LDU\)</strong> variant pulls the pivots into a diagonal \(D\).</p>
+</li>
+<li>
+<p><strong>Cost:</strong> factoring \(A\) takes about \(n^3/3\) operations; each new right-hand side then costs about \(n^2\). Factor once, solve many times.</p>
+</li>
+<li>
+<p><strong>Row exchanges:</strong> \(PA=LU\) covers every invertible \(A\). Software also exchanges rows to avoid <strong>small</strong> pivots (partial pivoting) for numerical accuracy <strong>[L5]</strong>.</p>
+</li>
+<li>
+<p><strong>Permutations:</strong> \(n!\) of them, they form a group, and \(P^{-1}=P^{\mathsf{T}}\).</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> Every linear solve in ML (Newton steps, Gaussian processes, least squares) uses \(LU\) or its symmetric cousin, Cholesky. Never compute \(A^{-1}\) explicitly; solve.</p>
+<h2>Part II — Vector spaces and the four subspaces (L5–L13)</h2>
+<p>The heart of the course: every \(m\times n\) matrix of rank \(r\) carries four subspaces with dimensions \(r,\ n-r,\ r,\ m-r\) <strong>[L10]</strong>.</p>
+<h2>Vector spaces and subspaces <strong>[L5, L6]</strong></h2>
+<ul>
+<li>
+<p>A <strong>vector space</strong> is closed under addition and scalar multiplication, i.e. under linear combinations. It always contains \(0\).</p>
+</li>
+<li>
+<p><strong>Subspaces of \(\mathbb{R}^3\):</strong> \(\mathbb{R}^3\), planes through \(0\), lines through \(0\), and \(\{0\}\). A line missing the origin is not a subspace; neither is the first quadrant (it fails for negative scalars).</p>
+</li>
+<li>
+<p>The <strong>intersection</strong> of subspaces is a subspace; the <strong>union</strong> usually is not <strong>[L6]</strong>. The <strong>sum</strong> \(S+U\) is the right replacement <strong>[L11]</strong>.</p>
+</li>
+<li>
+<p>Vectors need not be columns: matrices, and solutions of \(y&#x27;&#x27;+y=0\) (basis \(\cos x,\ \sin x\)), form vector spaces too <strong>[L11]</strong>.</p>
+</li>
+</ul>
+<h2>Column space and nullspace <strong>[L6]</strong></h2>
+<ul>
+<li>
+<p>\(\mathbf{C}(A)\) = all combinations of the columns, a subspace of \(\mathbb{R}^m\). <strong>\(Ax=b\) is solvable exactly when \(b\in\mathbf{C}(A)\).</strong></p>
+</li>
+<li>
+<p>\(\mathbf{N}(A)\) = all \(x\) with \(Ax=0\), a subspace of \(\mathbb{R}^n\).</p>
+</li>
+<li>
+<p>Solutions of \(Ax=b\) with \(b\neq0\) do <strong>not</strong> form a subspace (\(0\) is not a solution); they form a shifted copy of \(\mathbf{N}(A)\).</p>
+</li>
+<li>
+<p>Two ways to describe a subspace: give vectors and take combinations (column space), or give equations (nullspace).</p>
+</li>
+</ul>
+<h2>Computing \(\mathbf{N}(A)\): pivots, free variables, rref <strong>[L7]</strong></h2>
+<ol>
+<li>
+<p>Eliminate to echelon form \(U\) (skip a column with no pivot and keep going).</p>
+</li>
+<li>
+<p><strong>Rank \(r\) = number of pivots.</strong></p>
+</li>
+<li>
+<p>Pivot columns give pivot variables; the other \(\bm{n-r}\) are free variables.</p>
+</li>
+<li>
+<p><strong>Special solutions:</strong> set one free variable to 1 and the rest to 0, then solve for the pivot variables. \(\mathbf{N}(A)\) = all combinations of them.</p>
+</li>
+</ol>
+<p><strong>Reduced row echelon form</strong> \(R=\left[\begin{smallmatrix}I&amp;F\\0&amp;0\end{smallmatrix}\right]\) (pivot columns first). Then the <strong>nullspace matrix</strong> is \(N=\left[\begin{smallmatrix}-F\\I\end{smallmatrix}\right]\) and \(RN=0\).</p>
+<p>Example: <div class="math-display">\[A=\begin{bmatrix}1&amp;2&amp;2&amp;2\\2&amp;4&amp;6&amp;8\\3&amp;6&amp;8&amp;10\end{bmatrix}\ \to\ R=\begin{bmatrix}1&amp;2&amp;0&amp;-2\\0&amp;0&amp;1&amp;2\\0&amp;0&amp;0&amp;0\end{bmatrix},\quad r=2,\]</div>
+ with special solutions \((-2,1,0,0)\) and \((2,0,-2,1)\).</p>
+<p><strong>Elimination preserves \(\mathbf{N}(A)\) and the row space, but changes \(\mathbf{C}(A)\).</strong></p>
+<p><strong>Which variables can be free?</strong> <em>(your question)</em> Not any set: a set of \(n-r\) variables can be free <strong>exactly when the other \(r\) columns form a basis of \(\mathbf{C}(A)\)</strong>. The pivot choice is just the leftmost valid one. The number of free variables (\(n-r\)) and the nullspace itself never depend on the choice.</p>
+<h2>Complete solution of \(Ax=b\) and the rank table <strong>[L8]</strong></h2>
+<p>Eliminate on \([\,A\mid b\,]\); each zero row of \(A\) gives a condition on \(b\). Then <div class="math-display">\[x_{\text{complete}}=x_p+x_n,\qquad A(x_p+x_n)=b+0 .\]</div>
+ \(x_p\): set free variables to \(0\) and solve. \(x_n\): any vector in \(\mathbf{N}(A)\). No constant multiplies \(x_p\).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Rank</strong></th>
+<th style="text-align:left"><strong>\(R\) looks like</strong></th>
+<th style="text-align:left"><strong>Solutions of \(Ax=b\)</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">\(r=m=n\)</td>
+<td style="text-align:left">\(I\)</td>
+<td style="text-align:left">exactly 1</td>
+</tr>
+<tr>
+<td style="text-align:left">\(r=n&lt;m\)</td>
+<td style="text-align:left">\(\left[\begin{smallmatrix}I\\0\end{smallmatrix}\right]\)</td>
+<td style="text-align:left">0 or 1</td>
+</tr>
+<tr>
+<td style="text-align:left">\(r=m&lt;n\)</td>
+<td style="text-align:left">\(\left[\begin{smallmatrix}I&amp;F\end{smallmatrix}\right]\)</td>
+<td style="text-align:left">infinitely many, always solvable</td>
+</tr>
+<tr>
+<td style="text-align:left">\(r&lt;m,\ r&lt;n\)</td>
+<td style="text-align:left">\(\left[\begin{smallmatrix}I&amp;F\\0&amp;0\end{smallmatrix}\right]\)</td>
+<td style="text-align:left">0 or infinitely many</td>
+</tr>
+</tbody>
+</table></div>
+<p class="box box-ml"><strong>ML link.</strong> Overparameterized models (more parameters than data, \(r=m&lt;n\)) interpolate the data in infinitely many ways; which one training picks is the implicit-bias question (see the pseudoinverse in Part VII).</p>
+<h2>Independence, basis, dimension <strong>[L9]</strong></h2>
+<ul>
+<li>
+<p><strong>Independent:</strong> only the zero combination gives \(0\). Columns of \(A\) are independent \(\iff \mathbf{N}(A)=\{0\}\iff r=n\).</p>
+</li>
+<li>
+<p><strong>More than \(m\) vectors in \(\mathbb{R}^m\) are always dependent</strong> (\(n&gt;m\) forces free variables).</p>
+</li>
+<li>
+<p><strong>Span:</strong> the space is all their combinations. <strong>Basis</strong> = independent + spanning.</p>
+</li>
+<li>
+<p><strong>Every basis of a space has the same size, its dimension.</strong> If \(\dim=d\), any \(d\) independent vectors automatically span.</p>
+</li>
+<li>
+<p>\(\mathop{\mathrm{rank}}= \dim\mathbf{C}(A)\); the pivot columns of \(A\) are a basis. \(\dim\mathbf{N}(A)=n-r\); the special solutions are a basis.</p>
+</li>
+<li>
+<p>Rank is a property of a <strong>matrix</strong>; dimension is a property of a <strong>space</strong>.</p>
+</li>
+</ul>
+<h2>The four fundamental subspaces <strong>[L10]</strong></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Subspace</strong></th>
+<th style="text-align:left"><strong>Lives in</strong></th>
+<th style="text-align:left"><strong>Dimension</strong></th>
+<th style="text-align:left"><strong>Basis</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Column space \(\mathbf{C}(A)\)</td>
+<td style="text-align:left">\(\mathbb{R}^m\)</td>
+<td style="text-align:left">\(r\)</td>
+<td style="text-align:left">pivot columns of \(A\) (the original \(A\))</td>
+</tr>
+<tr>
+<td style="text-align:left">Row space \(\mathbf{C}(A^{\mathsf{T}})\)</td>
+<td style="text-align:left">\(\mathbb{R}^n\)</td>
+<td style="text-align:left">\(r\)</td>
+<td style="text-align:left">nonzero rows of \(R\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Nullspace \(\mathbf{N}(A)\)</td>
+<td style="text-align:left">\(\mathbb{R}^n\)</td>
+<td style="text-align:left">\(n-r\)</td>
+<td style="text-align:left">special solutions</td>
+</tr>
+<tr>
+<td style="text-align:left">Left nullspace \(\mathbf{N}(A^{\mathsf{T}})\)</td>
+<td style="text-align:left">\(\mathbb{R}^m\)</td>
+<td style="text-align:left">\(m-r\)</td>
+<td style="text-align:left">last \(m-r\) rows of \(E\), where \(E[\,A\mid I\,]=[\,R\mid E\,]\)</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>
+<p><strong>Row rank = column rank.</strong> This is why Strang’s \((3,3,8)\) example in L9 failed: two equal rows force dependent columns (see Corrections).</p>
+</li>
+<li>
+<p>“Left” nullspace because \(A^{\mathsf{T}}y=0\) is the same as \(y^{\mathsf{T}}A=0^{\mathsf{T}}\).</p>
+</li>
+</ul>
+<h2>Matrix spaces and rank 1 <strong>[L11]</strong></h2>
+<ul>
+<li>
+<p>\(3\times3\) matrices: dim 9. Symmetric: 6. Upper triangular: 6. Diagonal (their intersection): 3. Formula: \(\dim S+\dim U=\dim(S\cap U)+\dim(S+U)\), i.e. \(6+6=3+9\).</p>
+</li>
+<li>
+<p><strong>Every rank-1 matrix is \(uv^{\mathsf{T}}\)</strong>; a rank-\(r\) matrix is a sum of \(r\) rank-1 matrices.</p>
+</li>
+<li>
+<p>Matrices of a fixed rank do <strong>not</strong> form a subspace; \(\mathop{\mathrm{rank}}(A+B)\le\mathop{\mathrm{rank}}A+\mathop{\mathrm{rank}}B\).</p>
+</li>
+<li>
+<p>\(\{v: v_1+v_2+v_3+v_4=0\}=\mathbf{N}\big(\left[\begin{smallmatrix}1&amp;1&amp;1&amp;1\end{smallmatrix}\right]\big)\), dimension 3. Its left nullspace is \(\{0\}\), with dimension 0 and an empty basis.</p>
+</li>
+</ul>
+<h2>Graphs and incidence matrices <strong>[L12]</strong></h2>
+<ul>
+<li>
+<p>Incidence matrix \(A\) (edges \(\times\) nodes, one \(-1\) and one \(+1\) per row). \(Ax\) gives potential differences across edges.</p>
+</li>
+<li>
+<p>\(\mathbf{N}(A)\) = constant potentials, so \(r=n-1\). Ground one node to remove it.</p>
+</li>
+<li>
+<p><strong>\(\mathbf{N}(A^{\mathsf{T}})\) = Kirchhoff’s Current Law</strong> (flow in = flow out at each node). Basis = currents around independent loops; \(\dim=m-r\) = number of loops.</p>
+</li>
+<li>
+<p>Independent edges form a <strong>tree</strong>. Linear algebra proves <strong>Euler’s formula</strong>: nodes \(-\) edges \(+\) loops \(=1\).</p>
+</li>
+<li>
+<p>The equilibrium equation of applied math is \(A^{\mathsf{T}}CAx=f\), and \(A^{\mathsf{T}}CA\) is symmetric.</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> Incidence matrices give the <strong>graph Laplacian</strong> \(L=A^{\mathsf{T}}A\), the starting point for spectral clustering and graph neural networks. Its nullspace (constants per connected component) is exactly L12’s \(\mathbf{N}(A)\).</p>
+<h2>Quiz-1 traps worth remembering <strong>[L13]</strong></h2>
+<ul>
+<li>
+<p>\(\mathbf{N}(CD)=\mathbf{N}(D)\) when \(C\) is invertible.</p>
+</li>
+<li>
+<p>Invertible matrices are not a subspace; neither are singular ones.</p>
+</li>
+<li>
+<p>\(B^2=0\) does not imply \(B=0\): \(B=\left[\begin{smallmatrix}0&amp;1\\0&amp;0\end{smallmatrix}\right]\).</p>
+</li>
+<li>
+<p>\(m=n\) does not make row space = column space (same example).</p>
+</li>
+<li>
+<p>Row exchanges preserve the row space and nullspace, not the column space.</p>
+</li>
+<li>
+<p>A vector cannot be both a row of \(A\) and in \(\mathbf{N}(A)\): row \(\cdot\) itself \(=\lVert \text{row}\rVert^2\neq0\). This previews row space \(\perp\) nullspace.</p>
+</li>
+</ul>
+<h2>Part III — Orthogonality, projections, least squares (L14–L17)</h2>
+<p>Least squares is projection: when \(Ax=b\) has no solution, solve \(A^{\mathsf{T}}A\hat{x}=A^{\mathsf{T}}b\). Its answer \(A\hat{x}\) is the projection of \(b\) onto \(\mathbf{C}(A)\) <strong>[L15, L16]</strong>.</p>
+<h2>Orthogonal vectors and subspaces <strong>[L14]</strong></h2>
+<ul>
+<li>
+<p>\(x\perp y\iff x^{\mathsf{T}}y=0\). Proof via Pythagoras: \(\lVert x\rVert^2+\lVert y\rVert^2=\lVert x+y\rVert^2\) expands to \(2x^{\mathsf{T}}y=0\).</p>
+</li>
+<li>
+<p>\(\lVert x\rVert^2=x^{\mathsf{T}}x\). The zero vector is orthogonal to everything.</p>
+</li>
+<li>
+<p>Subspaces \(S\perp T\): every vector of \(S\) is orthogonal to every vector of \(T\). They can share only \(0\) (a wall and the floor are <strong>not</strong> orthogonal).</p>
+</li>
+<li>
+<p><strong>Row space \(\perp\) nullspace</strong> in \(\mathbb{R}^n\), read straight off \(Ax=0\) (each row dotted with \(x\) is 0). <strong>Column space \(\perp\) left nullspace</strong> in \(\mathbb{R}^m\).</p>
+</li>
+<li>
+<p>They are <strong>orthogonal complements</strong>: dimensions add to \(n\) (or \(m\)), so \(\mathbf{N}(A)\) contains <em>every</em> vector perpendicular to the row space. This is the Fundamental Theorem, Part 2.</p>
+</li>
+</ul>
+<h2>The matrix \(A^{\mathsf{T}}A\) <strong>[L14, L16]</strong></h2>
+<ul>
+<li>
+<p>\(A^{\mathsf{T}}A\) is square (\(n\times n\)) and symmetric.</p>
+</li>
+<li>
+<p>\(\bm{\mathbf{N}(A^{\mathsf{T}}A)=\mathbf{N}(A)}\) and \(\bm{\mathop{\mathrm{rank}}(A^{\mathsf{T}}A)=\mathop{\mathrm{rank}}(A)}\).</p>
+</li>
+<li>
+<p><strong>\(A^{\mathsf{T}}A\) is invertible \(\iff\) \(A\) has independent columns.</strong> Proof: if \(A^{\mathsf{T}}Ax=0\), then \(x^{\mathsf{T}}A^{\mathsf{T}}Ax=\lVert Ax\rVert^2=0\), so \(Ax=0\), so \(x=0\).</p>
+</li>
+</ul>
+<h2>Projection formulas <strong>[L15]</strong></h2>
+<p>Onto a line through \(a\), and onto \(\mathbf{C}(A)\): <div class="math-display">\[\hat{x}=\frac{a^{\mathsf{T}}b}{a^{\mathsf{T}}a},\quad P=\frac{aa^{\mathsf{T}}}{a^{\mathsf{T}}a}
+\qquad\qquad
+\hat{x}=(A^{\mathsf{T}}A)^{-1}A^{\mathsf{T}}b,\quad P=A(A^{\mathsf{T}}A)^{-1}A^{\mathsf{T}}.\]</div>
+</p>
+<ul>
+<li>
+<p>Derivation: the error \(e=b-A\hat{x}\) must be \(\perp\mathbf{C}(A)\), i.e. \(A^{\mathsf{T}}(b-A\hat{x})=0\). So \(\bm{e\in\mathbf{N}(A^{\mathsf{T}})}\), exactly the four-subspace picture.</p>
+</li>
+<li>
+<p>\(\bm{P^{\mathsf{T}}=P}\) <strong>and</strong> \(\bm{P^2=P}\). These two properties characterize projection matrices.</p>
+</li>
+<li>
+<p>A projection onto a line has rank 1; its eigenvalues are 1 (on the line) and 0 (perpendicular).</p>
+</li>
+<li>
+<p><strong>Do not split \((A^{\mathsf{T}}A)^{-1}=A^{-1}(A^{\mathsf{T}})^{-1}\)</strong> for rectangular \(A\): \(A^{-1}\) does not exist. Only if \(A\) is square and invertible does \(P=I\).</p>
+</li>
+<li>
+<p>\(I-P\) projects onto \(\mathbf{N}(A^{\mathsf{T}})\); every \(b\) splits as \(b=Pb+(I-P)b\), with the two parts perpendicular <strong>[L16]</strong>.</p>
+</li>
+</ul>
+<h2>Least squares, fully worked <strong>[L15, L16]</strong></h2>
+<p>Fit \(b=C+Dt\) to \((1,1),(2,2),(3,2)\):</p>
+<ul>
+<li>
+<p>\(A=\left[\begin{smallmatrix}1&amp;1\\1&amp;2\\1&amp;3\end{smallmatrix}\right]\), \(b=(1,2,2)\). \(A^{\mathsf{T}}A=\left[\begin{smallmatrix}3&amp;6\\6&amp;14\end{smallmatrix}\right]\), \(A^{\mathsf{T}}b=(5,11)\).</p>
+</li>
+<li>
+<p>Solution \(C=\tfrac23\), \(D=\tfrac12\): the best line is \(\bm{b=\tfrac23+\tfrac12 t}\).</p>
+</li>
+<li>
+<p>\(p=\big(\tfrac76,\tfrac53,\tfrac{13}6\big)\), \(e=\big(-\tfrac16,\tfrac13,-\tfrac16\big)\). Check: \(p^{\mathsf{T}}e=0\), and \(e\perp\) both columns.</p>
+</li>
+<li>
+<p><strong>Calculus agrees:</strong> minimizing \(E(C,D)=\sum_i(C+Dt_i-b_i)^2\) with \(\partial E/\partial C=\partial E/\partial D=0\) gives exactly \(A^{\mathsf{T}}A\hat{x}=A^{\mathsf{T}}b\).</p>
+</li>
+<li>
+<p><strong>Two pictures:</strong> the data plane (points and best line, vertical errors) and \(\mathbb{R}^m\) (\(b\) projected onto the plane \(\mathbf{C}(A)\)). \(C\) and \(D\) are the weights of the columns that give \(p\).</p>
+</li>
+<li>
+<p><strong>Outliers:</strong> squaring makes one bad point dominate. Least squares is the default, not sacred.</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> This is linear regression with MSE loss. The normal equations are the closed form, gradient descent on MSE converges to the same answer, and the residual is orthogonal to every feature column. Ridge adds \(\lambda I\) to \(A^{\mathsf{T}}A\).</p>
+<h2>Orthonormal columns: \(Q^{\mathsf{T}}Q=I\) <strong>[L17]</strong></h2>
+<ul>
+<li>
+<p>Orthonormal vectors are automatically independent and numerically safe (no overflow, no blow-up).</p>
+</li>
+<li>
+<p>An <strong>orthogonal matrix</strong> is a square \(Q\) with \(Q^{\mathsf{T}}Q=I\), so \(\bm{Q^{-1}=Q^{\mathsf{T}}}\). A rectangular \(Q\) still has \(Q^{\mathsf{T}}Q=I\), but \(QQ^{\mathsf{T}}\neq I\).</p>
+</li>
+<li>
+<p>Examples: permutations, rotations \(\left[\begin{smallmatrix}\cos\theta&amp;-\sin\theta\\ \sin\theta&amp;\cos\theta\end{smallmatrix}\right]\), Hadamard matrices (\(\pm1\) entries; sizes beyond 2 must be multiples of 4).</p>
+</li>
+<li>
+<p><strong>With \(Q\), everything simplifies:</strong> \(P=QQ^{\mathsf{T}}\) (no inverse) and \(\bm{\hat{x}_i=q_i^{\mathsf{T}}b}\), so each coefficient is one dot product.</p>
+</li>
+</ul>
+<h2>Gram–Schmidt and \(A=QR\) <strong>[L17]</strong></h2>
+<p>Subtract from each new vector its projections onto all earlier orthogonal ones, then normalize: <div class="math-display">\[B=b-\frac{A^{\mathsf{T}}b}{A^{\mathsf{T}}A}A,\qquad C=c-\frac{A^{\mathsf{T}}c}{A^{\mathsf{T}}A}A-\frac{B^{\mathsf{T}}c}{B^{\mathsf{T}}B}B,\qquad q_i=\frac{\text{vector}}{\lVert \text{vector}\rVert}.\]</div>
+</p>
+<ul>
+<li>
+<p>Example: \(a=(1,1,1)\), \(b=(1,0,2)\) \(\to\) \(B=(0,-1,1)\); \(q_1=(1,1,1)/\sqrt3\), \(q_2=(0,-1,1)/\sqrt2\).</p>
+</li>
+<li>
+<p>Same column space, better basis.</p>
+</li>
+<li>
+<p>\(\bm{A=QR}\), with \(\bm{R=Q^{\mathsf{T}}A}\) <strong>upper triangular</strong> because each \(q_i\) is perpendicular to all earlier columns. Here \(R=\left[\begin{smallmatrix}\sqrt 3&amp;\sqrt 3\\0&amp;\sqrt 2\end{smallmatrix}\right]\).</p>
+</li>
+<li>
+<p>Square roots are unavoidable (normalizing divides by lengths).</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> \(QR\) is how least squares is solved stably in practice (better conditioned than forming \(A^{\mathsf{T}}A\)). Orthogonal initialization and orthogonality constraints on weights keep signals from exploding or vanishing, because \(\lVert Qx\rVert=\lVert x\rVert\).</p>
+<h2>Part IV — Determinants (L18–L20)</h2>
+<p>For ML, keep one idea: \(\bm{|\det A|}\) <strong>is the factor by which \(A\) scales volume</strong> <strong>[L20]</strong>. Cramer’s rule and the cofactor inverse are skimmable.</p>
+<h2>Three defining properties and seven consequences <strong>[L18]</strong></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>#</strong></th>
+<th style="text-align:left"><strong>Property</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">1</td>
+<td style="text-align:left">\(\det I=1\)</td>
+</tr>
+<tr>
+<td style="text-align:left">2</td>
+<td style="text-align:left">Exchanging two rows flips the sign</td>
+</tr>
+<tr>
+<td style="text-align:left">3</td>
+<td style="text-align:left">Linear in <strong>each row separately</strong> (not \(\det(A+B)=\det A+\det B\))</td>
+</tr>
+<tr>
+<td style="text-align:left">4</td>
+<td style="text-align:left">Two equal rows \(\Rightarrow\det=0\)</td>
+</tr>
+<tr>
+<td style="text-align:left">5</td>
+<td style="text-align:left">Subtracting a multiple of one row from another leaves \(\det\) unchanged</td>
+</tr>
+<tr>
+<td style="text-align:left">6</td>
+<td style="text-align:left">A zero row \(\Rightarrow\det=0\)</td>
+</tr>
+<tr>
+<td style="text-align:left">7</td>
+<td style="text-align:left">Triangular \(\Rightarrow\det\) = product of the diagonal</td>
+</tr>
+<tr>
+<td style="text-align:left">8</td>
+<td style="text-align:left">\(\det A=0\iff A\) singular</td>
+</tr>
+<tr>
+<td style="text-align:left">9</td>
+<td style="text-align:left">\(\det(AB)=\det A\cdot\det B\), so \(\det A^{-1}=1/\det A\) and \(\det(A^2)=(\det A)^2\)</td>
+</tr>
+<tr>
+<td style="text-align:left">10</td>
+<td style="text-align:left">\(\det A^{\mathsf{T}}=\det A\), so every row rule is also a column rule</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>
+<p><strong>Software computes \(\det A=\pm(\text{product of pivots})\)</strong> via elimination.</p>
+</li>
+<li>
+<p>\(\bm{\det(tA)=t^n\det A}\), not \(t\det A\) (a factor \(t\) from each row; volume scaling).</p>
+</li>
+<li>
+<p>Well-defined because every permutation is either even or odd, never both.</p>
+</li>
+</ul>
+<h2>Formulas <strong>[L19]</strong></h2>
+<ul>
+<li>
+<p><strong>Big formula:</strong> a sum of \(n!\) terms \(\pm\,a_{1\alpha}a_{2\beta}\cdots a_{n\omega}\), one entry from each row and column, with sign = parity of the permutation. The \(3\times3\) “diagonal” mnemonic fails for \(n\ge4\).</p>
+</li>
+<li>
+<p><strong>Cofactors:</strong> \(C_{ij}=(-1)^{i+j}\det M_{ij}\) (delete row \(i\), column \(j\)). Then \(\det A=\sum_j a_{ij}C_{ij}\) along any row or column.</p>
+</li>
+<li>
+<p>Three ways to compute: pivots (practical), big formula (explicit), cofactors (recursive).</p>
+</li>
+<li>
+<p><strong>Tridiagonal 1s:</strong> \(|A_n|=|A_{n-1}|-|A_{n-2}|\), giving \(1,0,-1,-1,0,1,\dots\) with <strong>period 6</strong> (so \(|A_{61}|=1\)). The same recurrence reappears in L24b with eigenvalues \(e^{\pm i\pi/3}\).</p>
+</li>
+</ul>
+<h2>Inverse, Cramer, volume <strong>[L20]</strong></h2>
+<ul>
+<li>
+<p>\(\bm{A^{-1}=C^{\mathsf{T}}/\det A}\), from the identity \(AC^{\mathsf{T}}=(\det A)\,I\). Off-diagonal entries are 0 because they expand a matrix with two equal rows.</p>
+</li>
+<li>
+<p><strong>Cramer’s rule:</strong> \(x_j=\det B_j/\det A\), where \(B_j\) is \(A\) with column \(j\) replaced by \(b\). Elegant algebra, useless computation (\(n+1\) determinants).</p>
+</li>
+<li>
+<p>\(\bm{|\det A|}\) <strong>= volume</strong> of the box spanned by the rows; the sign is orientation. For orthogonal \(Q\): \((\det Q)^2=1\), so \(\det Q=\pm1\) (a rotated unit cube).</p>
+</li>
+<li>
+<p>Parallelogram with edges \((a,b),(c,d)\): area \(|ad-bc|\). Triangle with vertices \((x_i,y_i)\): area \(=\tfrac12\left|\det\left[\begin{smallmatrix}x_1&amp;y_1&amp;1\\x_2&amp;y_2&amp;1\\x_3&amp;y_3&amp;1\end{smallmatrix}\right]\right|\).</p>
+</li>
+</ul>
+<p class="box box-corr"><strong>Correction.</strong> Strang credits the book <em>Mathematics for the Million</em> to Bell; it is by Lancelot Hogben (E. T. Bell wrote <em>Men of Mathematics</em>).</p>
+<h2>What actually matters for ML <em>(my addition)</em></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Where</strong></th>
+<th style="text-align:left"><strong>How det appears</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Change of variables / normalizing flows</td>
+<td style="text-align:left">\(p_Y(y)=p_X(x)\,\left\vert \det\dfrac{\partial x}{\partial y}\right\vert \), so \(\log p\) picks up a \(\log\vert \det J\vert \) term</td>
+</tr>
+<tr>
+<td style="text-align:left">Multivariate Gaussian</td>
+<td style="text-align:left">density has \((\det\Sigma)^{-1/2}\); \(\log\det\Sigma\) appears in log-likelihood, entropy, KL (VAEs)</td>
+</tr>
+<tr>
+<td style="text-align:left">Gaussian processes</td>
+<td style="text-align:left">\(\log\det K\) is the expensive term; compute \(2\sum_i\log L_{ii}\) from Cholesky \(K=LL^{\mathsf{T}}\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Determinantal point processes</td>
+<td style="text-align:left">\(P(S)\propto\det K_S\) = squared volume of the items’ feature vectors, so diverse sets win</td>
+</tr>
+<tr>
+<td style="text-align:left">Gradients</td>
+<td style="text-align:left">\(\partial\log\det A/\partial A=A^{-\mathsf T}\) (Jacobi’s formula; this is where cofactors resurface)</td>
+</tr>
+<tr>
+<td style="text-align:left">Orthogonal layers</td>
+<td style="text-align:left">\(\det=\pm1\), volume-preserving</td>
+</tr>
+</tbody>
+</table></div>
+<p>Rule of thumb: never compute \(\det\) for large matrices directly (it under- or overflows); compute \(\bm{\log\det}\) from a factorization.</p>
+<h2>Part V — Eigenvalues and dynamics (L21–L24b)</h2>
+<p>Eigenvalues decide what repeated application of \(A\) does: growth, decay, oscillation, or a steady state <strong>[L22, L23]</strong>.</p>
+<h2>Definition and method <strong>[L21]</strong></h2>
+<ul>
+<li>
+<p>\(\bm{Ax=\lambda x}\): \(x\) keeps its direction; \(\lambda\) is the stretch (it can be negative, zero, or complex).</p>
+</li>
+<li>
+<p>\(\lambda=0\iff A\) singular; its eigenvectors are \(\mathbf{N}(A)\).</p>
+</li>
+<li>
+<p><strong>Method:</strong> solve \(\det(A-\lambda I)=0\) for \(\lambda\), then find \(\mathbf{N}(A-\lambda I)\) for \(x\).</p>
+</li>
+<li>
+<p><strong>Checks:</strong> \(\sum\lambda_i=\mathop{\mathrm{tr}}A\), \(\prod\lambda_i=\det A\). For \(2\times2\): \(\det(A-\lambda I)=\lambda^2-(\mathop{\mathrm{tr}}A)\lambda+\det A\).</p>
+</li>
+<li>
+<p><strong>Shift:</strong> \(A+cI\) has eigenvalues \(\lambda+c\) and the same eigenvectors. There is <strong>no such rule</strong> for \(A+B\) or \(AB\) in general (different eigenvectors).</p>
+</li>
+<li>
+<p>Triangular \(\Rightarrow\) eigenvalues on the diagonal. Symmetric \(\Rightarrow\) real \(\lambda\), perpendicular \(x\). Antisymmetric \(\Rightarrow\) imaginary \(\lambda\).</p>
+</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Example</strong></th>
+<th style="text-align:left"><strong>\(\lambda\)</strong></th>
+<th style="text-align:left"><strong>Lesson</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Projection \(P\) onto a plane</td>
+<td style="text-align:left">\(1,1,0\)</td>
+<td style="text-align:left">the plane is \(\lambda=1\), the normal is \(\lambda=0\)</td>
+</tr>
+<tr>
+<td style="text-align:left">\(\left[\begin{smallmatrix}0&amp;1\\1&amp;0\end{smallmatrix}\right]\)</td>
+<td style="text-align:left">\(1,-1\)</td>
+<td style="text-align:left">trace check</td>
+</tr>
+<tr>
+<td style="text-align:left">\(\left[\begin{smallmatrix}3&amp;1\\1&amp;3\end{smallmatrix}\right]\)</td>
+<td style="text-align:left">\(4,2\)</td>
+<td style="text-align:left">= permutation \(+\,3I\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Rotation \(\left[\begin{smallmatrix}0&amp;-1\\1&amp;0\end{smallmatrix}\right]\)</td>
+<td style="text-align:left">\(\pm i\)</td>
+<td style="text-align:left">real matrix, complex \(\lambda\) in conjugate pairs</td>
+</tr>
+<tr>
+<td style="text-align:left">\(\left[\begin{smallmatrix}3&amp;1\\0&amp;3\end{smallmatrix}\right]\)</td>
+<td style="text-align:left">\(3,3\)</td>
+<td style="text-align:left">only one eigenvector: defective</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Diagonalization and powers <strong>[L22]</strong></h2>
+<div class="math-display">\[A=S\Lambda S^{-1},\qquad A^k=S\Lambda^kS^{-1},\qquad u_k=A^ku_0=\sum_i c_i\lambda_i^k x_i .\]</div>
+<ul>
+<li>
+<p>This needs <strong>\(n\) independent eigenvectors</strong> (\(S\) invertible). <strong>Distinct eigenvalues guarantee it.</strong></p>
+</li>
+<li>
+<p>Repeated \(\lambda\): compare the <strong>algebraic multiplicity</strong> (root count) with the <strong>geometric multiplicity</strong> (\(\dim\mathbf{N}(A-\lambda I)\)). If geometric \(&lt;\) algebraic, \(A\) is not diagonalizable. \(I_{10}\) is fine; \(\left[\begin{smallmatrix}2&amp;1\\0&amp;2\end{smallmatrix}\right]\) is not.</p>
+</li>
+<li>
+<p><strong>Stability of powers:</strong> \(A^k\to0\iff\) all \(|\lambda_i|&lt;1\).</p>
+</li>
+<li>
+<p><strong>Recipe:</strong> expand \(u_0=Sc\) in eigenvectors; each component scales by its own \(\lambda^k\).</p>
+</li>
+<li>
+<p><strong>Fibonacci:</strong> \(u_k=(F_{k+1},F_k)\), \(A=\left[\begin{smallmatrix}1&amp;1\\1&amp;0\end{smallmatrix}\right]\), \(\lambda=\frac{1\pm\sqrt5}{2}\approx1.618,\,-0.618\). <strong>Binet</strong> *(my addition)*xmy completion: \(F_k=\dfrac{\lambda_1^k-\lambda_2^k}{\sqrt5}\). Growth rate = largest eigenvalue.</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> Repeated multiplication by the same matrix (RNNs, deep linear nets, backprop through time) is governed by the largest \(|\lambda|\): above 1 explodes, below 1 vanishes. The same rule governs power iteration and PageRank.</p>
+<h2>Differential equations and \(e^{At}\) <strong>[L23]</strong></h2>
+<div class="math-display">\[\frac{du}{dt}=Au,\qquad u(t)=\sum_i c_ie^{\lambda_it}x_i=Se^{\Lambda t}S^{-1}u(0),\qquad e^{At}=I+At+\frac{(At)^2}{2!}+\cdots\]</div>
+<ul>
+<li>
+<p>Example: \(A=\left[\begin{smallmatrix}-1&amp;2\\1&amp;-2\end{smallmatrix}\right]\) (singular, trace \(-3\)) \(\to\) \(\lambda=0,-3\); \(x=(2,1),(1,-1)\). From \(u(0)=(1,0)\): \(c_1=c_2=\tfrac13\), steady state \(\bm{(\tfrac23,\tfrac13)}\); the total \(u_1+u_2\) is conserved.</p>
+</li>
+<li>
+<p><strong>Only \(\mathop{\mathrm{Re}}\lambda\) matters:</strong> \(e^{(-3+6i)t}\) has size \(e^{-3t}\); the imaginary part just oscillates.</p>
+</li>
+</ul>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Behavior</strong></th>
+<th style="text-align:left"><strong>Condition</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Decay to 0</td>
+<td style="text-align:left">\(\mathop{\mathrm{Re}}\lambda&lt;0\) for all \(\lambda\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Steady state</td>
+<td style="text-align:left">one \(\lambda=0\), others \(\mathop{\mathrm{Re}}\lambda&lt;0\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Blow-up</td>
+<td style="text-align:left">any \(\mathop{\mathrm{Re}}\lambda&gt;0\)</td>
+</tr>
+<tr>
+<td style="text-align:left">\(2\times2\) stable</td>
+<td style="text-align:left">\(\mathop{\mathrm{tr}}A&lt;0\) <strong>and</strong> \(\det A&gt;0\)</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>
+<p><strong>Two stability regions:</strong> powers need \(|\lambda|&lt;1\) (inside the unit circle); exponentials need \(\mathop{\mathrm{Re}}\lambda&lt;0\) (left half-plane).</p>
+</li>
+<li>
+<p>Higher-order ODEs become first-order systems: \(y&#x27;&#x27;+by&#x27;+ky=0\ \to\ u=(y&#x27;,y)\), \(A=\left[\begin{smallmatrix}-b&amp;-k\\1&amp;0\end{smallmatrix}\right]\).</p>
+</li>
+<li>
+<p>The geometric series \((I-At)^{-1}=I+At+(At)^2+\cdots\) converges only when the eigenvalues of \(At\) are inside the unit circle; \(e^{At}\) always converges.</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> State-space sequence models (S4, Mamba) discretize \(du/dt=Au\) via \(e^{A\Delta t}\) and constrain \(\mathop{\mathrm{Re}}\lambda&lt;0\) for stability. Neural ODEs are the nonlinear version. A matrix whose columns sum to 0 (like the example) is a continuous-time Markov generator.</p>
+<h2>Markov matrices <strong>[L24]</strong></h2>
+<ul>
+<li>
+<p>Entries \(\ge0\), <strong>columns sum to 1</strong>. Powers stay Markov.</p>
+</li>
+<li>
+<p><strong>\(\lambda=1\) is always an eigenvalue:</strong> the columns of \(A-I\) sum to 0, so \((1,\dots,1)\in\mathbf{N}\big((A-I)^{\mathsf{T}}\big)\) and \(A-I\) is singular.</p>
+</li>
+<li>
+<p>The other eigenvalues have \(|\lambda|\le1\); the \(\lambda=1\) eigenvector is nonnegative and is the <strong>steady state</strong>.</p>
+</li>
+<li>
+<p>\(\mathrm{eig}(A)=\mathrm{eig}(A^{\mathsf{T}})\) (same characteristic polynomial), but the eigenvectors differ.</p>
+</li>
+<li>
+<p>California–Massachusetts: \(A=\left[\begin{smallmatrix}.9&amp;.2\\.1&amp;.8\end{smallmatrix}\right]\), \(\lambda=1,\,0.7\); \(x=(2,1),(-1,1)\). From \((0,1000)\): <div class="math-display">\[u_k=\tfrac{1000}{3}\begin{bmatrix}2\\1\end{bmatrix}+\tfrac{2000}{3}(0.7)^k\begin{bmatrix}-1\\1\end{bmatrix}\ \to\ \bm{(667,\,333)}.\]</div>
+</p>
+</li>
+<li>
+<p>\(3\times3\) example steady state: \((0.6,\,33,\,0.7)\approx(0.017,\,0.962,\,0.020)\) normalized.</p>
+</li>
+<li>
+<p>Many texts (and most ML) use <strong>row vectors</strong>: rows sum to 1 and \(\pi P=\pi\).</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link (your research).</strong> Convergence to the stationary distribution goes like \(|\lambda_2|^k\); the <strong>spectral gap</strong> \(1-|\lambda_2|\) sets the mixing time of Markov-chain sequence tasks. A <strong>periodic</strong> chain such as \(\left[\begin{smallmatrix}0&amp;1\\1&amp;0\end{smallmatrix}\right]\) has \(\lambda=-1\) and never converges; <strong>all entries strictly positive</strong> forces every other \(|\lambda|&lt;1\) (Perron–Frobenius) and guarantees convergence.</p>
+<h2>Orthonormal expansion and Fourier series <strong>[L24]</strong></h2>
+<ul>
+<li>
+<p>With an orthonormal basis, \(v=\sum x_iq_i\) has \(\bm{x_i=q_i^{\mathsf{T}}v}\), because \(Q^{-1}=Q^{\mathsf{T}}\).</p>
+</li>
+<li>
+<p>Fourier series: \(f(x)=a_0+a_1\cos x+b_1\sin x+\cdots\) in an infinite-dimensional function space with inner product \(\langle f,g\rangle=\int_0^{2\pi}f(x)g(x)\,dx\).</p>
+</li>
+<li>
+<p>\(a_1=\frac1\pi\int_0^{2\pi}f(x)\cos x\,dx\); \(a_0\) = average of \(f\).</p>
+</li>
+</ul>
+<p class="box box-corr"><strong>Correction.</strong> Strang calls the Fourier basis orthonormal; it is only <strong>orthogonal</strong> (\(\int_0^{2\pi}\cos^2x\,dx=\pi\), \(\int_0^{2\pi}1\,dx=2\pi\)), which is why the formulas divide by \(\pi\) and \(2\pi\).</p>
+<h2>Quiz-2 problems worth keeping <strong>[L24b]</strong></h2>
+<ul>
+<li>
+<p>Projection onto \(a=(2,1,2)\): \(P=aa^{\mathsf{T}}/9\), eigenvalues \(1,0,0\), and \(P^k=P\), so \(u_k\) stops changing after one step.</p>
+</li>
+<li>
+<p>Line through the origin \(y=Dt\) fitted to \((1,4),(2,5),(3,8)\): \(\hat D=38/14=19/7\). The projection picture is \(b\) onto the line through \((1,2,3)\) in \(\mathbb{R}^3\), <strong>not</strong> points onto the fitted line.</p>
+</li>
+<li>
+<p>\(4\times4\) with eigenvalues \(\lambda_i\): invertible \(\iff\) no \(\lambda_i=0\); \(\det A^{-1}=1/\prod\lambda_i\); \(\mathop{\mathrm{tr}}(A+I)=\sum\lambda_i+4\).</p>
+</li>
+<li>
+<p>Tridiagonal recurrence as a system: \(\left[\begin{smallmatrix}1&amp;-1\\1&amp;0\end{smallmatrix}\right]\), \(\lambda=e^{\pm i\pi/3}\), \(|\lambda|=1\), \(\bm{A^6=I}\) (distinct \(\lambda\), so diagonalizable): period 6, matching L19.</p>
+</li>
+</ul>
+<h2>Part VI — Symmetric, positive definite, complex (L25–L27)</h2>
+<p>Symmetric matrices are the most important class in ML: covariances, kernels, Hessians, Laplacians. Their whole story is \(A=Q\Lambda Q^{\mathsf{T}}\) <strong>[L25]</strong>.</p>
+<h2>Spectral theorem <strong>[L25]</strong></h2>
+<p>A real symmetric \(A\) has <strong>real eigenvalues</strong>, its eigenvectors <strong>can be chosen orthonormal</strong>, and a full set always exists: <div class="math-display">\[A=Q\Lambda Q^{\mathsf{T}}=\lambda_1q_1q_1^{\mathsf{T}}+\lambda_2q_2q_2^{\mathsf{T}}+\cdots+\lambda_nq_nq_n^{\mathsf{T}}.\]</div>
+</p>
+<ul>
+<li>
+<p>Each \(q_iq_i^{\mathsf{T}}\) is a projection onto the line through \(q_i\): <strong>a symmetric matrix is an eigenvalue-weighted sum of perpendicular projections.</strong></p>
+</li>
+<li>
+<p>Names: spectral theorem (maths), principal axis theorem (mechanics).</p>
+</li>
+<li>
+<p><strong>Proof that \(\lambda\) is real:</strong> compute \(\bar x^{\mathsf{T}}Ax\) as \(\lambda\,\bar x^{\mathsf{T}}x\) and as \(\bar\lambda\,\bar x^{\mathsf{T}}x\) (this step uses \(A^{\mathsf{T}}=A\)); cancel \(\bar x^{\mathsf{T}}x=\sum|x_i|^2&gt;0\).</p>
+</li>
+<li>
+<p><strong>Proof that the \(x\)’s are perpendicular</strong> <em>(my addition)</em>: \(\lambda_1x_2^{\mathsf{T}}x_1=x_2^{\mathsf{T}}Ax_1=(Ax_2)^{\mathsf{T}}x_1=\lambda_2x_2^{\mathsf{T}}x_1\), so \((\lambda_1-\lambda_2)\,x_2^{\mathsf{T}}x_1=0\).</p>
+</li>
+<li>
+<p><strong>Signs of pivots = signs of eigenvalues</strong> (symmetric, no row exchanges). Count the positive pivots of \(A-7I\) to count the eigenvalues above 7. Product of pivots = product of eigenvalues = \(\det\).</p>
+</li>
+<li>
+<p>Finding the roots of \(\det(A-\lambda I)\) for large \(n\) is numerically unstable; real eigenvalue algorithms work differently.</p>
+</li>
+</ul>
+<h2>Positive definite: four equivalent tests <strong>[L25, L27]</strong></h2>
+<p>For symmetric \(A\), each of these is a complete test:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>#</strong></th>
+<th style="text-align:left"><strong>Test</strong></th>
+<th style="text-align:left"><strong>\(2\times2\) version for \(\left[\begin{smallmatrix}a&amp;b\\b&amp;c\end{smallmatrix}\right]\)</strong></th>
+<th style="text-align:left"></th>
+<th style="text-align:left"></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">1</td>
+<td style="text-align:left">all eigenvalues \(&gt;0\)</td>
+<td style="text-align:left">\(\lambda_1,\lambda_2&gt;0\)</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">2</td>
+<td style="text-align:left">all upper-left determinants \(&gt;0\)</td>
+<td style="text-align:left">\(a&gt;0,\ ac-b^2&gt;0\)</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">3</td>
+<td style="text-align:left">all pivots \(&gt;0\)</td>
+<td style="text-align:left">\(a&gt;0,\ (ac-b^2)/a&gt;0\)</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+<tr>
+<td style="text-align:left">4 \(\star\)</td>
+<td style="text-align:left">\(\bm{x^{\mathsf{T}}Ax&gt;0}\) <strong>for every \(x\neq0\)</strong> (energy; the usual definition)</td>
+<td style="text-align:left">\(ax^2+2bxy+cy^2&gt;0\)</td>
+<td style="text-align:left"></td>
+<td style="text-align:left"></td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>
+<p>Checking only the full determinant is not enough: \(\left[\begin{smallmatrix}-1&amp;0\\0&amp;-3\end{smallmatrix}\right]\) has \(\det=3\) but is negative definite.</p>
+</li>
+<li>
+<p><strong>Semidefinite:</strong> \(\ge\) instead of \(&gt;\) (singular allowed, a zero eigenvalue).</p>
+</li>
+<li>
+<p>\(\left[\begin{smallmatrix}2&amp;6\\6&amp;c\end{smallmatrix}\right]\): positive definite for \(c&gt;18\); \(c=18\) is semidefinite (\(\lambda=0,20\)); \(c=7\) is indefinite (\(x=(1,-1)\) gives \(-3\)).</p>
+</li>
+<li>
+<p><strong>Completing the square = elimination:</strong> \(2x^2+12xy+20y^2=2(x+3y)^2+2y^2\). The pivots sit outside the squares; the multiplier 3 sits inside.</p>
+</li>
+<li>
+<p>\(3\times3\) example \(\left[\begin{smallmatrix}2&amp;-1&amp;0\\-1&amp;2&amp;-1\\0&amp;-1&amp;2\end{smallmatrix}\right]\): determinants \(2,3,4\); pivots \(2,\tfrac32,\tfrac43\); eigenvalues \(2-\sqrt2,\ 2,\ 2+\sqrt2\).</p>
+</li>
+<li>
+<p><strong>Preserved</strong> <strong>[L28]</strong>: \(A^{-1}\) (eigenvalues \(1/\lambda\)), \(A+B\) (the energy test adds), and <strong>\(A^{\mathsf{T}}A\) is positive definite \(\iff\) \(A\) has independent columns</strong> (\(x^{\mathsf{T}}A^{\mathsf{T}}Ax=\lVert Ax\rVert^2\)). Positive definite elimination never needs row exchanges.</p>
+</li>
+</ul>
+<h2>Minima, saddles, ellipsoids <strong>[L27]</strong></h2>
+<ul>
+<li>
+<p>\(x^{\mathsf{T}}Ax&gt;0\) everywhere \(\Rightarrow\) the graph is a <strong>bowl</strong> (minimum at 0). Indefinite \(\Rightarrow\) <strong>saddle</strong>.</p>
+</li>
+<li>
+<p><strong>Second-derivative test in \(n\) dimensions:</strong> gradient \(=0\) and the <strong>Hessian</strong> \(\left[\begin{smallmatrix}f_{xx}&amp;f_{xy}\\f_{yx}&amp;f_{yy}\end{smallmatrix}\right]\) positive definite. In 2D: \(f_{xx}&gt;0\) and \(f_{xx}f_{yy}&gt;f_{xy}^2\).</p>
+</li>
+<li>
+<p>The level set \(x^{\mathsf{T}}Ax=1\) is an ellipse/ellipsoid with axes along the eigenvectors and <strong>semi-axis lengths \(1/\sqrt{\lambda_i}\)</strong> *(my addition)*xmy precise version; the smallest \(\lambda\) gives the longest axis.</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> Covariance matrices and kernel (Gram) matrices are positive semidefinite by construction (they are \(A^{\mathsf{T}}A\)). A local minimum needs a positive semidefinite Hessian; in high dimensions most critical points are <strong>saddles</strong> (mixed-sign eigenvalues). The <strong>condition number</strong> \(\lambda_{\max}/\lambda_{\min}\) sets how elongated the loss ellipsoids are. That elongation is what slows gradient descent and what preconditioning (Adam, natural gradient, Newton) corrects.</p>
+<h2>Complex vectors and matrices <strong>[L26]</strong></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Real</strong></th>
+<th style="text-align:left"><strong>Complex</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">\(x^{\mathsf{T}}x\)</td>
+<td style="text-align:left">\(z^{\mathsf{H}}z=\sum_i\vert z_i\vert ^2\)</td>
+</tr>
+<tr>
+<td style="text-align:left">\(y^{\mathsf{T}}x\)</td>
+<td style="text-align:left">\(y^{\mathsf{H}}x\)</td>
+</tr>
+<tr>
+<td style="text-align:left">symmetric \(A^{\mathsf{T}}=A\)</td>
+<td style="text-align:left"><strong>Hermitian</strong> \(A^{\mathsf{H}}=A\) (real diagonal, conjugate off-diagonal pairs)</td>
+</tr>
+<tr>
+<td style="text-align:left">orthogonal \(Q^{\mathsf{T}}Q=I\)</td>
+<td style="text-align:left"><strong>unitary</strong> \(Q^{\mathsf{H}}Q=I\)</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>
+<p>\(z=(1,i)\) has \(z^{\mathsf{T}}z=0\) but \(\lVert z\rVert=\sqrt2\): always conjugate.</p>
+</li>
+<li>
+<p>Hermitian matrices have real eigenvalues and orthogonal eigenvectors.</p>
+</li>
+</ul>
+<h2>Fourier matrix and FFT <strong>[L26]</strong></h2>
+<ul>
+<li>
+<p>\((F_n)_{jk}=w^{jk}\), \(w=e^{2\pi i/n}\) (indices from 0). <div class="math-display">\[F_4=\begin{bmatrix}1&amp;1&amp;1&amp;1\\1&amp;i&amp;-1&amp;-i\\1&amp;-1&amp;1&amp;-1\\1&amp;-i&amp;-1&amp;i\end{bmatrix}.\]</div>
+</p>
+</li>
+<li>
+<p>The columns are orthogonal under the complex inner product; \(F_n^{-1}=\frac1n F_n^{\mathsf{H}}\).</p>
+</li>
+<li>
+<p><strong>FFT:</strong> <div class="math-display">\[F_{64}=\begin{bmatrix}I&amp;D\\I&amp;-D\end{bmatrix}\begin{bmatrix}F_{32}&amp;0\\0&amp;F_{32}\end{bmatrix}P,\]</div>
+ with \(P\) the even/odd split and \(D=\mathop{\mathrm{diag}}(1,w,\dots,w^{31})\). Recurse: the cost is \(\tfrac12n\log_2n\) instead of \(n^2\). For \(n=1024\) that is about 5,000 vs 1,000,000 operations, a \(200\times\) speedup.</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> The Fourier matrix diagonalizes every circulant (cyclic convolution) matrix, which is why convolution becomes elementwise multiplication in frequency space. It powers FFT-based convolutions, long-convolution kernels in S4-style models, and FNet’s token mixing.</p>
+<h2>Part VII — Similarity, SVD, transformations, pseudoinverse (L28–L34)</h2>
+<p>The SVD \(A=U\Sigma V^{\mathsf{T}}\) works for every matrix and gives the best bases for all four subspaces at once <strong>[L29]</strong>. Most of modern ML’s linear algebra runs through it.</p>
+<h2>Similar matrices and Jordan form <strong>[L28]</strong></h2>
+<ul>
+<li>
+<p>\(\bm{B=M^{-1}AM}\) (\(M\) invertible) \(\Rightarrow\) \(A\) and \(B\) are similar: <strong>same eigenvalues</strong>; eigenvectors move \(x\to M^{-1}x\). Also \(B^k=M^{-1}A^kM\).</p>
+</li>
+<li>
+<p>Proof: \(A(MM^{-1})x=\lambda x\ \Rightarrow\ (M^{-1}AM)(M^{-1}x)=\lambda(M^{-1}x)\).</p>
+</li>
+<li>
+<p>Example: \(\left[\begin{smallmatrix}2&amp;1\\1&amp;2\end{smallmatrix}\right]\) with \(M=\left[\begin{smallmatrix}1&amp;4\\0&amp;1\end{smallmatrix}\right]\) gives \(B=\left[\begin{smallmatrix}-2&amp;-15\\1&amp;6\end{smallmatrix}\right]\): trace 4, det 3, eigenvalues 3 and 1.</p>
+</li>
+<li>
+<p>Same family = same eigenvalues <strong>and</strong> same Jordan structure. \(4I\) is alone in its family; every other matrix with eigenvalues \(4,4\) is defective, with best member \(\left[\begin{smallmatrix}4&amp;1\\0&amp;4\end{smallmatrix}\right]\).</p>
+</li>
+<li>
+<p><strong>Jordan theorem:</strong> every \(A\) is similar to \(J\) = blocks \(J_i\) (\(\lambda_i\) on the diagonal, 1s just above); the number of blocks is the number of independent eigenvectors. Block <strong>sizes</strong> matter: the \(3+1\) and \(2+2\) nilpotent \(4\times4\) Jordan forms both have rank 2 but are not similar (their squares have ranks 1 and 0, *(my addition)*xmy justification).</p>
+</li>
+<li>
+<p>Strang: Jordan form is numerically fragile (it needs exactly equal eigenvalues); the SVD and positive definiteness matter more today.</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> Similarity is a change of basis: same linear map, different coordinates. Eigenvalues, trace, det and rank are basis-independent; individual weight entries are not. That is why spectral quantities of weight matrices are meaningful under reparameterization.</p>
+<h2>SVD <strong>[L29, L32]</strong></h2>
+<div class="math-display">\[A=U\Sigma V^{\mathsf{T}},\qquad Av_i=\sigma_iu_i,\qquad A^{\mathsf{T}}A=V\Sigma^{\mathsf{T}}\Sigma V^{\mathsf{T}},\qquad AA^{\mathsf{T}}=U\Sigma\Sigma^{\mathsf{T}}U^{\mathsf{T}}.\]</div>
+<ul>
+<li>
+<p>Goal: an orthonormal basis \(v_i\) of the row space that \(A\) maps to an orthogonal set \(\sigma_iu_i\) in the column space; complete it with bases of \(\mathbf{N}(A)\) and \(\mathbf{N}(A^{\mathsf{T}})\) (\(\sigma=0\) there).</p>
+</li>
+<li>
+<p>\(\bm{V}\) <strong>= eigenvectors of \(A^{\mathsf{T}}A\);</strong> \(\bm{\sigma_i=\sqrt{\lambda_i(A^{\mathsf{T}}A)}\ge0}\); \(\bm{U}\) <strong>= eigenvectors of \(AA^{\mathsf{T}}\)</strong> (same nonzero eigenvalues).</p>
+</li>
+<li>
+<p>For symmetric positive definite \(A\), the SVD is \(Q\Lambda Q^{\mathsf{T}}\) (\(U=V\)).</p>
+</li>
+<li>
+<p>Example \(\left[\begin{smallmatrix}4&amp;4\\-3&amp;3\end{smallmatrix}\right]\): \(A^{\mathsf{T}}A=\left[\begin{smallmatrix}25&amp;7\\7&amp;25\end{smallmatrix}\right]\), \(\sigma=\sqrt{32},\sqrt{18}\), \(v=(1,1)/\sqrt2,\ (1,-1)/\sqrt2\), \(U=\left[\begin{smallmatrix}1&amp;0\\0&amp;-1\end{smallmatrix}\right]\).</p>
+</li>
+<li>
+<p>Example \(\left[\begin{smallmatrix}4&amp;3\\8&amp;6\end{smallmatrix}\right]\) (rank 1): \(v_1=(0.8,0.6)\), \(u_1=(1,2)/\sqrt5\), \(\sigma_1=\sqrt{125}=5\sqrt5\).</p>
+</li>
+<li>
+<p><strong>Reading \(\Sigma\):</strong> \(\mathop{\mathrm{diag}}(3,2)\) is invertible; \(\mathop{\mathrm{diag}}(3,-5)\) is not an SVD (\(\sigma\ge0\)); \(\mathop{\mathrm{diag}}(3,0)\) has rank 1 with \(v_2\) spanning \(\mathbf{N}(A)\).</p>
+</li>
+</ul>
+<p class="box box-corr"><strong>Correction (SVD sign).</strong> Strang chose \(U\) from \(AA^{\mathsf{T}}\) independently and got a row with the wrong sign. Eigenvectors are only defined up to sign, so <strong>compute \(u_i=Av_i/\sigma_i\)</strong> after choosing \(V\). He fixes this in L32.</p>
+<p class="box box-ml"><strong>ML link.</strong> Truncating to the top \(k\) terms \(\sum_{i\le k}\sigma_iu_iv_i^{\mathsf{T}}\) gives the best rank-\(k\) approximation (Eckart–Young): compression, low-rank adapters, denoising. The SVD of weight matrices (e.g. OV/QK circuits, embedding matrices) is a standard interpretability tool, and the singular-value spectrum shows effective rank.</p>
+<h2>Linear transformations and their matrices <strong>[L30]</strong></h2>
+<ul>
+<li>
+<p><strong>Linear:</strong> \(T(cv+dw)=cT(v)+dT(w)\), so \(T(0)=0\). Projection, rotation, and \(T(v)=Av\) are linear; the <strong>shift \(T(v)=v+v_0\)</strong> and \(T(v)=\lVert v\rVert\) are not.</p>
+</li>
+<li>
+<p>Knowing \(T\) on a basis determines \(T\) everywhere.</p>
+</li>
+<li>
+<p><strong>Matrix of \(T\):</strong> column \(j\) = output-basis coordinates of \(T(v_j)\). Then \(A\times(\text{input coords})=(\text{output coords})\).</p>
+</li>
+<li>
+<p>The same projection: the eigenvector basis gives \(\left[\begin{smallmatrix}1&amp;0\\0&amp;0\end{smallmatrix}\right]\); the standard basis (45° line) gives \(\left[\begin{smallmatrix}1/2&amp;1/2\\1/2&amp;1/2\end{smallmatrix}\right]\).</p>
+</li>
+<li>
+<p>The derivative on \(\{1,x,x^2\}\to\{1,x\}\) is \(\left[\begin{smallmatrix}0&amp;1&amp;0\\0&amp;0&amp;2\end{smallmatrix}\right]\).</p>
+</li>
+<li>
+<p>Matrix multiplication = composition; matrix inverse = inverse transformation.</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> A linear layer is a linear map; adding a bias (\(Wx+b\)) is the “shift” non-example, i.e. <strong>affine</strong>, not linear.</p>
+<h2>Change of basis and compression <strong>[L31]</strong></h2>
+<ul>
+<li>
+<p>New basis in the columns of \(W\): \(\bm{x=Wc}\) (\(c=W^{-1}x\)). The same \(T\) in two bases gives similar matrices \(\bm{B=M^{-1}AM}\). The eigenvector basis gives \(\Lambda\).</p>
+</li>
+<li>
+<p>Images: \(512^2\) pixels, 8 bits each; the standard basis ignores the correlation between neighbours.</p>
+</li>
+<li>
+<p><strong>Compression = lossless change of basis + lossy thresholding + reconstruction</strong> (\(64\to\sim3\) coefficients, about 21:1).</p>
+</li>
+<li>
+<p>JPEG: Fourier on \(8\times8\) blocks. Haar wavelets for \(\mathbb{R}^8\): \((1^8)\), \((1^4,-1^4)\), \((1,1,-1,-1,0^4)\), \((0^4,1,1,-1,-1)\), then four \((1,-1)\) pairs; orthogonal, so \(W^{-1}=W^{\mathsf{T}}\) after normalizing.</p>
+</li>
+<li>
+<p><strong>A good basis is fast</strong> (FFT, fast wavelet transform, orthogonality) <strong>and compresses well</strong> (few coefficients suffice).</p>
+</li>
+<li>
+<p>Video: encode a prediction plus a small correction between frames.</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link.</strong> The best basis for compressing a dataset (in least squares) is the covariance eigenbasis: PCA / Karhunen–Loève. Sparse autoencoders follow the same “few coefficients” principle with a learned, overcomplete basis.</p>
+<h2>Left, right, and pseudoinverse <strong>[L33]</strong></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Case</strong></th>
+<th style="text-align:left"><strong>Rank</strong></th>
+<th style="text-align:left"><strong>Inverse</strong></th>
+<th style="text-align:left"><strong>Wrong-order product</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Square, full rank</td>
+<td style="text-align:left">\(r=m=n\)</td>
+<td style="text-align:left">\(A^{-1}\)</td>
+<td style="text-align:left">—</td>
+</tr>
+<tr>
+<td style="text-align:left">Full column rank</td>
+<td style="text-align:left">\(r=n&lt;m\)</td>
+<td style="text-align:left">\(\bm{(A^{\mathsf{T}}A)^{-1}A^{\mathsf{T}}}\) (left)</td>
+<td style="text-align:left">\(A\cdot\text{left}\) = projection onto \(\mathbf{C}(A)\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Full row rank</td>
+<td style="text-align:left">\(r=m&lt;n\)</td>
+<td style="text-align:left">\(\bm{A^{\mathsf{T}}(AA^{\mathsf{T}})^{-1}}\) (right)</td>
+<td style="text-align:left">\(\text{right}\cdot A\) = projection onto \(\mathbf{C}(A^{\mathsf{T}})\)</td>
+</tr>
+<tr>
+<td style="text-align:left">General</td>
+<td style="text-align:left">\(r&lt;m,\,n\)</td>
+<td style="text-align:left">\(\bm{A^{+}=V\Sigma^{+}U^{\mathsf{T}}}\)</td>
+<td style="text-align:left">\(AA^{+}\), \(A^{+}A\) = the two projections</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>
+<p><strong>Key fact:</strong> restricted to the row space, \(A\) is one-to-one onto the column space. Proof: \(Ax=Ay\) with \(x,y\) in the row space \(\Rightarrow x-y\in\mathbf{N}(A)\cap\mathbf{C}(A^{\mathsf{T}})=\{0\}\).</p>
+</li>
+<li>
+<p>\(A^{+}\) inverts that map and kills \(\mathbf{N}(A^{\mathsf{T}})\). \(\Sigma^{+}\) inverts only the nonzero \(\sigma_i\).</p>
+</li>
+<li>
+<p>Example <em>(my addition)</em>: \(A=\left[\begin{smallmatrix}1&amp;1\\1&amp;1\end{smallmatrix}\right]\ \Rightarrow\ A^{+}=\tfrac14\left[\begin{smallmatrix}1&amp;1\\1&amp;1\end{smallmatrix}\right]\).</p>
+</li>
+</ul>
+<p class="box box-ml"><strong>ML link (my addition).</strong> \(x^{+}=A^{+}b\) is the <strong>minimum-norm least-squares solution</strong>. Ridge, \((A^{\mathsf{T}}A+\lambda I)^{-1}A^{\mathsf{T}}\to A^{+}\) as \(\lambda\to0\). In overparameterized linear regression, gradient descent from zero converges to \(A^{+}b\): the classic implicit bias toward minimum norm.</p>
+<h2>Quiz-3 and final review: patterns to recognize <strong>[L32, L34]</strong></h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Matrix type</strong></th>
+<th style="text-align:left"><strong>Eigenvalues</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Symmetric</td>
+<td style="text-align:left">real</td>
+</tr>
+<tr>
+<td style="text-align:left">Antisymmetric (\(A^{\mathsf{T}}=-A\))</td>
+<td style="text-align:left">imaginary</td>
+</tr>
+<tr>
+<td style="text-align:left">Orthogonal</td>
+<td style="text-align:left">\(\vert \lambda\vert =1\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Symmetric and orthogonal</td>
+<td style="text-align:left">\(\pm1\); then \(\tfrac12(A+I)\) is a projection (\(A^2=I\))</td>
+</tr>
+<tr>
+<td style="text-align:left">Projection</td>
+<td style="text-align:left">0 or 1</td>
+</tr>
+<tr>
+<td style="text-align:left">Markov</td>
+<td style="text-align:left">\(\lambda=1\) present, others \(\vert \lambda\vert \le1\)</td>
+</tr>
+<tr>
+<td style="text-align:left">Positive definite</td>
+<td style="text-align:left">\(\lambda&gt;0\)</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>
+<p><strong>Orthogonal eigenvectors \(\iff AA^{\mathsf{T}}=A^{\mathsf{T}}A\)</strong> (normal): symmetric, antisymmetric and orthogonal matrices all qualify <strong>[L32]</strong>.</p>
+</li>
+<li>
+<p>Antisymmetric \(\left[\begin{smallmatrix}0&amp;-1&amp;0\\1&amp;0&amp;-1\\0&amp;1&amp;0\end{smallmatrix}\right]\): \(\lambda=0,\pm i\sqrt2\); \(du/dt=Au\) is periodic with \(T=\pi\sqrt2\).</p>
+</li>
+<li>
+<p>From eigen-data alone (\(\lambda=0,c,2\), orthogonal \(x\)’s): diagonalizable for all \(c\); symmetric for real \(c\); never PD; PSD for \(c\ge0\); never Markov; \(A/2\) is a projection for \(c=0\) or \(2\).</p>
+</li>
+<li>
+<p><strong>Final</strong> <strong>[L34]</strong>: “no solution for some \(b\), unique when it exists” \(\Rightarrow r=n&lt;m\). Then \(A^{\mathsf{T}}A\) is invertible, \(AA^{\mathsf{T}}\) only semidefinite, \(\det(A^{\mathsf{T}}A)\neq\det(AA^{\mathsf{T}})\) (non-square), and \(A^{\mathsf{T}}y=c\) has infinitely many solutions.</p>
+</li>
+<li>
+<p>Markov \(\left[\begin{smallmatrix}.2&amp;.4&amp;.3\\.4&amp;.2&amp;.3\\.4&amp;.4&amp;.4\end{smallmatrix}\right]\) (\(\mathrm{col}_1+\mathrm{col}_2=2\,\mathrm{col}_3\)): \(\lambda=0,1,-0.2\); from \((0,10,0)\) the steady state is \(\bm{(3,3,4)}\) (total conserved).</p>
+</li>
+<li>
+<p>Least squares \(A=\left[\begin{smallmatrix}1&amp;0\\1&amp;1\\1&amp;2\end{smallmatrix}\right]\), \(b=(3,4,1)\): \(\hat{x}=(\tfrac{11}3,-1)\), \(p=(\tfrac{11}3,\tfrac83,\tfrac53)\). A \(b\) with \(\hat{x}=0\) is any \(b\perp\mathbf{C}(A)\), e.g. \((1,-2,1)\).</p>
+</li>
+<li>
+<p>Not of the form \(B^{\mathsf{T}}B\): any non-symmetric matrix, or a symmetric one that is not PSD *(my addition)*xmy sharpening.</p>
+</li>
+</ul>
+<h2>Capstone — PCA end to end <strong>[MLT L5]</strong></h2>
+<p>PCA is projection onto the top-\(k\) eigenvectors of the covariance matrix, and nearly every part of 18.06 is used to justify it.</p>
+<h2>The pipeline, with the lecture behind each step</h2>
+<ol>
+<li>
+<p><strong>Center the data</strong> \(x_1,\dots,x_n\in\mathbb{R}^d\) (subtract the mean).</p>
+</li>
+<li>
+<p><strong>Covariance</strong> \(C=\frac1n\sum_ix_ix_i^{\mathsf{T}}=\frac1nX^{\mathsf{T}}X\): symmetric and positive semidefinite because it is \(A^{\mathsf{T}}A\) <strong>[L5, L28]</strong>.</p>
+</li>
+<li>
+<p><strong>Represent a point by a line \(w\) (\(\lVert w\rVert=1\)):</strong> coefficient \(x_i^{\mathsf{T}}w\), reconstruction \((x_i^{\mathsf{T}}w)w=ww^{\mathsf{T}}x_i\), a rank-1 projection <strong>[L15]</strong>.</p>
+</li>
+<li>
+<p><strong>Best line:</strong> minimize the average \(\lVert x_i-(x_i^{\mathsf{T}}w)w\rVert^2\). Since <div class="math-display">\[\lVert x-(x^{\mathsf{T}}w)w\rVert^2=\lVert x\rVert^2-(x^{\mathsf{T}}w)^2,\]</div>
+ this is the same as <strong>maximizing \(w^{\mathsf{T}}Cw\)</strong> (the variance along \(w\)).</p>
+</li>
+<li>
+<p><strong>Solve with a Lagrange multiplier:</strong> <div class="math-display">\[\nabla_w\big(w^{\mathsf{T}}Cw-\lambda(w^{\mathsf{T}}w-1)\big)=0\ \Rightarrow\ \bm{Cw=\lambda w},\qquad w^{\mathsf{T}}Cw=\lambda,\]</div>
+ so pick the <strong>largest eigenvalue</strong> <strong>[L21]</strong>.</p>
+</li>
+<li>
+<p><strong>Residues:</strong> \(r_i=x_i-(x_i^{\mathsf{T}}w_1)w_1\) are \(\perp w_1\). Their covariance is \(C-\lambda_1w_1w_1^{\mathsf{T}}\) (deflation), so the best line for the residues is the 2nd eigenvector. Repeating gives the orthonormal eigenbasis <strong>[L25 spectral theorem]</strong>.</p>
+</li>
+<li>
+<p><strong>Choose \(k\)</strong> by explained variance \(\dfrac{\sum_{i\le k}\lambda_i}{\sum_i\lambda_i}\ge0.95\); the reconstruction error is the sum of the dropped eigenvalues.</p>
+</li>
+<li>
+<p><strong>Compute via the SVD</strong> of the centered \(X\): principal directions = right singular vectors \(V\), \(\lambda_i=\sigma_i^2/n\). This is more stable than forming \(C\) <strong>[L29]</strong>.</p>
+</li>
+</ol>
+<h2>Your two questions from the start of the chat</h2>
+<p><strong>Why is the optimal \(w\) an eigenvector?</strong></p>
+<ol>
+<li>
+<p>Covariance enters because the loss depends on the data only through \(x_ix_i^{\mathsf{T}}\).</p>
+</li>
+<li>
+<p>At a constrained optimum, the gradient \(Cw\) can have no component perpendicular to \(w\) (otherwise rotating \(w\) would capture more variance), so \(Cw\parallel w\).</p>
+</li>
+<li>
+<p>In the eigenbasis, \(w^{\mathsf{T}}Cw=\sum_i\lambda_ia_i^2\) with \(\sum_ia_i^2=1\) is a weighted average of eigenvalues, maximized by putting all the weight on \(\lambda_1\).</p>
+</li>
+</ol>
+<p><strong>Note:</strong> \((x^{\mathsf{T}}w)w\) is the projection, not the eigenvector; the optimal \(w\) is the eigenvector.</p>
+<h2>Multivariable version: \(k\) directions at once</h2>
+<div class="math-display">\[\max_{W\in\mathbb{R}^{d\times k}}\ \mathop{\mathrm{tr}}(W^{\mathsf{T}}CW)\quad\text{s.t.}\quad W^{\mathsf{T}}W=I_k\ \ \Longrightarrow\ \ CW=W\Lambda,\qquad \max=\lambda_1+\cdots+\lambda_k .\]</div>
+<ul>
+<li>
+<p>Codes \(z_i=W^{\mathsf{T}}x_i\); reconstructions \(WW^{\mathsf{T}}x_i\), with \(P=WW^{\mathsf{T}}\) the projection onto the subspace (\(Q^{\mathsf{T}}Q=I\) makes the general formula collapse) <strong>[L15, L17]</strong>.</p>
+</li>
+<li>
+<p>Only the <strong>subspace</strong> is determined: \(WR\) works for any orthogonal \(R\). The eigenvector basis is the one where the codes are uncorrelated (\(W^{\mathsf{T}}CW\) diagonal).</p>
+</li>
+<li>
+<p>Minimum error \(=\lambda_{k+1}+\cdots+\lambda_d\). The truncated SVD of \(X\) is the best rank-\(k\) approximation (Eckart–Young).</p>
+</li>
+</ul>
+<h2>Why PCA is the “best basis”</h2>
+<p>In L31’s language, PCA is the change of basis that compresses this particular dataset best in least squares (Karhunen–Loève). Fourier and wavelets are cheaper, data-independent approximations to it.</p>
+<h2>Corrections and traps caught along the way</h2>
+<p>These are the places where the board (or a first instinct) goes wrong; each one is worth remembering.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Where</strong></th>
+<th style="text-align:left"><strong>The slip</strong></th>
+<th style="text-align:left"><strong>The fix</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">L9 \(\to\) L10</td>
+<td style="text-align:left">Strang offers \((1,1,2),(2,2,5),(3,3,8)\) as a basis of \(\mathbb{R}^3\)</td>
+<td style="text-align:left">All three have \(x_1=x_2\), so the matrix has two equal rows and is singular. Strang corrects it himself at the start of L10 (row rank = column rank).</td>
+</tr>
+<tr>
+<td style="text-align:left">L29 \(\to\) L32</td>
+<td style="text-align:left">\(U\) taken from the eigenvectors of \(AA^{\mathsf{T}}\) independently; one row comes out with the wrong sign</td>
+<td style="text-align:left">Eigenvectors are only defined up to sign. Choose \(V\), then set \(\bm{u_i=Av_i/\sigma_i}\).</td>
+</tr>
+<tr>
+<td style="text-align:left">L24</td>
+<td style="text-align:left">Fourier basis called orthonormal</td>
+<td style="text-align:left">Only orthogonal: \(\int\cos^2x=\pi\), \(\int1=2\pi\). That is why \(a_1\) has a \(1/\pi\).</td>
+</tr>
+<tr>
+<td style="text-align:left">L27</td>
+<td style="text-align:left">Ellipse axis lengths “one over the eigenvalues”</td>
+<td style="text-align:left">For \(x^{\mathsf{T}}Ax=1\) the semi-axes are \(\bm{1/\sqrt{\lambda_i}}\); the smallest \(\lambda\) gives the longest axis.</td>
+</tr>
+<tr>
+<td style="text-align:left">L14</td>
+<td style="text-align:left">“\((1,2,3)\) has length 14”</td>
+<td style="text-align:left">14 is the length <strong>squared</strong>; the length is \(\sqrt{14}\).</td>
+</tr>
+<tr>
+<td style="text-align:left">L20</td>
+<td style="text-align:left"><em>Mathematics for the Million</em> credited to Bell</td>
+<td style="text-align:left">It is by Lancelot Hogben.</td>
+</tr>
+<tr>
+<td style="text-align:left">L25</td>
+<td style="text-align:left">Signs of pivots = signs of eigenvalues</td>
+<td style="text-align:left">True for <strong>symmetric</strong> \(A\) with no row exchanges (nonzero pivots).</td>
+</tr>
+<tr>
+<td style="text-align:left">L8</td>
+<td style="text-align:left">The board summary table briefly mislabeled one rank case</td>
+<td style="text-align:left">Use the corrected table in Part II.</td>
+</tr>
+<tr>
+<td style="text-align:left">L15</td>
+<td style="text-align:left">Tempting: \((A^{\mathsf{T}}A)^{-1}=A^{-1}(A^{\mathsf{T}})^{-1}\), so \(P=I\)</td>
+<td style="text-align:left">\(A\) is rectangular; \(A^{-1}\) does not exist. Only true when \(A\) is square and invertible.</td>
+</tr>
+<tr>
+<td style="text-align:left">L24</td>
+<td style="text-align:left">Markov: “other eigenvalues smaller than 1”</td>
+<td style="text-align:left">Only \(\vert \lambda\vert \le1\) is guaranteed (e.g. \(\left[\begin{smallmatrix}0&amp;1\\1&amp;0\end{smallmatrix}\right]\) has \(\lambda=-1\)); strict \(\vert \lambda\vert &lt;1\) needs e.g. all entries positive.</td>
+</tr>
+<tr>
+<td style="text-align:left">L1 / L19 transcripts</td>
+<td style="text-align:left">Garbled signs in the transcripts</td>
+<td style="text-align:left">The doc uses the verified equations (e.g. \(-x+2y=3\); \(C_{ij}=(-1)^{i+j}\det M_{ij}\)).</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>General traps</strong></p>
+<ul>
+<li>
+<p>\(\det(A+B)\neq\det A+\det B\); \(\mathrm{eig}(A+B)\neq\mathrm{eig}(A)+\mathrm{eig}(B)\) unless they share eigenvectors (e.g. \(B=cI\)).</p>
+</li>
+<li>
+<p>\(\det(AB)=\det(BA)\) only for square matrices; for rectangular \(A\), \(A^{\mathsf{T}}A\) and \(AA^{\mathsf{T}}\) differ (one can be singular).</p>
+</li>
+<li>
+<p>“Free variables” are a choice, but not any choice: the remaining columns must be a basis of \(\mathbf{C}(A)\).</p>
+</li>
+<li>
+<p>A bias term makes a layer affine, not linear (\(T(0)\neq0\)); likewise, solutions of \(Ax=b\) (\(b\neq0\)) are never a subspace.</p>
+</li>
+</ul>
+<h2>Formula sheet</h2>
+<p>Everything above on one page, with the lecture to revisit.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th style="text-align:left"><strong>Topic</strong></th>
+<th style="text-align:left"><strong>Formula / fact</strong></th>
+<th style="text-align:left"><strong>Lecture</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">\(Ax\)</td>
+<td style="text-align:left">combination of the columns of \(A\)</td>
+<td style="text-align:left">L1</td>
+</tr>
+<tr>
+<td style="text-align:left">Elimination</td>
+<td style="text-align:left">\(A=LU\) (\(L\) holds the multipliers); \(PA=LU\); cost \(\approx n^3/3\), then \(n^2\) per \(b\)</td>
+<td style="text-align:left">L2, L4, L5</td>
+</tr>
+<tr>
+<td style="text-align:left">Inverse</td>
+<td style="text-align:left">Gauss–Jordan \([\,A\mid I\,]\to[\,I\mid A^{-1}\,]\); \((AB)^{-1}=B^{-1}A^{-1}\)</td>
+<td style="text-align:left">L3, L4</td>
+</tr>
+<tr>
+<td style="text-align:left">Rank</td>
+<td style="text-align:left">\(r\) = number of pivots \(=\dim\mathbf{C}(A)=\dim\mathbf{C}(A^{\mathsf{T}})\)</td>
+<td style="text-align:left">L7, L9, L10</td>
+</tr>
+<tr>
+<td style="text-align:left">Four subspaces</td>
+<td style="text-align:left">dims \(r,\ n-r\) (in \(\mathbb{R}^n\)); \(r,\ m-r\) (in \(\mathbb{R}^m\))</td>
+<td style="text-align:left">L10</td>
+</tr>
+<tr>
+<td style="text-align:left">Nullspace</td>
+<td style="text-align:left">\(R=\left[\begin{smallmatrix}I&amp;F\\0&amp;0\end{smallmatrix}\right]\to N=\left[\begin{smallmatrix}-F\\I\end{smallmatrix}\right]\)</td>
+<td style="text-align:left">L7</td>
+</tr>
+<tr>
+<td style="text-align:left">Complete solution</td>
+<td style="text-align:left">\(x=x_p+x_n\)</td>
+<td style="text-align:left">L8</td>
+</tr>
+<tr>
+<td style="text-align:left">Orthogonality</td>
+<td style="text-align:left">\(\mathbf{C}(A^{\mathsf{T}})\perp\mathbf{N}(A)\); \(\mathbf{C}(A)\perp\mathbf{N}(A^{\mathsf{T}})\); complements</td>
+<td style="text-align:left">L14</td>
+</tr>
+<tr>
+<td style="text-align:left">\(A^{\mathsf{T}}A\)</td>
+<td style="text-align:left">invertible \(\iff\) independent columns; then PD</td>
+<td style="text-align:left">L14, L16, L28</td>
+</tr>
+<tr>
+<td style="text-align:left">Projection</td>
+<td style="text-align:left">\(P=A(A^{\mathsf{T}}A)^{-1}A^{\mathsf{T}}\); \(P^{\mathsf{T}}=P=P^2\); line: \(aa^{\mathsf{T}}/a^{\mathsf{T}}a\)</td>
+<td style="text-align:left">L15</td>
+</tr>
+<tr>
+<td style="text-align:left">Least squares</td>
+<td style="text-align:left">\(A^{\mathsf{T}}A\hat{x}=A^{\mathsf{T}}b\); \(e\in\mathbf{N}(A^{\mathsf{T}})\)</td>
+<td style="text-align:left">L15, L16</td>
+</tr>
+<tr>
+<td style="text-align:left">Orthonormal</td>
+<td style="text-align:left">\(Q^{\mathsf{T}}Q=I\); \(P=QQ^{\mathsf{T}}\); \(\hat{x}_i=q_i^{\mathsf{T}}b\)</td>
+<td style="text-align:left">L17</td>
+</tr>
+<tr>
+<td style="text-align:left">Gram–Schmidt</td>
+<td style="text-align:left">\(A=QR\), \(R=Q^{\mathsf{T}}A\) upper triangular</td>
+<td style="text-align:left">L17</td>
+</tr>
+<tr>
+<td style="text-align:left">Determinant</td>
+<td style="text-align:left">\(\pm\) product of pivots = product of \(\lambda\); \(\det(AB)=\det A\det B\); \(\det(tA)=t^n\det A\)</td>
+<td style="text-align:left">L18, L21</td>
+</tr>
+<tr>
+<td style="text-align:left">Cofactors</td>
+<td style="text-align:left">\(\det A=\sum_ja_{ij}C_{ij}\); \(A^{-1}=C^{\mathsf{T}}/\det A\)</td>
+<td style="text-align:left">L19, L20</td>
+</tr>
+<tr>
+<td style="text-align:left">Volume</td>
+<td style="text-align:left">\(\vert \det A\vert \) = volume of the box of rows</td>
+<td style="text-align:left">L20</td>
+</tr>
+<tr>
+<td style="text-align:left">Eigen</td>
+<td style="text-align:left">\(\det(A-\lambda I)=0\); \(\sum\lambda=\mathop{\mathrm{tr}}\), \(\prod\lambda=\det\)</td>
+<td style="text-align:left">L21</td>
+</tr>
+<tr>
+<td style="text-align:left">Diagonalize</td>
+<td style="text-align:left">\(A=S\Lambda S^{-1}\); \(A^k=S\Lambda^kS^{-1}\); needs \(n\) independent \(x\)</td>
+<td style="text-align:left">L22</td>
+</tr>
+<tr>
+<td style="text-align:left">Powers stable</td>
+<td style="text-align:left">all \(\vert \lambda\vert &lt;1\)</td>
+<td style="text-align:left">L22</td>
+</tr>
+<tr>
+<td style="text-align:left">ODE</td>
+<td style="text-align:left">\(e^{At}=Se^{\Lambda t}S^{-1}\); stable \(\iff\) all \(\mathop{\mathrm{Re}}\lambda&lt;0\); \(2\times2\): \(\mathop{\mathrm{tr}}&lt;0\), \(\det&gt;0\)</td>
+<td style="text-align:left">L23</td>
+</tr>
+<tr>
+<td style="text-align:left">Markov</td>
+<td style="text-align:left">columns sum to 1; \(\lambda=1\) steady state; others \(\vert \lambda\vert \le1\)</td>
+<td style="text-align:left">L24</td>
+</tr>
+<tr>
+<td style="text-align:left">Symmetric</td>
+<td style="text-align:left">\(A=Q\Lambda Q^{\mathsf{T}}=\sum\lambda_iq_iq_i^{\mathsf{T}}\); \(\lambda\) real</td>
+<td style="text-align:left">L25</td>
+</tr>
+<tr>
+<td style="text-align:left">Positive definite</td>
+<td style="text-align:left">\(\lambda&gt;0\iff\) pivots \(&gt;0\iff\) upper-left dets \(&gt;0\iff x^{\mathsf{T}}Ax&gt;0\)</td>
+<td style="text-align:left">L25, L27</td>
+</tr>
+<tr>
+<td style="text-align:left">Ellipsoid</td>
+<td style="text-align:left">\(x^{\mathsf{T}}Ax=1\): axes along \(q_i\), semi-axes \(1/\sqrt{\lambda_i}\)</td>
+<td style="text-align:left">L27</td>
+</tr>
+<tr>
+<td style="text-align:left">Complex</td>
+<td style="text-align:left">\(z^{\mathsf{H}}z\); Hermitian \(A^{\mathsf{H}}=A\); unitary \(Q^{\mathsf{H}}Q=I\)</td>
+<td style="text-align:left">L26</td>
+</tr>
+<tr>
+<td style="text-align:left">FFT</td>
+<td style="text-align:left">\(F_n\to\) two \(F_{n/2}\) + diagonal fix-up; \(\tfrac12n\log_2n\)</td>
+<td style="text-align:left">L26</td>
+</tr>
+<tr>
+<td style="text-align:left">Similar</td>
+<td style="text-align:left">\(B=M^{-1}AM\): same \(\lambda\), eigenvectors \(M^{-1}x\)</td>
+<td style="text-align:left">L28</td>
+</tr>
+<tr>
+<td style="text-align:left">SVD</td>
+<td style="text-align:left">\(A=U\Sigma V^{\mathsf{T}}\); \(V\), \(\sigma^2\) from \(A^{\mathsf{T}}A\); \(u_i=Av_i/\sigma_i\)</td>
+<td style="text-align:left">L29, L32</td>
+</tr>
+<tr>
+<td style="text-align:left">Transformation matrix</td>
+<td style="text-align:left">column \(j\) = coordinates of \(T(v_j)\)</td>
+<td style="text-align:left">L30</td>
+</tr>
+<tr>
+<td style="text-align:left">Change of basis</td>
+<td style="text-align:left">\(x=Wc\); \(B=M^{-1}AM\)</td>
+<td style="text-align:left">L31</td>
+</tr>
+<tr>
+<td style="text-align:left">Pseudoinverse</td>
+<td style="text-align:left">\(A^{+}=V\Sigma^{+}U^{\mathsf{T}}\); left \((A^{\mathsf{T}}A)^{-1}A^{\mathsf{T}}\); right \(A^{\mathsf{T}}(AA^{\mathsf{T}})^{-1}\)</td>
+<td style="text-align:left">L33</td>
+</tr>
+<tr>
+<td style="text-align:left">Orthogonal eigenvectors</td>
+<td style="text-align:left">\(\iff AA^{\mathsf{T}}=A^{\mathsf{T}}A\) (normal)</td>
+<td style="text-align:left">L32</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Source.</strong> MIT OpenCourseWare 18.06 Linear Algebra, Spring 2010, Prof. Gilbert Strang via the <a href="https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/video_galleries/video-lectures/">video lecture page</a> and its transcripts; the ML connections are my additions from our chat.</p>
+</article>
+<nav class="pager"><a class="prev" href="lecture-34.html"><small>Previous</small>L34 · Final Course Review</a><span></span></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

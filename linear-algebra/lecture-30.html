@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 30: Linear Transformations and Their Matrices · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li class="current"><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 32 / 37</p><h1>Lecture 30: Linear Transformations and Their Matrices</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Strang's opening point.</strong> Many linear algebra courses <em>begin</em> here, with transformations described <strong>without coordinates</strong>. Physicists often prefer it that way. But to compute anything you must choose coordinates, meaning a basis. Once you do, every linear transformation becomes a <strong>matrix</strong>, and everything in the course (nullspace, rank, determinant, eigenvalues) comes from that matrix.</p>
+<hr />
+<h2>1. What makes a transformation linear</h2>
+<p>A transformation \(T\) takes each input vector \(v\) to an output \(T(v)\), like a function. The words <strong>map</strong> and <strong>mapping</strong> mean the same thing.</p>
+<p><strong>\(T\) is linear if it respects the two vector operations:</strong>
+<div class="math-display">\[T(v + w) = T(v) + T(w), \qquad T(cv) = c\,T(v)\]</div>
+</p>
+<p><strong>Combined into one rule:</strong>
+<div class="math-display">\[T(cv + dw) = c\,T(v) + d\,T(w)\]</div>
+</p>
+<p><strong>Consequence: \(T(0) = 0\) always.</strong> Take \(c = 0\) in the scaling rule.</p>
+<hr />
+<h2>2. Examples and non-examples</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Transformation</th>
+<th>Linear?</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Projection</strong> of the plane onto a line</td>
+<td>✓</td>
+<td>Doubling \(v\) doubles the projection; reversing \(v\) reverses it</td>
+</tr>
+<tr>
+<td><strong>Rotation</strong> by 45°</td>
+<td>✓</td>
+<td>Rotating a sum is the same as summing the rotations</td>
+</tr>
+<tr>
+<td><strong>Multiplication by a matrix</strong>, \(T(v) = Av\)</td>
+<td>✓</td>
+<td>\(A(v + w) = Av + Aw\) and \(A(cv) = cAv\)</td>
+</tr>
+<tr>
+<td><strong>Shift</strong> the plane: \(T(v) = v + v_0\)</td>
+<td>✗</td>
+<td>\(T(0) = v_0 \neq 0\); doubling \(v\) still adds only one \(v_0\)</td>
+</tr>
+<tr>
+<td><strong>Length</strong>: \(T(v) = \Vert v\Vert \)</td>
+<td>✗</td>
+<td>\(T(-2v) = 2\Vert v\Vert \), not \(-2\Vert v\Vert \)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Note on the length example.</strong> \(T(0) = 0\) holds and positive scaling works, but negative scalars fail. So \(T(0) = 0\) is <strong>necessary but not sufficient</strong> for linearity.</p>
+<h3>Seeing a transformation act on a whole shape</h3>
+<p>The cover of Strang's textbook shows a <strong>house</strong> in the plane. Applying \(T\) to every point of its outline shows where the entire shape goes.</p>
+<ul>
+<li>A <strong>rotation</strong> turns the whole house.</li>
+<li>\(A = \begin{bmatrix} 1 &amp; 0 \\ 0 &amp; -1 \end{bmatrix}\) keeps \(x\) and flips the sign of \(y\). The house turns <strong>upside down</strong>, door included.</li>
+</ul>
+<hr />
+<h2>3. A basis determines everything</h2>
+<p><strong>Question.</strong> How much information do you need to know \(T(v)\) for <strong>every</strong> \(v\)?</p>
+<p><strong>Answer.</strong> Just \(T(v_1), \dots, T(v_n)\) for a <strong>basis</strong> \(v_1, \dots, v_n\) of the input space.</p>
+<p><strong>Why.</strong></p>
+<ul>
+<li>Every input can be written as \(v = c_1v_1 + \cdots + c_nv_n\).</li>
+<li>Linearity then forces
+<div class="math-display">\[T(v) = c_1T(v_1) + \cdots + c_nT(v_n)\]</div>
+</li>
+<li>So there is no freedom left once the basis images are fixed.</li>
+</ul>
+<p><strong>Independence matters.</strong> If \(v_2 = 6v_1\), then telling you \(T(v_2)\) adds nothing new, since it must equal \(6\,T(v_1)\).</p>
+<h3>Coordinates come from a basis</h3>
+<p><strong>Definition.</strong> The <strong>coordinates</strong> of \(v\) are the numbers \(c_1, \dots, c_n\) in its expansion in the chosen basis.</p>
+<p><strong>The usual default.</strong> We almost always assume the <strong>standard basis</strong>. Then a vector like \((3, 2, 4)\) already <em>is</em> its coordinates.</p>
+<p><strong>Other bases change the coordinates.</strong> You could, for example, use the eigenvectors of some matrix as the basis. The same vector then has different coordinates.</p>
+<hr />
+<h2>4. Constructing the matrix of \(T\)</h2>
+<p><strong>Setup.</strong> \(T\) maps \(\mathbb{R}^n \to \mathbb{R}^m\). Choose two bases:</p>
+<ul>
+<li>an <strong>input basis</strong> \(v_1, \dots, v_n\) for \(\mathbb{R}^n\),</li>
+<li>an <strong>output basis</strong> \(w_1, \dots, w_m\) for \(\mathbb{R}^m\).</li>
+</ul>
+<p><strong>Rule for column \(j\):</strong></p>
+<ol>
+<li>Apply \(T\) to the \(j\)-th input basis vector.</li>
+<li>Write the result in the output basis:
+<div class="math-display">\[T(v_j) = a_{1j}w_1 + a_{2j}w_2 + \cdots + a_{mj}w_m\]</div>
+</li>
+<li>The coefficients \(a_{1j}, \dots, a_{mj}\) form <strong>column \(j\) of \(A\)</strong>.</li>
+</ol>
+<p><strong>What the matrix does:</strong>
+<div class="math-display">\[A \times (\text{input coordinates}) = (\text{output coordinates})\]</div>
+</p>
+<p><strong>Why the rule works.</strong></p>
+<ul>
+<li>The input \(v_1\) has coordinates \((1, 0, \dots, 0)\).</li>
+<li>Multiplying \(A\) by that vector picks out column 1, which is exactly the coordinates of \(T(v_1)\).</li>
+<li>The same holds for every basis vector, and linearity extends it to all inputs.</li>
+</ul>
+<hr />
+<h2>5. Example: the same projection in two bases</h2>
+<p>\(T\) is projection onto a line in the plane. Use the <strong>same basis for inputs and outputs</strong> in each case.</p>
+<h3>Eigenvector basis (the good choice)</h3>
+<p><strong>Basis.</strong> \(v_1\) is a unit vector <strong>on</strong> the line, and \(v_2\) is a unit vector <strong>perpendicular</strong> to it.</p>
+<p><strong>What \(T\) does to each basis vector.</strong></p>
+<ul>
+<li>\(T(v_1) = v_1\), since it is already on the line.</li>
+<li>\(T(v_2) = 0\), since it projects to nothing.</li>
+</ul>
+<p><strong>So</strong> the input \(c_1v_1 + c_2v_2\) maps to \(c_1v_1\). In coordinates, \((c_1, c_2) \mapsto (c_1, 0)\).</p>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 0 \\ 0 &amp; 0 \end{bmatrix} = \Lambda\]</div>
+<p><strong>Why it came out diagonal.</strong> These basis vectors are the projection's <strong>eigenvectors</strong>, with eigenvalues 1 and 0. Strang calls this the basis a physicist would pick if forced to introduce coordinates.</p>
+<h3>Standard basis</h3>
+<p><strong>Basis.</strong> \((1,0)\) and \((0,1)\), projecting onto the 45° line.</p>
+<p><strong>What \(T\) does to each basis vector.</strong> Both map to \((\tfrac12, \tfrac12)\).</p>
+<div class="math-display">\[A = \begin{bmatrix} \tfrac12 &amp; \tfrac12 \\ \tfrac12 &amp; \tfrac12 \end{bmatrix}\]</div>
+<p><strong>This is the familiar \(P = \dfrac{aa^\top}{a^\top a}\)</strong> from Chapter 4, with \(a = (1, 1)\).</p>
+<p><strong>Comparison.</strong></p>
+<ul>
+<li>It is still symmetric with \(P^2 = P\).</li>
+<li>It is not diagonal.</li>
+<li>Strang notes the course has mostly used &quot;the handiest basis&quot; rather than the best one. In the eigenvector basis, all the properties are obvious at a glance.</li>
+</ul>
+<hr />
+<h2>6. Example: the derivative as a linear transformation</h2>
+<p><strong>Inputs:</strong> \(c_1 + c_2x + c_3x^2\), with basis \(1, x, x^2\). This space is 3-dimensional.</p>
+<p><strong>Output:</strong> the derivative \(c_2 + 2c_3x\), with output basis \(1, x\). This space is 2-dimensional.</p>
+<p><strong>Why the derivative is linear.</strong> The derivative of a combination is the combination of the derivatives. Strang points out that this is exactly why we can differentiate efficiently: learn the derivatives of a few basic functions, then combine them.</p>
+<p><strong>The matrix (\(2\times3\)):</strong>
+<div class="math-display">\[A = \begin{bmatrix} 0 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 2 \end{bmatrix}, \qquad A\begin{bmatrix} c_1 \\ c_2 \\ c_3 \end{bmatrix} = \begin{bmatrix} c_2 \\ 2c_3 \end{bmatrix}\]</div>
+</p>
+<p><strong>Check with the column rule.</strong></p>
+<ul>
+<li>\(T(1) = 0\), so column 1 is \((0, 0)\).</li>
+<li>\(T(x) = 1\), so column 2 is \((1, 0)\).</li>
+<li>\(T(x^2) = 2x\), so column 3 is \((0, 2)\).</li>
+</ul>
+<hr />
+<h2>7. Closing point: where matrix rules come from</h2>
+<p><strong>Matrix multiplication comes from composing transformations.</strong></p>
+<ul>
+<li>The <strong>product</strong> of two matrices is the matrix of the composed transformation.</li>
+<li>The <strong>inverse</strong> matrix is the matrix of the inverse transformation.</li>
+</ul>
+<p>Strang says he'll pick up this theme next lecture.</p>
+<hr />
+<h2>Big ideas from Lecture 30</h2>
+<ol>
+<li><strong>Linear:</strong> \(T(cv + dw) = cT(v) + dT(w)\). In particular \(T(0) = 0\).</li>
+<li><strong>Non-examples:</strong> shifting the plane, and taking the length of a vector.</li>
+<li><strong>A basis determines \(T\):</strong> knowing \(T(v_1), \dots, T(v_n)\) fixes \(T\) on all inputs.</li>
+<li><strong>Building the matrix:</strong> column \(j\) holds the output-basis coordinates of \(T(v_j)\).</li>
+<li><strong>The matrix depends on the bases.</strong> In the <strong>eigenvector basis</strong>, the matrix is diagonal, \(\Lambda\). In the standard basis, you get the usual matrix.</li>
+<li><strong>Linear transformations come first.</strong> Matrix multiplication and inverses are defined to match composition and inversion of transformations.</li>
+</ol>
+<p><strong>Connection to Lecture 28.</strong> Using the same transformation with a different basis, where the input and output basis are the same, gives a <strong>similar</strong> matrix: \(B = M^{-1}AM\). That is why similar matrices share eigenvalues. They are one transformation written in two coordinate systems.</p>
+<p><strong>Connection to ML.</strong></p>
+<ul>
+<li>A linear layer \(x \mapsto Wx\) is a linear transformation in this sense.</li>
+<li>Adding a bias, \(Wx + b\), is exactly the &quot;shift the plane&quot; non-example. That map is <strong>affine</strong>, not linear.</li>
+<li>Choosing the right basis, such as eigenvectors or singular vectors, to make a learned map look simple is the same idea as Strang's &quot;good basis&quot;.</li>
+</ul>
+</article>
+<nav class="pager"><a class="prev" href="lecture-29.html"><small>Previous</small>L29 · Singular Value Decomposition</a><a class="next" href="lecture-31.html"><small>Next</small>L31 · Change of Basis; Image Compression</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

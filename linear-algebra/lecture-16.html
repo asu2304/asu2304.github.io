@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 16: Projection Matrices and Least Squares · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li class="current"><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 17 / 37</p><h1>Lecture 16: Projection Matrices and Least Squares</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror.</p><article class="post"><p><strong>Topics:</strong></p>
+<ol>
+<li>What \(P = A(A^\top A)^{-1}A^\top\) does, checked on two extreme cases.</li>
+<li>A complete least-squares line fit, viewed in <strong>two pictures</strong>.</li>
+<li>Deriving the normal equations from calculus.</li>
+<li>A proof that \(A^\top A\) is invertible when \(A\) has independent columns.</li>
+<li>A preview of orthonormal columns.</li>
+</ol>
+<hr />
+<h2>1. Two extreme cases for \(P = A(A^\top A)^{-1}A^\top\)</h2>
+<p><strong>Case 1: \(b\) is perpendicular to \(C(A)\).</strong></p>
+<ul>
+<li>Then \(b \in N(A^\top)\), so \(A^\top b = 0\).</li>
+<li>The last factor of \(P\) kills it: \(Pb = 0\).</li>
+</ul>
+<p><strong>Case 2: \(b\) is in \(C(A)\).</strong></p>
+<ul>
+<li>Then \(b = Ax\) for some \(x\). Strang calls this fact essential and promises it will appear on exams.</li>
+<li>The middle factors cancel:
+<div class="math-display">\[Pb = A\underbrace{(A^\top A)^{-1}A^\top A}_{I}x = Ax = b\]</div>
+</li>
+</ul>
+<p><strong>The general case.</strong> Any \(b\) splits into two perpendicular pieces:
+<div class="math-display">\[b = \underbrace{Pb}_{p \,\in\, C(A)} + \underbrace{(I - P)b}_{e \,\in\, N(A^\top)}\]</div>
+</p>
+<p>\(P\) keeps the column-space part and removes the perpendicular part.</p>
+<h3>\(I - P\) is also a projection</h3>
+<p>\(I - P\) projects onto the perpendicular subspace, \(N(A^\top)\). It has the same properties as \(P\):</p>
+<ul>
+<li><strong>Symmetric:</strong> \((I-P)^\top = I - P\).</li>
+<li><strong>Idempotent:</strong> \((I - P)^2 = I - 2P + P^2 = I - P\).</li>
+</ul>
+<hr />
+<h2>2. Least squares: fitting a line</h2>
+<p><strong>Data:</strong> \((t, b) = (1,1),\ (2,2),\ (3,2)\).</p>
+<p><strong>Model:</strong> \(b = C + Dt\).</p>
+<p><strong>The equations we'd like to solve:</strong>
+<div class="math-display">\[\underbrace{\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 2 \\ 1 &amp; 3 \end{bmatrix}}_{A}\begin{bmatrix} C \\ D \end{bmatrix} = \underbrace{\begin{bmatrix} 1 \\ 2 \\ 2 \end{bmatrix}}_{b}\]</div>
+</p>
+<p>\(A\) has independent columns, so they form a basis for \(C(A)\). But \(b \notin C(A)\), so there is no exact solution.</p>
+<p>On the board Strang briefly writes \(b\) as \((1,2,3)\). The data, and all his later computations, use \(b = (1,2,2)\).</p>
+<h3>What &quot;best&quot; means</h3>
+<p>Minimize the <strong>sum of squared errors</strong>:
+<div class="math-display">\[\|Ax - b\|^2 = e_1^2 + e_2^2 + e_3^2\]</div>
+
+Each \(e_i\) is the <strong>vertical</strong> distance from the data point to the line. This is <strong>linear regression</strong>.</p>
+<h3>Caveat: outliers</h3>
+<p>Squaring makes large errors dominate the total.</p>
+<ul>
+<li>A single wildly wrong measurement, an <strong>outlier</strong>, can tilt the whole fitted line.</li>
+<li>Statisticians therefore watch for outliers.</li>
+<li>Least squares is still the most widely used method, but it overweights outliers.</li>
+</ul>
+<hr />
+<h2>3. Two pictures of the same problem</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Picture 1: the data plane (\(t\) vs. \(b\))</th>
+<th>Picture 2: \(\mathbb{R}^3\)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3 data points and the best line</td>
+<td>the vector \(b = (1,2,2)\) and the plane \(C(A)\)</td>
+</tr>
+<tr>
+<td>errors \(e_i\) are vertical gaps to the line</td>
+<td>\(e\) is the perpendicular from \(b\) to the plane</td>
+</tr>
+<tr>
+<td>\(p_i\) are the heights of the line at \(t = 1, 2, 3\)</td>
+<td>\(p = (p_1,p_2,p_3)\) is the projection of \(b\)</td>
+</tr>
+<tr>
+<td>\(C\) and \(D\) define the line</td>
+<td>\(C\) and \(D\) are the combination of columns that gives \(p\)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Key observation.</strong> If the \(b_i\) were replaced by the \(p_i\), the three equations <strong>would</strong> be solvable. A line goes through the \(p\)'s. That is exactly what it means for \(p\) to lie in \(C(A)\).</p>
+<hr />
+<h2>4. Solving it</h2>
+<p><strong>Normal equations:</strong>
+<div class="math-display">\[A^\top A\,\hat{x} = A^\top b\]</div>
+
+Strang calls this &quot;the most important equation in statistics&quot; and in estimation: it's the first thing to use whenever you fit a few parameters to noisy data.</p>
+<p><strong>Compute \(A^\top A\) and \(A^\top b\):</strong>
+<div class="math-display">\[A^\top A = \begin{bmatrix} 3 &amp; 6 \\ 6 &amp; 14 \end{bmatrix}, \qquad A^\top b = \begin{bmatrix} 5 \\ 11 \end{bmatrix}\]</div>
+
+\(A^\top A\) is symmetric and invertible. Later in the course it will also turn out to be <strong>positive definite</strong>.</p>
+<p><strong>The two equations:</strong>
+<div class="math-display">\[3C + 6D = 5, \qquad 6C + 14D = 11\]</div>
+</p>
+<p><strong>Elimination.</strong> Subtract 2 × the first equation from the second: \(2D = 1\), so \(D = \tfrac12\).</p>
+<p><strong>Back substitution.</strong> \(3C + 3 = 5\), so \(C = \tfrac23\).</p>
+<div class="math-display">\[\boxed{\text{best line: } b = \tfrac23 + \tfrac12 t}\]</div>
+<h3>The projection and the error</h3>
+<p><strong>Projection.</strong> Evaluate the line at \(t = 1, 2, 3\):
+<div class="math-display">\[p = \left(\tfrac76,\; \tfrac53,\; \tfrac{13}{6}\right)\]</div>
+</p>
+<p><strong>Error:</strong>
+<div class="math-display">\[e = b - p = \left(-\tfrac16,\; \tfrac13,\; -\tfrac16\right)\]</div>
+
+Check: \(p + e = b = (1, 2, 2)\).</p>
+<h3>Verifying the geometry</h3>
+<p><strong>\(e \perp p\):</strong>
+<div class="math-display">\[-\tfrac{7}{36} + \tfrac{20}{36} - \tfrac{13}{36} = 0\]</div>
+</p>
+<p><strong>\(e\) is perpendicular to all of \(C(A)\), not just to \(p\).</strong></p>
+<ul>
+<li>Against the first column \((1,1,1)\): \(-\tfrac16 + \tfrac26 - \tfrac16 = 0\).</li>
+<li>Against the second column \((1,2,3)\): \(-\tfrac16 + \tfrac46 - \tfrac36 = 0\).</li>
+</ul>
+<hr />
+<h2>5. The same equations from calculus</h2>
+<p><strong>The function to minimize:</strong>
+<div class="math-display">\[E(C, D) = (C + D - 1)^2 + (C + 2D - 2)^2 + (C + 3D - 2)^2\]</div>
+</p>
+<p><strong>Set both partial derivatives to zero.</strong> Since \(E\) is quadratic, the derivatives are linear:</p>
+<ul>
+<li>\(\dfrac{\partial E}{\partial C} = 0\) gives \(3C + 6D = 5\).</li>
+<li>\(\dfrac{\partial E}{\partial D} = 0\) gives \(6C + 14D = 11\).</li>
+</ul>
+<p>These are exactly the <strong>normal equations</strong>. Linear algebra and calculus reach the same answer.</p>
+<hr />
+<h2>6. Proof: independent columns imply \(A^\top A\) is invertible</h2>
+<p><strong>Claim.</strong> If \(A\) has independent columns, then \(A^\top A\) is invertible.</p>
+<p><strong>Proof.</strong></p>
+<ol>
+<li>Suppose \(A^\top A x = 0\). The goal is to show \(x = 0\), which means \(N(A^\top A) = \{0\}\).</li>
+<li><strong>Idea:</strong> take the dot product with \(x\), that is, multiply on the left by \(x^\top\):
+<div class="math-display">\[x^\top A^\top A x = (Ax)^\top(Ax) = \|Ax\|^2 = 0\]</div>
+</li>
+<li>A vector of length zero is the zero vector, so \(Ax = 0\).</li>
+<li>\(A\) has independent columns, so \(N(A) = \{0\}\). Therefore \(x = 0\).</li>
+</ol>
+<p>Strang notes that this proof uses everything known about nullspaces.</p>
+<hr />
+<h2>7. Preview: orthonormal columns</h2>
+<p><strong>Perpendicular columns are automatically independent</strong>, provided none of them is zero. To rule out zero, make each column a <strong>unit vector</strong>.</p>
+<blockquote>
+<p><strong>Orthonormal vectors</strong> are perpendicular (<em>ortho</em>) and have length 1 (<em>normal</em>).</p>
+</blockquote>
+<p><strong>Examples:</strong></p>
+<ul>
+<li>The standard basis \((1,0,0)\), \((0,1,0)\), \((0,0,1)\).</li>
+<li>Strang's favorite pair:
+<div class="math-display">\[\begin{bmatrix} \cos\theta \\ \sin\theta \end{bmatrix}, \quad \begin{bmatrix} -\sin\theta \\ \cos\theta \end{bmatrix}\]</div>
+</li>
+</ul>
+<p><strong>Why they're the best possible columns.</strong> For a matrix \(A\) with orthonormal columns, \(A^\top A = I\). Then every formula simplifies; for instance, \(P\) becomes \(AA^\top\).</p>
+<p><strong>Next lecture:</strong></p>
+<ul>
+<li>Why orthonormal bases are so convenient.</li>
+<li>How to <strong>construct</strong> one from any basis (Gram–Schmidt).</li>
+</ul>
+<hr />
+<h2>Big ideas from Lecture 16</h2>
+<ol>
+<li><strong>Two extremes.</strong> \(P\) fixes vectors in \(C(A)\) and kills vectors in \(N(A^\top)\). Every \(b\) splits as \(p + e\) with \(p \perp e\).</li>
+<li><strong>The complementary projection.</strong> \(I - P\) projects onto \(N(A^\top)\).</li>
+<li><strong>Least squares</strong> minimizes \(\|Ax - b\|^2\). For line fitting, it minimizes the sum of squared vertical errors.</li>
+<li><strong>Two pictures.</strong> The best line through the data equals the projection of \(b\) onto \(C(A)\) in \(\mathbb{R}^m\).</li>
+<li><strong>Calculus agrees.</strong> Setting \(\partial E/\partial C = \partial E/\partial D = 0\) gives exactly \(A^\top A\hat{x} = A^\top b\).</li>
+<li><strong>\(A^\top A\) is invertible exactly when the columns of \(A\) are independent.</strong> Proof: \(x^\top A^\top A x = \|Ax\|^2\).</li>
+<li><strong>Orthonormal columns</strong> give \(A^\top A = I\). This is the subject of Lecture 17.</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-15.html"><small>Previous</small>L15 · Projections onto Subspaces</a><a class="next" href="lecture-17.html"><small>Next</small>L17 · Orthogonal Matrices and Gram–Schmidt</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

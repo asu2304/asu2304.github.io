@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 2: Elimination with Matrices · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li class="current"><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 3 / 37</p><h1>Lecture 2: Elimination with Matrices</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Goal:</strong> Solve \(Ax = b\) by <strong>elimination</strong>, the method every software package uses (not determinants). Then rewrite each elimination step as a <strong>matrix multiplication</strong>.</p>
+<hr />
+<h2>1. The example system</h2>
+<div class="math-display">\[\begin{aligned} x + 2y + z &amp;= 2 \\ 3x + 8y + z &amp;= 12 \\ 4y + z &amp;= 2 \end{aligned}
+\qquad
+A = \begin{bmatrix} 1 &amp; 2 &amp; 1 \\ 3 &amp; 8 &amp; 1 \\ 0 &amp; 4 &amp; 1 \end{bmatrix}, \quad b = \begin{bmatrix} 2 \\ 12 \\ 2 \end{bmatrix}\]</div>
+<p>Strang works with the matrix alone, leaving out the \(x\), \(y\), \(z\) and the plus signs. He handles the right-hand side \(b\) at the end, which he notes is also how MATLAB does it.</p>
+<h2>2. Forward elimination: from \(A\) to \(U\)</h2>
+<p><strong>Step (2,1).</strong> The first pivot is the 1 in position (1,1). The multiplier is 3. Subtract 3 × row 1 from row 2:
+<div class="math-display">\[\begin{bmatrix} 1 &amp; 2 &amp; 1 \\ 0 &amp; 2 &amp; -2 \\ 0 &amp; 4 &amp; 1 \end{bmatrix}\]</div>
+
+The purpose is to eliminate \(x\) from equation 2.</p>
+<p><strong>Step (3,1).</strong> Position (3,1) is already 0, so the multiplier is 0 and nothing changes. Software would still check this entry unless told in advance.</p>
+<p><strong>Step (3,2).</strong> The second pivot is the 2 in position (2,2). The multiplier is 2. Subtract 2 × row 2 from row 3:
+<div class="math-display">\[U = \begin{bmatrix} 1 &amp; 2 &amp; 1 \\ 0 &amp; 2 &amp; -2 \\ 0 &amp; 0 &amp; 5 \end{bmatrix}\]</div>
+</p>
+<p><strong>Results:</strong></p>
+<ul>
+<li>The pivots are <strong>1, 2, 5</strong>. \(U\) is <strong>upper triangular</strong>.</li>
+<li>Strang calls going from \(A\) to \(U\) the most common calculation in scientific computing.</li>
+<li>Preview of a later topic: <strong>the determinant equals the product of the pivots</strong>, so \(\det A = 1\cdot 2\cdot 5 = 10\).</li>
+<li><strong>Pivots cannot be zero.</strong> If a zero appears in a pivot position, that position has no pivot.</li>
+</ul>
+<h2>3. How elimination can fail</h2>
+<p><strong>Temporary failure (fixed by a row exchange).</strong> A zero lands in a pivot position, but a row below has a nonzero entry in that column. Swap the rows and continue.</p>
+<ul>
+<li>If entry (1,1) were 0, you would swap row 1 with a lower row.</li>
+<li>If the 8 were a <strong>6</strong>, the second pivot would come out 0. Row 3 has a 4 below it, so a row exchange rescues elimination.</li>
+</ul>
+<p><strong>Complete failure (singular matrix).</strong> A zero lands in a pivot position and every entry below it is also zero.</p>
+<ul>
+<li>If the (3,3) entry were <strong>−4</strong> instead of 1, the last step would give \(-4 - 2(-2) = 0\).</li>
+<li>No row is available to swap, so there is no third pivot.</li>
+<li>The matrix is then <strong>not invertible</strong>.</li>
+</ul>
+<h2>4. Back substitution</h2>
+<p><strong>Augmented matrix.</strong> Attach \(b\) as an extra column, written \([A \mid b]\), and apply the same row operations to it:
+<div class="math-display">\[b = \begin{bmatrix} 2\\12\\2\end{bmatrix} \;\to\; \begin{bmatrix} 2\\6\\2\end{bmatrix} \;\to\; c = \begin{bmatrix} 2\\6\\-10\end{bmatrix}\]</div>
+
+In the first step, \(12 - 3(2) = 6\). In the second step, \(2 - 2(6) = -10\).</p>
+<p>Elimination turns \(A\) into \(U\) and \(b\) into \(c\). So \(Ax=b\) becomes \(Ux = c\):
+<div class="math-display">\[\begin{aligned} x + 2y + z &amp;= 2 \\ 2y - 2z &amp;= 6 \\ 5z &amp;= -10 \end{aligned}\]</div>
+</p>
+<p><strong>Solve from the bottom up</strong>, which works because \(U\) is triangular:</p>
+<ul>
+<li>From the last equation: \(z = -2\).</li>
+<li>Then \(2y + 4 = 6\), so \(y = 1\).</li>
+<li>Then \(x + 2 - 2 = 2\), so \(x = 2\).</li>
+</ul>
+<p><strong>Solution:</strong> \((x, y, z) = (2, 1, -2)\).</p>
+<h2>5. Rows vs. columns in multiplication</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Product</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Matrix × column vector</td>
+<td>A <strong>combination of the columns</strong> (from Lecture 1). Example: \(A\,(3,4,5)^\top = 3\,\text{col}_1 + 4\,\text{col}_2 + 5\,\text{col}_3\)</td>
+</tr>
+<tr>
+<td>Row vector × matrix</td>
+<td>A <strong>combination of the rows</strong>. Example: \((1,2,7)\,A = 1\,\text{row}_1 + 2\,\text{row}_2 + 7\,\text{row}_3\)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Elimination works on rows, so the row view is the one needed in this lecture.</p>
+<h2>6. Elimination matrices</h2>
+<p><strong>Each step is a matrix.</strong> Every elimination step equals multiplying on the left by a simple matrix, written \(E_{ij}\). It is the identity matrix with the negative multiplier placed in position \((i,j)\).</p>
+<p><strong>Step (2,1):</strong> subtract 3 × row 1 from row 2.
+<div class="math-display">\[E_{21} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ -3 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix}\]</div>
+</p>
+<ul>
+<li>Rows 1 and 3 of \(E_{21}\) are rows of the identity, so those rows of \(A\) are copied unchanged.</li>
+<li>Row 2 of \(E_{21}\) is \((-3, 1, 0)\), so the new row 2 is \(-3\,\text{row}_1 + \text{row}_2\).</li>
+</ul>
+<p><strong>Checking one entry.</strong> Entry (2,3) of the product comes from row 2 of \(E_{21}\) dotted with column 3 of \(A\):
+<div class="math-display">\[(-3)(1) + (1)(1) + (0)(1) = -2\]</div>
+
+This matches the −2 in position (2,3) after the first step.</p>
+<p><strong>Step (3,2):</strong> subtract 2 × row 2 from row 3.
+<div class="math-display">\[E_{32} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \\ 0 &amp; -2 &amp; 1 \end{bmatrix}\]</div>
+</p>
+<p><strong>The identity matrix \(I\)</strong> does nothing: \(IA = A\). It plays the role of the number 1 for matrices.</p>
+<h2>7. All of elimination in one matrix</h2>
+<div class="math-display">\[E_{32}(E_{21}A) = U \quad\Longrightarrow\quad (E_{32}E_{21})\,A = U\]</div>
+<p><strong>Associative law.</strong> You can move the parentheses: \(A(BC) = (AB)C\). So the single matrix \(E = E_{32}E_{21}\) performs the whole elimination at once.</p>
+<ul>
+<li>Strang says many proofs in linear algebra come down to just moving parentheses.</li>
+<li>Proving the law itself requires going through the full details of matrix multiplication.</li>
+</ul>
+<p><strong>No commutative law.</strong> In general \(AB \neq BA\). You must keep the matrices in their order.</p>
+<h2>8. Permutation matrices (row exchanges)</h2>
+<p><strong>Finding \(P\).</strong> To build the matrix that exchanges rows, apply the same exchange to the identity matrix:
+<div class="math-display">\[P = \begin{bmatrix} 0 &amp; 1 \\ 1 &amp; 0 \end{bmatrix}, \qquad P\begin{bmatrix} a &amp; b \\ c &amp; d\end{bmatrix} = \begin{bmatrix} c &amp; d \\ a &amp; b \end{bmatrix}\]</div>
+</p>
+<p><strong>Left vs. right.</strong> Exchanging <strong>columns</strong> requires putting \(P\) on the <strong>right</strong>:
+<div class="math-display">\[\begin{bmatrix} a &amp; b \\ c &amp; d\end{bmatrix} P = \begin{bmatrix} b &amp; a \\ d &amp; c \end{bmatrix}\]</div>
+</p>
+<ul>
+<li><strong>Multiplying on the left</strong> performs row operations.</li>
+<li><strong>Multiplying on the right</strong> performs column operations.</li>
+</ul>
+<h2>9. Preview: inverses</h2>
+<p><strong>A better direction.</strong> Instead of asking how to go from \(A\) to \(U\), ask how to go from \(U\) back to \(A\). This leads to the LU factorization in the next lectures.</p>
+<p><strong>Inverse of an elimination step.</strong> \(E_{21}\) <strong>subtracts</strong> 3 × row 1 from row 2. To undo it, <strong>add</strong> 3 × row 1 back to row 2:
+<div class="math-display">\[E_{21}^{-1} = \begin{bmatrix} 1 &amp; 0 &amp; 0 \\ 3 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 1 \end{bmatrix}, \qquad E_{21}^{-1}E_{21} = I\]</div>
+</p>
+<hr />
+<h2>Big ideas from Lecture 2</h2>
+<ol>
+<li><strong>Elimination</strong> turns \(A\) into the upper triangular \(U\), and turns \(b\) into \(c\). <strong>Back substitution</strong> then solves \(Ux = c\) from the bottom up.</li>
+<li><strong>Pivots</strong> are the nonzero diagonal entries of \(U\). Their product is the determinant.</li>
+<li><strong>Failure cases:</strong>
+<ul>
+<li>A zero in a pivot position with a nonzero below it is fixed by a row exchange.</li>
+<li>A zero in a pivot position with only zeros below means the matrix is singular.</li>
+</ul>
+</li>
+<li><strong>Every row operation is a left multiplication</strong> by an elimination matrix \(E_{ij}\) or a permutation matrix \(P\). Column operations multiply on the right.</li>
+<li><strong>Matrix multiplication</strong> is associative, so the steps combine into one matrix \(E\). It is <strong>not</strong> commutative, so the order matters.</li>
+<li><strong>Inverse of an elimination step:</strong> undo it by adding back what was subtracted.</li>
+</ol>
+<hr />
+<h2>Side question: what is a singular matrix?</h2>
+<div class="qa-q"><span class="qa-tag">Your question</span> What do you mean by singular matrices? Is a singular matrix one whose determinant is zero?</div>
+<p>Yes. A <strong>singular matrix</strong> is a square matrix that is <strong>not invertible</strong>, and that is equivalent to \(\det A = 0\).</p>
+<p>For an \(n \times n\) matrix \(A\), these statements are all equivalent. If one is true, all are:</p>
+<ul>
+<li>\(A\) is singular (no \(A^{-1}\) exists).</li>
+<li>\(\det A = 0\).</li>
+<li>Elimination gives <strong>fewer than \(n\) pivots</strong>, because a zero appears in a pivot position with nothing nonzero below it.</li>
+<li>The columns are <strong>linearly dependent</strong>: some column is a combination of the others.</li>
+<li>\(Ax = 0\) has a <strong>nonzero solution</strong> \(x\).</li>
+<li>\(Ax = b\) has no solution for some \(b\), and infinitely many solutions for others.</li>
+<li>\(0\) is an eigenvalue of \(A\).</li>
+</ul>
+<p><strong>Example from Lecture 2:</strong> changing the (3,3) entry to \(-4\) made the third pivot 0. The pivots would then be \(1, 2, 0\), so \(\det A = 1 \cdot 2 \cdot 0 = 0\). That matrix is singular.</p>
+</article>
+<nav class="pager"><a class="prev" href="lecture-01.html"><small>Previous</small>L1 · The Geometry of Linear Equations</a><a class="next" href="lecture-03.html"><small>Next</small>L3 · Multiplication and Inverse Matrices</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

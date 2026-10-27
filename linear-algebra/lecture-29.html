@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 29: Singular Value Decomposition · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li class="current"><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 31 / 37</p><h1>Lecture 29: Singular Value Decomposition</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Strang calls the SVD &quot;the final and best factorization of a matrix&quot;.</strong> It applies to <strong>every</strong> matrix, including rectangular and singular ones:
+<div class="math-display">\[\boxed{A = U\Sigma V^\top}\]</div>
+</p>
+<ul>
+<li>\(U\) is orthogonal.</li>
+<li>\(\Sigma\) is diagonal.</li>
+<li>\(V\) is orthogonal.</li>
+</ul>
+<p><strong>The new ingredient is two different orthogonal matrices.</strong> Strang sees the SVD as bringing the whole course together.</p>
+<hr />
+<h2>1. The special case we already know</h2>
+<p><strong>Symmetric positive definite \(A\).</strong> The spectral theorem gives
+<div class="math-display">\[A = Q\Lambda Q^\top\]</div>
+</p>
+<ul>
+<li>The eigenvectors are orthonormal, so the eigenvector matrix \(S\) becomes an orthogonal \(Q\).</li>
+<li>The eigenvalues are positive.</li>
+</ul>
+<p><strong>This already is an SVD</strong>, with \(U = V = Q\) and \(\Sigma = \Lambda\).</p>
+<p><strong>Why general matrices need more.</strong> For a general \(A\), the eigenvector matrix is not orthogonal, and \(A\) may not even be square. So eigenvectors alone won't work. We need <strong>two</strong> orthogonal matrices, \(U\) and \(V\).</p>
+<hr />
+<h2>2. What the SVD means geometrically</h2>
+<p><strong>The four-subspace picture.</strong> \(A\) takes vectors in the row space to vectors in the column space.</p>
+<p><strong>The goal.</strong> Find an <strong>orthonormal basis \(v_1, \dots, v_r\) of the row space</strong> that \(A\) maps to an <strong>orthogonal set in the column space</strong>:
+<div class="math-display">\[Av_i = \sigma_iu_i, \qquad i = 1, \dots, r\]</div>
+</p>
+<ul>
+<li>The \(u_i\) are <strong>orthonormal</strong> in the column space.</li>
+<li>Each \(\sigma_i &gt; 0\) is a <strong>stretching factor</strong>, called a <strong>singular value</strong>. Strang uses \(\sigma\) rather than \(\lambda\).</li>
+</ul>
+<p><strong>Why this is special.</strong> Any orthonormal basis of the row space is easy to find, for example by Gram–Schmidt. But a random orthonormal basis will generally <strong>not</strong> map to perpendicular vectors. The SVD finds the one basis that does.</p>
+<p><strong>Nullspaces are no trouble.</strong></p>
+<ul>
+<li>Complete the \(v\)'s with an orthonormal basis \(v_{r+1}, \dots, v_n\) of \(N(A)\). These give the full orthonormal basis of \(\mathbb{R}^n\).</li>
+<li>Complete the \(u\)'s with an orthonormal basis \(u_{r+1}, \dots, u_m\) of \(N(A^\top)\). These give the full orthonormal basis of \(\mathbb{R}^m\).</li>
+<li>The corresponding diagonal entries of \(\Sigma\) are <strong>zero</strong>.</li>
+</ul>
+<h3>Matrix form</h3>
+<p><strong>Stack the equations \(Av_i = \sigma_iu_i\) as columns:</strong>
+<div class="math-display">\[A\begin{bmatrix} v_1 &amp; \cdots &amp; v_r \end{bmatrix} = \begin{bmatrix} u_1 &amp; \cdots &amp; u_r \end{bmatrix}\begin{bmatrix} \sigma_1 &amp; &amp; \\ &amp; \ddots &amp; \\ &amp; &amp; \sigma_r \end{bmatrix}\]</div>
+</p>
+<p><strong>That is</strong>, \(AV = U\Sigma\).</p>
+<p><strong>Solve for \(A\).</strong> \(V\) is square and orthogonal, so \(V^{-1} = V^\top\):
+<div class="math-display">\[A = U\Sigma V^\top\]</div>
+</p>
+<hr />
+<h2>3. How to find \(U\), \(\Sigma\), \(V\)</h2>
+<p><strong>The trick: eliminate one orthogonal matrix at a time.</strong> Form \(A^\top A\) and use \(U^\top U = I\):
+<div class="math-display">\[A^\top A = V\Sigma^\top\underbrace{U^\top U}_{I}\Sigma V^\top = V\,\Sigma^\top\Sigma\,V^\top\]</div>
+</p>
+<p>This is exactly the spectral decomposition \(Q\Lambda Q^\top\) of the symmetric, positive semidefinite matrix \(A^\top A\). Therefore:</p>
+<ul>
+<li><strong>The columns of \(V\) are the eigenvectors of \(A^\top A\).</strong></li>
+<li><strong>\(\sigma_i^2\) are the eigenvalues of \(A^\top A\)</strong>, so \(\sigma_i = \sqrt{\lambda_i(A^\top A)}\), taking the positive square root.</li>
+</ul>
+<p><strong>The same trick in the other order:</strong>
+<div class="math-display">\[AA^\top = U\,\Sigma\Sigma^\top\,U^\top\]</div>
+</p>
+<ul>
+<li><strong>The columns of \(U\) are the eigenvectors of \(AA^\top\).</strong></li>
+<li><strong>The eigenvalues of \(AA^\top\) are the same \(\sigma_i^2\).</strong></li>
+</ul>
+<p><strong>Why the eigenvalues match.</strong> \(AB\) and \(BA\) always have the same nonzero eigenvalues.</p>
+<hr />
+<h2>4. Example 1: an invertible matrix (with Strang's sign problem fixed)</h2>
+<div class="math-display">\[A = \begin{bmatrix} 4 &amp; 4 \\ -3 &amp; 3 \end{bmatrix}\]</div>
+<p>\(A\) is invertible, so it has rank 2.</p>
+<h3>Step 1: compute \(A^\top A\)</h3>
+<div class="math-display">\[A^\top A = \begin{bmatrix} 25 &amp; 7 \\ 7 &amp; 25 \end{bmatrix}\]</div>
+<h3>Step 2: eigenvectors and eigenvalues of \(A^\top A\)</h3>
+<ul>
+<li>\(\lambda_1 = 32\), with eigenvector \(v_1 = \tfrac{1}{\sqrt2}(1, 1)\).</li>
+<li>\(\lambda_2 = 18\), with eigenvector \(v_2 = \tfrac{1}{\sqrt2}(1, -1)\).</li>
+</ul>
+<p><strong>Singular values:</strong> \(\sigma_1 = \sqrt{32}\) and \(\sigma_2 = \sqrt{18}\).</p>
+<h3>Step 3: Strang's attempt at \(U\)</h3>
+<p><strong>He computed \(AA^\top\):</strong>
+<div class="math-display">\[AA^\top = \begin{bmatrix} 32 &amp; 0 \\ 0 &amp; 18 \end{bmatrix}\]</div>
+
+This happens to be diagonal. Its eigenvalues are again 32 and 18, as expected.</p>
+<p><strong>He took \(U = I\).</strong> Multiplying out gave \(\begin{bmatrix} 4 &amp; 4 \\ 3 &amp; -3 \end{bmatrix}\). The second row has the <strong>wrong sign</strong>. Strang couldn't find the error on the spot and left it for the next lecture.</p>
+<h3>The fix</h3>
+<p><strong>What went wrong.</strong> Each eigenvector of \(AA^\top\) is determined only <strong>up to sign</strong>. The \(u\)'s cannot be chosen independently of the \(v\)'s; they must satisfy \(Av_i = \sigma_iu_i\).</p>
+<p><strong>The safe way to get \(U\):</strong>
+<div class="math-display">\[u_i = \frac{Av_i}{\sigma_i}\]</div>
+</p>
+<p><strong>For this example:</strong></p>
+<ul>
+<li>\(Av_1 = \tfrac{1}{\sqrt2}(8, 0)\), so \(u_1 = (1, 0)\).</li>
+<li>\(Av_2 = \tfrac{1}{\sqrt2}(0, -6)\), so \(u_2 = (0, -1)\).</li>
+</ul>
+<div class="math-display">\[A = \underbrace{\begin{bmatrix} 1 &amp; 0 \\ 0 &amp; -1 \end{bmatrix}}_{U}\begin{bmatrix} \sqrt{32} &amp; 0 \\ 0 &amp; \sqrt{18} \end{bmatrix}\underbrace{\frac{1}{\sqrt2}\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; -1 \end{bmatrix}}_{V^\top}\]</div>
+<p><strong>Check.</strong> \(\Sigma V^\top = \begin{bmatrix} 4 &amp; 4 \\ 3 &amp; -3 \end{bmatrix}\). Multiplying by \(U\) flips the sign of row 2, which gives exactly \(A\).</p>
+<hr />
+<h2>5. Example 2: a rank-1 matrix</h2>
+<div class="math-display">\[A = \begin{bmatrix} 4 &amp; 3 \\ 8 &amp; 6 \end{bmatrix}\]</div>
+<h3>The four subspaces</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Subspace</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Row space</td>
+<td>multiples of \((4, 3)\)</td>
+</tr>
+<tr>
+<td>Nullspace</td>
+<td>the perpendicular line</td>
+</tr>
+<tr>
+<td>Column space</td>
+<td>multiples of \((1, 2)\)</td>
+</tr>
+<tr>
+<td>Left nullspace</td>
+<td>the perpendicular line</td>
+</tr>
+</tbody>
+</table></div>
+<h3>The bases</h3>
+<p>Each subspace is a line, so each basis vector is just the unit vector along it.</p>
+<ul>
+<li>\(v_1 = (0.8,\ 0.6)\), from the row space.</li>
+<li>\(v_2 = (0.6,\ -0.8)\), from the nullspace.</li>
+<li>\(u_1 = \tfrac{1}{\sqrt5}(1, 2)\), from the column space.</li>
+<li>\(u_2 = \tfrac{1}{\sqrt5}(2, -1)\), from the left nullspace.</li>
+</ul>
+<h3>The singular value</h3>
+<div class="math-display">\[A^\top A = \begin{bmatrix} 80 &amp; 60 \\ 60 &amp; 45 \end{bmatrix}\]</div>
+<p>This has rank 1, so its eigenvalues are \(0\) and the trace, \(125\). Therefore \(\sigma_1 = \sqrt{125} = 5\sqrt5\), and there is no second nonzero singular value.</p>
+<h3>The decomposition</h3>
+<div class="math-display">\[A = \frac{1}{\sqrt5}\begin{bmatrix} 1 &amp; 2 \\ 2 &amp; -1 \end{bmatrix}\begin{bmatrix} \sqrt{125} &amp; 0 \\ 0 &amp; 0 \end{bmatrix}\begin{bmatrix} 0.8 &amp; 0.6 \\ 0.6 &amp; -0.8 \end{bmatrix}\]</div>
+<p><strong>Check.</strong>
+<div class="math-display">\[Av_1 = (3.2 + 1.8,\ 6.4 + 3.6) = (5, 10) = 5\sqrt5 \cdot \tfrac{1}{\sqrt5}(1, 2) = \sigma_1u_1\]</div>
+</p>
+<p><strong>The nullspace vectors cost nothing.</strong> \(v_2\) and \(u_2\) are multiplied by the zero singular value, so they contribute nothing to the product.</p>
+<hr />
+<h2>6. The big picture: the right bases for the four subspaces</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Vectors</th>
+<th>Orthonormal basis for</th>
+<th>Dimension</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(v_1, \dots, v_r\)</td>
+<td>row space \(C(A^\top)\)</td>
+<td>\(r\)</td>
+</tr>
+<tr>
+<td>\(u_1, \dots, u_r\)</td>
+<td>column space \(C(A)\)</td>
+<td>\(r\)</td>
+</tr>
+<tr>
+<td>\(v_{r+1}, \dots, v_n\)</td>
+<td>nullspace \(N(A)\)</td>
+<td>\(n - r\)</td>
+</tr>
+<tr>
+<td>\(u_{r+1}, \dots, u_m\)</td>
+<td>left nullspace \(N(A^\top)\)</td>
+<td>\(m - r\)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Two properties at once.</strong> The bases are <strong>orthonormal</strong>, which Gram–Schmidt alone could give. They also <strong>diagonalize \(A\)</strong>: each \(Av_i\) points along \(u_i\). That second property requires eigenvalues.</p>
+<p><strong>No coupling.</strong> In these bases, \(A\) just scales each direction by its own \(\sigma_i\).</p>
+<hr />
+<h2>Big ideas from Lecture 29</h2>
+<ol>
+<li><strong>\(A = U\Sigma V^\top\) for every matrix</strong>, with orthogonal \(U\), \(V\) and a nonnegative diagonal \(\Sigma\).</li>
+<li><strong>Meaning:</strong> \(Av_i = \sigma_iu_i\). An orthonormal basis of the row space maps to an orthogonal basis of the column space.</li>
+<li><strong>Computation:</strong>
+<ul>
+<li>\(V\) = eigenvectors of \(A^\top A\).</li>
+<li>\(U\) = eigenvectors of \(AA^\top\).</li>
+<li>\(\sigma_i = \sqrt{\lambda_i(A^\top A)}\).</li>
+</ul>
+</li>
+<li><strong>Sign consistency:</strong> compute \(u_i = Av_i/\sigma_i\) instead of choosing the \(u\)'s independently. This resolves Strang's on-the-board sign problem.</li>
+<li><strong>The SVD gives the best bases for all four fundamental subspaces at once.</strong></li>
+</ol>
+<p><strong>Connection to your first question.</strong> Center a data matrix \(X\) (\(n\) samples by \(d\) features). Then the <strong>right singular vectors of \(X\) are the PCA principal directions</strong>, and the eigenvalues of the covariance \(C = \frac1nX^\top X\) are \(\sigma_i^2/n\). This is why PCA is computed via the SVD in practice, as mentioned in that answer.</p>
+<p><strong>Connection to interpretability.</strong> SVD of weight matrices, such as OV and QK circuit matrices, is a standard tool. Keeping the top \(k\) terms \(\sum_{i\le k}\sigma_iu_iv_i^\top\) gives the best rank-\(k\) approximation (Eckart–Young).</p>
+</article>
+<nav class="pager"><a class="prev" href="lecture-28.html"><small>Previous</small>L28 · Similar Matrices and Jordan Form</a><a class="next" href="lecture-30.html"><small>Next</small>L30 · Linear Transformations and Their Matrices</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

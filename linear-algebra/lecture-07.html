@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 7: Solving $Ax = 0$: Pivot Variables, Special Solutions · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li class="current"><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 8 / 37</p><h1>Lecture 7: Solving \(Ax = 0\): Pivot Variables, Special Solutions</h1><p class="source-note">The OCW 2010 page for this lecture has no transcript, so this summary is based on the same 1999 lecture's transcript from the 18.06SC version on MIT Open Learning Library.</p><article class="post"><p><strong>Goal:</strong> Turn the <em>definition</em> of the nullspace into an <em>algorithm</em> for computing it, for any matrix, including rectangular ones.</p>
+<hr />
+<h2>1. Example 1: a 3×4 matrix</h2>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 2 &amp; 2 &amp; 2 \\ 2 &amp; 4 &amp; 6 &amp; 8 \\ 3 &amp; 6 &amp; 8 &amp; 10 \end{bmatrix}\]</div>
+<p>Before computing, Strang notes two dependencies he expects elimination to discover:</p>
+<ul>
+<li>Column 2 is 2 × column 1.</li>
+<li>Row 3 is row 1 plus row 2.</li>
+</ul>
+<h3>Elimination does not change the nullspace</h3>
+<p>Row operations change the equations into equivalent ones. So the <strong>solutions to \(Ax = 0\), \(Ux = 0\), and \(Rx = 0\) are identical</strong>.</p>
+<p>Elimination <strong>does change the column space</strong>, so you have to keep track of which space is preserved.</p>
+<p>The right-hand side stays 0 throughout, so it is not written.</p>
+<h3>Forward elimination to echelon form \(U\)</h3>
+<p><strong>Column 1.</strong> The pivot is 1. Subtract 2 × row 1 from row 2, and 3 × row 1 from row 3:
+<div class="math-display">\[\begin{bmatrix} 1 &amp; 2 &amp; 2 &amp; 2 \\ 0 &amp; 0 &amp; 2 &amp; 4 \\ 0 &amp; 0 &amp; 2 &amp; 4 \end{bmatrix}\]</div>
+</p>
+<p><strong>Column 2.</strong> The pivot position holds a 0, and everything below it is also 0. A row exchange cannot help. <strong>Don't stop; move on to the next column.</strong> Column 2 is dependent on the columns before it.</p>
+<p><strong>Column 3.</strong> The pivot is 2. Subtract row 2 from row 3:
+<div class="math-display">\[U = \begin{bmatrix} \boxed{1} &amp; 2 &amp; 2 &amp; 2 \\ 0 &amp; 0 &amp; \boxed{2} &amp; 4 \\ 0 &amp; 0 &amp; 0 &amp; 0 \end{bmatrix}\]</div>
+</p>
+<p><strong>Echelon form.</strong> \(U\) is in <strong>echelon form</strong>, meaning staircase form. It is not truly triangular.</p>
+<p><strong>The zero row.</strong> It appears because row 3 was a combination of rows 1 and 2, and elimination exposed that.</p>
+<h3>Rank</h3>
+<blockquote>
+<p><strong>Rank \(r\) = the number of pivots.</strong> Here \(r = 2\).</p>
+</blockquote>
+<h3>Pivot variables and free variables</h3>
+<p><strong>Pivot columns:</strong> columns 1 and 3. So <strong>\(x_1, x_3\) are pivot variables</strong>.</p>
+<p><strong>Free columns:</strong> columns 2 and 4. So <strong>\(x_2, x_4\) are free variables</strong>. You may assign them any values. The pivot variables are then determined by back substitution.</p>
+<p><strong>The equations \(Ux = 0\):</strong>
+<div class="math-display">\[x_1 + 2x_2 + 2x_3 + 2x_4 = 0, \qquad 2x_3 + 4x_4 = 0\]</div>
+</p>
+<h3>Special solutions</h3>
+<p><strong>Rule.</strong> Set one free variable to 1 and the others to 0. Then back-substitute.</p>
+<p><strong>Special solution 1:</strong> \(x_2 = 1, x_4 = 0\).</p>
+<ul>
+<li>Second equation gives \(x_3 = 0\).</li>
+<li>First equation gives \(x_1 = -2\).
+<div class="math-display">\[s_1 = \begin{bmatrix} -2 \\ 1 \\ 0 \\ 0 \end{bmatrix}\]</div>
+
+This says \(-2\,\text{col}_1 + \text{col}_2 = 0\), which matches column 2 being twice column 1.</li>
+</ul>
+<p><strong>Special solution 2:</strong> \(x_2 = 0, x_4 = 1\).</p>
+<ul>
+<li>Second equation gives \(x_3 = -2\).</li>
+<li>First equation gives \(x_1 = -2(0) - 2(-2) - 2(1) = 2\).
+<div class="math-display">\[s_2 = \begin{bmatrix} 2 \\ 0 \\ -2 \\ 1 \end{bmatrix}\]</div>
+
+This says \(2\,\text{col}_1 - 2\,\text{col}_3 + \text{col}_4 = 0\).</li>
+</ul>
+<p><strong>The two special solutions are genuinely different.</strong> No multiple of \(s_1\) can have a 1 in position 4. So \(s_2\) is new.</p>
+<h3>The whole nullspace</h3>
+<div class="math-display">\[N(A) = \left\{ c\,s_1 + d\,s_2 \right\} = \left\{ c\begin{bmatrix} -2\\1\\0\\0\end{bmatrix} + d\begin{bmatrix} 2\\0\\-2\\1\end{bmatrix} \right\}\]</div>
+<p>This is a 2-dimensional subspace inside \(\mathbb{R}^4\).</p>
+<h3>The counting rule</h3>
+<p>For an \(m \times n\) matrix with rank \(r\):</p>
+<ul>
+<li><strong>Pivot variables:</strong> \(r\)</li>
+<li><strong>Free variables:</strong> \(n - r\)</li>
+<li><strong>Special solutions:</strong> one per free variable, so \(n - r\)</li>
+<li><strong>Nullspace:</strong> all combinations of the special solutions</li>
+</ul>
+<p>Here \(n - r = 4 - 2 = 2\). There appeared to be 3 equations, but only \(r = 2\) were independent.</p>
+<hr />
+<h2>2. Reduced row echelon form \(R\)</h2>
+<p><strong>Going one step further.</strong> Clean \(U\) up even more:</p>
+<ol>
+<li>Eliminate <strong>upward</strong>, to get zeros above the pivots as well as below.</li>
+<li><strong>Divide each pivot row by its pivot</strong>, so every pivot equals 1.</li>
+</ol>
+<p>Neither step changes the nullspace.</p>
+<p><strong>For Example 1:</strong></p>
+<ul>
+<li>Subtract row 2 from row 1: row 1 becomes \((1, 2, 0, -2)\).</li>
+<li>Divide row 2 by 2: row 2 becomes \((0, 0, 1, 2)\).</li>
+</ul>
+<div class="math-display">\[R = \begin{bmatrix} \boxed{1} &amp; 2 &amp; 0 &amp; -2 \\ 0 &amp; 0 &amp; \boxed{1} &amp; 2 \\ 0 &amp; 0 &amp; 0 &amp; 0 \end{bmatrix}\]</div>
+<p>MATLAB computes this with <code>rref(A)</code>.</p>
+<h3>What \(R\) shows directly</h3>
+<ul>
+<li><strong>Pivot rows and pivot columns.</strong> In this example, the pivot rows are 1 and 2, and the pivot columns are 1 and 3.</li>
+<li><strong>An identity block.</strong> The \(r \times r\) identity matrix \(I\) sits in the pivot rows and pivot columns.</li>
+<li><strong>The free part \(F\).</strong> These are the entries of the free columns within the pivot rows:
+<div class="math-display">\[F = \begin{bmatrix} 2 &amp; -2 \\ 0 &amp; 2 \end{bmatrix}\]</div>
+</li>
+<li><strong>Zero rows.</strong> They mark rows of \(A\) that were combinations of other rows.</li>
+</ul>
+<h3>Reading off the special solutions</h3>
+<p>The pivot entries of the special solutions are <strong>\(-F\)</strong>: the free numbers with their signs flipped. Check against Example 1:</p>
+<ul>
+<li>In \(s_1\), the pivot entries \((x_1, x_3) = (-2, 0)\) are the negative of \(F\)'s first column, \((2, 0)\).</li>
+<li>In \(s_2\), the pivot entries \((x_1, x_3) = (2, -2)\) are the negative of \(F\)'s second column, \((-2, 2)\).</li>
+</ul>
+<hr />
+<h2>3. The general block form and the nullspace matrix \(N\)</h2>
+<p><strong>Block form of \(R\).</strong> Reorder the columns so the pivot columns come first:
+<div class="math-display">\[R = \begin{bmatrix} I &amp; F \\ 0 &amp; 0 \end{bmatrix}\]</div>
+
+Here \(I\) is \(r \times r\), \(F\) is \(r \times (n-r)\), and the zero rows sit at the bottom.</p>
+<p><strong>Solving \(Rx = 0\).</strong> Split \(x\) into pivot variables \(x_{\text{pivot}}\) and free variables \(x_{\text{free}}\):
+<div class="math-display">\[x_{\text{pivot}} + F\,x_{\text{free}} = 0 \quad\Longrightarrow\quad x_{\text{pivot}} = -F\,x_{\text{free}}\]</div>
+
+This is all back substitution amounts to once \(R\) is fully reduced.</p>
+<p><strong>The nullspace matrix.</strong> Choose the free variables as the columns of the identity, one special solution at a time. Collecting the special solutions as columns gives the <strong>nullspace matrix</strong>:
+<div class="math-display">\[N = \begin{bmatrix} -F \\ I \end{bmatrix}, \qquad RN = 0\]</div>
+
+The block order in \(N\) follows the pivot-first reordering. In the original column order, the rows are interleaved.</p>
+<p><strong>In software.</strong> Strang's teaching code (a MATLAB function, <code>null</code>) computes \(R\), identifies the pivot and free variables, sets the free variables to 1s and 0s, and reads off the pivot variables.</p>
+<hr />
+<h2>4. Example 2: the transpose of \(A\)</h2>
+<div class="math-display">\[A^\top = \begin{bmatrix} 1 &amp; 2 &amp; 3 \\ 2 &amp; 4 &amp; 6 \\ 2 &amp; 6 &amp; 8 \\ 2 &amp; 8 &amp; 10 \end{bmatrix}\]</div>
+<p><strong>Prediction.</strong> Column 3 equals column 1 plus column 2. So expect 2 pivot columns and 1 free column.</p>
+<p><strong>Elimination:</strong></p>
+<ol>
+<li>Subtract 2 × row 1 from rows 2, 3, and 4. This gives the rows \((0,0,0)\), \((0,2,2)\), and \((0,4,4)\).</li>
+<li>Column 2 has a 0 in the pivot position but a 2 below it. <strong>Exchange rows</strong> to bring the 2 up.</li>
+<li>Subtract 2 × the new row 2 from the row below it.</li>
+<li><strong>Check column 3 before stopping.</strong> Its pivot position holds a 0, and everything below it is 0. Now you may stop.</li>
+</ol>
+<div class="math-display">\[U = \begin{bmatrix} 1 &amp; 2 &amp; 3 \\ 0 &amp; 2 &amp; 2 \\ 0 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 0 \end{bmatrix}\]</div>
+<p><strong>Rank.</strong> The rank is again \(r = 2\). Strang calls this an important fact: <strong>\(A\) and \(A^\top\) always have the same number of pivots</strong>.</p>
+<p><strong>Nullspace.</strong> There is \(n - r = 3 - 2 = 1\) free variable, \(x_3\). Set \(x_3 = 1\):</p>
+<ul>
+<li>Second equation, \(2x_2 + 2x_3 = 0\), gives \(x_2 = -1\).</li>
+<li>First equation, \(x_1 + 2x_2 + 3x_3 = 0\), gives \(x_1 = -1\).</li>
+</ul>
+<div class="math-display">\[N(A^\top) = \left\{ c\begin{bmatrix} -1\\-1\\1\end{bmatrix} \right\}\]</div>
+<p>This is a line in \(\mathbb{R}^3\). It checks out: \(-\text{col}_1 - \text{col}_2 + \text{col}_3 = 0\).</p>
+<p><strong>Strang's exam note.</strong> &quot;Find the nullspace&quot; means the <strong>whole line</strong>, so include the \(c\). Later, &quot;find a basis for the nullspace&quot; will mean just the vector itself.</p>
+<p><strong>Reducing to \(R\).</strong> Subtract row 2 from row 1, then divide row 2 by 2:
+<div class="math-display">\[R = \begin{bmatrix} 1 &amp; 0 &amp; 1 \\ 0 &amp; 1 &amp; 1 \\ 0 &amp; 0 &amp; 0 \\ 0 &amp; 0 &amp; 0 \end{bmatrix} = \begin{bmatrix} I &amp; F \\ 0 &amp; 0 \end{bmatrix}, \quad F = \begin{bmatrix} 1 \\ 1 \end{bmatrix}\]</div>
+</p>
+<p>The special solution is \(N = \begin{bmatrix} -F \\ 1 \end{bmatrix} = (-1, -1, 1)\), which matches.</p>
+<hr />
+<h2>The algorithm for \(N(A)\)</h2>
+<ol>
+<li><strong>Eliminate</strong> to \(U\), or further to \(R\). When a column has no pivot, skip it and continue.</li>
+<li><strong>Count the pivots.</strong> That count is the rank \(r\).</li>
+<li><strong>Classify the variables.</strong> Pivot columns give pivot variables. The other columns give <strong>free variables</strong>, and there are \(n - r\) of them.</li>
+<li><strong>Find the special solutions.</strong> For each free variable, set it to 1, set the other free variables to 0, and solve for the pivot variables. With \(R\), the pivot variables are simply \(-F\).</li>
+<li><strong>Take all combinations.</strong> \(N(A)\) is the set of all combinations of the \(n - r\) special solutions.</li>
+</ol>
+<h2>Big ideas from Lecture 7</h2>
+<ol>
+<li><strong>Elimination preserves \(N(A)\)</strong> but changes \(C(A)\).</li>
+<li><strong>Rank</strong> \(r\) is the number of pivots. The number of free variables is \(n - r\).</li>
+<li><strong>Special solutions:</strong> each one sets one free variable to 1 and the rest to 0. Every vector in \(N(A)\) is a combination of them.</li>
+<li><strong>\(R = \begin{bmatrix} I &amp; F \\ 0 &amp; 0\end{bmatrix}\)</strong>, so the nullspace matrix is \(N = \begin{bmatrix} -F \\ I \end{bmatrix}\).</li>
+<li><strong>Zero rows</strong> in \(U\) or \(R\) show rows of \(A\) that were combinations of other rows.</li>
+<li><strong>\(A\) and \(A^\top\) have the same rank.</strong> This is previewed here and proved later.</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-06.html"><small>Previous</small>L6 · Column Space and Nullspace</a><a class="next" href="lecture-08.html"><small>Next</small>L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

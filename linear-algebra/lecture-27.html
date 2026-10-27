@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 27: Positive Definite Matrices and Minima · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li class="current"><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 29 / 37</p><h1>Lecture 27: Positive Definite Matrices and Minima</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Strang's three goals:</strong></p>
+<ol>
+<li><strong>Tests</strong>: how to tell whether a symmetric matrix is positive definite.</li>
+<li><strong>Meaning</strong>: why it matters. It decides whether a point is a minimum.</li>
+<li><strong>Geometry</strong>: positive definite matrices give ellipses and ellipsoids. Indefinite ones give hyperbolas and saddles.</li>
+</ol>
+<p><strong>The quantity to watch is \(x^\top Ax\).</strong> All matrices in this lecture are symmetric.</p>
+<hr />
+<h2>1. Four equivalent tests</h2>
+<p>For a symmetric \(2\times2\) matrix \(A = \begin{bmatrix} a &amp; b \\ b &amp; c \end{bmatrix}\), each of these is a complete test:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Test</th>
+<th>\(2\times2\) form</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>All <strong>eigenvalues</strong> \(&gt; 0\)</td>
+<td>\(\lambda_1 &gt; 0,\ \lambda_2 &gt; 0\)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>All <strong>upper-left determinants</strong> \(&gt; 0\)</td>
+<td>\(a &gt; 0,\ ac - b^2 &gt; 0\)</td>
+</tr>
+<tr>
+<td>3</td>
+<td>All <strong>pivots</strong> \(&gt; 0\)</td>
+<td>\(a &gt; 0,\ \dfrac{ac - b^2}{a} &gt; 0\)</td>
+</tr>
+<tr>
+<td>4 ★</td>
+<td><strong>Energy</strong>: \(x^\top Ax &gt; 0\) for every \(x \neq 0\)</td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Test 4 is usually the definition.</strong> Strang stars it. Most presentations define positive definite by test 4 and then prove that tests 1–3 are equivalent.</p>
+<hr />
+<h2>2. One matrix, three values of \(c\)</h2>
+<div class="math-display">\[A = \begin{bmatrix} 2 &amp; 6 \\ 6 &amp; c \end{bmatrix}\]</div>
+<p>The test that decides everything is \(\det = 2c - 36 &gt; 0\), which means \(c &gt; 18\).</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>\(c\)</th>
+<th>\(\det\)</th>
+<th>Pivots</th>
+<th>Eigenvalues</th>
+<th>Verdict</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>20</td>
+<td>4</td>
+<td>2, 2</td>
+<td>both \(&gt; 0\)</td>
+<td><strong>positive definite</strong></td>
+</tr>
+<tr>
+<td>18</td>
+<td>0</td>
+<td>2 (only one pivot)</td>
+<td>0, 20</td>
+<td><strong>positive semidefinite</strong></td>
+</tr>
+<tr>
+<td>7</td>
+<td>−22</td>
+<td>2, −11</td>
+<td>one \(&gt; 0\), one \(&lt; 0\)</td>
+<td><strong>indefinite</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3>The borderline case \(c = 18\)</h3>
+<p><strong>Singular matrix.</strong> Row 2 is a multiple of row 1, so the matrix has rank 1.</p>
+<p><strong>Eigenvalues.</strong> One eigenvalue is 0. The trace is 20, so the other is 20.</p>
+<p><strong>Name.</strong> Eigenvalues \(\geq 0\) with a zero among them is called <strong>positive semidefinite</strong>. Here \(x^\top Ax \geq 0\) for all \(x\), with equality along the nullspace.</p>
+<h3>Eigenvalue signs without computing eigenvalues (\(c = 20\))</h3>
+<ul>
+<li>\(\lambda_1\lambda_2 = \det = 4 &gt; 0\), so both eigenvalues have the same sign.</li>
+<li>\(\lambda_1 + \lambda_2 = \text{trace} = 22 &gt; 0\), so they can't both be negative.</li>
+<li>Therefore both are positive.</li>
+</ul>
+<hr />
+<h2>3. The quadratic form \(x^\top Ax\)</h2>
+<p><strong>Multiplying out:</strong>
+<div class="math-display">\[x^\top Ax = \begin{bmatrix} x &amp; y \end{bmatrix}\begin{bmatrix} a &amp; b \\ b &amp; c \end{bmatrix}\begin{bmatrix} x \\ y \end{bmatrix} = ax^2 + 2bxy + cy^2\]</div>
+</p>
+<p><strong>What kind of function this is.</strong></p>
+<ul>
+<li>Every term has degree exactly 2. There is no linear part and no constant.</li>
+<li>It is called a <strong>quadratic form</strong>.</li>
+</ul>
+<p><strong>Reading the matrix entries off the form.</strong></p>
+<ul>
+<li>Diagonal entries give the squared terms.</li>
+<li>Each off-diagonal entry appears <strong>twice</strong> in the cross term.</li>
+</ul>
+<p><strong>For \(c = 7\):</strong>
+<div class="math-display">\[f = 2x^2 + 12xy + 7y^2\]</div>
+</p>
+<p>At \((x, y) = (1, -1)\):
+<div class="math-display">\[f = 2 - 12 + 7 = -3 &lt; 0\]</div>
+
+So the matrix is <strong>not</strong> positive definite.</p>
+<h3>Graph of \(f(x, y)\)</h3>
+<p><strong>Indefinite case (\(c = 7\)): a saddle.</strong></p>
+<ul>
+<li>\(f\) goes <strong>up</strong> along some directions, such as the \(x\)-axis and the \(y\)-axis.</li>
+<li>\(f\) goes <strong>down</strong> along others, such as \(x = -y\).</li>
+<li>The origin is a maximum in some directions and a minimum in others.</li>
+<li>The best directions to look are the <strong>eigenvector</strong> directions.</li>
+</ul>
+<p><strong>Positive definite case (\(c = 20\)): a bowl.</strong> The origin is a true <strong>minimum</strong>, and \(f &gt; 0\) everywhere else.</p>
+<p><strong>The intuition.</strong> Positive definiteness means the squared terms \(ax^2\) and \(cy^2\) are large enough to overwhelm the cross term \(2bxy\), which can take either sign.</p>
+<hr />
+<h2>4. Completing the square = elimination</h2>
+<p><strong>The goal.</strong> Show the bowl really goes up everywhere. The way to do that is to write \(f\) as a <strong>sum of squares</strong>.</p>
+<p><strong>For \(c = 20\):</strong>
+<div class="math-display">\[2x^2 + 12xy + 20y^2 = 2(x + 3y)^2 + 2y^2\]</div>
+</p>
+<p><strong>How it works.</strong></p>
+<ul>
+<li>\(2(x + 3y)^2\) supplies the \(2x^2\) and the \(12xy\).</li>
+<li>It also supplies \(18y^2\).</li>
+<li>The remaining \(20 - 18 = 2\) gives the second square.</li>
+</ul>
+<p><strong>Comparing the three cases:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>\(c\)</th>
+<th>Sum of squares</th>
+<th>Sign</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>20</td>
+<td>\(2(x+3y)^2 + 2y^2\)</td>
+<td>\(&gt; 0\)</td>
+</tr>
+<tr>
+<td>18</td>
+<td>\(2(x+3y)^2 + 0\cdot y^2\)</td>
+<td>\(\geq 0\)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>\(2(x+3y)^2 - 11y^2\)</td>
+<td>can be negative</td>
+</tr>
+</tbody>
+</table></div>
+<h3>The numbers are elimination's numbers</h3>
+<p><strong>Eliminate on \(A\):</strong>
+<div class="math-display">\[A = \begin{bmatrix} 2 &amp; 6 \\ 6 &amp; 20 \end{bmatrix} = \underbrace{\begin{bmatrix} 1 &amp; 0 \\ 3 &amp; 1 \end{bmatrix}}_{L}\underbrace{\begin{bmatrix} 2 &amp; 6 \\ 0 &amp; 2 \end{bmatrix}}_{U}\]</div>
+</p>
+<p><strong>Where they appear in the squares.</strong></p>
+<ul>
+<li><strong>Outside the squares</strong> are the <strong>pivots</strong>: 2 and 2.</li>
+<li><strong>Inside the squares</strong> is the <strong>multiplier</strong>: \(\ell_{21} = 3\).</li>
+</ul>
+<blockquote>
+<p><strong>Completing the square is Gaussian elimination.</strong> The pivots are the weights on the squares. That is why positive pivots give a sum of positive squares, hence \(x^\top Ax &gt; 0\), hence a bowl with a minimum.</p>
+</blockquote>
+<p><strong>It generalizes.</strong> Elimination works for any \(n\times n\) matrix. So \(x^\top Ax\) always splits into \(n\) squares weighted by the \(n\) pivots.</p>
+<hr />
+<h2>5. Connection to calculus: the second-derivative test</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Single variable</th>
+<th>Several variables</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>First condition</td>
+<td>\(f&#x27;(x) = 0\)</td>
+<td>all first partial derivatives \(= 0\)</td>
+</tr>
+<tr>
+<td>Minimum test</td>
+<td>\(f&#x27;&#x27;(x) &gt; 0\)</td>
+<td><strong>matrix of second derivatives is positive definite</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The matrix of second derivatives in 2D:</strong>
+<div class="math-display">\[\begin{bmatrix} f_{xx} &amp; f_{xy} \\ f_{yx} &amp; f_{yy} \end{bmatrix}\]</div>
+</p>
+<p><strong>Why it is symmetric.</strong> \(f_{xy} = f_{yx}\): mixed partial derivatives can be taken in either order.</p>
+<p><strong>The calculus condition, explained.</strong></p>
+<ul>
+<li>Being positive definite here means \(f_{xx} &gt; 0\) and \(f_{xx}f_{yy} &gt; f_{xy}^2\).</li>
+<li>That inequality is just the \(2\times2\) determinant test.</li>
+<li>Positive pure second derivatives are not enough. They must be large enough to overcome the cross derivative.</li>
+</ul>
+<p><strong>What linear algebra adds.</strong> The same test now works in \(n\) dimensions, using pivots, determinants, or eigenvalues of an \(n\times n\) matrix.</p>
+<hr />
+<h2>6. A \(3\times3\) example</h2>
+<div class="math-display">\[A = \begin{bmatrix} 2 &amp; -1 &amp; 0 \\ -1 &amp; 2 &amp; -1 \\ 0 &amp; -1 &amp; 2 \end{bmatrix}\]</div>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Values</th>
+<th>Positive?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Upper-left determinants</td>
+<td>2, 3, 4</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Pivots</td>
+<td>\(2,\ \tfrac32,\ \tfrac43\)</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>Eigenvalues</td>
+<td>\(2 - \sqrt2,\ 2,\ 2 + \sqrt2\)</td>
+<td>✓</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>How the pivots follow from the determinants.</strong> Each pivot is the ratio of consecutive determinants: \(2/1\), \(3/2\), \(4/3\).</p>
+<p><strong>Checking the eigenvalues.</strong></p>
+<ul>
+<li>Sum: \(6\), which matches the trace.</li>
+<li>Product: \(2\cdot(4 - 2) = 4\), which matches the determinant.</li>
+</ul>
+<p><strong>The quadratic form:</strong>
+<div class="math-display">\[x^\top Ax = 2x_1^2 + 2x_2^2 + 2x_3^2 - 2x_1x_2 - 2x_2x_3\]</div>
+</p>
+<p><strong>Its graph.</strong> It is a bowl (a paraboloid) in 4D: three base coordinates plus the height. Completing the square would write it as three squares weighted by the three positive pivots.</p>
+<hr />
+<h2>7. Geometry: ellipses and ellipsoids</h2>
+<p><strong>Slice the bowl at height 1.</strong> Setting \(x^\top Ax = 1\) gives:</p>
+<ul>
+<li>an <strong>ellipse</strong> in 2D,</li>
+<li>an <strong>ellipsoid</strong> in 3D, a lopsided &quot;football&quot;.</li>
+</ul>
+<p><strong>Slice a saddle at height 1.</strong> That gives a <strong>hyperbola</strong>.</p>
+<h3>The shape depends on the eigenvalues</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Eigenvalues</th>
+<th>Shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All equal (e.g. \(A = I\))</td>
+<td>sphere</td>
+</tr>
+<tr>
+<td>Two equal, one different</td>
+<td>symmetric &quot;rugby ball&quot;</td>
+</tr>
+<tr>
+<td>All different (typical)</td>
+<td>ellipsoid with major, middle, and minor axes</td>
+</tr>
+</tbody>
+</table></div>
+<h3>Principal axis theorem</h3>
+<div class="math-display">\[A = Q\Lambda Q^\top\]</div>
+<ul>
+<li>The <strong>eigenvectors</strong> give the <strong>directions</strong> of the axes.</li>
+<li>The <strong>eigenvalues</strong> determine the <strong>lengths</strong> of the axes.</li>
+</ul>
+<p><strong>Precise lengths (Strang only gestures at this).</strong> Change coordinates with \(y = Q^\top x\). The equation becomes
+<div class="math-display">\[\lambda_1y_1^2 + \lambda_2y_2^2 + \lambda_3y_3^2 = 1\]</div>
+
+So the <strong>semi-axis length along \(q_i\) is \(1/\sqrt{\lambda_i}\)</strong>. The smallest eigenvalue gives the <strong>longest</strong> axis.</p>
+<p><strong>For the \(3\times3\) example (my computation).</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Eigenvalue</th>
+<th>Eigenvector</th>
+<th>Axis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(2 - \sqrt2\)</td>
+<td>\((1, \sqrt2, 1)\)</td>
+<td>longest</td>
+</tr>
+<tr>
+<td>\(2\)</td>
+<td>\((1, 0, -1)\)</td>
+<td>middle</td>
+</tr>
+<tr>
+<td>\(2 + \sqrt2\)</td>
+<td>\((1, -\sqrt2, 1)\)</td>
+<td>shortest</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2>Big ideas from Lecture 27</h2>
+<ol>
+<li><strong>Four equivalent tests</strong> for symmetric \(A\): positive eigenvalues, positive upper-left determinants, positive pivots, and \(x^\top Ax &gt; 0\) for all \(x \neq 0\).</li>
+<li><strong>Semidefinite:</strong> \(\geq\) in place of \(&gt;\). The matrix can be singular, with a zero eigenvalue.</li>
+<li><strong>Shape of the graph:</strong> \(x^\top Ax\) is a bowl (positive definite) or a saddle (indefinite).</li>
+<li><strong>Completing the square = elimination.</strong> The pivots weight the squares and the multipliers sit inside them.</li>
+<li><strong>Minima:</strong> gradient \(= 0\) and second-derivative matrix positive definite. This is the \(n\)-dimensional version of \(f&#x27;&#x27; &gt; 0\).</li>
+<li><strong>Ellipsoids:</strong> \(x^\top Ax = 1\) has axes along the eigenvectors, with semi-axis lengths \(1/\sqrt{\lambda_i}\).</li>
+</ol>
+<p><strong>Connection to ML.</strong></p>
+<ul>
+<li><strong>Local minima.</strong> A local minimum requires a positive (semi)definite <strong>Hessian</strong>. In high-dimensional loss landscapes, critical points are overwhelmingly <strong>saddles</strong>: some eigenvalues positive, some negative.</li>
+<li><strong>Conditioning.</strong> The ratio \(\lambda_{\max}/\lambda_{\min}\), the <strong>condition number</strong>, sets how elongated the ellipsoidal level sets are. That elongation is what slows gradient descent.</li>
+<li><strong>Back to PCA.</strong> The covariance ellipsoid has its long axes along the top principal components.</li>
+</ul>
+</article>
+<nav class="pager"><a class="prev" href="lecture-26.html"><small>Previous</small>L26 · Complex Matrices; Fast Fourier Transform</a><a class="next" href="lecture-28.html"><small>Next</small>L28 · Similar Matrices and Jordan Form</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

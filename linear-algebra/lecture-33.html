@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 33: Left and Right Inverses; Pseudoinverse · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li class="current"><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 35 / 37</p><h1>Lecture 33: Left and Right Inverses; Pseudoinverse</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Purpose.</strong> This is the first of two review lectures before the final. The organizing picture is the <strong>four fundamental subspaces</strong> of an \(m\times n\) matrix of rank \(r\). The question is: what kind of inverse does \(A\) have in each case?</p>
+<p><strong>Exam scope.</strong> Strang notes the pseudoinverse (Section 7.4) won't appear by name on the final. Everything that leads to it will.</p>
+<hr />
+<h2>1. Four cases, organized by rank</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Case</th>
+<th>Rank</th>
+<th>Nullspaces</th>
+<th>Inverse</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Square, full rank</td>
+<td>\(r = m = n\)</td>
+<td>both \(\{0\}\)</td>
+<td><strong>two-sided</strong> \(A^{-1}\)</td>
+</tr>
+<tr>
+<td>Full column rank</td>
+<td>\(r = n &lt; m\)</td>
+<td>\(N(A) = \{0\}\)</td>
+<td><strong>left inverse</strong></td>
+</tr>
+<tr>
+<td>Full row rank</td>
+<td>\(r = m &lt; n\)</td>
+<td>\(N(A^\top) = \{0\}\)</td>
+<td><strong>right inverse</strong></td>
+</tr>
+<tr>
+<td>General</td>
+<td>\(r &lt; m,\ r &lt; n\)</td>
+<td>both nontrivial</td>
+<td><strong>pseudoinverse</strong> \(A^+\)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why a rectangular matrix can't have a two-sided inverse.</strong> If \(m \neq n\), then either \(A\) or \(A^\top\) has free variables, so one of them has a nontrivial nullspace. A vector sent to zero can't be brought back.</p>
+<hr />
+<h2>2. Full column rank: left inverse</h2>
+<p><strong>Setting.</strong> \(r = n\), with more rows than columns (\(m &gt; n\)).</p>
+<p><strong>Properties.</strong></p>
+<ul>
+<li>The columns are independent, so \(N(A) = \{0\}\).</li>
+<li>\(Ax = b\) has <strong>0 or 1</strong> solutions. The rows are probably dependent, so some \(b\) give no solution.</li>
+<li><strong>\(A^\top A\) (\(n\times n\)) is invertible.</strong> This is the least-squares case.</li>
+</ul>
+<p><strong>The left inverse:</strong>
+<div class="math-display">\[\boxed{A^{-1}_{\text{left}} = (A^\top A)^{-1}A^\top}, \qquad A^{-1}_{\text{left}}\,A = (A^\top A)^{-1}(A^\top A) = I_n\]</div>
+</p>
+<p><strong>Other left inverses exist.</strong> This one is the natural choice.</p>
+<p><strong>Multiplying in the wrong order gives a projection, not \(I\):</strong>
+<div class="math-display">\[A\,A^{-1}_{\text{left}} = A(A^\top A)^{-1}A^\top = P_{\text{col}}\]</div>
+
+This is the <strong>projection onto the column space</strong>. Strang describes it as the identity wherever it can be, and zero elsewhere.</p>
+<hr />
+<h2>3. Full row rank: right inverse</h2>
+<p><strong>Setting.</strong> \(r = m\), with more columns than rows (\(n &gt; m\)). This is the mirror image of the previous case.</p>
+<p><strong>Properties.</strong></p>
+<ul>
+<li>The rows are independent, so \(N(A^\top) = \{0\}\).</li>
+<li>\(Ax = b\) is <strong>always solvable</strong>, because elimination never produces a zero row.</li>
+<li>There are <strong>infinitely many</strong> solutions, since there are \(n - m\) free variables.</li>
+<li><strong>\(AA^\top\) (\(m\times m\)) is invertible.</strong></li>
+</ul>
+<p><strong>The right inverse:</strong>
+<div class="math-display">\[\boxed{A^{-1}_{\text{right}} = A^\top(AA^\top)^{-1}}, \qquad A\,A^{-1}_{\text{right}} = I_m\]</div>
+</p>
+<p><strong>Wrong order:</strong>
+<div class="math-display">\[A^{-1}_{\text{right}}\,A = A^\top(AA^\top)^{-1}A = P_{\text{row}}\]</div>
+
+This is the <strong>projection onto the row space</strong>.</p>
+<hr />
+<h2>4. The general case: \(A\) is invertible between the row space and the column space</h2>
+<p><strong>The key observation.</strong></p>
+<ul>
+<li>Every \(Ax\) lands in the column space.</li>
+<li>The <strong>row space and the column space both have dimension \(r\).</strong></li>
+<li>Restricted to the row space, \(A\) is a <strong>perfect one-to-one map</strong> onto the column space.</li>
+</ul>
+<blockquote>
+<p><strong>Claim:</strong> if \(x \neq y\) are both in the row space, then \(Ax \neq Ay\).</p>
+</blockquote>
+<p><strong>Proof.</strong></p>
+<ol>
+<li>Suppose \(Ax = Ay\). Then \(A(x - y) = 0\), so \(x - y \in N(A)\).</li>
+<li>But \(x\) and \(y\) are both in the row space, which is a subspace. So \(x - y\) is in the row space too.</li>
+<li>The row space and nullspace are orthogonal complements, so they share only the zero vector.</li>
+<li>Therefore \(x - y = 0\).</li>
+</ol>
+<p><strong>Onto as well as one-to-one.</strong> Both spaces have dimension \(r\), so every vector in the column space is reached.</p>
+<p><strong>How \(A\) treats a general vector.</strong> Most vectors have a row-space part and a nullspace part. \(A\) kills the nullspace part and maps the row-space part faithfully.</p>
+<h3>The pseudoinverse \(A^+\)</h3>
+<p><strong>Definition.</strong> \(A^+\) is the inverse of that map, going back from the column space to the row space:
+<div class="math-display">\[y \in C(A^\top) \;\xrightarrow{\;A\;}\; Ay \in C(A) \;\xrightarrow{\;A^+\;}\; y\]</div>
+</p>
+<p><strong>What it does to the rest.</strong> \(A^+\) <strong>kills \(N(A^\top)\)</strong>, just as \(A\) kills \(N(A)\).</p>
+<p><strong>Why statisticians need it.</strong></p>
+<ul>
+<li>Least squares uses \((A^\top A)^{-1}A^\top\), which <strong>requires full column rank</strong>.</li>
+<li>With repeated or dependent measurements, the columns of \(A\) are dependent and \(A^\top A\) is singular.</li>
+<li>The pseudoinverse is the right replacement in that situation.</li>
+</ul>
+<hr />
+<h2>5. Computing \(A^+\) from the SVD</h2>
+<p><strong>Start from the SVD:</strong>
+<div class="math-display">\[A = U\Sigma V^\top \qquad\Longrightarrow\qquad \boxed{A^+ = V\,\Sigma^+\,U^\top}\]</div>
+</p>
+<p><strong>How each factor inverts.</strong></p>
+<ul>
+<li>\(U\) and \(V\) are orthogonal, so their inverses are their transposes.</li>
+<li><strong>All the difficulty sits in \(\Sigma\)</strong>, and there it is easy to handle.</li>
+</ul>
+<h3>The pseudoinverse of \(\Sigma\)</h3>
+<p><strong>\(\Sigma\) (\(m \times n\))</strong> has \(\sigma_1, \dots, \sigma_r\) on the diagonal and zeros elsewhere.</p>
+<p><strong>\(\Sigma^+\) (\(n \times m\))</strong> has \(1/\sigma_1, \dots, 1/\sigma_r\) on the diagonal and zeros elsewhere:
+<div class="math-display">\[\Sigma = \begin{bmatrix} \sigma_1 &amp; &amp; &amp; \\ &amp; \ddots &amp; &amp; \\ &amp; &amp; \sigma_r &amp; \\ &amp; &amp; &amp; 0 \end{bmatrix}_{m\times n} \qquad \Sigma^+ = \begin{bmatrix} 1/\sigma_1 &amp; &amp; &amp; \\ &amp; \ddots &amp; &amp; \\ &amp; &amp; 1/\sigma_r &amp; \\ &amp; &amp; &amp; 0 \end{bmatrix}_{n\times m}\]</div>
+</p>
+<p><strong>Products in both orders.</strong></p>
+<ul>
+<li>\(\Sigma\Sigma^+\) is \(m\times m\), with \(r\) ones on the diagonal and then zeros. It projects onto the column space.</li>
+<li>\(\Sigma^+\Sigma\) is \(n\times n\), with \(r\) ones on the diagonal and then zeros. It projects onto the row space.</li>
+</ul>
+<p><strong>For \(A\) itself:</strong>
+<div class="math-display">\[AA^+ = \text{projection onto } C(A), \qquad A^+A = \text{projection onto } C(A^\top)\]</div>
+</p>
+<p><strong>Interpretation.</strong> The pseudoinverse is never a true inverse on either side. It does the best possible thing: it carries vectors into the two &quot;good&quot; spaces and wipes out the nullspaces.</p>
+<p><strong>Why this \(\Sigma^+\) and not another.</strong> Extra nonzero entries in the zero block of \(\Sigma^+\) would multiply zeros and change nothing in \(\Sigma\Sigma^+\). The chosen \(\Sigma^+\) is the <strong>minimal</strong> one.</p>
+<hr />
+<h2>6. A small example (my addition)</h2>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</div>
+<p><strong>Its SVD.</strong> Rank 1, with \(\sigma_1 = 2\) and \(u_1 = v_1 = \tfrac{1}{\sqrt2}(1, 1)\).</p>
+<p><strong>The pseudoinverse:</strong>
+<div class="math-display">\[A^+ = \frac{1}{\sigma_1}v_1u_1^\top = \frac14\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</div>
+</p>
+<p><strong>Check.</strong>
+<div class="math-display">\[AA^+ = \tfrac12\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1 \end{bmatrix}\]</div>
+
+This is the projection onto the line through \((1,1)\). Here \(A\) is symmetric, so the row space and column space coincide.</p>
+<hr />
+<h2>Big ideas from Lecture 33</h2>
+<ol>
+<li><strong>Rank decides which inverse exists:</strong>
+<ul>
+<li>\(r = m = n\): two-sided.</li>
+<li>\(r = n\): left inverse \((A^\top A)^{-1}A^\top\).</li>
+<li>\(r = m\): right inverse \(A^\top(AA^\top)^{-1}\).</li>
+<li>otherwise: pseudoinverse.</li>
+</ul>
+</li>
+<li><strong>One-sided inverses in the wrong order give projections:</strong> onto \(C(A)\) for the left inverse, onto \(C(A^\top)\) for the right inverse.</li>
+<li><strong>Restricted to the row space, \(A\) is an invertible map onto the column space.</strong> The proof is that \(N(A) \cap C(A^\top) = \{0\}\).</li>
+<li><strong>\(A^+\) inverts that map and kills \(N(A^\top)\).</strong></li>
+<li><strong>Computation:</strong> \(A^+ = V\Sigma^+U^\top\), with \(\Sigma^+\) inverting only the nonzero singular values.</li>
+<li><strong>Projections:</strong> \(AA^+\) and \(A^+A\) project onto the column space and the row space.</li>
+</ol>
+<p><strong>Connections (not in the lecture).</strong></p>
+<ul>
+<li><strong>Least squares.</strong> \(x^+ = A^+b\) is the <strong>minimum-norm least-squares solution</strong>. Among all minimizers of \(\|Ax - b\|\), it is the one with no nullspace component. In the full-rank cases it reduces to the left- or right-inverse formula.</li>
+<li><strong>Ridge regression.</strong> As the regularization \(\lambda \to 0\), \((A^\top A + \lambda I)^{-1}A^\top \to A^+\).</li>
+<li><strong>Overparameterized linear models.</strong> In overparameterized linear regression, gradient descent started from zero converges to exactly \(A^+b\). This is the standard &quot;implicit bias toward minimum norm&quot; result.</li>
+</ul>
+</article>
+<nav class="pager"><a class="prev" href="lecture-32.html"><small>Previous</small>L32 · Quiz 3 Review</a><a class="next" href="lecture-34.html"><small>Next</small>L34 · Final Course Review</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

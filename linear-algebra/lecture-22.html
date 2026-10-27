@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 22: Diagonalization and Powers of $A$ · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li class="current"><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 23 / 37</p><h1>Lecture 22: Diagonalization and Powers of \(A\)</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror.</p><article class="post"><p><strong>Goal:</strong> Use eigenvalues and eigenvectors to <strong>diagonalize</strong> \(A\). Then use the diagonal form to compute <strong>powers</strong> \(A^k\) and solve <strong>difference equations</strong> \(u_{k+1} = Au_k\). The running example is the Fibonacci sequence.</p>
+<hr />
+<h2>1. Diagonalization: \(S^{-1}AS = \Lambda\)</h2>
+<p><strong>Assumption.</strong> \(A\) has <strong>\(n\) independent eigenvectors</strong> \(x_1, \dots, x_n\).</p>
+<p><strong>The eigenvector matrix.</strong> Put the eigenvectors in the columns of \(S\):
+<div class="math-display">\[S = \begin{bmatrix} x_1 &amp; x_2 &amp; \cdots &amp; x_n \end{bmatrix}\]</div>
+</p>
+<p><strong>Multiply \(A\) by \(S\), one column at a time.</strong> Each column is an eigenvector, so \(Ax_i = \lambda_i x_i\):
+<div class="math-display">\[AS = \begin{bmatrix} \lambda_1 x_1 &amp; \cdots &amp; \lambda_n x_n \end{bmatrix}\]</div>
+</p>
+<p><strong>Pull the \(\lambda\)'s out.</strong> Each \(\lambda_i\) multiplies column \(i\), so it can be moved into a diagonal matrix on the right:
+<div class="math-display">\[AS = \begin{bmatrix} x_1 &amp; \cdots &amp; x_n \end{bmatrix}\begin{bmatrix} \lambda_1 &amp; &amp; \\ &amp; \ddots &amp; \\ &amp; &amp; \lambda_n \end{bmatrix} = S\Lambda\]</div>
+</p>
+<p>\(\Lambda\) (capital lambda) is the <strong>eigenvalue matrix</strong>, with the eigenvalues on its diagonal.</p>
+<p><strong>Two equivalent forms.</strong> Independence of the eigenvectors is exactly what makes \(S\) invertible:
+<div class="math-display">\[\boxed{S^{-1}AS = \Lambda} \qquad\Longleftrightarrow\qquad \boxed{A = S\Lambda S^{-1}}\]</div>
+</p>
+<p><strong>A new factorization.</strong> It joins \(A = LU\) (elimination) and \(A = QR\) (Gram–Schmidt).</p>
+<p><strong>Memory aid.</strong> \(A\) multiplies its eigenvectors, so \(A\) sits next to \(S\), not next to \(S^{-1}\).</p>
+<hr />
+<h2>2. Powers of \(A\)</h2>
+<p><strong>Eigenvector argument.</strong> If \(Ax = \lambda x\), multiply both sides by \(A\):
+<div class="math-display">\[A^2x = \lambda Ax = \lambda^2 x\]</div>
+</p>
+<p><strong>Same result from the factorization.</strong> The inner \(S^{-1}S\) cancels:
+<div class="math-display">\[A^2 = S\Lambda S^{-1}\,S\Lambda S^{-1} = S\Lambda^2 S^{-1}\]</div>
+</p>
+<p><strong>For any power \(k\):</strong>
+<div class="math-display">\[\boxed{A^k = S\Lambda^k S^{-1}}\]</div>
+</p>
+<p><strong>What happens to eigenvalues and eigenvectors:</strong></p>
+<ul>
+<li><strong>Eigenvectors:</strong> unchanged.</li>
+<li><strong>Eigenvalues:</strong> raised to the \(k\)-th power, \(\lambda_i^k\).</li>
+</ul>
+<p><strong>Why this is powerful.</strong> With \(LU\), the product \((LU)(LU)\cdots(LU)\) gets you nowhere, because the pivots tell you nothing about powers. With \(S\Lambda S^{-1}\), all the interior factors cancel.</p>
+<h3>Stability theorem</h3>
+<div class="math-display">\[A^k \to 0 \text{ as } k \to \infty \quad\text{when}\quad |\lambda_i| &lt; 1 \text{ for all } i\]</div>
+<p><strong>Absolute values are needed</strong> because eigenvalues can be negative or complex.</p>
+<p><strong>Scope of the proof.</strong> Strang's argument goes through \(S\Lambda^kS^{-1}\), so it assumes \(n\) independent eigenvectors. The statement remains true even when \(A\) is not diagonalizable, though that requires a different proof.</p>
+<hr />
+<h2>3. Which matrices are diagonalizable?</h2>
+<p><strong>Distinct eigenvalues guarantee it.</strong></p>
+<ul>
+<li>If <strong>all \(\lambda\)'s are different</strong>, the eigenvectors are automatically independent. Strang refers the proof to the textbook.</li>
+<li>A random matrix, such as MATLAB's <code>eig(rand(10))</code>, almost surely has distinct eigenvalues, so it is diagonalizable.</li>
+</ul>
+<p><strong>Repeated eigenvalues require a closer look.</strong> You <strong>may or may not</strong> get enough eigenvectors.</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Matrix</th>
+<th>Eigenvalues</th>
+<th>Independent eigenvectors</th>
+<th>Diagonalizable?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(I_{10}\)</td>
+<td>\(1\) (repeated 10 times)</td>
+<td>10, since every vector is an eigenvector</td>
+<td>Yes; it's already diagonal</td>
+</tr>
+<tr>
+<td>\(\begin{bmatrix} 2 &amp; 1 \\ 0 &amp; 2 \end{bmatrix}\)</td>
+<td>\(2, 2\)</td>
+<td>only 1, namely \((1, 0)\)</td>
+<td><strong>No</strong></td>
+</tr>
+</tbody>
+</table></div>
+<h3>The failing example</h3>
+<p><strong>Eigenvalues.</strong> The matrix is triangular, so the eigenvalues are on the diagonal:
+<div class="math-display">\[\det(A - \lambda I) = (2 - \lambda)^2 \;\Rightarrow\; \lambda = 2, 2\]</div>
+</p>
+<p><strong>Eigenvectors.</strong> \(A - 2I = \begin{bmatrix} 0 &amp; 1 \\ 0 &amp; 0 \end{bmatrix}\). Its nullspace is <strong>one-dimensional</strong>, spanned by \((1, 0)\). The vector \((0, 1)\) is not in it.</p>
+<h3>Two kinds of multiplicity</h3>
+<p><strong>Algebraic multiplicity.</strong> How many times \(\lambda\) is a root of \(\det(A - \lambda I)\). Here it is <strong>2</strong>.</p>
+<p><strong>Geometric multiplicity.</strong> The number of independent eigenvectors for \(\lambda\), which is \(\dim N(A - \lambda I)\). Here it is <strong>1</strong>.</p>
+<p><strong>When they differ.</strong> If geometric multiplicity is less than algebraic multiplicity, there are not enough eigenvectors, and <strong>\(A\) cannot be diagonalized</strong>.</p>
+<hr />
+<h2>4. Difference equations \(u_{k+1} = Au_k\)</h2>
+<p><strong>The setup.</strong> Start from a given vector \(u_0\) and multiply by \(A\) at each step:
+<div class="math-display">\[u_1 = Au_0, \quad u_2 = A^2u_0, \quad \dots, \quad u_k = A^ku_0\]</div>
+</p>
+<p>Strang calls this a <strong>first-order system</strong>: first-order because each step goes up only one level, a system because \(u\) is a vector.</p>
+<p><strong>\(u_k = A^k u_0\) is compact, but not yet a usable answer.</strong></p>
+<h3>How to actually compute \(u_k\)</h3>
+<p><strong>Step 1. Expand \(u_0\) in eigenvectors:</strong>
+<div class="math-display">\[u_0 = c_1x_1 + c_2x_2 + \cdots + c_nx_n = Sc\]</div>
+</p>
+<p><strong>Step 2. Each eigenvector component evolves independently.</strong> Strang says each one &quot;goes its own merry way&quot;:
+<div class="math-display">\[Au_0 = c_1\lambda_1x_1 + \cdots + c_n\lambda_nx_n\]</div>
+</p>
+<p><strong>Step 3. After \(k\) steps:</strong>
+<div class="math-display">\[\boxed{u_k = A^ku_0 = c_1\lambda_1^kx_1 + \cdots + c_n\lambda_n^kx_n = S\Lambda^kc}\]</div>
+</p>
+<p><strong>This is exactly the formula \(A^k = S\Lambda^kS^{-1}\) applied to \(u_0\),</strong> with \(c = S^{-1}u_0\).</p>
+<p><strong>Static vs. dynamic problems.</strong></p>
+<ul>
+<li>\(Ax = b\) is a <strong>static</strong> problem.</li>
+<li>\(u_{k+1} = Au_k\) is <strong>dynamic</strong>: things evolve in time.</li>
+<li>The eigenvalues decide whether the solution blows up, decays, or stays bounded.</li>
+</ul>
+<hr />
+<h2>5. Example: Fibonacci numbers</h2>
+<p><strong>The sequence:</strong> \(0, 1, 1, 2, 3, 5, 8, 13, 21, 34, \dots\)</p>
+<p><strong>The rule:</strong> \(F_{k+2} = F_{k+1} + F_k\).</p>
+<p><strong>Questions:</strong></p>
+<ul>
+<li>What is \(F_{100}\)?</li>
+<li>How fast does the sequence grow?</li>
+</ul>
+<h3>Convert to a first-order system</h3>
+<p><strong>The trick.</strong> The Fibonacci rule is a single <strong>second-order</strong> equation. Turn it into a \(2\times2\) <strong>first-order</strong> system by making the unknown a vector:
+<div class="math-display">\[u_k = \begin{bmatrix} F_{k+1} \\ F_k \end{bmatrix}\]</div>
+</p>
+<p><strong>Add a trivial second equation</strong>, \(F_{k+1} = F_{k+1}\). Together the two equations give:
+<div class="math-display">\[u_{k+1} = \begin{bmatrix} F_{k+2} \\ F_{k+1} \end{bmatrix} = \underbrace{\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 0 \end{bmatrix}}_{A}\begin{bmatrix} F_{k+1} \\ F_k \end{bmatrix}\]</div>
+</p>
+<p>\(A\) is symmetric, so its eigenvalues will be real.</p>
+<h3>Eigenvalues</h3>
+<p><strong>Quick checks.</strong> \(\lambda_1 + \lambda_2 = \text{trace} = 1\) and \(\lambda_1\lambda_2 = \det A = -1\).</p>
+<p><strong>Characteristic equation:</strong>
+<div class="math-display">\[\det(A - \lambda I) = \lambda^2 - \lambda - 1 = 0\]</div>
+
+This mirrors the Fibonacci rule itself, \(F_{k+2} - F_{k+1} - F_k = 0\).</p>
+<p><strong>Roots:</strong>
+<div class="math-display">\[\lambda_1 = \frac{1 + \sqrt5}{2} \approx 1.618, \qquad \lambda_2 = \frac{1 - \sqrt5}{2} \approx -0.618\]</div>
+</p>
+<p><strong>Consequences.</strong></p>
+<ul>
+<li>The eigenvalues are distinct, so \(A\) is diagonalizable.</li>
+<li>\(\lambda_1 &gt; 1\), so the solution <strong>grows</strong>.</li>
+<li>\(|\lambda_2| &lt; 1\), so that component <strong>decays</strong>.</li>
+</ul>
+<h3>Growth rate</h3>
+<p>The \(\lambda_1^k\) term dominates, while \(\lambda_2^k \to 0\) very fast:
+<div class="math-display">\[F_{100} \approx c_1\left(\frac{1+\sqrt5}{2}\right)^{100}\]</div>
+</p>
+<p>Each Fibonacci number is about <strong>1.618</strong> times the previous one. This ratio is the golden ratio.</p>
+<h3>Eigenvectors</h3>
+<p>\(A - \lambda I = \begin{bmatrix} 1 - \lambda &amp; 1 \\ 1 &amp; -\lambda \end{bmatrix}\). Try \(x = (\lambda, 1)\):</p>
+<ul>
+<li>The second row gives \(\lambda - \lambda = 0\).</li>
+<li>The first row gives \((1-\lambda)\lambda + 1 = -\lambda^2 + \lambda + 1\), which is zero precisely because \(\lambda\) satisfies \(\lambda^2 = \lambda + 1\).</li>
+</ul>
+<p>So the eigenvectors are
+<div class="math-display">\[x_1 = \begin{bmatrix} \lambda_1 \\ 1 \end{bmatrix}, \qquad x_2 = \begin{bmatrix} \lambda_2 \\ 1 \end{bmatrix}\]</div>
+</p>
+<h3>Finishing the computation (Strang runs out of time; completed here)</h3>
+<p><strong>Initial vector.</strong> \(u_0 = (F_1, F_0) = (1, 0)\).</p>
+<p><strong>Solve \(c_1x_1 + c_2x_2 = u_0\):</strong></p>
+<ul>
+<li>The second components give \(c_1 + c_2 = 0\).</li>
+<li>The first components give \(c_1\lambda_1 + c_2\lambda_2 = 1\).</li>
+</ul>
+<p>So \(c_1 = \dfrac{1}{\lambda_1 - \lambda_2} = \dfrac{1}{\sqrt5}\) and \(c_2 = -\dfrac{1}{\sqrt5}\).</p>
+<p><strong>Read off \(F_k\) from the second component of \(u_k\):</strong>
+<div class="math-display">\[F_k = \frac{\lambda_1^k - \lambda_2^k}{\sqrt5}\]</div>
+</p>
+<p>This is <strong>Binet's formula</strong>. In particular:
+<div class="math-display">\[F_{100} \approx \frac{1}{\sqrt5}\left(\frac{1+\sqrt5}{2}\right)^{100}\]</div>
+</p>
+<hr />
+<h2>Big ideas from Lecture 22</h2>
+<ol>
+<li><strong>Diagonalization:</strong> \(A = S\Lambda S^{-1}\). This requires \(n\) independent eigenvectors so that \(S\) is invertible.</li>
+<li><strong>Powers:</strong> \(A^k = S\Lambda^kS^{-1}\). The eigenvectors stay the same and the eigenvalues become \(\lambda^k\).</li>
+<li><strong>Stability:</strong> \(A^k \to 0\) exactly when all \(|\lambda_i| &lt; 1\).</li>
+<li><strong>Distinct eigenvalues imply diagonalizable.</strong> With repeated eigenvalues, compare algebraic and geometric multiplicity.</li>
+<li><strong>Difference equations:</strong> \(u_k = \sum c_i\lambda_i^kx_i\). Expand \(u_0\) in eigenvectors, then let each component scale by its own \(\lambda\).</li>
+<li><strong>Fibonacci:</strong> the growth rate is the largest eigenvalue, \(\frac{1+\sqrt5}{2} \approx 1.618\).</li>
+</ol>
+<p><strong>Connection to ML.</strong> The rule that the largest \(|\lambda|\) governs \(A^k\) is exactly why repeated matrix multiplication causes exploding or vanishing signals, for example in RNN gradients or deep linear networks. The same rule governs convergence of Markov chains, which Strang covers in Lecture 24 and which is directly relevant to Markov-chain sequence tasks.</p>
+</article>
+<nav class="pager"><a class="prev" href="lecture-21.html"><small>Previous</small>L21 · Eigenvalues and Eigenvectors</a><a class="next" href="lecture-23.html"><small>Next</small>L23 · Differential Equations and \(e^{At}\)</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

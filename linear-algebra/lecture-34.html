@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 34: Final Course Review · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li class="current"><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 36 / 37</p><h1>Lecture 34: Final Course Review</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Format.</strong> Strang reviews by working through problems from old final exams. One of them is 26 years old, and he jokes that he hasn't learned anything since. Each problem deliberately <strong>connects several parts of the course</strong>. Where Strang leaves an answer as a formula, I've finished the arithmetic and marked it as mine.</p>
+<hr />
+<h2>Problem 1: What does solvability tell you about \(m\), \(n\), \(r\)?</h2>
+<p><strong>Given.</strong> \(A\) is \(3\times n\). The equation \(Ax = (1,0,0)\) has <strong>no solution</strong>, and \(Ax = (0,1,0)\) has <strong>exactly one</strong> solution.</p>
+<h3>Deductions</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Fact</th>
+<th>Conclusion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(A\) has 3 rows</td>
+<td>\(m = 3\)</td>
+</tr>
+<tr>
+<td>Some \(b\) has no solution</td>
+<td>not every row has a pivot, so \(r &lt; m\)</td>
+</tr>
+<tr>
+<td>A solution, when it exists, is unique</td>
+<td>\(N(A) = \{0\}\), so the columns are independent and \(r = n\)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Together:</strong> \(r = n &lt; m = 3\).</p>
+<h3>An example</h3>
+<p><strong>Simplest.</strong> \(A = (0,1,0)^\top\), a single column. Then \(r = n = 1\).</p>
+<p><strong>With two columns.</strong> Add a column such as \((0,0,1)\):
+<div class="math-display">\[A = \begin{bmatrix} 0 &amp; 0 \\ 1 &amp; 0 \\ 0 &amp; 1 \end{bmatrix}, \qquad r = n = 2\]</div>
+
+Here \((1,0,0)\) is still not in the column space.</p>
+<h3>True or false</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Statement</th>
+<th>Answer</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(\det(A^\top A) = \det(AA^\top)\)</td>
+<td><strong>False</strong></td>
+<td>\(A^\top A\) is invertible but \(AA^\top\) is singular. \(\det(AB) = \det(BA)\) only holds for <strong>square</strong> matrices.</td>
+</tr>
+<tr>
+<td>\(A^\top A\) is invertible</td>
+<td><strong>True</strong></td>
+<td>\(r = n\), so the columns are independent. In the example, \(A^\top A = I_2\).</td>
+</tr>
+<tr>
+<td>\(AA^\top\) is positive definite</td>
+<td><strong>False</strong></td>
+<td>It is \(3\times3\) with rank \(n &lt; 3\). In the example, \(AA^\top = \text{diag}(0,1,1)\). It <strong>is</strong> always positive <strong>semi</strong>definite.</td>
+</tr>
+</tbody>
+</table></div>
+<h3>\(A^\top y = c\) has infinitely many solutions for every \(c\)</h3>
+<p><strong>At least one solution.</strong> \(A^\top\) has \(n\) rows and rank \(n\), so it has <strong>full row rank</strong>. That means it is always solvable.</p>
+<p><strong>Infinitely many.</strong> \(\dim N(A^\top) = m - r = 3 - n &gt; 0\). Any null vector of \(A^\top\) can be added to a solution.</p>
+<hr />
+<h2>Problem 2: Thinking in columns</h2>
+<p>\(A\) has columns \(v_1, v_2, v_3\).</p>
+<p><strong>(a) Solve \(Ax = v_1 - v_2 + v_3\).</strong>
+\(x = (1, -1, 1)\). This is matrix multiplication done a column at a time, the very first idea of the course.</p>
+<p><strong>(b) If \(v_1 - v_2 + v_3 = 0\), are solutions unique?</strong>
+No. \((1, -1, 1)\) is a nonzero vector in \(N(A)\), and it can be added to any solution.</p>
+<p><strong>(c) If \(v_1, v_2, v_3\) are orthonormal, which combination of \(v_1, v_2\) is closest to \(v_3\)?</strong>
+<strong>\(0v_1 + 0v_2\).</strong></p>
+<ul>
+<li>\(v_3\) is perpendicular to the plane of \(v_1\) and \(v_2\), so its projection onto that plane is the origin.</li>
+<li>Picture the \(x\), \(y\), \(z\) axes: the point of the \(xy\)-plane closest to the \(z\)-axis vector is \(0\).</li>
+</ul>
+<hr />
+<h2>Problem 3: A Markov matrix</h2>
+<div class="math-display">\[A = \begin{bmatrix} .2 &amp; .4 &amp; .3 \\ .4 &amp; .2 &amp; .3 \\ .4 &amp; .4 &amp; .4 \end{bmatrix}\]</div>
+<p><strong>Key observation.</strong> Column 1 + column 2 = \(2\times\) column 3, so \(A\) is singular.</p>
+<h3>Eigenvalues, without a determinant</h3>
+<ul>
+<li>\(\lambda = 0\), because \(A\) is singular.</li>
+<li>\(\lambda = 1\), because \(A\) is a Markov matrix: its columns sum to 1.</li>
+<li>\(\lambda = -0.2\), from the trace: \(0.8 - 0 - 1\).</li>
+</ul>
+<h3>Steady state from \(u_0 = (0, 10, 0)\)</h3>
+<p><strong>General form after \(k\) steps:</strong>
+<div class="math-display">\[u_k = c_1(0)^kx_1 + c_2(1)^kx_2 + c_3(-0.2)^kx_3\]</div>
+
+As \(k \to \infty\), only \(c_2x_2\) survives.</p>
+<p><strong>The eigenvector for \(\lambda = 1\).</strong> Strang finds it partly by guessing: \(x_2 = (3, 3, 4)\). He celebrates when it works.</p>
+<p><strong>Check against \(A - I\):</strong></p>
+<ul>
+<li>Rows 1 and 2: \(-2.4 + 1.2 + 1.2 = 0\).</li>
+<li>Row 3: \(1.2 + 1.2 - 2.4 = 0\).</li>
+</ul>
+<p><strong>The coefficient \(c_2\).</strong> A Markov process <strong>conserves the total</strong>. \(u_0\) sums to 10, and \(x_2\) already sums to 10, so \(c_2 = 1\).</p>
+<div class="math-display">\[u_\infty = (3, 3, 4)\]</div>
+<hr />
+<h2>Problem 4: Four quick \(2\times2\) constructions</h2>
+<h3>(1) Projection onto the line through \(a = (4, -3)\)</h3>
+<div class="math-display">\[P = \frac{aa^\top}{a^\top a} = \frac{1}{25}\begin{bmatrix} 16 &amp; -12 \\ -12 &amp; 9 \end{bmatrix}\]</div>
+<h3>(2) The matrix with \(\lambda = 0\) on \((1,2)\) and \(\lambda = 3\) on \((2,1)\)</h3>
+<p><strong>Formula:</strong> \(A = S\Lambda S^{-1}\), with \(S = \begin{bmatrix} 1 &amp; 2 \\ 2 &amp; 1\end{bmatrix}\) and \(\Lambda = \text{diag}(0, 3)\).</p>
+<p><strong>Computed out (mine):</strong>
+<div class="math-display">\[A = \begin{bmatrix} 4 &amp; -2 \\ 2 &amp; -1 \end{bmatrix}\]</div>
+</p>
+<p><strong>Check.</strong></p>
+<ul>
+<li>\(A(1,2) = (0, 0)\), which is \(0 \cdot (1,2)\).</li>
+<li>\(A(2,1) = (6, 3)\), which is \(3 \cdot (2,1)\).</li>
+</ul>
+<h3>(3) A real matrix that can never equal \(B^\top B\)</h3>
+<p><strong>Strang's answer.</strong> \(B^\top B\) is always <strong>symmetric</strong>, so any non-symmetric matrix works. Example: \(\begin{bmatrix} 0 &amp; 1 \\ 0 &amp; 0 \end{bmatrix}\).</p>
+<p><strong>A sharper version (mine).</strong> \(B^\top B\) is also always positive semidefinite. So even a symmetric matrix like \(\text{diag}(-1, 0)\) can't be written as \(B^\top B\).</p>
+<h3>(4) Orthogonal eigenvectors, but not symmetric</h3>
+<p>Use either:</p>
+<ul>
+<li>a <strong>skew-symmetric</strong> matrix, such as \(\begin{bmatrix} 0 &amp; -1 \\ 1 &amp; 0\end{bmatrix}\), or</li>
+<li>an <strong>orthogonal</strong> (rotation) matrix, such as \(\begin{bmatrix} \cos\theta &amp; -\sin\theta \\ \sin\theta &amp; \cos\theta\end{bmatrix}\).</li>
+</ul>
+<p>Their eigenvectors are complex but orthogonal. This is the &quot;normal matrix&quot; fact from the Quiz 3 review.</p>
+<hr />
+<h2>Problem 5: Least squares, answer given (&quot;like Jeopardy&quot;)</h2>
+<div class="math-display">\[\underbrace{\begin{bmatrix} 1 &amp; 0 \\ 1 &amp; 1 \\ 1 &amp; 2 \end{bmatrix}}_{A}\begin{bmatrix} \hat{c} \\ \hat{d} \end{bmatrix} \approx \underbrace{\begin{bmatrix} 3 \\ 4 \\ 1 \end{bmatrix}}_{b}, \qquad \hat{x} = \left(\tfrac{11}{3},\ -1\right)\]</div>
+<p><strong>Verifying \(\hat{x}\) (mine).</strong> \(A^\top A = \begin{bmatrix} 3 &amp; 3 \\ 3 &amp; 5 \end{bmatrix}\) and \(A^\top b = (8, 6)\). Solving gives \(\hat{d} = -1\), \(\hat{c} = \tfrac{11}{3}\).</p>
+<h3>(1) The projection \(p\) of \(b\) onto \(C(A)\)</h3>
+<div class="math-display">\[p = A\hat{x} = \tfrac{11}{3}(1,1,1) - (0,1,2) = \left(\tfrac{11}{3},\ \tfrac83,\ \tfrac53\right)\]</div>
+<p><strong>The point.</strong> Least squares finds exactly the combination of the columns closest to \(b\). So \(p = A\hat{x}\).</p>
+<h3>(2) The line-fitting picture</h3>
+<p><strong>Data points:</strong> \((t, b) = (0, 3),\ (1, 4),\ (2, 1)\).</p>
+<p><strong>Best line:</strong> \(b = \tfrac{11}{3} - t\). It has intercept \(\tfrac{11}{3}\) and slope \(-1\).</p>
+<h3>(3) A nonzero \(b\) whose least-squares solution is \(\hat{x} = 0\)</h3>
+<p><strong>What's needed.</strong> The best combination of the columns must be zero. That happens when <strong>\(b\) is perpendicular to the column space</strong>, meaning \(b \in N(A^\top)\).</p>
+<p><strong>Example:</strong> \(b = (1, -2, 1)\).</p>
+<p><strong>Check.</strong></p>
+<ul>
+<li>Against column 1, \((1,1,1)\): \(1 - 2 + 1 = 0\).</li>
+<li>Against column 2, \((0,1,2)\): \(0 - 2 + 2 = 0\).</li>
+</ul>
+<p><strong>This completes the course.</strong> The final question ties least squares back to the four subspaces.</p>
+<hr />
+<h2>The whole course in one table</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Theme</th>
+<th>Core result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(Ax = b\)</td>
+<td>elimination, \(A = LU\); solvable when \(b \in C(A)\)</td>
+</tr>
+<tr>
+<td>Four subspaces</td>
+<td>dimensions \(r\), \(n - r\), \(r\), \(m - r\); row space ⊥ nullspace, column space ⊥ left nullspace</td>
+</tr>
+<tr>
+<td>Orthogonality</td>
+<td>projections \(P = A(A^\top A)^{-1}A^\top\), least squares, \(A = QR\)</td>
+</tr>
+<tr>
+<td>Determinants</td>
+<td>three defining properties; \(\det = \pm\) product of pivots = product of eigenvalues</td>
+</tr>
+<tr>
+<td>Eigenvalues</td>
+<td>\(A = S\Lambda S^{-1}\), \(A^k\), \(e^{At}\), Markov matrices</td>
+</tr>
+<tr>
+<td>Symmetric</td>
+<td>\(A = Q\Lambda Q^\top\); positive definite has four equivalent tests</td>
+</tr>
+<tr>
+<td>Every matrix</td>
+<td><strong>SVD</strong> \(A = U\Sigma V^\top\); pseudoinverse \(A^+ = V\Sigma^+U^\top\)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Strang closes by thanking the class for its patience during the videotaping and for taking the course.</p>
+<hr />
+<p><strong>That's all of 18.06 (Spring 2010), Lectures 1–34.</strong> We started from your MLT lecture on PCA. Every piece of it has now appeared:</p>
+<ul>
+<li>projection onto a subspace,</li>
+<li>the eigenvectors of the symmetric matrix \(C\),</li>
+<li>the spectral theorem,</li>
+<li>the SVD as the practical way to compute it.</li>
+</ul>
+</article>
+<nav class="pager"><a class="prev" href="lecture-33.html"><small>Previous</small>L33 · Left and Right Inverses; Pseudoinverse</a><a class="next" href="revision-notes.html"><small>Next</small>Revision notes &amp; formula sheet</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

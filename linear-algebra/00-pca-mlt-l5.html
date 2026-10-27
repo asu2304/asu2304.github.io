@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prologue: Data Compression, PCA &amp; Residue Analysis (IITM MLT L5) · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li class="current"><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 1 / 37</p><h1>Prologue: Data Compression, PCA &amp; Residue Analysis (IITM MLT L5)</h1><p class="source-note">Notes on <em>L5: Representation learning part 3 | data compression, PCA &amp; residue analysis</em> from the IIT Madras BS programme (Machine Learning Techniques). The video transcript was not available, so these notes follow the lecture's title and the standard content of this lecture; ordering and examples may differ from the video. The three questions after it are the ones that led into Strang's course.</p><article class="post"><h2>1. Recap from Parts 1–2</h2>
+<p><strong>Setup.</strong> You have data points \(x_1, \dots, x_n \in \mathbb{R}^d\). Assume the data is centered, so \(\frac{1}{n}\sum_i x_i = 0\).</p>
+<p><strong>Representing a point with a line.</strong> Take a unit vector \(w\) with \(\|w\| = 1\). The projection of \(x_i\) onto the line through \(w\) is \((x_i^\top w)\,w\). So each point is stored as a single scalar coefficient \(x_i^\top w\), plus the shared vector \(w\).</p>
+<p><strong>Choosing the best line.</strong> Pick the \(w\) that minimizes the average reconstruction error:
+<div class="math-display">\[\min_{\|w\|=1} \frac{1}{n}\sum_{i=1}^n \|x_i - (x_i^\top w)w\|^2\]</div>
+</p>
+<p><strong>Equivalent form.</strong> Expand the error for one point:
+<div class="math-display">\[\|x_i - (x_i^\top w)w\|^2 = \|x_i\|^2 - (x_i^\top w)^2\]</div>
+
+The \(\|x_i\|^2\) term does not depend on \(w\). So minimizing the error is the same as solving
+<div class="math-display">\[\max_{\|w\|=1} \; w^\top C w, \qquad C = \frac{1}{n}\sum_i x_i x_i^\top\]</div>
+
+where \(C\) is the covariance matrix of the centered data.</p>
+<h2>2. Residue analysis</h2>
+<p><strong>Residues after the first line.</strong> Let \(w_1\) be the best line. The residue of each point is what the line fails to capture:
+<div class="math-display">\[r_i = x_i - (x_i^\top w_1)\,w_1\]</div>
+</p>
+<p><strong>Key property: residues are orthogonal to \(w_1\).</strong>
+<div class="math-display">\[w_1^\top r_i = x_i^\top w_1 - (x_i^\top w_1)\|w_1\|^2 = 0\]</div>
+
+So the residues live entirely in the \((d-1)\)-dimensional subspace orthogonal to \(w_1\).</p>
+<p><strong>Repeating the procedure.</strong> Treat the residues \(\{r_i\}\) as a new dataset and find the best line for them. Call it \(w_2\). Since every \(r_i \perp w_1\), the optimal \(w_2\) is also orthogonal to \(w_1\). Compute new residues and continue.</p>
+<p><strong>Result after \(d\) rounds.</strong> You get an orthonormal set \(w_1, \dots, w_d\). Each point is represented exactly:
+<div class="math-display">\[x_i = \sum_{k=1}^d (x_i^\top w_k)\,w_k\]</div>
+
+This is the original data written in a new orthonormal basis, ordered by how much of the data each direction explains.</p>
+<h2>3. Data compression</h2>
+<p><strong>Stopping early.</strong> Suppose that after \(k\) rounds the residues are approximately zero. That means the data essentially lies in a \(k\)-dimensional subspace.</p>
+<p><strong>Storage cost.</strong></p>
+<ul>
+<li>Original data: \(n \cdot d\) numbers.</li>
+<li>Compressed data: \(k \cdot d\) numbers for the basis vectors, plus \(n \cdot k\) numbers for the coefficients. Total \(k(d + n)\).</li>
+</ul>
+<p>The savings are large when \(k \ll d\).</p>
+<p><strong>The tradeoff.</strong> A smaller \(k\) gives more compression but a larger reconstruction error. The residue norms after step \(k\) measure exactly what is lost.</p>
+<h2>4. Connection to PCA (eigenvectors)</h2>
+<p><strong>First direction.</strong> Use a Lagrangian on \(\max_w w^\top C w\) subject to \(w^\top w = 1\). Setting the gradient to zero gives
+<div class="math-display">\[Cw = \lambda w\]</div>
+
+At such a \(w\), the objective equals \(w^\top C w = \lambda\). So \(w_1\) is the eigenvector of \(C\) with the <strong>largest eigenvalue</strong> \(\lambda_1\).</p>
+<p><strong>Later directions (deflation).</strong> The covariance matrix of the residues is
+<div class="math-display">\[C_r = (I - w_1 w_1^\top)\, C\, (I - w_1 w_1^\top) = C - \lambda_1 w_1 w_1^\top\]</div>
+
+This matrix has the same eigenvectors as \(C\), except that \(w_1\)'s eigenvalue becomes 0. So the best line for the residues is the eigenvector with the <strong>second-largest</strong> eigenvalue. By induction, \(w_k\) is the eigenvector with the \(k\)-th largest eigenvalue.</p>
+<p><strong>Conclusion.</strong> The greedy residue procedure is exactly <strong>Principal Component Analysis (PCA)</strong>. The vectors \(w_k\) are the <strong>principal components</strong>, which are the eigenvectors of the covariance matrix sorted by eigenvalue.</p>
+<h2>5. Interpreting the eigenvalues</h2>
+<p><strong>Eigenvalue as variance.</strong> For each component,
+<div class="math-display">\[\lambda_k = w_k^\top C w_k = \frac{1}{n}\sum_i (x_i^\top w_k)^2\]</div>
+
+This is the variance of the data along \(w_k\). So PCA can be read two equivalent ways: the directions of <strong>maximum variance</strong>, or the directions of <strong>minimum reconstruction error</strong>.</p>
+<p><strong>Error after keeping \(k\) components.</strong>
+<div class="math-display">\[\text{Error}(k) = \frac{1}{n}\sum_i \|x_i - \hat{x}_i\|^2 = \sum_{j=k+1}^{d} \lambda_j\]</div>
+
+The reconstruction error is the sum of the eigenvalues you dropped.</p>
+<p><strong>Choosing \(k\).</strong> Keep the smallest \(k\) such that the fraction of variance explained is high enough:
+<div class="math-display">\[\frac{\sum_{j=1}^k \lambda_j}{\sum_{j=1}^d \lambda_j} \geq 0.95\]</div>
+
+The threshold, here 0.95, is chosen by you.</p>
+<h2>6. PCA algorithm summary</h2>
+<ol>
+<li>Center the data by subtracting the mean from every point.</li>
+<li>Compute the covariance matrix \(C = \frac{1}{n}\sum_i x_i x_i^\top\).</li>
+<li>Find the eigenvalues and eigenvectors of \(C\), and sort them so \(\lambda_1 \geq \dots \geq \lambda_d\).</li>
+<li>Choose \(k\) using the variance-explained criterion.</li>
+<li>Represent each point as \(\big(x_i^\top w_1, \dots, x_i^\top w_k\big) \in \mathbb{R}^k\).</li>
+</ol>
+<h2>Key takeaways</h2>
+<ul>
+<li><strong>Residues are orthogonal to earlier directions.</strong> Finding lines on residues one after another produces an orthonormal basis.</li>
+<li><strong>The greedy procedure equals the eigen-decomposition of \(C\).</strong> Greedy residue-fitting is PCA.</li>
+<li><strong>Eigenvalues measure variance.</strong> The eigenvalue of each direction is the variance it captures, and the dropped eigenvalues add up to the compression error.</li>
+<li><strong>Compression works when variance is concentrated.</strong> If a few directions hold most of the variance, the data can be compressed with little loss.</li>
+</ul>
+<hr />
+<h2>Q1. Why is the optimal \(w\) an eigenvector?</h2>
+<div class="qa-q"><span class="qa-tag">Your question</span> How is the solution of this equation, (xᵀw)w, the eigenvector?</div>
+<p>A quick correction first: \((x_i^\top w)\,w\) is <strong>not</strong> the eigenvector. It is the projection of \(x_i\) onto the line. What turns out to be an eigenvector is the <strong>optimal direction \(w\)</strong> that defines that line. Here is the chain of reasoning.</p>
+<h2>Step 1: Write the reconstruction error for one point</h2>
+<p>The point \(x_i\) is approximated by its projection \((x_i^\top w)w\). Using \(\|w\|=1\):</p>
+<div class="math-display">\[\|x_i - (x_i^\top w)w\|^2 = x_i^\top x_i - 2(x_i^\top w)^2 + (x_i^\top w)^2 \underbrace{w^\top w}_{=1} = \|x_i\|^2 - (x_i^\top w)^2\]</div>
+<h2>Step 2: Average over all points</h2>
+<div class="math-display">\[\frac{1}{n}\sum_i \|x_i - (x_i^\top w)w\|^2 = \underbrace{\frac{1}{n}\sum_i \|x_i\|^2}_{\text{constant}} - \frac{1}{n}\sum_i (x_i^\top w)^2\]</div>
+<p>The first term doesn't depend on \(w\). So <strong>minimizing the error is the same as maximizing</strong> \(\frac{1}{n}\sum_i (x_i^\top w)^2\).</p>
+<h2>Step 3: Rewrite the objective using the covariance matrix</h2>
+<p>Since \((x_i^\top w)^2 = (w^\top x_i)(x_i^\top w) = w^\top (x_i x_i^\top) w\),</p>
+<div class="math-display">\[\frac{1}{n}\sum_i (x_i^\top w)^2 = w^\top \Big(\frac{1}{n}\sum_i x_i x_i^\top\Big) w = w^\top C w\]</div>
+<p>The problem is now:</p>
+<div class="math-display">\[\max_{w} \; w^\top C w \quad \text{subject to} \quad w^\top w = 1\]</div>
+<h2>Step 4: Solve with a Lagrange multiplier</h2>
+<p>The Lagrangian is</p>
+<div class="math-display">\[L(w, \lambda) = w^\top C w - \lambda (w^\top w - 1)\]</div>
+<p>Take the gradient with respect to \(w\). Since \(C\) is symmetric, \(\nabla_w (w^\top C w) = 2Cw\):</p>
+<div class="math-display">\[\nabla_w L = 2Cw - 2\lambda w = 0 \;\;\Longrightarrow\;\; \boxed{Cw = \lambda w}\]</div>
+<p>This is the eigenvector equation. <strong>Any stationary point \(w\) must be an eigenvector of \(C\).</strong></p>
+<h2>Step 5: Find which eigenvector is the best one</h2>
+<p>Plug an eigenvector back into the objective:</p>
+<div class="math-display">\[w^\top C w = w^\top (\lambda w) = \lambda \, w^\top w = \lambda\]</div>
+<p>The objective value at an eigenvector equals its eigenvalue. To maximize, pick the eigenvector with the <strong>largest eigenvalue</strong> \(\lambda_1\).</p>
+<h2>Alternative check without calculus</h2>
+<p>\(C\) is symmetric and positive semidefinite. So it has an orthonormal eigenbasis \(u_1,\dots,u_d\) with eigenvalues \(\lambda_1 \ge \dots \ge \lambda_d \ge 0\).</p>
+<p>Write any unit vector as \(w = \sum_j a_j u_j\) with \(\sum_j a_j^2 = 1\). Then</p>
+<div class="math-display">\[w^\top C w = \sum_j \lambda_j a_j^2 \;\le\; \lambda_1 \sum_j a_j^2 = \lambda_1\]</div>
+<p>Equality holds when \(a_1 = 1\) and all other \(a_j = 0\), that is, when \(w = u_1\). This shows directly that the top eigenvector is the global maximizer, not just a stationary point.</p>
+<h2>Summary</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Object</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(w\) (optimal)</td>
+<td>Top eigenvector of \(C\)</td>
+</tr>
+<tr>
+<td>\(x_i^\top w\)</td>
+<td>Scalar coefficient stored for point \(i\)</td>
+</tr>
+<tr>
+<td>\((x_i^\top w)\,w\)</td>
+<td>Reconstruction of \(x_i\) on the line (a vector, not an eigenvector)</td>
+</tr>
+<tr>
+<td>\(\lambda_1 = w^\top C w\)</td>
+<td>Variance of the data along \(w\)</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2>Q2. PCA in the multivariable setup</h2>
+<div class="qa-q"><span class="qa-tag">Your question</span> Can you explain PCA in the multivariable setup?</div>
+<p>I'll take &quot;multivariable setup&quot; to mean projecting onto a <strong>\(k\)-dimensional subspace all at once</strong>, instead of finding one line at a time. This is the general form of PCA, and the one-line case is just \(k=1\).</p>
+<h2>1. Setup</h2>
+<p>You have centered data \(x_1,\dots,x_n \in \mathbb{R}^d\). Stack them as rows of a matrix \(X \in \mathbb{R}^{n\times d}\). The covariance matrix is</p>
+<div class="math-display">\[C = \frac{1}{n}\sum_i x_i x_i^\top = \frac{1}{n}X^\top X \quad (d\times d)\]</div>
+<p>You want a \(k\)-dimensional subspace (\(k &lt; d\)) that best represents the data.</p>
+<h2>2. Representing a subspace</h2>
+<p>Describe the subspace by a matrix \(W = [w_1 \cdots w_k] \in \mathbb{R}^{d\times k}\) with <strong>orthonormal columns</strong>:</p>
+<div class="math-display">\[W^\top W = I_k\]</div>
+<p>For each point:</p>
+<ul>
+<li>The <strong>coefficients</strong> (the compressed code) are \(z_i = W^\top x_i \in \mathbb{R}^k\). These are the \(k\) dot products \(x_i^\top w_j\).</li>
+<li>The <strong>reconstruction</strong> is \(\hat{x}_i = W z_i = WW^\top x_i\).</li>
+</ul>
+<p>\(P = WW^\top\) is the orthogonal projection matrix onto the subspace. It satisfies \(P^2 = P\) and \(P^\top = P\).</p>
+<p>For \(k=1\), this reduces to \((x_i^\top w)\,w\), which is exactly what you had before.</p>
+<h2>3. Reconstruction error</h2>
+<p>The error for one point is</p>
+<div class="math-display">\[\|x_i - P x_i\|^2 = x_i^\top (I-P)^\top (I-P) x_i = x_i^\top (I-P)\, x_i = \|x_i\|^2 - x_i^\top WW^\top x_i\]</div>
+<p>This uses the fact that \(I-P\) is also a projection, so \((I-P)^\top(I-P) = I-P\).</p>
+<p>The term \(x_i^\top WW^\top x_i\) equals \(\|W^\top x_i\|^2\). Averaging over all points:</p>
+<div class="math-display">\[\frac{1}{n}\sum_i \|x_i - \hat{x}_i\|^2 = \text{const} - \frac{1}{n}\sum_i \|W^\top x_i\|^2\]</div>
+<h2>4. The trace objective</h2>
+<p>Rewrite the second term using the trace trick, \(a^\top a = \operatorname{tr}(aa^\top)\):</p>
+<div class="math-display">\[\frac{1}{n}\sum_i \|W^\top x_i\|^2 = \frac{1}{n}\sum_i \operatorname{tr}\!\big(W^\top x_i x_i^\top W\big) = \operatorname{tr}\!\big(W^\top C W\big) = \sum_{j=1}^k w_j^\top C w_j\]</div>
+<p>So PCA in the multivariable form is the problem</p>
+<div class="math-display">\[\boxed{\max_{W \in \mathbb{R}^{d\times k}} \operatorname{tr}(W^\top C W) \quad \text{s.t.} \quad W^\top W = I_k}\]</div>
+<p><strong>Interpretation:</strong> maximize the total variance captured across \(k\) orthonormal directions.</p>
+<h2>5. Solving it</h2>
+<p><strong>Lagrangian.</strong> The constraint \(W^\top W = I_k\) is a \(k \times k\) symmetric matrix equation, so the multiplier is a symmetric matrix \(\Lambda\):</p>
+<div class="math-display">\[L(W,\Lambda) = \operatorname{tr}(W^\top C W) - \operatorname{tr}\!\big(\Lambda(W^\top W - I)\big)\]</div>
+<p><strong>Stationarity.</strong> Using \(\nabla_W \operatorname{tr}(W^\top C W) = 2CW\):</p>
+<div class="math-display">\[CW = W\Lambda\]</div>
+<p><strong>Diagonalizing.</strong> \(\Lambda\) is symmetric, so \(\Lambda = Q D Q^\top\) with \(Q\) orthogonal. Set \(\tilde W = WQ\). Then</p>
+<div class="math-display">\[C\tilde W = \tilde W D\]</div>
+<p>Each column of \(\tilde W\) is an eigenvector of \(C\). So the optimal subspace is spanned by \(k\) eigenvectors of \(C\).</p>
+<p><strong>Which eigenvectors.</strong> At such a solution, \(\operatorname{tr}(W^\top C W) = \operatorname{tr}(\Lambda) = \) the sum of the chosen eigenvalues. To maximize this, choose the eigenvectors of the <strong>\(k\) largest eigenvalues</strong>:</p>
+<div class="math-display">\[\max \operatorname{tr}(W^\top C W) = \lambda_1 + \cdots + \lambda_k\]</div>
+<p>This result is Ky Fan's theorem. It is the \(k\)-dimensional version of the bound \(w^\top C w \le \lambda_1\) from the one-line case.</p>
+<h2>6. Subtle point: the subspace is unique, the basis is not</h2>
+<p>If \(W\) is optimal, then \(WR\) is also optimal for any \(k\times k\) orthogonal matrix \(R\):</p>
+<div class="math-display">\[\operatorname{tr}(R^\top W^\top C W R) = \operatorname{tr}(W^\top C W)\]</div>
+<p>The objective only &quot;sees&quot; the projection matrix \(WW^\top\), and \((WR)(WR)^\top = WW^\top\). So:</p>
+<ul>
+<li>The joint optimization determines <strong>only the subspace</strong>.</li>
+<li>Choosing the <strong>eigenvectors themselves</strong> as the basis is a convention. In that basis, the coordinates \(z_i\) are uncorrelated, because \(W^\top C W = \operatorname{diag}(\lambda_1,\dots,\lambda_k)\).</li>
+<li>The greedy residue method from the lecture lands on exactly this eigenvector basis.</li>
+</ul>
+<p>The subspace is unique as long as \(\lambda_k &gt; \lambda_{k+1}\).</p>
+<h2>7. Error and choosing \(k\)</h2>
+<p>The minimum reconstruction error is the sum of the dropped eigenvalues:</p>
+<div class="math-display">\[\min \frac{1}{n}\sum_i\|x_i - \hat x_i\|^2 = \operatorname{tr}(C) - \sum_{j=1}^k \lambda_j = \sum_{j=k+1}^d \lambda_j\]</div>
+<p>Pick \(k\) so that the explained variance \(\dfrac{\sum_{j\le k}\lambda_j}{\sum_{j\le d}\lambda_j}\) reaches your threshold.</p>
+<h2>8. Matrix form with SVD</h2>
+<p>Take the SVD of the data matrix, \(X = U\Sigma V^\top\). Then</p>
+<div class="math-display">\[C = \tfrac{1}{n}X^\top X = V\,\tfrac{\Sigma^2}{n}\,V^\top\]</div>
+<ul>
+<li>The principal directions are the columns of \(V\).</li>
+<li>The eigenvalues are \(\lambda_j = \sigma_j^2/n\).</li>
+<li>The compressed data is \(Z = XW = XV_k = U_k\Sigma_k\), an \(n\times k\) matrix.</li>
+<li>The reconstruction \(\hat X = U_k \Sigma_k V_k^\top\) is the best rank-\(k\) approximation of \(X\) in Frobenius norm (Eckart–Young theorem).</li>
+</ul>
+<p>In practice, PCA is computed through the SVD rather than by forming \(C\). This is more numerically stable.</p>
+<h2>Summary</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>One line (\(k=1\))</th>
+<th>Subspace (general \(k\))</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(w\), with \(\Vert w\Vert =1\)</td>
+<td>\(W\), with \(W^\top W = I_k\)</td>
+</tr>
+<tr>
+<td>\((x^\top w)\,w\)</td>
+<td>\(WW^\top x\)</td>
+</tr>
+<tr>
+<td>\(\max w^\top C w\)</td>
+<td>\(\max \operatorname{tr}(W^\top C W)\)</td>
+</tr>
+<tr>
+<td>\(Cw = \lambda w\)</td>
+<td>\(CW = W\Lambda\)</td>
+</tr>
+<tr>
+<td>Optimum \(\lambda_1\)</td>
+<td>Optimum \(\lambda_1+\dots+\lambda_k\)</td>
+</tr>
+<tr>
+<td>Error \(\sum_{j\ge 2}\lambda_j\)</td>
+<td>Error \(\sum_{j&gt;k}\lambda_j\)</td>
+</tr>
+</tbody>
+</table></div>
+<p>If by &quot;multivariable&quot; you meant something else, such as PCA on multivariate Gaussian data or the probabilistic view of PCA, tell me and I'll cover that instead.</p>
+<hr />
+<h2>Q3. Why eigenvectors of the covariance matrix?</h2>
+<div class="qa-q"><span class="qa-tag">Your question</span> Why are these solutions coming out to be the eigenvectors of the covariance matrix?</div>
+<p>There are three ways to see it. Each answers &quot;why&quot; at a different level: why the covariance matrix shows up, why the optimum must be an eigenvector, and why it is the top one.</p>
+<h2>1. Why the covariance matrix appears at all</h2>
+<p>The objective is the average of \((x_i^\top w)^2\). Squaring a dot product gives</p>
+<div class="math-display">\[(x_i^\top w)^2 = w^\top (x_i x_i^\top)\, w\]</div>
+<p>Averaging over points just averages the matrices \(x_i x_i^\top\), which produces \(C\). So the reconstruction error depends on the data <strong>only through its second moments</strong>.</p>
+<p>This means two datasets with the same \(C\) get the same principal components. PCA cannot see anything beyond \(C\). Since the problem lives entirely in \(C\), the answer has to be expressed in terms of \(C\)'s own structure, which is its eigenvectors.</p>
+<h2>2. Why the optimum must be an eigenvector: the &quot;no improving rotation&quot; argument</h2>
+<p>Suppose \(w\) is optimal, and think about what \(Cw\) means.</p>
+<p><strong>Gradient direction.</strong> The gradient of \(w^\top C w\) is \(2Cw\). So \(Cw\) points in the direction that increases the variance fastest.</p>
+<p><strong>What you are allowed to move.</strong> You must stay on the unit sphere. So you can only move \(w\) in directions <strong>perpendicular to \(w\)</strong>. Moving along \(w\) itself just rescales \(w\), which the constraint forbids.</p>
+<p><strong>Condition at the optimum.</strong> At a maximum, no allowed move can increase the variance. So \(Cw\) must have <strong>zero component perpendicular to \(w\)</strong>:</p>
+<div class="math-display">\[Cw - (w^\top C w)\,w = 0\]</div>
+<p><strong>Conclusion.</strong> \(Cw\) points along \(w\), which means \(Cw = \lambda w\). Being an eigenvector is precisely the condition &quot;no small rotation of the line increases the captured variance.&quot; The Lagrange multiplier equation is a formal way of writing this same statement.</p>
+<p><strong>Geometric meaning.</strong> \(Cw\) is the covariance between the data and its projection on \(w\):</p>
+<div class="math-display">\[Cw = \tfrac{1}{n}\sum_i x_i\,(x_i^\top w)\]</div>
+<p>It shows which way the data &quot;pulls&quot; when you project onto \(w\). If \(Cw\) had a sideways component, the data would be correlated with a direction perpendicular to \(w\). Tilting \(w\) toward that direction would capture more variance. Eigenvectors are exactly the directions with no sideways pull.</p>
+<h2>3. Why it is the top eigenvector: in the eigenbasis the problem decouples</h2>
+<p>\(C\) is symmetric, so it has orthonormal eigenvectors \(u_1,\dots,u_d\). In that basis, \(C\) is diagonal: there are no cross terms.</p>
+<p>Write \(w = \sum_j a_j u_j\) with \(\sum_j a_j^2 = 1\). Then</p>
+<div class="math-display">\[w^\top C w = \sum_j \lambda_j a_j^2\]</div>
+<p>The weights \(a_j^2\) are non-negative and sum to 1. So the variance along \(w\) is a <strong>weighted average of the eigenvalues</strong>.</p>
+<p>A weighted average is largest when all the weight sits on the largest value. So you set \(a_1 = 1\), which gives \(w = u_1\). Any mixing with other eigenvectors averages in smaller eigenvalues and lowers the variance.</p>
+<p><strong>Picture.</strong> The level sets of \(w^\top C w\) are ellipsoids whose axes point along the eigenvectors. The eigenvalues set how far the data spreads along each axis. The best single line is the longest axis.</p>
+<p><strong>For \(k\) directions.</strong> The same logic applies. With orthonormal \(w_1,\dots,w_k\), each eigenvalue \(\lambda_j\) gets a total weight between 0 and 1, and the total weight across all eigenvalues is exactly \(k\). The sum is maximized by putting full weight on the \(k\) largest eigenvalues.</p>
+<h2>In one line</h2>
+<p>The objective is a quadratic form in \(C\). Eigenvectors are the directions where \(C\) has no cross-coupling, so at an eigenvector no rotation can capture more variance. Variance along any direction is a weighted average of the eigenvalues, so the best direction is the one with the largest eigenvalue.</p>
+</article>
+<nav class="pager"><span></span><a class="next" href="lecture-01.html"><small>Next</small>L1 · The Geometry of Linear Equations</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

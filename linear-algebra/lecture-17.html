@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 17: Orthogonal Matrices and Gram–Schmidt · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li class="current"><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 18 / 37</p><h1>Lecture 17: Orthogonal Matrices and Gram–Schmidt</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror.</p><article class="post"><p><strong>Topics:</strong></p>
+<ol>
+<li>Orthonormal vectors, and matrices \(Q\) with orthonormal columns.</li>
+<li>Why \(Q\) makes every formula in this chapter easy.</li>
+<li><strong>Gram–Schmidt:</strong> turning any independent set of vectors into an orthonormal one.</li>
+<li><strong>\(A = QR\)</strong>, the matrix form of Gram–Schmidt.</li>
+</ol>
+<hr />
+<h2>1. Orthonormal vectors and \(Q^\top Q = I\)</h2>
+<p><strong>Definition.</strong> Vectors \(q_1, \dots, q_n\) are <strong>orthonormal</strong> if
+<div class="math-display">\[q_i^\top q_j = \begin{cases} 0 &amp; i \neq j \quad \text{(orthogonal)} \\ 1 &amp; i = j \quad \text{(normalized: unit length)} \end{cases}\]</div>
+</p>
+<p><strong>Put them in the columns of a matrix \(Q\).</strong> Every dot product \(q_i^\top q_j\) appears as an entry of \(Q^\top Q\):
+<div class="math-display">\[Q^\top Q = \begin{bmatrix} q_1^\top \\ \vdots \\ q_n^\top \end{bmatrix}\begin{bmatrix} q_1 &amp; \cdots &amp; q_n \end{bmatrix} = I\]</div>
+</p>
+<p><strong>\(Q\) does not have to be square.</strong> For example, it could have 2 columns with many components each.</p>
+<p><strong>Orthonormal vectors are automatically independent.</strong> No combination of mutually perpendicular nonzero vectors can give zero.</p>
+<p><strong>Why numerical linear algebra relies on them.</strong> Computations with orthonormal vectors never blow up, never overflow, and never underflow.</p>
+<h3>Naming convention</h3>
+<ul>
+<li><strong>&quot;Orthogonal matrix&quot;</strong> is reserved for <strong>square</strong> \(Q\) with orthonormal columns.</li>
+<li>Strang notes that &quot;orthonormal matrix&quot; would be the logical name, but it is not the convention.</li>
+<li>For square \(Q\), the equation \(Q^\top Q = I\) means:
+<div class="math-display">\[\boxed{Q^\top = Q^{-1}}\]</div>
+</li>
+</ul>
+<hr />
+<h2>2. Examples of orthogonal matrices</h2>
+<p><strong>Permutation matrices.</strong> For example:
+<div class="math-display">\[Q = \begin{bmatrix} 0 &amp; 0 &amp; 1 \\ 1 &amp; 0 &amp; 0 \\ 0 &amp; 1 &amp; 0 \end{bmatrix}\]</div>
+
+Its transpose is another permutation matrix, and \(Q^\top Q = I\).</p>
+<p><strong>Rotation.</strong> Two unit vectors at 90°:
+<div class="math-display">\[Q = \begin{bmatrix} \cos\theta &amp; -\sin\theta \\ \sin\theta &amp; \cos\theta \end{bmatrix}\]</div>
+</p>
+<p><strong>Rescaled \(\pm 1\) matrix.</strong> The columns of \(\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; -1 \end{bmatrix}\) are orthogonal, but each has length \(\sqrt2\). Dividing by the length fixes this:
+<div class="math-display">\[Q = \tfrac{1}{\sqrt2}\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; -1 \end{bmatrix}\]</div>
+
+This is a rotation, by \(\theta = \pi/4\) up to a sign or reflection.</p>
+<h3>Hadamard matrices</h3>
+<p><strong>Construction.</strong> Build larger examples by repeating the \(2\times2\) pattern in blocks:
+<div class="math-display">\[Q = \tfrac12\begin{bmatrix} 1 &amp; 1 &amp; 1 &amp; 1 \\ 1 &amp; -1 &amp; 1 &amp; -1 \\ 1 &amp; 1 &amp; -1 &amp; -1 \\ 1 &amp; -1 &amp; -1 &amp; 1 \end{bmatrix}\]</div>
+
+Each column \((\pm1, \pm1, \pm1, \pm1)\) has length 2, so the matrix is divided by 2.</p>
+<p><strong>Which sizes are possible.</strong> Orthogonal matrices with entries \(\pm1\) are called <strong>Hadamard matrices</strong>.</p>
+<ul>
+<li>The block construction gives sizes 2, 4, 8, 16, …</li>
+<li>Strang believes no \(5\times5\) one exists. He is right: beyond size 2, the size must be a multiple of 4.</li>
+<li>Whether every multiple of 4 works is still an open question.</li>
+</ul>
+<h3>A rectangular example (no square roots)</h3>
+<div class="math-display">\[Q = \tfrac13\begin{bmatrix} 1 &amp; -2 \\ 2 &amp; -1 \\ 2 &amp; 2 \end{bmatrix}\]</div>
+<ul>
+<li>Each column has length \(\sqrt{1 + 4 + 4} = 3\).</li>
+<li>The columns are orthogonal: \(-2 - 2 + 4 = 0\).</li>
+<li>So the columns form an orthonormal basis for the plane they span.</li>
+</ul>
+<p><strong>Completing to a square \(Q\).</strong> Strang makes the matrix square by guessing a third column from the same pattern of \(1\)s and \(2\)s with signs adjusted. The board isn't clear on which sign pattern he used. One choice that works is \(\tfrac13(2, -2, 1)\), which is orthogonal to both columns.</p>
+<p><strong>A warning about Gram–Schmidt.</strong> It usually produces <strong>square roots</strong>, because normalizing means dividing by lengths. These examples were chosen to avoid that.</p>
+<hr />
+<h2>3. Why \(Q\) makes everything easy</h2>
+<h3>The projection matrix</h3>
+<p><strong>General formula.</strong> Projection onto \(C(Q)\) uses the usual formula, but the middle factor is the identity:
+<div class="math-display">\[P = Q\underbrace{(Q^\top Q)^{-1}}_{I}Q^\top = QQ^\top\]</div>
+</p>
+<p><strong>No inverse to compute.</strong> Projection reduces to a single product \(QQ^\top\).</p>
+<p><strong>Square case.</strong> If \(Q\) is square, its column space is the whole space, so \(P = QQ^\top = I\).</p>
+<p><strong>Both projection properties hold:</strong></p>
+<ul>
+<li><strong>Symmetric:</strong> \((QQ^\top)^\top = QQ^\top\).</li>
+<li><strong>Idempotent:</strong> the middle factor \(Q^\top Q = I\) cancels:
+<div class="math-display">\[(QQ^\top)(QQ^\top) = Q\underbrace{(Q^\top Q)}_{I}Q^\top = QQ^\top\]</div>
+</li>
+</ul>
+<h3>The normal equations</h3>
+<p><strong>General case:</strong> \(A^\top A\,\hat{x} = A^\top b\).</p>
+<p><strong>With \(A = Q\):</strong> \(Q^\top Q\,\hat{x} = Q^\top b\), and the left side is just \(\hat{x}\):
+<div class="math-display">\[\hat{x} = Q^\top b, \qquad \text{that is,} \qquad \hat{x}_i = q_i^\top b\]</div>
+</p>
+<p><strong>What this means.</strong></p>
+<ul>
+<li>No system has to be solved.</li>
+<li><strong>Each component is just a dot product with one basis vector.</strong></li>
+<li>Strang calls this probably the most important formula in large parts of mathematics.</li>
+</ul>
+<hr />
+<h2>4. Gram–Schmidt</h2>
+<p><strong>Goal.</strong> Start with independent vectors \(a, b, c, \dots\) and produce orthonormal vectors \(q_1, q_2, q_3, \dots\) that span the <strong>same space</strong>.</p>
+<p><strong>Two stages:</strong></p>
+<ol>
+<li><strong>Gram:</strong> make the vectors <strong>orthogonal</strong>. Call the results \(A, B, C, \dots\)</li>
+<li><strong>Schmidt:</strong> <strong>normalize</strong> them: \(q_1 = A/\|A\|\), \(q_2 = B/\|B\|\), and so on.</li>
+</ol>
+<p>Strang jokes that Schmidt's contribution was dividing by the length.</p>
+<h3>Step 1: the first vector</h3>
+<p>Keep it as is: \(A = a\). Its direction is fine.</p>
+<h3>Step 2: the second vector</h3>
+<p><strong>Subtract from \(b\) its projection onto \(A\).</strong> What remains is the error part \(e\) from the projection lecture, and it is perpendicular to \(A\):
+<div class="math-display">\[B = b - \frac{A^\top b}{A^\top A}A\]</div>
+</p>
+<p><strong>Check.</strong>
+<div class="math-display">\[A^\top B = A^\top b - \frac{A^\top b}{A^\top A}\,A^\top A = 0\]</div>
+</p>
+<p><strong>Why \(B\) is not zero.</strong> \(a\) and \(b\) are independent, so \(b\) is not a multiple of \(A\).</p>
+<h3>Step 3: the third vector</h3>
+<p><strong>Subtract from \(c\) its projections onto both \(A\) and \(B\):</strong>
+<div class="math-display">\[C = c - \frac{A^\top c}{A^\top A}A - \frac{B^\top c}{B^\top B}B\]</div>
+</p>
+<p><strong>Use the orthogonalized vectors.</strong> The subtracted directions are \(A\) and \(B\), not the original \(a\) and \(b\).</p>
+<p><strong>Result.</strong> \(C\) is perpendicular to both \(A\) and \(B\). Then normalize all three.</p>
+<h3>Numerical example</h3>
+<p><strong>Start with:</strong> \(a = (1,1,1)\) and \(b = (1,0,2)\). They are independent but not orthogonal.</p>
+<p><strong>First vector:</strong> \(A = (1,1,1)\).</p>
+<p><strong>Second vector:</strong></p>
+<ul>
+<li>\(A^\top b = 3\) and \(A^\top A = 3\), so the ratio is 1.</li>
+<li>\(B = (1,0,2) - 1\cdot(1,1,1) = (0, -1, 1)\).</li>
+</ul>
+<p><strong>Check:</strong> \(A^\top B = 0 - 1 + 1 = 0\).</p>
+<p><strong>Normalize:</strong>
+<div class="math-display">\[Q = \begin{bmatrix} 1/\sqrt3 &amp; 0 \\ 1/\sqrt3 &amp; -1/\sqrt2 \\ 1/\sqrt3 &amp; 1/\sqrt2 \end{bmatrix}\]</div>
+</p>
+<p><strong>Same column space.</strong> \(C(Q) = C(A)\), the same plane in \(\mathbb{R}^3\). Each new vector is a combination of the original ones; only the basis changed, and the new basis is orthonormal.</p>
+<hr />
+<h2>5. \(A = QR\): Gram–Schmidt in matrix form</h2>
+<p><strong>The parallel with elimination.</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Process</th>
+<th>Matrix form</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Elimination</td>
+<td>\(A = LU\)</td>
+</tr>
+<tr>
+<td><strong>Gram–Schmidt</strong></td>
+<td><strong>\(A = QR\)</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The two factors:</strong></p>
+<ul>
+<li>\(Q\) has orthonormal columns.</li>
+<li>\(R\) is <strong>upper triangular</strong>.</li>
+</ul>
+<p><strong>What \(R\) contains.</strong> Since \(Q^\top Q = I\), multiplying \(A = QR\) on the left by \(Q^\top\) gives \(R = Q^\top A\). So
+<div class="math-display">\[R_{ij} = q_i^\top a_j\]</div>
+</p>
+<p>For two columns:
+<div class="math-display">\[\begin{bmatrix} a_1 &amp; a_2 \end{bmatrix} = \begin{bmatrix} q_1 &amp; q_2 \end{bmatrix}\begin{bmatrix} q_1^\top a_1 &amp; q_1^\top a_2 \\ q_2^\top a_1 &amp; q_2^\top a_2 \end{bmatrix}\]</div>
+</p>
+<h3>Why \(R\) is upper triangular</h3>
+<p><strong>The lower-left entry vanishes.</strong> \(q_2^\top a_1 = 0\), because Gram–Schmidt builds each later \(q\) to be perpendicular to <strong>all earlier</strong> vectors.</p>
+<p><strong>In general.</strong> \(q_i^\top a_j = 0\) whenever \(i &gt; j\).</p>
+<h3>\(R\) for the example</h3>
+<p><strong>The entries:</strong></p>
+<ul>
+<li>\(r_{11} = q_1^\top a_1 = 3/\sqrt3 = \sqrt3\)</li>
+<li>\(r_{12} = q_1^\top a_2 = (1 + 0 + 2)/\sqrt3 = \sqrt3\)</li>
+<li>\(r_{21} = q_2^\top a_1 = 0\)</li>
+<li>\(r_{22} = q_2^\top a_2 = 2/\sqrt2 = \sqrt2\)</li>
+</ul>
+<div class="math-display">\[R = \begin{bmatrix} \sqrt3 &amp; \sqrt3 \\ 0 &amp; \sqrt2 \end{bmatrix}\]</div>
+<p><strong>Check column 2.</strong> \(\sqrt3\,q_1 + \sqrt2\,q_2 = (1,1,1) + (0,-1,1) = (1,0,2) = a_2\).</p>
+<hr />
+<h2>Big ideas from Lecture 17</h2>
+<ol>
+<li><strong>Orthonormal columns:</strong> \(Q^\top Q = I\). For square \(Q\) (an &quot;orthogonal matrix&quot;), \(Q^\top = Q^{-1}\).</li>
+<li><strong>Examples:</strong> permutations, rotations, and Hadamard matrices.</li>
+<li><strong>Everything simplifies with \(Q\):</strong> \(P = QQ^\top\) and \(\hat{x} = Q^\top b\), so each component is a dot product \(q_i^\top b\).</li>
+<li><strong>Gram–Schmidt:</strong> subtract from each new vector its projections onto all earlier orthogonal vectors, then normalize.</li>
+<li><strong>\(A = QR\):</strong> \(R = Q^\top A\) is upper triangular because each \(q_i\) is perpendicular to all earlier columns.</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-16.html"><small>Previous</small>L16 · Projection Matrices and Least Squares</a><a class="next" href="lecture-18.html"><small>Next</small>L18 · Properties of Determinants</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

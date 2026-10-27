@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 18: Properties of Determinants · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li class="current"><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 19 / 37</p><h1>Lecture 18: Properties of Determinants</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror. The transcript is scrambled near the end, during the proof of property 10, so I've written that proof out in the logical order Strang follows.</p><article class="post"><p><strong>This lecture starts the second half of the course.</strong> The focus moves from rectangular matrices to square ones. The two big topics ahead are <strong>determinants</strong> and <strong>eigenvalues</strong>. Determinants are needed mainly because eigenvalues depend on them.</p>
+<p><strong>Notation.</strong> The determinant of \(A\) is written \(\det A\) or \(|A|\). It is a single number that packs in as much information about the matrix as possible.</p>
+<p><strong>The famous fact.</strong> \(A\) is invertible exactly when \(\det A \neq 0\).</p>
+<p><strong>Strang's approach.</strong> He does not start with the big formula for the determinant, because it has too much packed into it. Instead he starts from <strong>three defining properties</strong> and derives everything else from them.</p>
+<hr />
+<h2>The three defining properties</h2>
+<p><strong>Property 1.</strong> \(\det I = 1\).</p>
+<p><strong>Property 2. Exchanging two rows reverses the sign of the determinant.</strong></p>
+<p>Consequence: every permutation matrix has \(\det P = \pm 1\). It is \(+1\) if \(P\) comes from an <strong>even</strong> number of row exchanges and \(-1\) if from an <strong>odd</strong> number.</p>
+<p>Two-by-two check:
+<div class="math-display">\[\begin{vmatrix} 1 &amp; 0 \\ 0 &amp; 1 \end{vmatrix} = 1, \qquad \begin{vmatrix} 0 &amp; 1 \\ 1 &amp; 0 \end{vmatrix} = -1\]</div>
+</p>
+<p><strong>Property 3. The determinant is linear in each row separately</strong>, with all other rows held fixed.</p>
+<ul>
+<li>
+<p><strong>3A, scaling a row:</strong>
+<div class="math-display">\[\begin{vmatrix} ta &amp; tb \\ c &amp; d \end{vmatrix} = t\begin{vmatrix} a &amp; b \\ c &amp; d \end{vmatrix}\]</div>
+</p>
+</li>
+<li>
+<p><strong>3B, adding inside a row:</strong>
+<div class="math-display">\[\begin{vmatrix} a + a&#x27; &amp; b + b&#x27; \\ c &amp; d \end{vmatrix} = \begin{vmatrix} a &amp; b \\ c &amp; d \end{vmatrix} + \begin{vmatrix} a&#x27; &amp; b&#x27; \\ c &amp; d \end{vmatrix}\]</div>
+</p>
+</li>
+</ul>
+<blockquote>
+<p><strong>Warning:</strong> this does <strong>not</strong> say \(\det(A + B) = \det A + \det B\). That is false. Linearity holds <strong>one row at a time</strong>, with the other rows unchanged.</p>
+</blockquote>
+<p><strong>Why it holds for every row, not just row 1.</strong> Swap the row you care about into position 1, apply the property, and swap back. The two sign changes from Property 2 cancel.</p>
+<p>Throughout, Strang checks each property against the familiar \(2\times2\) formula, \(ad - bc\).</p>
+<hr />
+<h2>Properties 4–10 (all derived from 1–3)</h2>
+<h3>Property 4: two equal rows give \(\det A = 0\)</h3>
+<p><strong>Proof.</strong></p>
+<ol>
+<li>Exchange the two equal rows.</li>
+<li>The matrix is unchanged, so the determinant is unchanged.</li>
+<li>But Property 2 says the sign flips.</li>
+<li>The only number equal to its own negative is 0.</li>
+</ol>
+<p>This matches what we already know: two equal rows mean rank less than \(n\), so the matrix is singular.</p>
+<h3>Property 5: subtracting a multiple of one row from another leaves \(\det\) unchanged</h3>
+<p><strong>Proof</strong> (2×2 version; the same argument works for any size). Split the changed row using 3B, then factor out \(-\ell\) using 3A:
+<div class="math-display">\[\begin{vmatrix} a &amp; b \\ c - \ell a &amp; d - \ell b \end{vmatrix} = \begin{vmatrix} a &amp; b \\ c &amp; d \end{vmatrix} - \ell\underbrace{\begin{vmatrix} a &amp; b \\ a &amp; b \end{vmatrix}}_{0 \text{ by Property 4}}\]</div>
+</p>
+<p><strong>Why this matters.</strong> Elimination steps don't change the determinant. So
+<div class="math-display">\[\det A = \pm\det U\]</div>
+
+The sign is \(-\) if an odd number of row exchanges were needed.</p>
+<h3>Property 6: a row of zeros gives \(\det A = 0\)</h3>
+<p><strong>Proof.</strong> Use 3A with \(t = 0\). Multiplying the zero row by 0 doesn't change the matrix, but it multiplies the determinant by 0.</p>
+<h3>Property 7: a triangular matrix has \(\det\) equal to the product of its diagonal entries</h3>
+<div class="math-display">\[\det U = d_1 d_2 \cdots d_n\]</div>
+<p>The entries above the diagonal don't matter.</p>
+<p><strong>Proof, when every \(d_i \neq 0\):</strong></p>
+<ol>
+<li>Eliminate <strong>upward</strong> (Property 5) to clear the entries above the diagonal. This leaves the diagonal matrix \(\text{diag}(d_1, \dots, d_n)\) with the same determinant.</li>
+<li>Factor each \(d_i\) out of its row (3A). This leaves the identity.</li>
+<li>By Property 1, \(\det I = 1\), so \(\det U = d_1 \cdots d_n\).</li>
+</ol>
+<p><strong>If some \(d_i = 0\).</strong> Elimination produces a row of zeros, so \(\det = 0\) by Property 6.</p>
+<blockquote>
+<p><strong>How software computes determinants.</strong> Eliminate to \(U\), then multiply the pivots, adjusting the sign for row exchanges:
+<div class="math-display">\[\det A = \pm(\text{product of the pivots})\]</div>
+</p>
+</blockquote>
+<p><strong>Recovering \(ad - bc\) from the properties.</strong> For \(\begin{bmatrix} a &amp; b \\ c &amp; d\end{bmatrix}\) with \(a \neq 0\):</p>
+<ul>
+<li>The pivots are \(a\) and \(d - \tfrac{c}{a}b\).</li>
+<li>Their product is \(a\left(d - \tfrac{c}{a}b\right) = ad - bc\).</li>
+<li>If \(a = 0\), a row exchange is needed first. If no exchange helps, the matrix is singular.</li>
+</ul>
+<h3>Property 8: \(\det A = 0\) exactly when \(A\) is singular</h3>
+<p><strong>If \(A\) is singular:</strong> elimination produces a row of zeros, so \(\det A = 0\).</p>
+<p><strong>If \(A\) is invertible:</strong> elimination produces \(n\) nonzero pivots, so \(\det A = \pm d_1 \cdots d_n \neq 0\).</p>
+<h3>Property 9: \(\det(AB) = (\det A)(\det B)\)</h3>
+<p>Strang calls this very valuable and somewhat surprising: determinants are <strong>not</strong> additive, yet they <strong>are</strong> multiplicative.</p>
+<p><strong>Consequences:</strong></p>
+<p><strong>Inverse.</strong> From \(A^{-1}A = I\), taking determinants gives
+<div class="math-display">\[\det A^{-1} = \frac{1}{\det A}\]</div>
+
+Check: \(A = \text{diag}(2, 3)\) has \(\det A = 6\), and \(A^{-1} = \text{diag}(\tfrac12, \tfrac13)\) has determinant \(\tfrac16\). This formula fails exactly when \(\det A = 0\), which is exactly when \(A^{-1}\) doesn't exist.</p>
+<p><strong>Squares.</strong>
+<div class="math-display">\[\det(A^2) = (\det A)^2\]</div>
+</p>
+<p><strong>Scaling the whole matrix.</strong> For \(A\) of size \(n\times n\):
+<div class="math-display">\[\det(2A) = 2^n \det A\]</div>
+
+Here \(\det(2A)\) is <strong>not</strong> \(2\det A\). A factor of 2 comes out of <strong>each</strong> of the \(n\) rows by 3A.</p>
+<p>This connects to <strong>volume</strong>: doubling every side of a box in \(\mathbb{R}^3\) multiplies its volume by \(2^3 = 8\).</p>
+<h3>Property 10: \(\det A^\top = \det A\)</h3>
+<p><strong>2×2 check.</strong> \(\begin{vmatrix} a &amp; c \\ b &amp; d \end{vmatrix} = ad - bc\).</p>
+<p><strong>Proof.</strong> Strang covers the typical case where \(A = LU\) with no row exchanges.</p>
+<ol>
+<li>By Property 9:
+<div class="math-display">\[\det A = \det L \cdot \det U, \qquad \det A^\top = \det(U^\top L^\top) = \det U^\top \cdot \det L^\top\]</div>
+</li>
+<li>\(L\) and \(L^\top\) are triangular with 1s on the diagonal, so both determinants equal 1 (Property 7).</li>
+<li>\(U\) and \(U^\top\) are triangular with the <strong>same diagonal</strong>, so \(\det U^\top = \det U\) (Property 7).</li>
+<li>Therefore \(\det A^\top = \det A\).</li>
+</ol>
+<p><strong>When row exchanges are needed.</strong> Write \(PA = LU\). Then \(\det P^\top = \det P\), because \(P^\top = P^{-1}\) and \(\det P = \pm1\).</p>
+<p><strong>Consequence.</strong> Every statement about rows now holds for <strong>columns</strong> too:</p>
+<ul>
+<li>A zero column gives \(\det = 0\).</li>
+<li>Exchanging two columns flips the sign.</li>
+<li>The determinant is linear in each column separately.</li>
+</ul>
+<hr />
+<h2>A hidden fact: every permutation is either even or odd</h2>
+<p><strong>Why it matters.</strong> Property 2 would be contradictory if some permutation could be reached by both an odd and an even number of row exchanges.</p>
+<ul>
+<li>An odd count would force \(\det = -1\).</li>
+<li>An even count would force \(\det = +1\).</li>
+</ul>
+<p><strong>The fact.</strong> Every permutation is <strong>either even or odd, never both</strong>. If one sequence of exchanges producing it has 7 steps, every sequence has an odd number of steps (21, 23, 101, …).</p>
+<p><strong>Consequence.</strong> This guarantees the determinant is <strong>well-defined</strong> by Properties 1–3. Strang says the proof takes one more algebraic trick, which he doesn't give here.</p>
+<hr />
+<h2>Summary table</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Property</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>\(\det I = 1\)</td>
+<td>definition</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Row exchange flips the sign</td>
+<td>definition</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Linear in each row separately</td>
+<td>definition</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Two equal rows give \(\det = 0\)</td>
+<td>2</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Elimination steps don't change \(\det\)</td>
+<td>3, 4</td>
+</tr>
+<tr>
+<td>6</td>
+<td>A zero row gives \(\det = 0\)</td>
+<td>3A</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Triangular: \(\det\) = product of the diagonal</td>
+<td>5, 3A, 1</td>
+</tr>
+<tr>
+<td>8</td>
+<td>\(\det A = 0\) exactly when \(A\) is singular</td>
+<td>5, 6, 7</td>
+</tr>
+<tr>
+<td>9</td>
+<td>\(\det(AB) = \det A \det B\)</td>
+<td>stated, proof sketched</td>
+</tr>
+<tr>
+<td>10</td>
+<td>\(\det A^\top = \det A\)</td>
+<td>9, 7</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Big ideas from Lecture 18</h2>
+<ol>
+<li><strong>Three properties define the determinant:</strong> \(\det I = 1\), sign flips under row exchange, and linearity in each row.</li>
+<li><strong>Elimination preserves the determinant</strong>, up to sign for row exchanges. So \(\det A = \pm(\text{product of the pivots})\), which is how software computes it.</li>
+<li><strong>\(\det A = 0\) exactly when \(A\) is singular.</strong></li>
+<li><strong>Multiplicative, not additive:</strong> \(\det(AB) = \det A\det B\), which gives \(\det A^{-1} = 1/\det A\). But \(\det(A+B) \neq \det A + \det B\).</li>
+<li><strong>Scaling the whole matrix:</strong> \(\det(tA) = t^n \det A\), consistent with volume.</li>
+<li><strong>\(\det A^\top = \det A\)</strong>, so every row property is also a column property.</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-17.html"><small>Previous</small>L17 · Orthogonal Matrices and Gram–Schmidt</a><a class="next" href="lecture-19.html"><small>Next</small>L19 · Determinant Formulas and Cofactors</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

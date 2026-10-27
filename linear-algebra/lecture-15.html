@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 15: Projections onto Subspaces · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li class="current"><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 16 / 37</p><h1>Lecture 15: Projections onto Subspaces</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror.</p><article class="post"><p><strong>Goal:</strong> Project a vector \(b\) onto a subspace. That means finding the point in the subspace closest to \(b\).</p>
+<p>Why: when \(Ax = b\) has no solution, replace \(b\) by its projection onto \(C(A)\) and solve that instead.</p>
+<hr />
+<h2>1. Projection onto a line (1-D case)</h2>
+<p><strong>Setup.</strong> Project \(b\) onto the line through a vector \(a\).</p>
+<ul>
+<li>The projection \(p\) lies on the line, so \(p = \hat{x}\,a\) for some number \(\hat{x}\).</li>
+<li>On the board Strang says &quot;closest to \(a\)&quot;; he means the point on the line closest to \(b\).</li>
+</ul>
+<p><strong>The key fact is a right angle.</strong> The error \(e = b - p\) must be <strong>perpendicular to \(a\)</strong>:
+<div class="math-display">\[a^\top(b - \hat{x}\,a) = 0 \quad\Longrightarrow\quad \hat{x}\,a^\top a = a^\top b\]</div>
+</p>
+<p><strong>Three formulas to remember:</strong>
+<div class="math-display">\[\hat{x} = \frac{a^\top b}{a^\top a}, \qquad p = a\,\frac{a^\top b}{a^\top a}, \qquad P = \frac{a\,a^\top}{a^\top a}\]</div>
+</p>
+<p><strong>No angles needed.</strong> The cosine is built into \(\hat{x}\). Strang notes that trigonometry with \(\sin\theta\) and \(\cos\theta\) gives much messier formulas than linear algebra.</p>
+<h3>Sanity checks</h3>
+<p><strong>Doubling \(b\) doubles \(p\).</strong> The formula is linear in \(b\).</p>
+<p><strong>Doubling \(a\), or replacing it with \(-a\), leaves \(p\) unchanged.</strong> The line is the same. In the formula, the factor 4 above cancels the factor 4 below.</p>
+<h3>The projection matrix \(P = \dfrac{aa^\top}{a^\top a}\)</h3>
+<p>This is an \(n \times n\) matrix: a column times a row, divided by a number. It satisfies \(p = Pb\).</p>
+<p><strong>Column space.</strong> \(C(P)\) is the line through \(a\). Multiplying anything by \(P\) lands on that line.</p>
+<p><strong>Rank 1.</strong> \(P\) is a column times a row.</p>
+<p><strong>Symmetric.</strong> \(P^\top = P\).</p>
+<p><strong>Idempotent.</strong> \(P^2 = P\). Projecting a second time leaves the point where it is, because it is already on the line.</p>
+<blockquote>
+<p><strong>A symmetric matrix with \(P^2 = P\) is the signature of a projection matrix.</strong></p>
+</blockquote>
+<hr />
+<h2>2. Why project? The unsolvable \(Ax = b\)</h2>
+<p><strong>The problem.</strong> \(Ax\) always lies in \(C(A)\), but \(b\) usually doesn't, especially with more equations than unknowns.</p>
+<p><strong>The fix.</strong> Replace \(b\) by \(p\), its projection onto \(C(A)\), which is the closest vector in the column space. Then solve
+<div class="math-display">\[A\hat{x} = p\]</div>
+
+This equation is solvable, because \(p\) lies in \(C(A)\). The hat marks the best possible \(x\), not the \(x\) that doesn't exist.</p>
+<hr />
+<h2>3. Projection onto a subspace (general case)</h2>
+<p><strong>Setup.</strong> The subspace is spanned by independent vectors \(a_1, \dots, a_n\). These need not be perpendicular, only independent.</p>
+<p><strong>Put them as the columns of \(A\).</strong> The subspace is then \(C(A)\).</p>
+<p><strong>The projection is a combination of the columns:</strong>
+<div class="math-display">\[p = \hat{x}_1 a_1 + \cdots + \hat{x}_n a_n = A\hat{x}\]</div>
+</p>
+<h3>The key equation</h3>
+<p><strong>The error is perpendicular to the whole subspace.</strong> It suffices to check that \(e = b - A\hat{x}\) is perpendicular to each basis vector:
+<div class="math-display">\[a_1^\top(b - A\hat{x}) = 0, \;\; \dots, \;\; a_n^\top(b - A\hat{x}) = 0\]</div>
+</p>
+<p><strong>In matrix form.</strong> The rows of \(A^\top\) are \(a_1^\top, \dots, a_n^\top\), so these equations combine into
+<div class="math-display">\[A^\top(b - A\hat{x}) = 0\]</div>
+</p>
+<h3>Connection to the four subspaces</h3>
+<p><strong>Which subspace is \(e\) in?</strong> The equation \(A^\top e = 0\) says <strong>\(e \in N(A^\top)\)</strong>.</p>
+<p><strong>That matches the geometry.</strong> From Lecture 14, \(N(A^\top) \perp C(A)\). So &quot;\(e\) is in the left nullspace&quot; says the same thing as &quot;\(e\) is perpendicular to the column space&quot;, which is exactly what we required.</p>
+<h3>The three formulas</h3>
+<p><strong>Normal equations:</strong>
+<div class="math-display">\[A^\top A\,\hat{x} = A^\top b\]</div>
+</p>
+<p><strong>The answers:</strong>
+<div class="math-display">\[\hat{x} = (A^\top A)^{-1}A^\top b, \qquad p = A(A^\top A)^{-1}A^\top b, \qquad P = A(A^\top A)^{-1}A^\top\]</div>
+</p>
+<p><strong>Comparison with the 1-D case:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>1-D (line through \(a\))</th>
+<th>General (column space of \(A\))</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(\hat{x} = \dfrac{a^\top b}{a^\top a}\)</td>
+<td>\(\hat{x} = (A^\top A)^{-1}A^\top b\)</td>
+</tr>
+<tr>
+<td>\(P = \dfrac{aa^\top}{a^\top a}\)</td>
+<td>\(P = A(A^\top A)^{-1}A^\top\)</td>
+</tr>
+</tbody>
+</table></div>
+<p>In higher dimensions you can't divide by a matrix, so division becomes multiplication by \((A^\top A)^{-1}\). This inverse exists because the columns of \(A\) are independent (Lecture 14).</p>
+<h3>A tempting mistake</h3>
+<p><strong>The wrong move.</strong> It might seem natural to split the inverse:
+<div class="math-display">\[(A^\top A)^{-1} \overset{?}{=} A^{-1}(A^\top)^{-1}\]</div>
+
+That would give \(P = AA^{-1}(A^\top)^{-1}A^\top = I\).</p>
+<p><strong>Why it's wrong.</strong> \(A\) is <strong>rectangular</strong>, so \(A^{-1}\) does not exist. Only the square matrix \(A^\top A\) has an inverse.</p>
+<p><strong>The one case where the split works.</strong> If \(A\) is square and invertible, then \(C(A) = \mathbb{R}^n\). Projecting onto the whole space changes nothing, so \(P = I\) is correct there.</p>
+<h3>Properties still hold</h3>
+<p><strong>Symmetric:</strong> \(P^\top = P\). Transposing \(A(A^\top A)^{-1}A^\top\) gives the same matrix back, because \((A^\top A)^{-1}\) is symmetric.</p>
+<p><strong>Idempotent:</strong> \(P^2 = P\). In the product of two copies of \(P\), the middle factors \(A^\top A\) and \((A^\top A)^{-1}\) cancel:
+<div class="math-display">\[P^2 = A(A^\top A)^{-1}\underbrace{A^\top A\,(A^\top A)^{-1}}_{I}A^\top = P\]</div>
+</p>
+<hr />
+<h2>4. Application: fitting a line to data (least squares)</h2>
+<p><strong>The data:</strong> three points \((t, b) = (1,1),\ (2,2),\ (3,2)\). No straight line passes through all three.</p>
+<p><strong>The model:</strong> \(b = C + Dt\). We want the best \(C\) and \(D\).</p>
+<p><strong>The equations we'd like to solve but can't:</strong>
+<div class="math-display">\[C + D = 1, \qquad C + 2D = 2, \qquad C + 3D = 2\]</div>
+</p>
+<p><strong>In matrix form:</strong>
+<div class="math-display">\[\underbrace{\begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 2 \\ 1 &amp; 3 \end{bmatrix}}_{A}\begin{bmatrix} C \\ D \end{bmatrix} = \underbrace{\begin{bmatrix} 1 \\ 2 \\ 2 \end{bmatrix}}_{b}\]</div>
+</p>
+<p>This is 3 equations in 2 unknowns with no solution. The best solution solves \(A^\top A\,\hat{x} = A^\top b\).</p>
+<p><strong>Strang stops here.</strong> He finishes the numbers in Lecture 16.</p>
+<p><strong>Preview of the answer (computed here, not in this lecture).</strong></p>
+<ul>
+<li>\(A^\top A = \begin{bmatrix} 3 &amp; 6 \\ 6 &amp; 14 \end{bmatrix}\) and \(A^\top b = \begin{bmatrix} 5 \\ 11 \end{bmatrix}\).</li>
+<li>Solving gives \(\hat{C} = \tfrac23\) and \(\hat{D} = \tfrac12\).</li>
+<li>The best line is \(b = \tfrac23 + \tfrac12 t\).</li>
+</ul>
+<hr />
+<h2>Connection to the PCA lecture you started with</h2>
+<p><strong>Orthonormal columns simplify everything.</strong> If the columns of \(A\) are orthonormal, so \(A^\top A = I\), the projection matrix collapses to
+<div class="math-display">\[P = AA^\top\]</div>
+</p>
+<p><strong>This is the PCA projection.</strong> With \(A = W\), this is exactly the \(WW^\top\) used in the PCA lecture. It is the same projection onto a subspace, in the case where the basis is orthonormal.</p>
+<hr />
+<h2>Big ideas from Lecture 15</h2>
+<ol>
+<li><strong>The projection</strong> is the closest point in a subspace. The error \(e = b - p\) is perpendicular to the subspace.</li>
+<li><strong>The normal equations</strong> \(A^\top A\hat{x} = A^\top b\) come directly from \(A^\top e = 0\), which says \(e \in N(A^\top)\).</li>
+<li><strong>The three formulas:</strong> \(\hat{x} = (A^\top A)^{-1}A^\top b\), \(p = A\hat{x}\), and \(P = A(A^\top A)^{-1}A^\top\).</li>
+<li><strong>Projection matrices</strong> satisfy \(P^\top = P\) and \(P^2 = P\).</li>
+<li><strong>Don't split</strong> \((A^\top A)^{-1}\) when \(A\) is rectangular.</li>
+<li><strong>Least squares:</strong> for an unsolvable \(Ax = b\), solve \(A^\top A\hat{x} = A^\top b\) instead. Line fitting is the standard example.</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-14.html"><small>Previous</small>L14 · Orthogonal Vectors and Subspaces</a><a class="next" href="lecture-16.html"><small>Next</small>L16 · Projection Matrices and Least Squares</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

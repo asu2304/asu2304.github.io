@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linear Algebra (source: Gilbert Strang notes) · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout">
+
+<main class="content">
+<h1>Linear Algebra (source: Gilbert Strang notes)</h1><p class="lede">Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.</p><p class="legend"><strong>How to read:</strong> pages go in the order we covered them. Side questions appear at the end of the lecture where they came up. Source: <a href="https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/">MIT OCW 18.06, Spring 2010</a>.</p><ol class="toc"><li><a href="00-pca-mlt-l5.html"><span class="num">00</span>Prologue: Data Compression, PCA &amp; Residue Analysis (IITM MLT L5)</a></li><li><a href="lecture-01.html"><span class="num">01</span>Lecture 1: The Geometry of Linear Equations</a></li><li><a href="lecture-02.html"><span class="num">02</span>Lecture 2: Elimination with Matrices</a></li><li><a href="lecture-03.html"><span class="num">03</span>Lecture 3: Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html"><span class="num">04</span>Lecture 4: Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html"><span class="num">05</span>Lecture 5: Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html"><span class="num">06</span>Lecture 6: Column Space and Nullspace</a></li><li><a href="lecture-07.html"><span class="num">07</span>Lecture 7: Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html"><span class="num">08</span>Lecture 8: Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html"><span class="num">09</span>Lecture 9: Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html"><span class="num">10</span>Lecture 10: The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html"><span class="num">11</span>Lecture 11: Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html"><span class="num">12</span>Lecture 12: Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html"><span class="num">13</span>Lecture 13: Quiz 1 Review</a></li><li><a href="lecture-14.html"><span class="num">14</span>Lecture 14: Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html"><span class="num">15</span>Lecture 15: Projections onto Subspaces</a></li><li><a href="lecture-16.html"><span class="num">16</span>Lecture 16: Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html"><span class="num">17</span>Lecture 17: Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html"><span class="num">18</span>Lecture 18: Properties of Determinants</a></li><li><a href="lecture-19.html"><span class="num">19</span>Lecture 19: Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html"><span class="num">20</span>Lecture 20: Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html"><span class="num">21</span>Lecture 21: Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html"><span class="num">22</span>Lecture 22: Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html"><span class="num">23</span>Lecture 23: Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html"><span class="num">24</span>Lecture 24: Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html"><span class="num">25</span>Lecture 24b: Quiz 2 Review</a></li><li><a href="lecture-25.html"><span class="num">26</span>Lecture 25: Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html"><span class="num">27</span>Lecture 26: Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html"><span class="num">28</span>Lecture 27: Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html"><span class="num">29</span>Lecture 28: Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html"><span class="num">30</span>Lecture 29: Singular Value Decomposition</a></li><li><a href="lecture-30.html"><span class="num">31</span>Lecture 30: Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html"><span class="num">32</span>Lecture 31: Change of Basis; Image Compression</a></li><li><a href="lecture-32.html"><span class="num">33</span>Lecture 32: Quiz 3 Review</a></li><li><a href="lecture-33.html"><span class="num">34</span>Lecture 33: Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html"><span class="num">35</span>Lecture 34: Final Course Review</a></li><li><a href="revision-notes.html"><span class="num">36</span>Revision Notes &amp; Formula Sheet (all 34 lectures, ML lens)</a></li></ol>
+
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

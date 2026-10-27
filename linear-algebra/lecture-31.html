@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 31: Change of Basis; Image Compression · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li class="current"><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 33 / 37</p><h1>Lecture 31: Change of Basis; Image Compression</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Two parts:</strong></p>
+<ol>
+<li><strong>Applications.</strong> Image compression is a <strong>change of basis</strong>, followed by throwing away small coefficients.</li>
+<li><strong>Linear algebra.</strong> How coordinates change under a new basis, and how the <strong>matrix of a transformation</strong> changes. The answer: the two matrices are <strong>similar</strong>.</li>
+</ol>
+<hr />
+<h2>Part 1: Image compression</h2>
+<h3>The setup</h3>
+<p><strong>An image is a huge vector.</strong></p>
+<ul>
+<li>A \(512 \times 512\) grayscale image has \(512^2 = 2^{18}\) pixels.</li>
+<li>Each pixel is a gray level from 0 to 255, which takes 8 bits.</li>
+<li>So the image is a vector \(x \in \mathbb{R}^n\) with \(n = 512^2\).</li>
+<li>A color image needs about three times that.</li>
+</ul>
+<p><strong>Why compress.</strong> Data volumes from images, video, satellites, simulations, and the web are overwhelming. Strang notes that these lecture videos are themselves compressed: the static blackboard comes through clearly, but his movement needs many bits and looks jumpy.</p>
+<p><strong>Lossless vs. lossy.</strong></p>
+<ul>
+<li><strong>Lossless</strong> compression exploits exact redundancy and loses nothing.</li>
+<li><strong>Lossy</strong> compression is the topic here. It discards information the eye won't miss.</li>
+</ul>
+<h3>The standard basis is a bad basis</h3>
+<p><strong>What the standard basis does.</strong> Each coordinate is one pixel value.</p>
+<p><strong>What it ignores.</strong> <strong>Neighboring pixels are highly correlated.</strong> A blank blackboard has nearly identical gray levels everywhere, and so does a stretch of blue shirt. Listing a blank board pixel by pixel wastes almost everything.</p>
+<p><strong>Better basis vectors to include:</strong></p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Vector</th>
+<th>What it captures alone</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\((1, 1, \dots, 1)\)</td>
+<td>a <strong>solid</strong> image, in one coefficient</td>
+</tr>
+<tr>
+<td>half \(+1\), half \(-1\)</td>
+<td>half the image lighter, half darker</td>
+</tr>
+<tr>
+<td>\((1, -1, 1, -1, \dots)\)</td>
+<td>a <strong>checkerboard</strong>: the highest frequency</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>The stakes.</strong> Choosing the basis is &quot;a billion-dollar decision&quot;. TV and film industries prefer different bases. Strang calls it a giant political question that reduces to a linear algebra problem.</p>
+<h3>JPEG: the Fourier basis on \(8\times8\) blocks</h3>
+<p><strong>JPEG</strong> stands for Joint Photographic Experts Group. It works in three steps.</p>
+<p><strong>Step 1: change basis (lossless).</strong></p>
+<ul>
+<li>Split the image into \(8\times8\) blocks, each with 64 pixel values.</li>
+<li>Express each block in a <strong>Fourier basis</strong> of \(\mathbb{R}^{64}\).</li>
+<li>64 pixels in, 64 coefficients \(c\) out.</li>
+<li><strong>Nothing is lost</strong> at this step.</li>
+</ul>
+<p><strong>Step 2: threshold (lossy).</strong></p>
+<ul>
+<li>Set every coefficient below a threshold to zero, giving \(\hat{c}\) with many zeros.</li>
+<li>The threshold is chosen so the eye barely notices.</li>
+<li>The constant (&quot;DC&quot;, zero-frequency) coefficient is usually large and kept.</li>
+<li>High-frequency coefficients are tiny in smooth images and get dropped.</li>
+</ul>
+<p><strong>Step 3: reconstruct.</strong>
+<div class="math-display">\[\hat{x} = \sum \hat{c}_i\,v_i\]</div>
+</p>
+<ul>
+<li>The sum now has only a few terms.</li>
+<li>Going from 64 coefficients to about 3 is roughly <strong>21:1 compression</strong>.</li>
+</ul>
+<h3>Other applications</h3>
+<p><strong>FBI fingerprints.</strong></p>
+<ul>
+<li>Fingerprints were stored on paper in Washington, and a search could take a week.</li>
+<li>Digitizing them didn't solve the problem, because each image is still too large to search.</li>
+<li>After <strong>compression</strong>, the files were indexed at a new facility in West Virginia. A search now takes minutes.</li>
+<li>The FBI chose a <strong>smooth wavelet</strong> basis.</li>
+</ul>
+<p><strong>Video.</strong> Consecutive frames are highly correlated. So encode <strong>prediction plus correction</strong>: predict that the next frame matches the previous one, then compress only the small correction.</p>
+<p><strong>The general principle.</strong> Compression works by exploiting <strong>correlation in space or time</strong>.</p>
+<hr />
+<h2>Wavelets: the competition to Fourier</h2>
+<p>The simplest <strong>Haar wavelet</strong> basis for \(\mathbb{R}^8\) has these eight vectors:
+<div class="math-display">\[\begin{aligned}
+w_1 &amp;= (1,1,1,1,1,1,1,1) \\
+w_2 &amp;= (1,1,1,1,-1,-1,-1,-1) \\
+w_3 &amp;= (1,1,-1,-1,0,0,0,0) \\
+w_4 &amp;= (0,0,0,0,1,1,-1,-1) \\
+w_5 &amp;= (1,-1,0,0,0,0,0,0) \\
+w_6 &amp;= (0,0,1,-1,0,0,0,0) \\
+w_7 &amp;= (0,0,0,0,1,-1,0,0) \\
+w_8 &amp;= (0,0,0,0,0,0,1,-1)
+\end{aligned}\]</div>
+</p>
+<p><strong>Expressing a Fourier vector in this basis.</strong> The fastest-oscillating vector \((1,-1,1,-1,1,-1,1,-1)\) equals \(w_5 + w_6 + w_7 + w_8\).</p>
+<h3>Changing to the wavelet basis is solving a linear system</h3>
+<p><strong>One row of pixels.</strong> Take eight pixel values \(p = (p_1, \dots, p_8)\), written in the standard basis. Find the coefficients \(c\) in the wavelet basis:
+<div class="math-display">\[p = c_1w_1 + \cdots + c_8w_8 = Wc \qquad\Longrightarrow\qquad c = W^{-1}p\]</div>
+</p>
+<p><strong>The wavelet matrix.</strong> \(W\) has the wavelets as its <strong>columns</strong>.</p>
+<h3>What makes a basis good</h3>
+<p><strong>1. Fast.</strong> You must be able to multiply by \(W\) and by \(W^{-1}\) quickly.</p>
+<ul>
+<li><strong>Fourier</strong> has the <strong>FFT</strong>.</li>
+<li><strong>Haar wavelets</strong> have a fast wavelet transform.</li>
+<li>Their entries are only \(0\) and \(\pm1\), so multiplication is trivial in binary.</li>
+<li>The vectors are <strong>orthogonal</strong>. Check: \(w_1\cdot w_2\) has four \(+1\)s and four \(-1\)s, so it is 0. The other pairs work the same way.</li>
+</ul>
+<p><strong>Normalizing the wavelets.</strong> Divide each vector by its length:</p>
+<ul>
+<li>\(w_1, w_2\) by \(\sqrt8\),</li>
+<li>\(w_3, w_4\) by \(2\),</li>
+<li>\(w_5\) through \(w_8\) by \(\sqrt2\).</li>
+</ul>
+<p>Then \(W\) is orthogonal, so <strong>\(W^{-1} = W^\top\)</strong>. Inverting is as fast as multiplying.</p>
+<p><strong>2. Compresses well.</strong> <strong>A few basis vectors should come close to the signal.</strong></p>
+<ul>
+<li>The standard basis is fastest of all, since there is nothing to compute. But it compresses terribly: throwing away 90% of the pixels just darkens the picture.</li>
+<li>With Fourier or wavelets, the dropped coefficients \(c_5, \dots, c_8\) are small blips the eye won't miss.</li>
+</ul>
+<p><strong>Standards at the time.</strong></p>
+<ul>
+<li>JPEG used Fourier.</li>
+<li><strong>JPEG 2000</strong> included wavelets.</li>
+<li>The FBI uses smoother wavelets than Haar's sharp jumps.</li>
+<li>Strang says the competition for better bases &quot;is not over yet&quot;.</li>
+</ul>
+<hr />
+<h2>Part 2: The linear algebra of changing basis</h2>
+<h3>Changing coordinates</h3>
+<p>Let the columns of \(W\) be the new basis vectors. Then the old coordinates \(x\) and new coordinates \(c\) of the same vector are related by
+<div class="math-display">\[\boxed{x = Wc}\]</div>
+
+Equivalently, \(c = W^{-1}x\).</p>
+<h3>Changing the matrix of a transformation</h3>
+<p><strong>Setup.</strong> Take one linear transformation \(T\) on \(\mathbb{R}^n\).</p>
+<ul>
+<li>In basis \(v_1, \dots, v_n\), its matrix is \(A\).</li>
+<li>In basis \(w_1, \dots, w_n\), its matrix is \(B\).</li>
+</ul>
+<blockquote>
+<p><strong>\(A\) and \(B\) are similar:</strong> \(B = M^{-1}AM\), where \(M\) is the change-of-basis matrix.</p>
+</blockquote>
+<p>Strang admits this part of the lecture is &quot;compressed&quot;. Here is the one-line reason.</p>
+<p><strong>Derivation (my addition).</strong></p>
+<ul>
+<li>Let \(M\) convert new coordinates to old: \(x = Mc\).</li>
+<li>To apply \(T\) in new coordinates, first go to old coordinates: \(Mc\).</li>
+<li>Apply \(A\) there: \(AMc\).</li>
+<li>Come back to new coordinates: \(M^{-1}AMc\).</li>
+<li>So the matrix in the new basis is \(B = M^{-1}AM\).</li>
+</ul>
+<p><strong>This explains Lecture 28.</strong> Similar matrices are <strong>the same transformation seen in two coordinate systems</strong>. That is why they share eigenvalues.</p>
+<h3>Recap: building the matrix \(A\)</h3>
+<p><strong>Why the basis images are enough.</strong> Every \(x = c_1v_1 + \cdots + c_nv_n\), and by linearity
+<div class="math-display">\[T(x) = c_1T(v_1) + \cdots + c_nT(v_n)\]</div>
+
+So knowing \(T(v_1), \dots, T(v_n)\) determines \(T\) completely.</p>
+<p><strong>Building the columns.</strong> Expand each output in the basis:
+<div class="math-display">\[T(v_j) = a_{1j}v_1 + a_{2j}v_2 + \cdots + a_{nj}v_n\]</div>
+
+The numbers \(a_{1j}, \dots, a_{nj}\) form <strong>column \(j\)</strong> of \(A\).</p>
+<h3>The best basis: eigenvectors</h3>
+<p><strong>Suppose the basis consists of eigenvectors</strong>, so \(T(v_i) = \lambda_iv_i\).</p>
+<p><strong>Each column is already expanded.</strong> The output \(\lambda_iv_i\) is just \(\lambda_i\) times the \(i\)-th basis vector, with zeros for the rest. So column \(i\) has \(\lambda_i\) in position \(i\) and zeros elsewhere.</p>
+<div class="math-display">\[A = \begin{bmatrix} \lambda_1 &amp; &amp; \\ &amp; \ddots &amp; \\ &amp; &amp; \lambda_n \end{bmatrix} = \Lambda\]</div>
+<p><strong>Why not use eigenvectors in practice.</strong> For images this would be the ideal basis. But computing the eigenvectors for each image costs too much. So practitioners use a <strong>cheap, nearly-as-good basis</strong> such as Fourier or wavelets.</p>
+<hr />
+<h2>Big ideas from Lecture 31</h2>
+<ol>
+<li><strong>Compression = change of basis + thresholding.</strong> The change of basis is lossless. Dropping small coefficients is where the loss happens.</li>
+<li><strong>The standard basis is poor for images</strong>, because it ignores correlation between neighboring pixels.</li>
+<li><strong>A good basis must be fast</strong>, with quick \(W\) and \(W^{-1}\) (orthogonality helps), <strong>and must compress well</strong>, so that a few coefficients capture most of the signal.</li>
+<li><strong>Coordinates change by</strong> \(x = Wc\), or \(c = W^{-1}x\).</li>
+<li><strong>Matrices change by similarity:</strong> \(B = M^{-1}AM\). The same \(T\) in different bases gives similar matrices.</li>
+<li><strong>The eigenvector basis makes the matrix diagonal.</strong> It is the ideal basis, but usually too expensive to compute.</li>
+</ol>
+<p><strong>Connection to your first question.</strong> The <strong>optimal</strong> basis for compressing a dataset in the least-squares sense is the eigenvector basis of its covariance matrix. That is exactly <strong>PCA</strong>, also called the Karhunen–Loève transform. The MLT lecture's &quot;data compression&quot; was this same idea, with the best possible basis computed from the data. JPEG uses Fourier because it's fast and nearly as good for natural images.</p>
+<p><strong>Connection to interpretability.</strong> Sparse autoencoders follow the same &quot;few coefficients&quot; principle. They learn an (overcomplete) basis in which activations have sparse coefficients.</p>
+</article>
+<nav class="pager"><a class="prev" href="lecture-30.html"><small>Previous</small>L30 · Linear Transformations and Their Matrices</a><a class="next" href="lecture-32.html"><small>Next</small>L32 · Quiz 3 Review</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

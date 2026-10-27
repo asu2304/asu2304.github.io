@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 21: Eigenvalues and Eigenvectors · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li class="current"><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 22 / 37</p><h1>Lecture 21: Eigenvalues and Eigenvectors</h1><p class="source-note">This summary is based on the same lecture's transcript from an OCW mirror. Parts of the transcript are scrambled, so I've put the examples back in the order Strang develops them.</p><article class="post"><p><strong>This opens the eigenvalue part of the course, which runs to the end.</strong> This lecture covers what eigenvalues and eigenvectors are and how to find them. Later lectures cover how to use them.</p>
+<hr />
+<h2>1. Definition</h2>
+<p><strong>The idea.</strong> A matrix acts on vectors: \(x\) goes in, \(Ax\) comes out. For most \(x\), the output \(Ax\) points in a new direction. <strong>Eigenvectors</strong> are the special vectors whose output points in the <strong>same direction</strong> as the input:</p>
+<div class="math-display">\[\boxed{Ax = \lambda x}\]</div>
+<p><strong>Names.</strong> \(x \neq 0\) is an <strong>eigenvector</strong>, and the number \(\lambda\) is its <strong>eigenvalue</strong>.</p>
+<p><strong>What \(\lambda\) can be.</strong> Positive, negative, zero, or even complex. &quot;Same direction&quot; includes the reverse direction.</p>
+<h3>Eigenvalue \(\lambda = 0\)</h3>
+<p><strong>Meaning.</strong> \(\lambda = 0\) means \(Ax = 0\). So the eigenvectors for \(\lambda = 0\) are exactly the nonzero vectors of the <strong>nullspace</strong>.</p>
+<p><strong>Consequence.</strong> <strong>\(A\) is singular exactly when \(\lambda = 0\) is an eigenvalue.</strong></p>
+<hr />
+<h2>2. Examples you can solve by inspection</h2>
+<h3>Projection matrix \(P\) (onto a plane in \(\mathbb{R}^3\))</h3>
+<p>Think about what projecting does to different vectors.</p>
+<p><strong>A typical \(b\) is not an eigenvector.</strong> Its projection \(Pb\) points in a different direction.</p>
+<p><strong>Any \(x\) in the plane.</strong> Projection leaves it unchanged: \(Px = x\), so <strong>\(\lambda = 1\)</strong>. This gives a whole plane of eigenvectors.</p>
+<p><strong>Any \(x\) perpendicular to the plane.</strong> Projection sends it to zero: \(Px = 0\), so <strong>\(\lambda = 0\)</strong>. These vectors form the nullspace.</p>
+<p><strong>Total.</strong> Three independent eigenvectors, two in the plane and one perpendicular, with eigenvalues \(1, 1, 0\).</p>
+<h3>Permutation matrix</h3>
+<div class="math-display">\[A = \begin{bmatrix} 0 &amp; 1 \\ 1 &amp; 0 \end{bmatrix}\]</div>
+<p>This matrix swaps the two components.</p>
+<p><strong>Swapping leaves \(x\) unchanged.</strong> \(x = (1, 1)\) gives \(Ax = x\), so <strong>\(\lambda = 1\)</strong>.</p>
+<p><strong>Swapping flips the sign of \(x\).</strong> \(x = (-1, 1)\) gives \(Ax = (1, -1) = -x\), so <strong>\(\lambda = -1\)</strong>.</p>
+<p><strong>A nonnegative matrix can have a negative eigenvalue.</strong></p>
+<hr />
+<h2>3. Two quick checks: trace and determinant</h2>
+<p><strong>Trace.</strong> The sum of the eigenvalues equals the <strong>trace</strong>, the sum of the diagonal entries:
+<div class="math-display">\[\lambda_1 + \cdots + \lambda_n = a_{11} + a_{22} + \cdots + a_{nn}\]</div>
+</p>
+<p><strong>Determinant.</strong> The product of the eigenvalues equals the <strong>determinant</strong>:
+<div class="math-display">\[\lambda_1 \lambda_2 \cdots \lambda_n = \det A\]</div>
+</p>
+<p><strong>Using them in the \(2\times2\) case.</strong> Knowing one eigenvalue gives the other immediately. For the permutation matrix, the trace is 0, so once you know \(\lambda_1 = 1\), you get \(\lambda_2 = -1\).</p>
+<hr />
+<h2>4. The systematic method</h2>
+<p><strong>Why elimination alone fails.</strong> \(Ax = \lambda x\) has <strong>two unknowns, \(\lambda\) and \(x\), multiplied together</strong>.</p>
+<p><strong>Rewrite the equation:</strong>
+<div class="math-display">\[(A - \lambda I)x = 0\]</div>
+</p>
+<p><strong>The key step.</strong> For a <strong>nonzero</strong> \(x\) to exist, \(A - \lambda I\) must be <strong>singular</strong>. A singular matrix has determinant zero, so:</p>
+<div class="math-display">\[\boxed{\det(A - \lambda I) = 0}\]</div>
+<p>This is the <strong>characteristic equation</strong>, also called the eigenvalue equation.</p>
+<p><strong>The procedure:</strong></p>
+<ol>
+<li><strong>Find \(\lambda\) first.</strong> \(\det(A - \lambda I)\) is a polynomial of degree \(n\) in \(\lambda\), so there are \(n\) roots. Some may repeat.</li>
+<li><strong>Then find \(x\).</strong> For each \(\lambda\), find the <strong>nullspace of \(A - \lambda I\)</strong> by elimination. Set the free variable to 1.</li>
+</ol>
+<p><strong>Strang's warning:</strong> repeated eigenvalues are &quot;the source of all trouble in 18.06.&quot;</p>
+<h3>Worked example</h3>
+<div class="math-display">\[A = \begin{bmatrix} 3 &amp; 1 \\ 1 &amp; 3 \end{bmatrix}\]</div>
+<p>\(A\) is symmetric and has a constant diagonal.</p>
+<p><strong>Characteristic equation:</strong>
+<div class="math-display">\[\det(A - \lambda I) = (3 - \lambda)^2 - 1 = \lambda^2 - 6\lambda + 8\]</div>
+</p>
+<p><strong>What the coefficients mean.</strong></p>
+<ul>
+<li>The \(6\) is the <strong>trace</strong>, \(3 + 3\).</li>
+<li>The \(8\) is the <strong>determinant</strong>, \(9 - 1\).</li>
+<li>For any \(2\times2\) matrix:
+<div class="math-display">\[\det(A - \lambda I) = \lambda^2 - (\text{trace})\,\lambda + \det A\]</div>
+</li>
+</ul>
+<p><strong>Eigenvalues.</strong> \(\lambda^2 - 6\lambda + 8 = (\lambda - 4)(\lambda - 2)\), so \(\lambda_1 = 4\) and \(\lambda_2 = 2\).</p>
+<p><strong>Eigenvectors.</strong></p>
+<ul>
+<li>For \(\lambda_1 = 4\): \(A - 4I = \begin{bmatrix} -1 &amp; 1 \\ 1 &amp; -1\end{bmatrix}\). This is singular, as it must be. Its nullspace gives \(x_1 = (1, 1)\).</li>
+<li>For \(\lambda_2 = 2\): \(A - 2I = \begin{bmatrix} 1 &amp; 1 \\ 1 &amp; 1\end{bmatrix}\). Its nullspace gives \(x_2 = (-1, 1)\).</li>
+</ul>
+<p><strong>Each eigenvalue gives a whole line of eigenvectors.</strong> &quot;The&quot; eigenvector really means one basis vector for that line.</p>
+<p><strong>Preview of symmetric matrices.</strong> Here the eigenvalues are <strong>real</strong> and the eigenvectors are <strong>perpendicular</strong>: \((1,1)\cdot(-1,1) = 0\). The permutation matrix behaved the same way. This always happens for symmetric matrices, which is a theme for later lectures.</p>
+<hr />
+<h2>5. Adding a multiple of \(I\) shifts every eigenvalue</h2>
+<p><strong>Compare the two examples.</strong> \(\begin{bmatrix} 3 &amp; 1 \\ 1 &amp; 3 \end{bmatrix}\) is the permutation matrix <strong>plus \(3I\)</strong>.</p>
+<ul>
+<li>The eigenvalues moved from \(1, -1\) to \(4, 2\). Each one went up by 3.</li>
+<li>The eigenvectors did not change.</li>
+</ul>
+<p><strong>Why.</strong>
+<div class="math-display">\[Ax = \lambda x \;\Longrightarrow\; (A + 3I)x = \lambda x + 3x = (\lambda + 3)x\]</div>
+</p>
+<h3>Caution: eigenvalues do not add or multiply in general</h3>
+<p><strong>The tempting argument.</strong> Suppose \(Ax = \lambda x\) and \(B\) has eigenvalue \(\alpha\). It seems that adding gives \((A + B)x = (\lambda + \alpha)x\).</p>
+<p><strong>Why it fails.</strong> It assumes <strong>\(x\) is also an eigenvector of \(B\)</strong>. Usually it isn't, because \(B\) has its own, different eigenvectors.</p>
+<p><strong>Conclusion.</strong></p>
+<ul>
+<li>The eigenvalues of \(A + B\) are generally <strong>not</strong> sums of eigenvalues of \(A\) and \(B\).</li>
+<li>The eigenvalues of \(AB\) are generally <strong>not</strong> products.</li>
+<li>\(B = cI\) is the exception, because every vector is an eigenvector of \(cI\).</li>
+</ul>
+<hr />
+<h2>6. Trouble case 1: complex eigenvalues (rotation)</h2>
+<p><strong>A \(90°\) rotation:</strong>
+<div class="math-display">\[Q = \begin{bmatrix} 0 &amp; -1 \\ 1 &amp; 0 \end{bmatrix}\]</div>
+</p>
+<p><strong>Expect trouble.</strong> Every vector gets rotated by \(90°\), so <strong>no real vector keeps its direction</strong>.</p>
+<p><strong>The numbers confirm it.</strong></p>
+<ul>
+<li>Trace \(= 0\), so \(\lambda_1 + \lambda_2 = 0\).</li>
+<li>Determinant \(= 1\), so \(\lambda_1 \lambda_2 = 1\).</li>
+<li>No two real numbers satisfy both: summing to 0 forces opposite signs, which makes the product negative.</li>
+</ul>
+<p><strong>Solve the characteristic equation:</strong>
+<div class="math-display">\[\det(Q - \lambda I) = \lambda^2 + 1 = 0 \;\Longrightarrow\; \lambda = i,\; -i\]</div>
+</p>
+<p><strong>Observations.</strong></p>
+<ul>
+<li><strong>A real matrix can have complex eigenvalues.</strong> When it does, they come in <strong>complex conjugate pairs</strong>.</li>
+<li>This \(Q\) is <strong>antisymmetric</strong>: \(Q^\top = -Q\). It is as far from symmetric as possible, and antisymmetric matrices have purely imaginary eigenvalues.</li>
+<li>Symmetric matrices have real eigenvalues.</li>
+<li>Matrices in between, with both a symmetric and an antisymmetric part, fall in between.</li>
+</ul>
+<hr />
+<h2>7. Trouble case 2: too few eigenvectors (repeated eigenvalue)</h2>
+<div class="math-display">\[A = \begin{bmatrix} 3 &amp; 1 \\ 0 &amp; 3 \end{bmatrix}\]</div>
+<p><strong>Eigenvalues.</strong> \(A\) is <strong>triangular</strong>, so its eigenvalues are its <strong>diagonal entries</strong>:
+<div class="math-display">\[\det(A - \lambda I) = (3 - \lambda)^2 \;\Longrightarrow\; \lambda = 3, 3\]</div>
+
+This is a repeated eigenvalue.</p>
+<p><strong>Eigenvectors.</strong></p>
+<ul>
+<li>\(A - 3I = \begin{bmatrix} 0 &amp; 1 \\ 0 &amp; 0 \end{bmatrix}\). Its nullspace is spanned by \(x_1 = (1, 0)\).</li>
+<li>The second \(\lambda = 3\) gives the <strong>same</strong> nullspace. <strong>No second independent eigenvector exists.</strong></li>
+</ul>
+<p><strong>Name.</strong> Such a matrix is called <strong>degenerate</strong>.</p>
+<ul>
+<li>It is \(2\times2\) but has only <strong>one line</strong> of eigenvectors.</li>
+<li>A repeated eigenvalue opens the possibility of a <strong>shortage of eigenvectors</strong>.</li>
+<li>The next lecture handles the good case, where there are enough eigenvectors.</li>
+</ul>
+<hr />
+<h2>Summary of examples</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Matrix</th>
+<th>Eigenvalues</th>
+<th>Eigenvectors</th>
+<th>Lesson</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Projection \(P\)</td>
+<td>\(1, 0\)</td>
+<td>the plane; the perpendicular line</td>
+<td>\(\lambda = 0\) gives the nullspace</td>
+</tr>
+<tr>
+<td>\(\begin{bmatrix} 0&amp;1\\1&amp;0\end{bmatrix}\)</td>
+<td>\(1, -1\)</td>
+<td>\((1,1)\), \((-1,1)\)</td>
+<td>trace check</td>
+</tr>
+<tr>
+<td>\(\begin{bmatrix} 3&amp;1\\1&amp;3\end{bmatrix}\)</td>
+<td>\(4, 2\)</td>
+<td>\((1,1)\), \((-1,1)\)</td>
+<td>adding \(3I\) shifts \(\lambda\) by 3; symmetric gives real \(\lambda\) and perpendicular \(x\)</td>
+</tr>
+<tr>
+<td>\(\begin{bmatrix} 0&amp;-1\\1&amp;0\end{bmatrix}\)</td>
+<td>\(i, -i\)</td>
+<td>complex</td>
+<td>rotations give complex \(\lambda\)</td>
+</tr>
+<tr>
+<td>\(\begin{bmatrix} 3&amp;1\\0&amp;3\end{bmatrix}\)</td>
+<td>\(3, 3\)</td>
+<td>only \((1,0)\)</td>
+<td>repeated \(\lambda\) can mean too few eigenvectors</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Big ideas from Lecture 21</h2>
+<ol>
+<li><strong>\(Ax = \lambda x\):</strong> eigenvectors keep their direction, and \(\lambda\) is the stretching factor.</li>
+<li><strong>Method:</strong> solve \(\det(A - \lambda I) = 0\) for \(\lambda\), then find \(N(A - \lambda I)\) for \(x\).</li>
+<li><strong>Checks:</strong> the sum of the eigenvalues is the trace, and the product is the determinant.</li>
+<li><strong>Shift:</strong> \(A + cI\) has the same eigenvectors and eigenvalues \(\lambda + c\). There is no such rule for \(A + B\) or \(AB\) in general.</li>
+<li><strong>Special structure:</strong>
+<ul>
+<li>Triangular matrices have their eigenvalues on the diagonal.</li>
+<li>Symmetric matrices have real eigenvalues and perpendicular eigenvectors.</li>
+<li>Antisymmetric matrices have imaginary eigenvalues.</li>
+</ul>
+</li>
+<li><strong>Two failure modes:</strong> complex eigenvalues, and missing eigenvectors when an eigenvalue repeats.</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-20.html"><small>Previous</small>L20 · Cramer's Rule, Inverse Matrix, and Volume</a><a class="next" href="lecture-22.html"><small>Next</small>L22 · Diagonalization and Powers of \(A\)</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 5: Transposes, Permutations, Vector Spaces $\mathbb{R}^n$ · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li class="current"><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 6 / 37</p><h1>Lecture 5: Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Two parts:</strong></p>
+<ol>
+<li>Finishing Chapter 2: row exchanges (\(PA = LU\)), transposes, and symmetric matrices.</li>
+<li>Starting Chapter 3: <strong>vector spaces and subspaces</strong>. Strang calls this the beginning of &quot;real&quot; linear algebra.</li>
+</ol>
+<hr />
+<h2>Part 1: Finishing elimination</h2>
+<h3>\(PA = LU\): elimination with row exchanges</h3>
+<p><strong>When row exchanges are needed.</strong> \(A = LU\) assumes no row exchanges. If a zero appears in a pivot position, rows must be swapped.</p>
+<p><strong>The general factorization.</strong> Do all the needed row exchanges first, using a permutation matrix \(P\). After that, elimination runs cleanly:
+<div class="math-display">\[PA = LU\]</div>
+</p>
+<p><strong>Scope.</strong> This holds for <strong>every invertible \(A\)</strong>. Most matrices need no exchanges, so \(P = I\). A few do need them.</p>
+<p><strong>What MATLAB does in practice.</strong> It exchanges rows not only for a zero pivot but also for a <strong>small</strong> pivot, because tiny pivots cause numerical error. Algebra doesn't require these exchanges, but accuracy does. (This is called partial pivoting.)</p>
+<h3>Permutation matrices: recap</h3>
+<ul>
+<li><strong>Definition:</strong> \(P\) is the identity matrix with its rows reordered. The identity itself counts.</li>
+<li><strong>Count:</strong> there are \(n!\) permutation matrices of size \(n \times n\). That is 6 for \(n=3\), 24 for \(n=4\), and 120 for \(n=5\).</li>
+<li><strong>Inverse:</strong> \(P^{-1} = P^\top\), which is the same statement as \(P^\top P = I\).</li>
+<li><strong>Preview:</strong> matrices with \(Q^\top Q = I\) will be important later (orthogonal matrices). Permutations are a small special family inside that group.</li>
+</ul>
+<h3>Transposes</h3>
+<p><strong>Definition.</strong> Flip the matrix across its main diagonal, so rows become columns:
+<div class="math-display">\[(A^\top)_{ij} = A_{ji}\]</div>
+</p>
+<p><strong>Example.</strong> A \(3\times 2\) matrix becomes \(2 \times 3\):
+<div class="math-display">\[\begin{bmatrix} 1 &amp; 3 \\ 2 &amp; 3 \\ 4 &amp; 1 \end{bmatrix}^\top = \begin{bmatrix} 1 &amp; 2 &amp; 4 \\ 3 &amp; 3 &amp; 1 \end{bmatrix}\]</div>
+
+MATLAB writes the transpose with a prime: <code>A'</code>.</p>
+<h3>Symmetric matrices</h3>
+<p><strong>Definition.</strong> \(A^\top = A\), so entry \(a_{ij}\) equals entry \(a_{ji}\). The matrix is a mirror image across its diagonal. For example, entries 1, 7, 9 above the diagonal must appear again below it in the mirrored positions:
+<div class="math-display">\[\begin{bmatrix} 3 &amp; 1 &amp; 7 \\ 1 &amp; 2 &amp; 9 \\ 7 &amp; 9 &amp; 4 \end{bmatrix}\]</div>
+</p>
+<p><strong>Where symmetric matrices come from.</strong> For any rectangular \(R\), the product <strong>\(R^\top R\) is always symmetric</strong>. So is \(RR^\top\).</p>
+<p><strong>Numerical example.</strong> With the \(3\times 2\) matrix \(R\) above, Strang multiplies the \(3\times 2\) matrix by its \(2\times 3\) transpose:
+<div class="math-display">\[\begin{bmatrix} 1 &amp; 3 \\ 2 &amp; 3 \\ 4 &amp; 1 \end{bmatrix}\begin{bmatrix} 1 &amp; 2 &amp; 4 \\ 3 &amp; 3 &amp; 1 \end{bmatrix} = \begin{bmatrix} 10 &amp; 11 &amp; 7 \\ 11 &amp; 13 &amp; 11 \\ 7 &amp; 11 &amp; 17 \end{bmatrix}\]</div>
+</p>
+<p>The 11 appears in both (1,2) and (2,1), because \((1,3)\cdot(2,3) = (2,3)\cdot(1,3)\). Strang loosely calls this product &quot;\(R^\top R\)&quot;. Strictly, with this \(R\) it is \(RR^\top\), but the symmetry argument is identical for both.</p>
+<p><strong>Proof in two lines.</strong> Transpose the product and check that nothing changes:
+<div class="math-display">\[(R^\top R)^\top = R^\top (R^\top)^\top = R^\top R\]</div>
+</p>
+<p>Strang notes that this is where symmetric matrices come from in many applications.</p>
+<hr />
+<h2>Part 2: Vector spaces and subspaces</h2>
+<h3>What a vector space is</h3>
+<p><strong>The two operations.</strong> You can do two things with vectors:</p>
+<ol>
+<li><strong>Add</strong> them: \(v + w\).</li>
+<li><strong>Multiply</strong> them by scalars: \(cv\).</li>
+</ol>
+<p><strong>Definition.</strong> A <strong>vector space</strong> is a set of vectors that is <strong>closed under linear combinations</strong>. Any combination \(cv + dw\) of vectors in the set stays in the set.</p>
+<p><strong>The eight rules.</strong> The book lists eight rules that addition and scalar multiplication must obey, such as commutativity and distributivity. In practice these are rarely in doubt. <strong>Closure is the real test.</strong></p>
+<h3>The examples \(\mathbb{R}^n\)</h3>
+<p><strong>\(\mathbb{R}^2\):</strong> all vectors with 2 real components, such as \((3,2)\), \((0,0)\), \((\pi, e)\). It is pictured as the \(xy\)-plane.</p>
+<p><strong>\(\mathbb{R}^3\):</strong> all vectors with 3 real components. For example, \((3, 2, 0)\) is in \(\mathbb{R}^3\), not \(\mathbb{R}^2\). Having a zero component doesn't change which space a vector lives in.</p>
+<p><strong>\(\mathbb{R}^n\):</strong> all column vectors with \(n\) real components. Complex vectors come much later in the course.</p>
+<p><strong>Every vector space contains the zero vector.</strong> Multiplying any vector by 0 must stay in the space. So must adding \(v\) and \(-v\).</p>
+<p><strong>A non-example.</strong> Removing the origin from \(\mathbb{R}^2\) breaks closure.</p>
+<h3>Non-example: the first quadrant</h3>
+<p>Take all vectors in \(\mathbb{R}^2\) with both components \(\geq 0\).</p>
+<ul>
+<li><strong>Addition works:</strong> the sum of two such vectors stays in the quadrant.</li>
+<li><strong>Scalar multiplication fails:</strong> \(-5 \cdot (3,2) = (-15,-10)\) falls outside.</li>
+</ul>
+<p>So this set is <strong>not closed under multiplication by all real numbers</strong>, and it is not a vector space.</p>
+<h3>Subspaces</h3>
+<p><strong>Definition.</strong> A <strong>subspace</strong> is a vector space that sits inside a larger one. It is closed under addition and scalar multiplication.</p>
+<p><strong>Building one from a single vector.</strong> If a subspace contains a nonzero vector \(v\), it must contain every multiple \(cv\), including \(2v\), \(\tfrac12 v\), \(-v\), and \(0\). So it contains the <strong>whole line through \(v\)</strong>.</p>
+<p><strong>Lines must pass through the origin.</strong> A line that misses the origin is not a subspace, because \(0 \cdot v\) would fall off the line.</p>
+<p><strong>Every subspace contains \(0\).</strong></p>
+<h3>All subspaces of \(\mathbb{R}^2\)</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Subspace</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(\mathbb{R}^2\) itself</td>
+<td>The whole plane</td>
+</tr>
+<tr>
+<td>Any line \(L\) through \((0,0)\)</td>
+<td>One-dimensional</td>
+</tr>
+<tr>
+<td>\(Z = \{(0,0)\}\)</td>
+<td>The zero vector alone, the smallest subspace</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>A line in \(\mathbb{R}^2\) is not \(\mathbb{R}^1\).</strong> It looks similar, but its vectors have 2 components, not 1.</p>
+<p><strong>Why \(\{0\}\) qualifies.</strong> \(0 + 0 = 0\) and \(17 \cdot 0 = 0\), so the operations never leave it.</p>
+<h3>All subspaces of \(\mathbb{R}^3\)</h3>
+<ol>
+<li>All of \(\mathbb{R}^3\)</li>
+<li>Any plane through the origin</li>
+<li>Any line through the origin</li>
+<li>\(\{0\}\) alone</li>
+</ol>
+<hr />
+<h2>The column space \(C(A)\)</h2>
+<p>This is the first important subspace that comes from a matrix.</p>
+<p><strong>Example:</strong>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 3 \\ 2 &amp; 3 \\ 4 &amp; 1 \end{bmatrix}\]</div>
+
+The columns \((1,2,4)\) and \((3,3,1)\) are vectors in \(\mathbb{R}^3\).</p>
+<p><strong>Why the columns alone are not enough.</strong> Two vectors by themselves do not form a subspace. For closure, you must include:</p>
+<ul>
+<li>\(0\)</li>
+<li>their sum \((4,5,5)\)</li>
+<li>every combination \(c_1\,\text{col}_1 + c_2\,\text{col}_2\)</li>
+</ul>
+<p><strong>Definition.</strong> The <strong>column space</strong> \(C(A)\) is the set of <strong>all linear combinations of the columns of \(A\)</strong>. It is automatically a subspace.</p>
+<p><strong>Geometry.</strong></p>
+<ul>
+<li>All combinations of two independent vectors in \(\mathbb{R}^3\) fill a <strong>plane through the origin</strong>. Both lines fill out, and so does everything between them.</li>
+<li>If the two columns had been on the same line, \(C(A)\) would only be that line.</li>
+</ul>
+<p><strong>Higher dimensions.</strong> Take 5 vectors in \(\mathbb{R}^{10}\). Their combinations form some subspace of \(\mathbb{R}^{10}\), at most five-dimensional and passing through the origin. It is not \(\mathbb{R}^5\), because the vectors have 10 components. Its actual dimension depends on the vectors. For example, if all 5 lie on one line, you get only that line.</p>
+<p><strong>Preview for Lecture 6:</strong> understanding \(Ax = b\) in terms of column spaces, and meeting other subspaces such as the null space.</p>
+<hr />
+<h2>Big ideas from Lecture 5</h2>
+<ol>
+<li><strong>\(PA = LU\)</strong> is elimination in its general form, covering any invertible \(A\). \(P\) puts the rows in an order where no zero pivots appear.</li>
+<li><strong>Permutations:</strong> there are \(n!\) of them, and \(P^{-1} = P^\top\).</li>
+<li><strong>Transpose:</strong> \((A^\top)_{ij} = A_{ji}\), and \((AB)^\top = B^\top A^\top\).</li>
+<li><strong>Symmetric:</strong> \(A^\top = A\). The product \(R^\top R\) is always symmetric.</li>
+<li><strong>Vector space:</strong> a set closed under addition and scalar multiplication. It always contains \(0\).</li>
+<li><strong>Subspace:</strong> a vector space inside another one. In \(\mathbb{R}^3\) these are the whole space, planes through 0, lines through 0, and \(\{0\}\).</li>
+<li><strong>Column space \(C(A)\):</strong> all combinations of the columns of \(A\), which is a subspace of \(\mathbb{R}^m\).</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="lecture-04.html"><small>Previous</small>L4 · Factorization into \(A = LU\)</a><a class="next" href="lecture-06.html"><small>Next</small>L6 · Column Space and Nullspace</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

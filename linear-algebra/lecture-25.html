@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 25: Symmetric Matrices and Positive Definiteness · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li class="current"><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 27 / 37</p><h1>Lecture 25: Symmetric Matrices and Positive Definiteness</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW.</p><article class="post"><p><strong>Why this lecture matters.</strong> Symmetric matrices (\(A = A^\top\)) are the most important class of matrices. This lecture covers:</p>
+<ol>
+<li>What symmetry guarantees about eigenvalues and eigenvectors.</li>
+<li>The <strong>spectral theorem</strong>.</li>
+<li>Pivots and eigenvalues have the same signs.</li>
+<li>A first look at <strong>positive definite</strong> matrices.</li>
+</ol>
+<hr />
+<h2>1. The two main facts</h2>
+<p>For a <strong>real symmetric</strong> matrix \(A\):</p>
+<ol>
+<li><strong>All eigenvalues are real.</strong> The complex eigenvalues seen for rotation matrices cannot occur.</li>
+<li><strong>The eigenvectors are perpendicular.</strong> More precisely, they <strong>can be chosen</strong> perpendicular.</li>
+</ol>
+<p><strong>Why &quot;can be chosen&quot;.</strong></p>
+<ul>
+<li>If all eigenvalues are distinct, each has one line of eigenvectors, and these lines are automatically perpendicular.</li>
+<li>If an eigenvalue repeats, it has a whole plane (or larger space) of eigenvectors. You are free to choose perpendicular ones inside it.</li>
+<li>Example: for \(A = I\), every vector is an eigenvector, so &quot;the eigenvectors are perpendicular&quot; only makes sense as &quot;you can pick perpendicular ones&quot;.</li>
+</ul>
+<p><strong>A full set always exists.</strong> A symmetric matrix always has a complete set of orthogonal eigenvectors. It is never deficient the way \(\begin{bmatrix} 3 &amp; 1 \\ 0 &amp; 3\end{bmatrix}\) was.</p>
+<hr />
+<h2>2. The spectral theorem</h2>
+<p><strong>The usual case.</strong> A diagonalizable matrix factors as \(A = S\Lambda S^{-1}\).</p>
+<p><strong>The symmetric case.</strong></p>
+<ul>
+<li>Normalize the perpendicular eigenvectors to length 1. They are now <strong>orthonormal</strong>.</li>
+<li>So \(S\) becomes an orthogonal matrix \(Q\).</li>
+<li>For an orthogonal matrix, \(Q^{-1} = Q^\top\).</li>
+</ul>
+<div class="math-display">\[\boxed{A = Q\Lambda Q^\top}\]</div>
+<p><strong>The converse is immediate.</strong> Any matrix of the form \(Q\Lambda Q^\top\) is symmetric:
+<div class="math-display">\[(Q\Lambda Q^\top)^\top = Q\Lambda^\top Q^\top = Q\Lambda Q^\top\]</div>
+</p>
+<p><strong>Names.</strong></p>
+<ul>
+<li>In mathematics this is the <strong>spectral theorem</strong>. The &quot;spectrum&quot; is the set of eigenvalues, by analogy with light splitting into pure colors.</li>
+<li>In mechanics it is the <strong>principal axis theorem</strong>. In the right coordinate axes, the matrix becomes diagonal and the directions don't couple.</li>
+</ul>
+<h3>As a sum of projections</h3>
+<p>Multiply out \(Q\Lambda Q^\top\) column times row:
+<div class="math-display">\[A = \lambda_1 q_1q_1^\top + \lambda_2 q_2q_2^\top + \cdots + \lambda_n q_nq_n^\top\]</div>
+</p>
+<p><strong>Each piece \(q_iq_i^\top\) is a projection matrix.</strong> It projects onto the line through the unit vector \(q_i\).</p>
+<ul>
+<li>It is symmetric.</li>
+<li>It satisfies \((q_iq_i^\top)^2 = q_i(q_i^\top q_i)q_i^\top = q_iq_i^\top\), because \(q_i^\top q_i = 1\).</li>
+</ul>
+<blockquote>
+<p><strong>Every symmetric matrix is a combination of mutually perpendicular projection matrices, weighted by its eigenvalues.</strong></p>
+</blockquote>
+<hr />
+<h2>3. Proof that the eigenvalues are real</h2>
+<p><strong>Start from what we know.</strong> \(Ax = \lambda x\). For now, \(\lambda\) and \(x\) might be complex.</p>
+<p><strong>Step 1. Take complex conjugates.</strong> Since \(A\) is real, \(\bar{A} = A\):
+<div class="math-display">\[A\bar{x} = \bar{\lambda}\bar{x}\]</div>
+</p>
+<p><strong>Side fact.</strong> This already shows that for any real matrix, complex eigenvalues come in <strong>conjugate pairs</strong> \(\lambda, \bar\lambda\), with eigenvectors \(x, \bar{x}\).</p>
+<p><strong>Step 2. Transpose, then use symmetry.</strong> Transposing gives \(\bar{x}^\top A^\top = \bar\lambda\bar{x}^\top\). Since \(A^\top = A\):
+<div class="math-display">\[\bar{x}^\top A = \bar\lambda\,\bar{x}^\top\]</div>
+
+This is the <strong>only place symmetry is used</strong>.</p>
+<p><strong>Step 3. Form the same scalar two ways.</strong></p>
+<ul>
+<li>Multiply \(Ax = \lambda x\) on the left by \(\bar{x}^\top\):
+<div class="math-display">\[\bar{x}^\top Ax = \lambda\,\bar{x}^\top x\]</div>
+</li>
+<li>Multiply \(\bar{x}^\top A = \bar\lambda\bar{x}^\top\) on the right by \(x\):
+<div class="math-display">\[\bar{x}^\top Ax = \bar\lambda\,\bar{x}^\top x\]</div>
+</li>
+</ul>
+<p><strong>Step 4. Compare.</strong> The left sides are identical, so
+<div class="math-display">\[\lambda\,\bar{x}^\top x = \bar\lambda\,\bar{x}^\top x\]</div>
+</p>
+<p><strong>Step 5. Cancel \(\bar{x}^\top x\).</strong> This is allowed because it is positive:
+<div class="math-display">\[\bar{x}^\top x = |x_1|^2 + \cdots + |x_n|^2 &gt; 0 \quad\text{for } x \neq 0\]</div>
+
+Each term is \((a - ib)(a + ib) = a^2 + b^2\), so the imaginary parts cancel.</p>
+<p><strong>Conclusion.</strong> \(\lambda = \bar\lambda\), so <strong>\(\lambda\) is real</strong>.</p>
+<h3>Length of a complex vector</h3>
+<p><strong>The right definition.</strong> For a complex vector, the squared length is \(\bar{x}^\top x\), <strong>not</strong> \(x^\top x\). You must conjugate one factor to get a real, positive length. The next lecture develops this.</p>
+<h3>Complex matrices</h3>
+<p><strong>Where the proof breaks.</strong> If \(A\) is complex, Step 2 produces \(\bar{A}^\top\) instead of \(A\).</p>
+<p><strong>The fix.</strong> The proof goes through when
+<div class="math-display">\[\bar{A}^\top = A\]</div>
+
+These are <strong>Hermitian</strong> matrices. They are the complex analogue of symmetric matrices, with real eigenvalues and perpendicular eigenvectors.</p>
+<p><strong>For real matrices,</strong> conjugation does nothing, so the condition is just \(A^\top = A\).</p>
+<h3>Perpendicular eigenvectors (Strang leaves this to the book)</h3>
+<p>Here is the standard short proof. Suppose \(Ax_1 = \lambda_1x_1\) and \(Ax_2 = \lambda_2x_2\) with \(\lambda_1 \neq \lambda_2\). Compute \(x_2^\top Ax_1\) two ways:
+<div class="math-display">\[\lambda_1\,x_2^\top x_1 = x_2^\top Ax_1 = (Ax_2)^\top x_1 = \lambda_2\,x_2^\top x_1\]</div>
+
+The middle step uses \(A = A^\top\). So \((\lambda_1 - \lambda_2)\,x_2^\top x_1 = 0\), and since \(\lambda_1 \neq \lambda_2\), we get \(x_2^\top x_1 = 0\).</p>
+<hr />
+<h2>4. Signs of pivots = signs of eigenvalues</h2>
+<p><strong>Computing eigenvalues is hard.</strong></p>
+<ul>
+<li>For a \(50 \times 50\) matrix, finding the roots of the degree-50 polynomial \(\det(A - \lambda I)\) is <strong>numerically unstable</strong>. MATLAB can do it, but the results are unreliable.</li>
+<li>Strang admits this is the method he taught. It is fine for \(2\times2\) and \(3\times3\) only.</li>
+<li>Real eigenvalue algorithms are a separate subject in numerical linear algebra.</li>
+</ul>
+<p><strong>Pivots are easy.</strong> Elimination finds them quickly and stably.</p>
+<blockquote>
+<p><strong>For a symmetric matrix:</strong> the number of positive pivots equals the number of positive eigenvalues, and the number of negative pivots equals the number of negative eigenvalues.</p>
+</blockquote>
+<p>This assumes elimination runs without row exchanges. Example: if 28 pivots are positive and 22 negative, then exactly 28 eigenvalues are positive and 22 negative.</p>
+<h3>Counting eigenvalues above a threshold</h3>
+<ol>
+<li>Shift the matrix: \(A - 7I\). This lowers every eigenvalue by 7.</li>
+<li>Count the positive pivots of \(A - 7I\).</li>
+<li>That count is the number of eigenvalues of \(A\) <strong>above 7</strong>.</li>
+</ol>
+<p>Repeating this narrows down where the eigenvalues lie. It is the start of a real algorithm.</p>
+<h3>Pivots are not eigenvalues</h3>
+<p><strong>What they share.</strong> Only the product: both equal \(\det A\), provided there are no row exchanges.</p>
+<p><strong>What they don't share.</strong> The individual values are different. Only their <strong>signs</strong> match, one for one in count.</p>
+<hr />
+<h2>5. Positive definite matrices</h2>
+<p><strong>Definition.</strong> A <strong>positive definite</strong> matrix is a <strong>symmetric</strong> matrix whose eigenvalues are <strong>all positive</strong>.</p>
+<p><strong>Strang's ranking.</strong> If symmetric matrices are good, positive definite matrices are &quot;excellent&quot;.</p>
+<h3>Equivalent tests (for symmetric \(A\))</h3>
+<ol>
+<li><strong>All eigenvalues \(&gt; 0\).</strong></li>
+<li><strong>All pivots \(&gt; 0\).</strong> This follows from Section 4.</li>
+<li><strong>All upper-left determinants \(&gt; 0\).</strong> These are the determinants of the \(1\times1\), \(2\times2\), …, \(n\times n\) submatrices in the top-left corner.</li>
+</ol>
+<h3>Example</h3>
+<div class="math-display">\[A = \begin{bmatrix} 5 &amp; 2 \\ 2 &amp; 3 \end{bmatrix}\]</div>
+<p><strong>Pivots.</strong></p>
+<ul>
+<li>The first pivot is \(5\).</li>
+<li>The determinant is \(15 - 4 = 11\). Since the product of the pivots is the determinant, the second pivot is \(11/5\).</li>
+<li>Both are positive, so \(A\) is positive definite.</li>
+</ul>
+<p><strong>Eigenvalues, as confirmation.</strong>
+<div class="math-display">\[\lambda^2 - 8\lambda + 11 = 0 \;\Rightarrow\; \lambda = 4 \pm \sqrt5 \approx 6.24,\; 1.76\]</div>
+
+Both are positive, as predicted.</p>
+<p><strong>Which test is easier.</strong> The pivots are clean numbers. The eigenvalues involve \(\sqrt5\).</p>
+<h3>Why the whole determinant is not enough</h3>
+<div class="math-display">\[B = \begin{bmatrix} -1 &amp; 0 \\ 0 &amp; -3 \end{bmatrix}\]</div>
+<ul>
+<li>\(\det B = 3 &gt; 0\), so the full determinant passes.</li>
+<li>But the pivots and eigenvalues are \(-1\) and \(-3\). Both are negative, so \(B\) is <strong>not</strong> positive definite.</li>
+<li>The \(1\times1\) upper-left determinant is \(-1 &lt; 0\), so test 3 correctly rejects \(B\).</li>
+</ul>
+<p><strong>The lesson.</strong> You must check <strong>all \(n\)</strong> upper-left determinants, not just the last one.</p>
+<p><strong>Coming next lecture.</strong> The energy test \(x^\top Ax &gt; 0\).</p>
+<hr />
+<h2>The course comes together</h2>
+<p>For symmetric matrices, the three main ideas of the course connect:</p>
+<ul>
+<li><strong>pivots</strong>, from the first weeks,</li>
+<li><strong>determinants</strong>, from the middle of the course,</li>
+<li><strong>eigenvalues</strong>, from the most recent lectures.</li>
+</ul>
+<p>All three tell the same story about positive definiteness. The final lectures connect them for general \(n\times n\) matrices.</p>
+<hr />
+<h2>Big ideas from Lecture 25</h2>
+<ol>
+<li><strong>Symmetric</strong> (\(A = A^\top\)) implies <strong>real eigenvalues</strong> and <strong>orthogonal eigenvectors</strong>, with a full set always available.</li>
+<li><strong>Spectral theorem:</strong> \(A = Q\Lambda Q^\top = \sum_i \lambda_i q_iq_i^\top\), a weighted sum of perpendicular projections.</li>
+<li><strong>Proof of real eigenvalues:</strong> compare \(\bar{x}^\top Ax\) computed two ways, and use \(\bar{x}^\top x &gt; 0\).</li>
+<li><strong>Complex vectors and matrices:</strong> length squared is \(\bar{x}^\top x\). The complex analogue of symmetric is \(\bar{A}^\top = A\) (Hermitian).</li>
+<li><strong>Signs of pivots match signs of eigenvalues</strong> for symmetric matrices. This gives a cheap way to count positive and negative eigenvalues.</li>
+<li><strong>Positive definite</strong> means symmetric with all \(\lambda &gt; 0\). Equivalently, all pivots \(&gt; 0\), or all upper-left determinants \(&gt; 0\).</li>
+</ol>
+<p><strong>Connection to your first question.</strong> This is exactly the theorem behind PCA. The covariance matrix \(C = \frac1n X^\top X\) is symmetric, so \(C = Q\Lambda Q^\top\) with orthonormal principal directions and real variances \(\lambda_i \geq 0\). The &quot;sum of projections&quot; form \(\sum\lambda_iq_iq_i^\top\) is what gets truncated when you keep only the top \(k\) components.</p>
+</article>
+<nav class="pager"><a class="prev" href="lecture-24b.html"><small>Previous</small>L24b · Quiz 2 Review</a><a class="next" href="lecture-26.html"><small>Next</small>L26 · Complex Matrices; Fast Fourier Transform</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

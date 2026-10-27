@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 1: The Geometry of Linear Equations · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li class="current"><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 2 / 37</p><h1>Lecture 1: The Geometry of Linear Equations</h1><p class="source-note">This summary is based on the lecture's transcript on MIT OCW. The 2010 OCW course uses lectures recorded in Fall 1999.</p><article class="post"><p><strong>Core problem:</strong> Solve \(n\) linear equations in \(n\) unknowns, written as \(Ax = b\).</p>
+<p>Strang presents three ways to view this problem:</p>
+<ol>
+<li><strong>Row picture</strong>: one equation at a time.</li>
+<li><strong>Column picture</strong>: one column at a time. He marks this as the most important view.</li>
+<li><strong>Matrix form</strong>: \(Ax = b\).</li>
+</ol>
+<hr />
+<h2>1. The 2×2 example</h2>
+<p><strong>System:</strong>
+<div class="math-display">\[2x - y = 0, \qquad -x + 2y = 3\]</div>
+</p>
+<p><strong>Matrix form:</strong>
+<div class="math-display">\[A = \begin{bmatrix} 2 &amp; -1 \\ -1 &amp; 2 \end{bmatrix}, \quad x = \begin{bmatrix} x \\ y \end{bmatrix}, \quad b = \begin{bmatrix} 0 \\ 3 \end{bmatrix}\]</div>
+</p>
+<h3>Row picture</h3>
+<p>Each equation is a line in the \(xy\)-plane.</p>
+<ul>
+<li><strong>First line, \(2x - y = 0\):</strong> It passes through the origin, because the right side is 0. It also passes through \((1, 2)\) and \((\tfrac12, 1)\).</li>
+<li><strong>Second line, \(-x + 2y = 3\):</strong> It does not pass through the origin. It goes through \((-3, 0)\) and \((-1, 1)\).</li>
+<li><strong>Solution:</strong> The two lines meet at \((x, y) = (1, 2)\). Check in the second equation: \(-1 + 4 = 3\).</li>
+</ul>
+<p>Strang notes the word &quot;linear&quot; contains &quot;line&quot;: a linear equation in two unknowns graphs as a line.</p>
+<h3>Column picture (the key idea)</h3>
+<p>Rewrite the system as a combination of the columns of \(A\):</p>
+<div class="math-display">\[x \begin{bmatrix} 2 \\ -1 \end{bmatrix} + y \begin{bmatrix} -1 \\ 2 \end{bmatrix} = \begin{bmatrix} 0 \\ 3 \end{bmatrix}\]</div>
+<p>The problem now asks: <strong>which linear combination of the columns produces \(b\)?</strong> Strang calls linear combination the most fundamental operation of the whole course.</p>
+<ul>
+<li><strong>Drawing it:</strong> Draw column 1, which is \((2, -1)\). Attach two copies of column 2, \((-1, 2)\), head to tail. You land on \((0, 3)\).</li>
+<li><strong>Checking it:</strong> First component: \(2 - 2 = 0\). Second component: \(-1 + 4 = 3\).</li>
+</ul>
+<p><strong>Preview question:</strong> What do <em>all</em> combinations of these two columns produce? For this matrix, they fill the whole plane, so every right-hand side \(b\) is reachable.</p>
+<hr />
+<h2>2. The 3×3 example</h2>
+<p><strong>System:</strong>
+<div class="math-display">\[\begin{aligned} 2x - y &amp;= 0 \\ -x + 2y - z &amp;= -1 \\ -3y + 4z &amp;= 4 \end{aligned}\]</div>
+</p>
+<div class="math-display">\[A = \begin{bmatrix} 2 &amp; -1 &amp; 0 \\ -1 &amp; 2 &amp; -1 \\ 0 &amp; -3 &amp; 4 \end{bmatrix}, \quad b = \begin{bmatrix} 0 \\ -1 \\ 4 \end{bmatrix}\]</div>
+<h3>Row picture</h3>
+<p>Each equation is now a <strong>plane</strong> in 3D.</p>
+<ul>
+<li><strong>Equation 2 as a plane:</strong> It does not pass through the origin. Points on it include \((1,0,0)\), \((0,0,1)\), and \((0,-\tfrac12,0)\).</li>
+<li><strong>Equation 1 as a plane:</strong> It has no \(z\) term, so \(z\) can be anything and the plane is vertical.</li>
+<li><strong>How the planes combine:</strong> Two planes meet in a line. The third plane cuts that line at a single point, which is the solution.</li>
+</ul>
+<p>Strang admits the row picture becomes hard to see in 3D, and harder still in higher dimensions. This is one reason he prefers the column picture.</p>
+<h3>Column picture</h3>
+<div class="math-display">\[x\begin{bmatrix} 2 \\ -1 \\ 0\end{bmatrix} + y\begin{bmatrix} -1 \\ 2 \\ -3\end{bmatrix} + z\begin{bmatrix} 0 \\ -1 \\ 4\end{bmatrix} = \begin{bmatrix} 0 \\ -1 \\ 4\end{bmatrix}\]</div>
+<p>Strang chose \(b\) on purpose to equal column 3. So the solution is visible at once:</p>
+<div class="math-display">\[(x, y, z) = (0, 0, 1)\]</div>
+<p>This is the point where the three planes meet. It was hard to find from the row picture.</p>
+<h3>Changing the right-hand side</h3>
+<p>Now take \(b = \text{col}_1 + \text{col}_2 = (1, 1, -3)\). The solution becomes \((x, y, z) = (1, 1, 0)\).</p>
+<ul>
+<li><strong>Row picture:</strong> There are three <em>new</em> planes, because each equation's right side changed.</li>
+<li><strong>Column picture:</strong> The <em>same</em> three columns are combined differently.</li>
+</ul>
+<p>This shows an advantage of the column view: the columns stay fixed when only \(b\) changes.</p>
+<h3>Systematic solution method</h3>
+<p>In general, you won't spot the answer by inspection. <strong>Elimination</strong> is the systematic method used by all serious software, and it is the topic of Lecture 2.</p>
+<hr />
+<h2>3. The central question: can we solve \(Ax = b\) for every \(b\)?</h2>
+<p><strong>In column language:</strong> Do the linear combinations of the columns fill all of 3D space?</p>
+<p><strong>For this \(A\): yes.</strong> Strang calls such a matrix <strong>non-singular</strong> or <strong>invertible</strong>, and these are the &quot;good&quot; matrices.</p>
+<p><strong>When the answer is no:</strong></p>
+<ul>
+<li><strong>Columns in a plane:</strong> If the three columns lie in the same plane, every combination also lies in that plane. Example: column 3 equals column 1 plus column 2.</li>
+<li><strong>Effect on \(b\):</strong> Only right-hand sides \(b\) inside that plane can be reached. Most \(b\) cannot.</li>
+<li><strong>Name:</strong> This is the <strong>singular</strong> case. The matrix is not invertible.</li>
+</ul>
+<p><strong>Higher dimensions (9×9):</strong></p>
+<ul>
+<li><strong>Setup:</strong> A 9×9 matrix has nine columns, each a vector in 9-dimensional space. Solving \(Ax=b\) means finding the right combination of those columns.</li>
+<li><strong>Random matrices:</strong> A randomly chosen matrix, such as one from MATLAB's random command, is almost surely invertible, so its columns fill all of 9-dimensional space.</li>
+<li><strong>Dependent columns:</strong> If column 9 duplicates column 8, it adds nothing new. The combinations then fill only an <strong>8-dimensional &quot;plane&quot; inside 9-dimensional space</strong>.</li>
+<li><strong>Strang's point:</strong> You can't truly visualize this, but with practice you learn to reason about it. Such lower-dimensional planes become central later in the course.</li>
+</ul>
+<hr />
+<h2>4. Matrix times vector: two ways</h2>
+<p><strong>Example:</strong>
+<div class="math-display">\[\begin{bmatrix} 2 &amp; 5 \\ 1 &amp; 3 \end{bmatrix}\begin{bmatrix} 1 \\ 2 \end{bmatrix}\]</div>
+</p>
+<p><strong>By columns (Strang's preferred way):</strong> Take 1 of column 1 plus 2 of column 2.
+<div class="math-display">\[1\begin{bmatrix} 2 \\ 1\end{bmatrix} + 2\begin{bmatrix} 5 \\ 3\end{bmatrix} = \begin{bmatrix} 12 \\ 7\end{bmatrix}\]</div>
+</p>
+<p><strong>By rows:</strong> Take the dot product of each row with the vector.</p>
+<ul>
+<li>Row 1: \((2,5)\cdot(1,2) = 2 + 10 = 12\)</li>
+<li>Row 2: \((1,3)\cdot(1,2) = 1 + 6 = 7\)</li>
+</ul>
+<p><strong>Key takeaway:</strong> <strong>\(Ax\) is a linear combination of the columns of \(A\).</strong> Strang wants this to be the default way you think about matrix–vector multiplication.</p>
+<p>As a consequence, if \(b = (12, 7)\), the solution of \(Ax = b\) is \(x = (1, 2)\).</p>
+<hr />
+<h2>Big ideas from Lecture 1</h2>
+<ol>
+<li><strong>Three views:</strong> Row picture (lines or planes intersecting), column picture (combining columns), and matrix form.</li>
+<li><strong>The column picture matters most:</strong> Solving \(Ax = b\) means finding the combination of columns that equals \(b\).</li>
+<li><strong>Solvable for every \(b\):</strong> This holds exactly when the columns' combinations fill the whole space. Such a matrix is non-singular or invertible.</li>
+<li><strong>Singular case:</strong> If the columns are dependent (one lies in the span of the others), the combinations fill only a lower-dimensional subspace, and most \(b\) are unreachable.</li>
+<li><strong>Matrix–vector multiplication:</strong> \(Ax\) equals a combination of the columns of \(A\), weighted by the entries of \(x\).</li>
+</ol>
+</article>
+<nav class="pager"><a class="prev" href="00-pca-mlt-l5.html"><small>Previous</small>Prologue: PCA (MLT L5)</a><a class="next" href="lecture-02.html"><small>Next</small>L2 · Elimination with Matrices</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

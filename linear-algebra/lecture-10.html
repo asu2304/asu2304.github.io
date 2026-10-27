@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lecture 10: The Four Fundamental Subspaces · Ashutosh Patidar</title>
+<meta name="description" content="Lecture-by-lecture notes on MIT 18.06 Linear Algebra (Spring 2010, Prof. Gilbert Strang), read through an ML / DL / AI lens. The series opens with PCA from the IIT Madras MLT course, works through all 34 lectures in order, and closes with a condensed revision sheet.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar"><details open><summary>Linear Algebra (source: Gilbert Strang notes)</summary><ol><li><a href="00-pca-mlt-l5.html">Prologue: PCA (MLT L5)</a></li><li><a href="lecture-01.html">L1 · The Geometry of Linear Equations</a></li><li><a href="lecture-02.html">L2 · Elimination with Matrices</a></li><li><a href="lecture-03.html">L3 · Multiplication and Inverse Matrices</a></li><li><a href="lecture-04.html">L4 · Factorization into \(A = LU\)</a></li><li><a href="lecture-05.html">L5 · Transposes, Permutations, Vector Spaces \(\mathbb{R}^n\)</a></li><li><a href="lecture-06.html">L6 · Column Space and Nullspace</a></li><li><a href="lecture-07.html">L7 · Solving \(Ax = 0\): Pivot Variables, Special Solutions</a></li><li><a href="lecture-08.html">L8 · Solving \(Ax = b\): Row Reduced Form \(R\)</a></li><li><a href="lecture-09.html">L9 · Independence, Basis, and Dimension</a></li><li class="current"><a href="lecture-10.html">L10 · The Four Fundamental Subspaces</a></li><li><a href="lecture-11.html">L11 · Matrix Spaces; Rank 1; Small World Graphs</a></li><li><a href="lecture-12.html">L12 · Graphs, Networks, Incidence Matrices</a></li><li><a href="lecture-13.html">L13 · Quiz 1 Review</a></li><li><a href="lecture-14.html">L14 · Orthogonal Vectors and Subspaces</a></li><li><a href="lecture-15.html">L15 · Projections onto Subspaces</a></li><li><a href="lecture-16.html">L16 · Projection Matrices and Least Squares</a></li><li><a href="lecture-17.html">L17 · Orthogonal Matrices and Gram–Schmidt</a></li><li><a href="lecture-18.html">L18 · Properties of Determinants</a></li><li><a href="lecture-19.html">L19 · Determinant Formulas and Cofactors</a></li><li><a href="lecture-20.html">L20 · Cramer's Rule, Inverse Matrix, and Volume</a></li><li><a href="lecture-21.html">L21 · Eigenvalues and Eigenvectors</a></li><li><a href="lecture-22.html">L22 · Diagonalization and Powers of \(A\)</a></li><li><a href="lecture-23.html">L23 · Differential Equations and \(e^{At}\)</a></li><li><a href="lecture-24.html">L24 · Markov Matrices; Fourier Series</a></li><li><a href="lecture-24b.html">L24b · Quiz 2 Review</a></li><li><a href="lecture-25.html">L25 · Symmetric Matrices and Positive Definiteness</a></li><li><a href="lecture-26.html">L26 · Complex Matrices; Fast Fourier Transform</a></li><li><a href="lecture-27.html">L27 · Positive Definite Matrices and Minima</a></li><li><a href="lecture-28.html">L28 · Similar Matrices and Jordan Form</a></li><li><a href="lecture-29.html">L29 · Singular Value Decomposition</a></li><li><a href="lecture-30.html">L30 · Linear Transformations and Their Matrices</a></li><li><a href="lecture-31.html">L31 · Change of Basis; Image Compression</a></li><li><a href="lecture-32.html">L32 · Quiz 3 Review</a></li><li><a href="lecture-33.html">L33 · Left and Right Inverses; Pseudoinverse</a></li><li><a href="lecture-34.html">L34 · Final Course Review</a></li><li><a href="revision-notes.html">Revision notes &amp; formula sheet</a></li></ol></details></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">Linear Algebra (source: Gilbert Strang notes)</a> · 11 / 37</p><h1>Lecture 10: The Four Fundamental Subspaces</h1><p class="source-note">The OCW 2010 page has no transcript for this lecture, so this summary is based on the same lecture's transcript from an OCW mirror.</p><article class="post"><p><strong>Topics:</strong></p>
+<ol>
+<li>A correction to Lecture 9.</li>
+<li><strong>The four fundamental subspaces:</strong> their dimensions and how to find a basis for each.</li>
+<li>A new kind of vector space, whose &quot;vectors&quot; are matrices.</li>
+</ol>
+<hr />
+<h2>1. Correction from Lecture 9</h2>
+<p>Strang opens by fixing the error noted in the Lecture 9 summary.</p>
+<p><strong>The claim.</strong> In Lecture 9 he said \((1,1,2)\), \((2,2,5)\), \((3,3,8)\) form a basis for \(\mathbb{R}^3\).</p>
+<p><strong>Why it's wrong.</strong> After class, a student pointed out that the matrix with these columns has <strong>two identical rows</strong>, \((1,2,3)\) and \((1,2,3)\). So the matrix is not invertible, and the columns are dependent.</p>
+<p><strong>The lesson.</strong> The rows tell you something about the columns. The row space is only 2-dimensional, so the rank is 2, so only 2 of the 3 columns can be independent. This <strong>&quot;row rank = column rank&quot;</strong> connection is the main conclusion of this lecture.</p>
+<hr />
+<h2>2. The four subspaces</h2>
+<p>For an \(m \times n\) matrix \(A\):</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Subspace</th>
+<th>Notation</th>
+<th>Contains</th>
+<th>Lives in</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Column space</strong></td>
+<td>\(C(A)\)</td>
+<td>all combinations of the columns</td>
+<td>\(\mathbb{R}^m\)</td>
+</tr>
+<tr>
+<td><strong>Nullspace</strong></td>
+<td>\(N(A)\)</td>
+<td>all \(x\) with \(Ax = 0\)</td>
+<td>\(\mathbb{R}^n\)</td>
+</tr>
+<tr>
+<td><strong>Row space</strong></td>
+<td>\(C(A^\top)\)</td>
+<td>all combinations of the rows</td>
+<td>\(\mathbb{R}^n\)</td>
+</tr>
+<tr>
+<td><strong>Left nullspace</strong></td>
+<td>\(N(A^\top)\)</td>
+<td>all \(y\) with \(A^\top y = 0\)</td>
+<td>\(\mathbb{R}^m\)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why the row space is written \(C(A^\top)\).</strong> Strang prefers column vectors. Transposing \(A\) makes its rows &quot;stand up&quot; as columns, so the row space of \(A\) is the column space of \(A^\top\). No new mathematics is involved, only notation.</p>
+<p><strong>The picture:</strong></p>
+<ul>
+<li>In \(\mathbb{R}^n\) sit the <strong>row space</strong> and the <strong>nullspace</strong>.</li>
+<li>In \(\mathbb{R}^m\) sit the <strong>column space</strong> and the <strong>left nullspace</strong>.</li>
+</ul>
+<hr />
+<h2>3. Dimensions</h2>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Subspace</th>
+<th>Dimension</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(C(A)\)</td>
+<td>\(r\)</td>
+<td>the <strong>pivot columns of \(A\)</strong> (the original \(A\), not \(R\))</td>
+</tr>
+<tr>
+<td>\(C(A^\top)\)</td>
+<td>\(r\)</td>
+<td>the <strong>first \(r\) rows of \(R\)</strong></td>
+</tr>
+<tr>
+<td>\(N(A)\)</td>
+<td>\(n - r\)</td>
+<td>the <strong>special solutions</strong>, one per free variable</td>
+</tr>
+<tr>
+<td>\(N(A^\top)\)</td>
+<td>\(m - r\)</td>
+<td>the <strong>last \(m - r\) rows of \(E\)</strong>, where \(EA = R\)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>In \(\mathbb{R}^n\):</strong> \(\dim C(A^\top) + \dim N(A) = r + (n - r) = n\). This repeats the count of \(r\) pivot variables plus \(n - r\) free variables.</p>
+<p><strong>In \(\mathbb{R}^m\):</strong> \(\dim C(A) + \dim N(A^\top) = r + (m - r) = m\). This is the same rule applied to \(A^\top\), which is \(n \times m\) and so has \(m\) columns.</p>
+<blockquote>
+<p><strong>Key fact:</strong> the row space and the column space have the <strong>same dimension</strong> \(r\).</p>
+</blockquote>
+<hr />
+<h2>4. Worked example</h2>
+<div class="math-display">\[A = \begin{bmatrix} 1 &amp; 2 &amp; 3 &amp; 1 \\ 1 &amp; 1 &amp; 2 &amp; 1 \\ 1 &amp; 2 &amp; 3 &amp; 1 \end{bmatrix} \quad (m = 3,\; n = 4)\]</div>
+<h3>Row reduction to \(R\)</h3>
+<ol>
+<li>Subtract row 1 from row 2 and from row 3. Row 2 becomes \((0,-1,-1,0)\) and row 3 becomes \((0,0,0,0)\).</li>
+<li>Multiply row 2 by \(-1\). It becomes \((0,1,1,0)\).</li>
+<li>Subtract 2 × row 2 from row 1. Row 1 becomes \((1,0,1,1)\).</li>
+</ol>
+<div class="math-display">\[R = \begin{bmatrix} 1 &amp; 0 &amp; 1 &amp; 1 \\ 0 &amp; 1 &amp; 1 &amp; 0 \\ 0 &amp; 0 &amp; 0 &amp; 0 \end{bmatrix} = \begin{bmatrix} I &amp; F \\ 0 &amp; 0 \end{bmatrix}\]</div>
+<p>The rank is \(r = 2\).</p>
+<h3>What row operations preserve</h3>
+<p><strong>The column space changes.</strong> \(C(R) \neq C(A)\). For example, \((1,1,1)\) is a column of \(A\), so it is in \(C(A)\). It is not in \(C(R)\), because every column of \(R\) has third component 0.</p>
+<p><strong>The row space is preserved.</strong> \(C(R^\top) = C(A^\top)\).</p>
+<ul>
+<li>Each row operation replaces a row by a combination of rows, so the new rows stay inside the old row space.</li>
+<li>Reversing the steps rebuilds the rows of \(A\) from the rows of \(R\).</li>
+<li>So the two row spaces contain each other, which means they are equal.</li>
+</ul>
+<h3>Row space basis</h3>
+<p><strong>The basis.</strong> The nonzero rows of \(R\):
+<div class="math-display">\[(1, 0, 1, 1) \quad\text{and}\quad (0, 1, 1, 0)\]</div>
+</p>
+<p><strong>Why it is a basis.</strong></p>
+<ul>
+<li>These rows are in the row space.</li>
+<li>They are independent, because of the identity block \(I\).</li>
+<li>There are \(r\) of them, matching the dimension.</li>
+</ul>
+<p><strong>The cleanest basis.</strong> Strang calls this the &quot;best&quot; basis for the row space. It is the analog of the identity's columns as the best basis for \(\mathbb{R}^n\).</p>
+<p><strong>Use rows of \(R\), not rows of \(A\).</strong> The rows of \(A\) itself may be dependent, as they are here (row 1 equals row 3).</p>
+<h3>Left nullspace: why &quot;left&quot;</h3>
+<p><strong>The definition.</strong> \(y\) is in the left nullspace when \(A^\top y = 0\).</p>
+<p><strong>Transposing the equation.</strong> Take the transpose of both sides:
+<div class="math-display">\[y^\top A = 0^\top\]</div>
+
+Now the vector \(y\) multiplies \(A\) <strong>from the left</strong>, which explains the name.</p>
+<p><strong>What it means.</strong> A vector in \(N(A^\top)\) gives a <strong>combination of the rows of \(A\)</strong> that produces the zero row.</p>
+<h3>Finding \(N(A^\top)\) without transposing: track \(E\)</h3>
+<p><strong>The idea.</strong> Row-reduce the augmented matrix \([A \mid I_m]\):
+<div class="math-display">\[[\,A \mid I\,] \;\longrightarrow\; [\,R \mid E\,], \qquad EA = R\]</div>
+</p>
+<p>The matrix \(E\) records every row operation that took \(A\) to \(R\).</p>
+<p><strong>Comparison with Chapter 2.</strong> For a square invertible \(A\), we had \(R = I\), so \(E = A^{-1}\). For a rectangular \(A\) there is no inverse, but \(E\) still exists.</p>
+<p><strong>Applying the same steps to \(I\) gives:</strong>
+<div class="math-display">\[E = \begin{bmatrix} -1 &amp; 2 &amp; 0 \\ 1 &amp; -1 &amp; 0 \\ -1 &amp; 0 &amp; 1 \end{bmatrix}\]</div>
+</p>
+<p><strong>Check.</strong> Row 3 of \(EA\) is \(-(\text{row 1 of } A) + (\text{row 3 of } A) = 0\). This row of \(E\) produced the zero row of \(R\).</p>
+<p><strong>Basis for \(N(A^\top)\).</strong> The last \(m - r\) rows of \(E\), here \(3 - 2 = 1\) row:
+<div class="math-display">\[y = (-1, 0, 1)\]</div>
+
+This says \(-\text{row}_1 + \text{row}_3 = 0\), which you can confirm directly.</p>
+<h3>Summary for this example</h3>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Subspace</th>
+<th>Dimension</th>
+<th>Basis</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(C(A) \subset \mathbb{R}^3\)</td>
+<td>2</td>
+<td>columns 1 and 2 of \(A\): \((1,1,1)\), \((2,1,2)\)</td>
+</tr>
+<tr>
+<td>\(C(A^\top) \subset \mathbb{R}^4\)</td>
+<td>2</td>
+<td>\((1,0,1,1)\), \((0,1,1,0)\)</td>
+</tr>
+<tr>
+<td>\(N(A) \subset \mathbb{R}^4\)</td>
+<td>2</td>
+<td>special solutions \((-1,-1,1,0)\), \((-1,0,0,1)\)</td>
+</tr>
+<tr>
+<td>\(N(A^\top) \subset \mathbb{R}^3\)</td>
+<td>1</td>
+<td>\((-1, 0, 1)\)</td>
+</tr>
+</tbody>
+</table></div>
+<p>The special solutions for \(N(A)\) come from \(R\). Each one is \(-F\) in the pivot positions, with a 1 in its own free position.</p>
+<hr />
+<h2>5. A new vector space: matrices as &quot;vectors&quot;</h2>
+<p><strong>The space \(M\).</strong> Take \(M\) to be all \(3 \times 3\) matrices. It is a vector space:</p>
+<ul>
+<li>You can add two matrices.</li>
+<li>You can multiply a matrix by a scalar.</li>
+<li>The zero matrix plays the role of \(0\).</li>
+<li>All eight rules hold.</li>
+</ul>
+<p><strong>What is ignored.</strong> Matrix multiplication \(AB\) plays no role in the vector-space structure.</p>
+<p><strong>Subspaces of \(M\):</strong></p>
+<ul>
+<li>all <strong>upper triangular</strong> matrices</li>
+<li>all <strong>symmetric</strong> matrices</li>
+<li>their intersection, which is all <strong>diagonal</strong> matrices. A symmetric matrix with zeros below the diagonal must also have zeros above it.</li>
+</ul>
+<p><strong>Dimension of the diagonal matrices \(D\).</strong> It is <strong>3</strong>. One basis is three diagonal matrices, each with a single nonzero diagonal entry. Every diagonal matrix is a unique combination of them.</p>
+<p><strong>Coming next lecture:</strong> the dimensions of the upper triangular and symmetric subspaces.</p>
+<hr />
+<h2>Big ideas from Lecture 10</h2>
+<ol>
+<li><strong>The four subspaces.</strong> \(C(A)\) and \(N(A^\top)\) live in \(\mathbb{R}^m\). \(C(A^\top)\) and \(N(A)\) live in \(\mathbb{R}^n\).</li>
+<li><strong>Dimensions.</strong> They are \(r\), \(m - r\), \(r\), and \(n - r\). Within each ambient space, the dimensions add to \(m\) or to \(n\).</li>
+<li><strong>Row rank = column rank.</strong> This explains the Lecture 9 error: equal rows force dependent columns.</li>
+<li><strong>What row operations do.</strong> They preserve the row space and the nullspace. They change the column space.</li>
+<li><strong>How to get each basis:</strong>
+<ul>
+<li>\(C(A)\): pivot columns of \(A\)</li>
+<li>\(C(A^\top)\): nonzero rows of \(R\)</li>
+<li>\(N(A)\): special solutions</li>
+<li>\(N(A^\top)\): the bottom \(m - r\) rows of \(E\), from \([A \mid I] \to [R \mid E]\)</li>
+</ul>
+</li>
+<li><strong>Vector spaces beyond \(\mathbb{R}^n\).</strong> Matrices can serve as &quot;vectors&quot;. Subspaces include the symmetric, upper triangular, and diagonal matrices.</li>
+</ol>
+<hr />
+<h2>Side question: which variables can be free?</h2>
+<div class="qa-q"><span class="qa-tag">Your question</span> Why are only some variables free? Technically, couldn&#x27;t any two variables be free?</div>
+<p>You're right that the choice is not unique, but <strong>not any set of \(n-r\) variables can be free</strong>. There is a precise condition.</p>
+<h2>What &quot;free&quot; actually means</h2>
+<p>A set of variables is free if you can assign them <strong>any</strong> values and the remaining variables are then determined <strong>uniquely</strong>.</p>
+<p>Suppose you choose a set \(S\) of \(n - r\) variables to be free. Move their columns to the right-hand side:
+<div class="math-display">\[\sum_{j \notin S} x_j\,a_j = -\sum_{j \in S} x_j\,a_j\]</div>
+</p>
+<p>The remaining \(r\) columns \(\{a_j : j \notin S\}\) must solve this system for every choice of the free values. That requires two things:</p>
+<ul>
+<li><strong>Existence:</strong> a solution must exist for every right-hand side. So the remaining \(r\) columns must <strong>span \(C(A)\)</strong>.</li>
+<li><strong>Uniqueness:</strong> the solution must be unique. So the remaining \(r\) columns must be <strong>independent</strong>.</li>
+</ul>
+<p>Together:</p>
+<blockquote>
+<p><strong>A set of \(n - r\) variables can be free exactly when the other \(r\) columns form a basis for \(C(A)\).</strong></p>
+</blockquote>
+<h2>Example (the matrix from Lecture 10)</h2>
+<div class="math-display">\[a_1 = \begin{bmatrix}1\\1\\1\end{bmatrix},\; a_2 = \begin{bmatrix}2\\1\\2\end{bmatrix},\; a_3 = \begin{bmatrix}3\\2\\3\end{bmatrix},\; a_4 = \begin{bmatrix}1\\1\\1\end{bmatrix}, \qquad r = 2\]</div>
+<p>Check each choice of two free variables by asking whether the other two columns are independent:</p>
+<div class="table-wrap"><table>
+<thead>
+<tr>
+<th>Free variables</th>
+<th>Remaining columns</th>
+<th>Independent?</th>
+<th>Valid?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>\(x_3, x_4\) (the pivot convention)</td>
+<td>\(a_1, a_2\)</td>
+<td>yes</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>\(x_2, x_4\)</td>
+<td>\(a_1, a_3\)</td>
+<td>yes</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>\(x_1, x_4\)</td>
+<td>\(a_2, a_3\)</td>
+<td>yes</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>\(x_1, x_3\)</td>
+<td>\(a_2, a_4\)</td>
+<td>yes</td>
+<td>✓</td>
+</tr>
+<tr>
+<td>\(x_1, x_2\)</td>
+<td>\(a_3, a_4\)</td>
+<td>yes</td>
+<td>✓</td>
+</tr>
+<tr>
+<td><strong>\(x_2, x_3\)</strong></td>
+<td><strong>\(a_1, a_4\)</strong></td>
+<td><strong>no</strong>, since \(a_1 = a_4\)</td>
+<td><strong>✗</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why \(x_2, x_3\) fails.</strong> Set \(x_2 = 1\) and \(x_3 = 0\). You then need
+<div class="math-display">\[x_1 a_1 + x_4 a_4 = -a_2 = (-2,-1,-2)\]</div>
+
+But \(a_1 = a_4 = (1,1,1)\), so the left side is always a multiple of \((1,1,1)\). No solution exists. Even when a solution does exist, only the sum \(x_1 + x_4\) is determined, not each variable separately.</p>
+<h2>A different valid choice gives the same nullspace</h2>
+<p>Take \(x_1, x_4\) as the free variables instead.</p>
+<p><strong>First special solution.</strong> Set \((x_1, x_4) = (1, 0)\) and solve \(x_2 a_2 + x_3 a_3 = -a_1\). This gives \((1, 1, -1, 0)\).</p>
+<p><strong>Second special solution.</strong> Set \((x_1, x_4) = (0, 1)\) and solve \(x_2 a_2 + x_3 a_3 = -a_4\). This gives \((0, 1, -1, 1)\).</p>
+<p><strong>Comparison with the standard choice.</strong> The pivot convention gave \(s_1 = (-1,-1,1,0)\) and \(s_2 = (-1,0,0,1)\). The new vectors are
+<div class="math-display">\[(1,1,-1,0) = -s_1, \qquad (0,1,-1,1) = s_2 - s_1\]</div>
+
+So this is a <strong>different basis for the same nullspace</strong>.</p>
+<h2>What is fixed and what is a convention</h2>
+<p><strong>Fixed:</strong></p>
+<ul>
+<li>The <strong>number</strong> of free variables is always \(n - r\).</li>
+<li>The nullspace and its dimension do not depend on the choice.</li>
+</ul>
+<p><strong>Convention:</strong></p>
+<ul>
+<li><em>Which</em> variables are called free is a choice.</li>
+</ul>
+<p><strong>Why the pivot convention is used.</strong> Elimination scans the columns left to right. Each column is kept if it is independent of the earlier ones, and skipped otherwise. This produces the leftmost possible basis for \(C(A)\), and it gives \(R\) the clean form \([\,I \;\; F\,]\), which requires no column swaps. Any other valid choice is equally legitimate. It just corresponds to reordering the columns before eliminating.</p>
+</article>
+<nav class="pager"><a class="prev" href="lecture-09.html"><small>Previous</small>L9 · Independence, Basis, and Dimension</a><a class="next" href="lecture-11.html"><small>Next</small>L11 · Matrix Spaces; Rank 1; Small World Graphs</a></nav>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on MIT OCW 18.06 (Gilbert Strang), CC BY-NC-SA source material.</div></footer>
+</body>
+</html>

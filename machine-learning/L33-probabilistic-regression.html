@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Probabilistic View of Linear Regression</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 33 · Regression: the probabilistic view</div>
+<h1>Probabilistic View of Linear Regression</h1>
+<p class="lede">So far, squared error was just an intuitive choice. Now assume a <b>probabilistic mechanism</b> generates the labels: $y=w^\top x+\epsilon$ with Gaussian noise. Regression becomes an <b>estimation problem</b>, and maximum likelihood gives back exactly the least-squares solution. Choosing a noise model means choosing an error function, and vice versa.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gLGQokSrtDI">this lecture on YouTube</a> (≈15 min). Previous: <a href="L32-kernel-regression.html">L32</a> · Next: <a href="L34-goodness-of-ml-estimator.html">L34</a>.</p>
+
+<h2>1 · Model the labels, not the features</h2>
+<p>The data is $\{(x_1,y_1),\dots,(x_n,y_n)\}$ with $x_i\in\mathbb R^d$ and $y_i\in\mathbb R$. We don't try to model how the features $x$ are generated. We only model how a label is produced <b>given</b> a feature vector:</p>
+$$y\mid x \;=\; \underbrace{w^\top x}_{\text{structure}} \;+\; \underbrace{\epsilon}_{\text{noise}},\qquad \epsilon\sim\mathcal N(0,\sigma^2).$$
+<ul>
+<li>$w\in\mathbb R^d$ is <b>unknown but fixed</b>. It's the parameter to estimate.</li>
+<li>The noise is Gaussian with mean 0 and a <b>known</b> variance $\sigma^2$.</li>
+<li>So each observed $y_i$ is a noisy version of $w^\top x_i$. The only unknown is $w$, which makes this an estimation problem, just like L19–L21 but now in a supervised setting.</li>
+</ul>
+
+<h2>2 · The likelihood</h2>
+<p>Adding a fixed number to a zero-mean Gaussian only shifts its mean (add 5 to $\mathcal N(0,\sigma^2)$ and you get $\mathcal N(5,\sigma^2)$). So</p>
+$$y_i\mid x_i\;\sim\;\mathcal N\!\left(w^\top x_i,\;\sigma^2\right).$$
+<p>With the usual i.i.d. assumption, the likelihood of $w$ is a product of Gaussian densities:</p>
+$$\mathcal L(w;\,x_1,\dots,x_n,\,y_1,\dots,y_n)=\prod_{i=1}^{n}\frac{1}{\sqrt{2\pi}\,\sigma}\exp\!\left(-\frac{(w^\top x_i-y_i)^2}{2\sigma^2}\right).$$
+<p>It depends on the data too, but we treat it as a function of $w$ alone and look for the $w$ that makes the observed labels most likely.</p>
+
+<h2>3 · Log-likelihood → squared error</h2>
+<ol class="steps">
+<li>Take the log (products become sums, and log cancels exp): $\;\log\mathcal L(w)=\sum_{i=1}^{n}\left[-\dfrac{(w^\top x_i-y_i)^2}{2\sigma^2}+\log\dfrac{1}{\sqrt{2\pi}\,\sigma}\right].$</li>
+<li>$\sigma$ is known, so $\log\frac{1}{\sqrt{2\pi}\sigma}$ and the factor $\frac{1}{2\sigma^2}$ are constants. Drop them: $\;\max_w\;\sum_i -(w^\top x_i-y_i)^2.$</li>
+<li>Maximising the negative is minimising the positive: $\;\min_w\;\sum_{i=1}^{n}(w^\top x_i-y_i)^2.$</li>
+<li>That's exactly the linear regression problem with squared error from L28, so we already know the answer: $\;\boxed{\hat w_{\text{ML}}=(XX^\top)^{+}Xy=w^\star}.$</li>
+</ol>
+
+<h2>4 · The conclusion: noise ⇔ error function</h2>
+<div class="callout"><b>Maximum likelihood with zero-mean Gaussian noise is exactly linear regression with squared error.</b> When we picked squared error in L28 "because it looked intuitive", we were implicitly assuming that zero-mean Gaussian noise corrupts the labels.</div>
+<p>Both parts matter. Change the noise and you change the loss. For example, with <b>Laplacian</b> noise the density is $\propto e^{-|w^\top x_i-y_i|/b}$, so the negative log-likelihood becomes a sum of <b>absolute</b> errors:</p>
+$$\epsilon\sim\text{Laplace}(0,b)\quad\Longrightarrow\quad \hat w_{\text{ML}}=\arg\min_w\sum_{i=1}^{n}\lvert w^\top x_i-y_i\rvert .$$
+<p>In general, the loss is the negative log of the noise density: choosing a noise implicitly chooses an error function, and choosing an error function implicitly assumes a noise.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Left: the loss each noise model implies, $-\log p(\epsilon)$ up to constants. Right: 40 points from the true line $y=0.5+0.8x$ (dashed) plus the chosen noise, fitted by minimising squared error and absolute error. (A constant feature $x_0=1$ gives the intercept.)</p>
+  <div class="row">
+    <button data-n="gauss" class="on">Gaussian noise</button><button data-n="laplace">Laplacian noise</button><button data-n="outl">Gaussian + 4 outliers</button>
+    <button id="newD">New data</button>
+  </div>
+  <div class="pair">
+    <canvas id="lc" height="260" aria-label="Negative log density of Gaussian and Laplacian noise"></canvas>
+    <canvas id="fc" height="260" aria-label="Data with squared-error and absolute-error fits"></canvas>
+  </div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>squared error ⇔ Gaussian</span><span><i style="background:var(--s2)"></i>absolute error ⇔ Laplacian</span><span><i style="background:var(--faint)"></i>true line</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="eS">–</div><div class="l">squared-error fit: ‖ŵ − w‖</div></div>
+    <div class="stat"><div class="v" id="eA">–</div><div class="l">absolute-error fit: ‖ŵ − w‖</div></div>
+  </div>
+  <p class="small" id="fTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The absolute-error fit has no closed form; the demo finds it with iteratively reweighted least squares. The squared loss grows quadratically, so one far-off label pulls the fit hard, while the absolute loss grows linearly and barely notices. That's the probabilistic reason absolute error is "robust": a Laplacian has heavier tails, so it expects occasional large deviations.</div>
+
+<h2>5 · What else do we gain?</h2>
+<p>The equivalence is a nice justification for squared error, but the bigger gain is this: once learning is viewed as estimation, $\hat w_{\text{ML}}$ is an <b>estimator</b>, and all the machinery for judging estimators applies. We can ask how good $\hat w_{\text{ML}}$ is, and whether a better estimator exists. That's the next lecture.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Probabilistic model: $y\mid x=w^\top x+\epsilon$, $\epsilon\sim\mathcal N(0,\sigma^2)$, with $w$ unknown but fixed. Only the labels are modelled.</li>
+<li>Then $y_i\mid x_i\sim\mathcal N(w^\top x_i,\sigma^2)$, and maximising the log-likelihood is minimising $\sum_i(w^\top x_i-y_i)^2$.</li>
+<li>$\hat w_{\text{ML}}=(XX^\top)^{+}Xy$, the same $w^\star$ as least squares.</li>
+<li>Noise model ⇔ loss function: Gaussian ⇔ squared error, Laplacian ⇔ absolute error.</li>
+<li>Viewing $\hat w_{\text{ML}}$ as an estimator lets us study its quality (L34).</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const randLap = b => { const u = Math.random() - 0.5; return -b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u)); };
+const W0 = [0.5, 0.8], N = 40;
+let noise = 'gauss', D = [];
+function make(){
+  D = Array.from({length: N}, () => { const x = -3 + 6 * Math.random(), m = W0[0] + W0[1] * x;
+    return [x, m + (noise === 'laplace' ? randLap(0.45) : 0.5 * randn())]; });
+  if (noise === 'outl') for (let j = 0; j < 4; j++){ const i = Math.floor(Math.random() * N); D[i][1] += (D[i][0] > 0 ? -1 : 1) * (4 + 2 * Math.random()); }
+}
+// weighted least squares for (b, m): solve the 2x2 normal equations
+function wls(wt){ let s = 0, sx = 0, sxx = 0, sy = 0, sxy = 0;
+  D.forEach(([x, y], i) => { const a = wt[i]; s += a; sx += a * x; sxx += a * x * x; sy += a * y; sxy += a * x * y; });
+  const det = s * sxx - sx * sx; return [(sxx * sy - sx * sxy) / det, (s * sxy - sx * sy) / det]; }
+const fitL2 = () => wls(D.map(() => 1));
+function fitL1(){ let w = fitL2();   // IRLS: weight each point by 1 / |residual|
+  for (let t = 0; t < 80; t++) w = wls(D.map(([x, y]) => 1 / Math.max(1e-4, Math.abs(w[0] + w[1] * x - y))));
+  return w; }
+function axes(ctx, X, Y, xs, ys, W, H, pad){
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  ys.forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  xs.forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); }); }
+function curve(ctx, f, xr, X, Y, col, w, dash){ ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath();
+  for (let i = 0; i <= 300; i++){ const x = xr[0] + (xr[1] - xr[0]) * i / 300; i ? ctx.lineTo(X(x), Y(f(x))) : ctx.moveTo(X(x), Y(f(x))); } ctx.stroke(); ctx.setLineDash([]); }
+function drawLoss(){
+  const [ctx, W, H] = setupCanvas($('lc')), pad = {l: 28, r: 8, t: 10, b: 26}, xr = [-3, 3], yr = [0, 4.5];
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  axes(ctx, X, Y, [-2, 0, 2], [0, 2, 4], W, H, pad);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  curve(ctx, e => e * e / 2, xr, X, Y, cssv('--s1'), 2.5); curve(ctx, e => Math.abs(e), xr, X, Y, cssv('--s2'), 2.5); ctx.restore();
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('residual ε', (pad.l + W) / 2, H); }
+function draw(){
+  drawLoss();
+  const w2 = fitL2(), w1 = fitL1(), dist = w => Math.hypot(w[0] - W0[0], w[1] - W0[1]);
+  $('eS').textContent = dist(w2).toFixed(3); $('eA').textContent = dist(w1).toFixed(3);
+  const [ctx, W, H] = setupCanvas($('fc')), pad = {l: 30, r: 10, t: 10, b: 26}, xr = [-3.2, 3.2], yr = [-6, 7];
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  axes(ctx, X, Y, [-3, -2, -1, 0, 1, 2, 3], [-4, -2, 0, 2, 4, 6], W, H, pad);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  curve(ctx, x => W0[0] + W0[1] * x, xr, X, Y, cssv('--faint'), 2, [6, 5]);
+  curve(ctx, x => w2[0] + w2[1] * x, xr, X, Y, cssv('--s1'), 2.5); curve(ctx, x => w1[0] + w1[1] * x, xr, X, Y, cssv('--s2'), 2.5);
+  D.forEach(([x, y]) => { ctx.fillStyle = cssv('--ink'); ctx.globalAlpha = 0.75; ctx.beginPath(); ctx.arc(X(x), Y(y), 3.5, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.globalAlpha = 1; ctx.restore();
+  $('fTxt').innerHTML = {
+    gauss: 'Gaussian noise: squared error is the <b>maximum likelihood</b> fit here, and the two lines nearly agree. Click "New data" a few times: the blue line is usually a little closer to the truth.',
+    laplace: 'Laplacian noise: now absolute error is the maximum likelihood fit. Both lines are still sensible, because Laplacian noise rarely produces extreme values with only 40 points.',
+    outl: 'Four corrupted labels: the squared-error line gets dragged towards them, because squaring a big residual makes it dominate the sum. The absolute-error line stays close to the truth.'}[noise];
+}
+document.querySelectorAll('button[data-n]').forEach(b => b.onclick = () => { noise = b.dataset.n; document.querySelectorAll('button[data-n]').forEach(x => x.classList.toggle('on', x === b)); make(); draw(); });
+$('newD').onclick = () => { make(); draw(); };
+make(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

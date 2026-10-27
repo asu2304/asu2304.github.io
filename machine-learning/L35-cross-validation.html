@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Better Estimator and Cross-Validation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 35 · Regression: a better estimator, and how to tune it</div>
+<h1>A Better Estimator and Cross-Validation</h1>
+<p class="lede">The ML error is $\sigma^2\sum_i 1/\lambda_i$ over the eigenvalues $\lambda_i$ of $XX^\top$, so <b>small eigenvalues</b> make it blow up. Adding $\lambda I$ before inverting lifts every eigenvalue by $\lambda$. For some $\lambda$, the new estimator $(XX^\top+\lambda I)^{-1}Xy$ has lower mean squared error than ML. Which $\lambda$? Pick it by <b>cross-validation</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_hmPiYKlRTQ">this lecture on YouTube</a> (≈20 min). Previous: <a href="L34-goodness-of-ml-estimator.html">L34</a>.</p>
+<p class="small muted">Notation: the lecture uses λ for two things. Here $\lambda_1,\dots,\lambda_d$ (with a subscript) are eigenvalues of $XX^\top$, and plain $\lambda$ is the number we add to the diagonal.</p>
+
+<h2>1 · The trace is a sum of eigenvalues</h2>
+<p>The trace is the sum of the diagonal entries, $\operatorname{tr}(A)=\sum_{i=1}^d a_{ii}$, and it also equals the <b>sum of the eigenvalues</b>, $\sum_{i=1}^d\lambda_i(A)$ (a standard fact, from the characteristic polynomial). If $XX^\top$ has eigenvalues $\lambda_1,\dots,\lambda_d$, then $(XX^\top)^{-1}$ has eigenvalues $1/\lambda_1,\dots,1/\lambda_d$ (same eigenvectors, reciprocal eigenvalues). So L34's result becomes</p>
+$$\text{MSE}(\hat w_{\text{ML}})=\mathbb E\lVert\hat w_{\text{ML}}-w\rVert^2=\sigma^2\sum_{i=1}^{d}\frac{1}{\lambda_i}.$$
+<p>If some $\lambda_i$ is small, $1/\lambda_i$ is huge and so is the error, even with modest noise.</p>
+
+<h2>2 · A new estimator, pulled out of a hat</h2>
+<p>Consider, for some positive real number $\lambda$ and the $d\times d$ identity $I$,</p>
+$$\boxed{\;\hat w_{\text{new}}=\big(XX^\top+\lambda I\big)^{-1}Xy\;}\qquad\text{vs.}\qquad \hat w_{\text{ML}}=\big(XX^\top\big)^{-1}Xy .$$
+<p>Why would adding $\lambda I$ help? Look at what it does to eigenvalues.</p>
+<ol class="steps">
+<li>Let $v_1$ be an eigenvector of $A$: $\;Av_1=\lambda_1v_1$.</li>
+<li>Then $\;(A+\lambda I)v_1=Av_1+\lambda v_1=(\lambda_1+\lambda)\,v_1$.</li>
+<li>So $v_1$ is still an eigenvector, and its eigenvalue moved up by $\lambda$. The eigenvalues of $A+\lambda I$ are $\lambda_1+\lambda,\dots,\lambda_d+\lambda$.</li>
+<li>Hence $\;\operatorname{tr}\big((XX^\top+\lambda I)^{-1}\big)=\sum_{i=1}^{d}\dfrac{1}{\lambda_i+\lambda}$: every denominator grows, so the sum shrinks.</li>
+</ol>
+<p>The intuition: the error was large because the $\lambda_i$ were small. We can't touch $\sigma^2$, but artificially raising the eigenvalues makes the feature term smaller, and we hope the mean squared error goes down with it.</p>
+
+<h2>3 · The existence theorem</h2>
+<div class="callout"><b>Theorem (stated informally, not proved in the course).</b> There exists a $\lambda$ such that $\hat w_{\text{new}}=(XX^\top+\lambda I)^{-1}Xy$ has <b>lower mean squared error</b> than $\hat w_{\text{ML}}$. On average, it's a better estimator.</div>
+<p>The catch: it only says such a $\lambda$ <b>exists</b>. The right value depends on the data (and on the unknown $w$), so there's no formula for it.</p>
+
+<div class="beyond"><b>Why only "exists", going beyond the video.</b> The new estimator is <b>biased</b>: $\mathbb E[\hat w_{\text{new}}]=(XX^\top+\lambda I)^{-1}XX^\top w\neq w$, so it pays a bias price for its lower variance. Writing $u_i$ for the eigenvectors of $XX^\top$,
+$$\mathbb E\lVert\hat w_{\text{new}}-w\rVert^2=\underbrace{\sigma^2\sum_{i}\frac{\lambda_i}{(\lambda_i+\lambda)^2}}_{\text{variance}}+\underbrace{\lambda^2\sum_i\frac{(u_i^\top w)^2}{(\lambda_i+\lambda)^2}}_{\text{bias}^2}.$$
+At $\lambda=0$ this is L34's $\sigma^2\sum_i 1/\lambda_i$. The derivative at $\lambda=0$ is negative, so a small enough $\lambda>0$ always helps; too large a $\lambda$ shrinks $\hat w$ towards 0 and the bias takes over. The demo plots both parts.</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Exact mean squared error of $(XX^\top+\lambda I)^{-1}Xy$ as $\lambda$ varies (log scale), for two features with correlation ρ, n = 30, true $w=(1,\,-0.5)$. The dashed line is the ML error, $\lambda=0$.</p>
+  <div class="row">
+    <label>noise σ = <b id="sV"></b> <input type="range" id="sg" min="10" max="300" value="200" aria-label="noise standard deviation"></label>
+    <label>feature correlation ρ = <b id="rV"></b> <input type="range" id="rho" min="0" max="99" value="97" aria-label="feature correlation"></label>
+  </div>
+  <canvas id="mc" height="280" aria-label="Mean squared error versus lambda, split into variance and bias squared"></canvas>
+  <div class="legend"><span><i style="background:var(--ink)"></i>MSE of ŵ<sub>new</sub></span><span><i style="background:var(--s1)"></i>variance part</span><span><i style="background:var(--s2)"></i>bias² part</span><span><i style="background:var(--faint)"></i>MSE of ŵ<sub>ML</sub></span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="mML">–</div><div class="l">MSE of ŵ<sub>ML</sub></div></div>
+    <div class="stat"><div class="v" id="mBest">–</div><div class="l">best MSE of ŵ<sub>new</sub></div></div>
+    <div class="stat"><div class="v" id="lBest">–</div><div class="l">at λ =</div></div>
+  </div>
+  <p class="small" id="mTxt"></p>
+</div>
+
+<h2>4 · Finding λ in practice: validation</h2>
+<p>We want the $\lambda$ that does well on <b>test</b> data we don't have yet. So mimic it: hold back part of the training data.</p>
+<ol class="steps">
+<li>Split the $n$ training points into a <b>train set</b> (say 80%) and a <b>validation set</b> (20%).</li>
+<li>For each candidate $\lambda$: compute $\hat w_{\text{new}}=(XX^\top+\lambda I)^{-1}Xy$ using <b>only the train set</b>.</li>
+<li>Predict the labels of the validation points and measure the error against their true labels.</li>
+<li>Pick the $\lambda$ with the least validation error.</li>
+</ol>
+<p>The validation set is a proxy for the test data. The weak spot: with one random split you may be unlucky, and that 20% may not represent the data well, so the error you measure for each $\lambda$ isn't the true error.</p>
+
+<h2>5 · K-fold cross-validation</h2>
+<p>Do the validation several times and average.</p>
+<ul>
+<li>Divide the data into $K$ equal parts, <b>folds</b> $F_1,\dots,F_K$ (10,000 points and 10 folds: 1,000 points each).</li>
+<li>For each $i$: train on all folds except $F_i$, validate on $F_i$. With $K=3$: train on $F_1,F_2$ and validate on $F_3$; train on $F_1,F_3$ and validate on $F_2$; train on $F_2,F_3$ and validate on $F_1$.</li>
+<li>For every $\lambda$, average the $K$ validation errors, and <b>pick the $\lambda$ with the least average error</b>.</li>
+</ul>
+<table>
+<tr><th>Choice of K</th><th>Trade-off</th></tr>
+<tr><td>Larger $K$</td><td>Generally better, because it averages over more train/validation splits.</td></tr>
+<tr><td>$K=n$: <b>leave-one-out</b> (LOOCV)</td><td>Train on $n-1$ points, test on the one left out, for every point. The extreme case.</td></tr>
+<tr><td>Huge $n$ (a billion points)</td><td>LOOCV means a billion fits, which is a computational nightmare. Choose $K$ by the time and resources you have.</td></tr>
+</table>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">30 noisy points, 10 strongly correlated features (more features relative to points makes ML shaky). The strip shows how the points are split into folds. The curve is the $K$-fold cross-validation error for each $\lambda$; the faint curve is the true error on 2,000 fresh test points, which cross-validation never sees.</p>
+  <div class="row">
+    <button data-k="2">K = 2</button><button data-k="5" class="on">K = 5</button><button data-k="10">K = 10</button><button data-k="30">LOOCV (K = n)</button>
+    <button id="newCV">New data</button>
+  </div>
+  <canvas id="fold" height="26" aria-label="Fold assignment of each training point"></canvas>
+  <canvas id="cv" height="270" aria-label="Cross-validation error and test error versus lambda"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>K-fold CV error</span><span><i style="background:var(--faint)"></i>true test error</span><span><i class="dot" style="background:var(--s2)"></i>λ chosen by CV</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="cvL">–</div><div class="l">λ chosen by CV</div></div>
+    <div class="stat"><div class="v" id="cvT">–</div><div class="l">its test error</div></div>
+    <div class="stat"><div class="v" id="mlT">–</div><div class="l">test error of ŵ<sub>ML</sub> (λ = 0)</div></div>
+    <div class="stat"><div class="v" id="fits">–</div><div class="l">fits computed</div></div>
+  </div>
+  <p class="small" id="cvTxt"></p>
+</div>
+
+<h2>6 · Still open: where does this estimator come from?</h2>
+<p>We argued for $\hat w_{\text{new}}$ by intuition and an existence theorem, and tuned $\lambda$ by cross-validation. Is there a <b>principled</b> way to arrive at it? Yes, and we've met the tool before: the alternative to maximum likelihood from unsupervised estimation (L21). Applied to supervised learning, it gives this estimator, which is the subject of L36.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>$\operatorname{tr}(A)=\sum_i\lambda_i(A)$, and $A^{-1}$ has eigenvalues $1/\lambda_i$, so $\text{MSE}(\hat w_{\text{ML}})=\sigma^2\sum_i 1/\lambda_i$. Small eigenvalues hurt.</li>
+<li>$A+\lambda I$ has the same eigenvectors and eigenvalues $\lambda_i+\lambda$.</li>
+<li>$\hat w_{\text{new}}=(XX^\top+\lambda I)^{-1}Xy$: for some $\lambda$ its MSE beats $\hat w_{\text{ML}}$ (existence only).</li>
+<li>Choose $\lambda$ by validation: train on part of the data, evaluate on the held-out part, keep the best $\lambda$.</li>
+<li>$K$-fold CV averages over $K$ splits; LOOCV is $K=n$. Bigger $K$ is better but costs more.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const LG = Array.from({length: 61}, (_, i) => -2 + 5 * i / 60), lam = l => 10 ** l;   // λ from 0.01 to 1000
+// shared plot frame with a log-λ x axis
+function frame(cv, yMax, yLab, yMin = 0){
+  const [ctx, W, H] = setupCanvas(cv), pad = {l: 54, r: 12, t: 10, b: 30};
+  const X = l => pad.l + (l - LG[0]) / (LG[LG.length - 1] - LG[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yMin) / (yMax - yMin) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let k = 0; k <= 4; k++){ const v = yMin + (yMax - yMin) * k / 4; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(+v.toPrecision(2), pad.l - 6, Y(v)); }
+  [-2, -1, 0, 1, 2, 3].forEach(l => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(l < 0 ? 10 ** l : (10 ** l).toLocaleString(), X(l), H - pad.b + 5); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('λ (log scale)', (pad.l + W) / 2, H);
+  ctx.save(); ctx.translate(11, (pad.t + H - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yLab, 0, 0); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  const line = (vals, col, w, dash) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); vals.forEach((v, i) => i ? ctx.lineTo(X(LG[i]), Y(v)) : ctx.moveTo(X(LG[i]), Y(v))); ctx.stroke(); ctx.setLineDash([]); };
+  const hline = (v, col) => { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.setLineDash([]); };
+  const pt = (l, v, col) => { ctx.fillStyle = col; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(l), Y(v), 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); };
+  return {ctx, line, hline, pt, done: () => ctx.restore()};
+}
+
+/* ---- demo 1: exact MSE = variance + bias² for two correlated features ---- */
+const W2 = [1, -0.5], Z2 = Array.from({length: 30}, () => [randn(), randn()]);
+function drawMSE(){
+  const s = +$('sg').value / 100, rho = +$('rho').value / 100, c = Math.sqrt(1 - rho * rho);
+  $('sV').textContent = s.toFixed(2); $('rV').textContent = rho.toFixed(2);
+  let a = 0, b = 0, d = 0; Z2.forEach(([p, q]) => { const x2 = rho * p + c * q; a += p * p; b += p * x2; d += x2 * x2; });
+  const m = (a + d) / 2, r = Math.sqrt(((a - d) / 2) ** 2 + b * b), ev = [m + r, m - r];
+  const U = ev.map(l => { const v = Math.abs(b) > 1e-12 ? [b, l - a] : (l === ev[0] ? [1, 0] : [0, 1]); const nn = Math.hypot(...v); return [v[0] / nn, v[1] / nn]; });
+  const proj = U.map(u => (u[0] * W2[0] + u[1] * W2[1]) ** 2);
+  const vr = l => s * s * ev.reduce((t, e) => t + e / (e + l) ** 2, 0), bs = l => l * l * ev.reduce((t, e, i) => t + proj[i] / (e + l) ** 2, 0);
+  const V = LG.map(g => vr(lam(g))), B = LG.map(g => bs(lam(g))), M = V.map((v, i) => v + B[i]), ml = vr(0);
+  let bi = 0; M.forEach((v, i) => { if (v < M[bi]) bi = i; });
+  $('mML').textContent = ml.toFixed(4); $('mBest').textContent = M[bi].toFixed(4); $('lBest').textContent = (+lam(LG[bi]).toPrecision(2)).toString();
+  const f = frame($('mc'), Math.max(ml * 1.25, M[bi] * 2), 'E‖ŵ − w‖²');
+  f.hline(ml, cssv('--faint')); f.line(V, cssv('--s1'), 2); f.line(B, cssv('--s2'), 2); f.line(M, cssv('--ink'), 2.8); f.pt(LG[bi], M[bi], cssv('--ink')); f.done();
+  $('mTxt').innerHTML = `Eigenvalues of XXᵀ: ${ev.map(e => e.toFixed(1)).join(' and ')}. ` + (ml / M[bi] > 1.5
+    ? `The small eigenvalue makes the ML error large, and a well-chosen λ cuts it by a factor of about ${(ml / M[bi]).toFixed(1)}. Variance (blue) falls as λ grows; bias² (orange) rises. The best λ balances them.`
+    : 'With well-conditioned features and little noise, ML is already good and the best λ gives only a small improvement. Push ρ up or raise σ to see the dip deepen.');
+}
+$('sg').oninput = drawMSE; $('rho').oninput = drawMSE;
+
+/* ---- demo 2: K-fold cross-validation for 8 correlated features ---- */
+const D = 10, N = 30, SIG = 3;
+let TR = null, K = 5, folds = [];
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+const point = () => { const z0 = randn(); return Array.from({length: D}, () => 0.95 * z0 + 0.31 * randn()); };
+function ridge(P, l){ const A = Array.from({length: D}, (_, i) => Array.from({length: D}, (_, j) => (i === j ? l : 0))), b = new Array(D).fill(0);
+  P.forEach(([x, y]) => { for (let i = 0; i < D; i++){ b[i] += x[i] * y; for (let j = 0; j < D; j++) A[i][j] += x[i] * x[j]; } }); return solve(A, b); }
+const err = (w, P) => P.reduce((s, [x, y]) => s + (x.reduce((t, v, i) => t + v * w[i], 0) - y) ** 2, 0) / P.length;
+function newCV(){ const w = Array.from({length: D}, () => randn()), lab = x => x.reduce((t, v, i) => t + v * w[i], 0) + SIG * randn();
+  const mk = m => Array.from({length: m}, () => { const x = point(); return [x, lab(x)]; });
+  TR = {train: mk(N), test: mk(2000)};
+  TR.testErr = LG.map(g => err(ridge(TR.train, lam(g)), TR.test)); TR.mlTest = err(ridge(TR.train, 0), TR.test);
+  const perm = [...Array(N).keys()].sort(() => Math.random() - 0.5); TR.perm = perm; runCV(); }
+function runCV(){ folds = new Array(N); TR.perm.forEach((p, i) => folds[p] = i % K);
+  TR.cv = LG.map(g => { let s = 0; for (let f = 0; f < K; f++){ const tr = TR.train.filter((_, i) => folds[i] !== f), va = TR.train.filter((_, i) => folds[i] === f); s += err(ridge(tr, lam(g)), va); } return s / K; });
+  drawCV(); }
+function drawCV(){
+  if (!TR) return;
+  const [fx, FW, FH] = setupCanvas($('fold')), cw = (FW - 2) / N, pal = ['--s1', '--s2', '--s3', '--ink', '--faint'];
+  folds.forEach((f, i) => { fx.fillStyle = K <= 5 ? cssv(pal[f]) : `hsl(${(f * 360 / K) % 360} 55% 55%)`; fx.globalAlpha = 0.85; fx.fillRect(1 + i * cw, 3, Math.max(1, cw - 1), FH - 6); }); fx.globalAlpha = 1;
+  let bi = 0; TR.cv.forEach((v, i) => { if (v < TR.cv[bi]) bi = i; });
+  const lo = Math.min(...TR.cv, ...TR.testErr), hi = Math.min(Math.max(...TR.cv, ...TR.testErr), 3 * lo);
+  const f = frame($('cv'), hi + 0.08 * (hi - lo), 'avg squared error', Math.max(0, lo - 0.15 * (hi - lo)));
+  f.line(TR.testErr, cssv('--faint'), 2); f.line(TR.cv, cssv('--s1'), 2.6); f.pt(LG[bi], TR.cv[bi], cssv('--s2')); f.done();
+  let ti = 0; TR.testErr.forEach((v, i) => { if (v < TR.testErr[ti]) ti = i; });
+  $('cvL').textContent = (+lam(LG[bi]).toPrecision(2)).toString(); $('cvT').textContent = TR.testErr[bi].toFixed(2);
+  $('mlT').textContent = TR.mlTest.toFixed(2); $('fits').textContent = (K * LG.length).toLocaleString();
+  $('cvTxt').innerHTML = `${K === N ? 'Leave-one-out' : K + '-fold'} CV picks λ ≈ ${(+lam(LG[bi]).toPrecision(2))}; the best possible on the test set was λ ≈ ${(+lam(LG[ti]).toPrecision(2))}. `
+    + `Using the CV choice changes the test error from ${TR.mlTest.toFixed(2)} (ML) to ${TR.testErr[bi].toFixed(2)}. `
+    + (K === 2 ? 'With K = 2 each fit sees only half the data, so the CV curve sits higher and is noisier.' : 'Click "New data" a few times: the chosen λ moves around, but it usually lands near the bottom of the test curve.');
+}
+document.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => { K = +b.dataset.k; document.querySelectorAll('button[data-k]').forEach(x => x.classList.toggle('on', x === b)); runCV(); });
+$('newCV').onclick = newCV;
+function drawAll(){ drawMSE(); drawCV(); }
+drawMSE(); newCV();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Goodness of the Maximum Likelihood Estimator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 34 · Regression: how good is the ML estimator?</div>
+<h1>Goodness of the Maximum Likelihood Estimator</h1>
+<p class="lede">Because the labels are random, $\hat w_{\text{ML}}$ is random too: a different draw of noise gives a different estimate. Measure its quality by the <b>average squared distance</b> to the true $w$. The answer, $\sigma^2\,\operatorname{tr}\big((XX^\top)^{-1}\big)$, depends on the noise <b>and on the features</b>, and the feature part is something we might be able to improve.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_CNCiGfwdQs">this lecture on YouTube</a> (≈12 min). Previous: <a href="L33-probabilistic-regression.html">L33</a> · Next: <a href="L35-cross-validation.html">L35</a>.</p>
+
+<h2>1 · Recap</h2>
+<p>Model: $y\mid x=w^\top x+\epsilon$, $\epsilon\sim\mathcal N(0,\sigma^2)$, so $y\mid x\sim\mathcal N(w^\top x,\sigma^2)$. Maximum likelihood gave</p>
+$$\hat w_{\text{ML}}=(XX^\top)^{+}Xy,$$
+<p>the same $w^\star$ as least squares (L33). Now: <b>how good a guess for the true $w$ is it?</b></p>
+
+<h2>2 · The estimator is a random variable</h2>
+<ul>
+<li>$\hat w_{\text{ML}}$ is the solution of an optimisation problem that involves the data, and the labels $y_i=w^\top x_i+\epsilon_i$ are random. So $\hat w_{\text{ML}}$ is a function of random quantities, hence <b>random</b>. (Nothing is assumed about how $x$ is generated; the features are treated as given.)</li>
+<li>On an unlucky day the noise values $\epsilon_i$ are large, the labels carry little information about $w$, and the estimate is poor. So we can't judge the estimator from a single dataset.</li>
+<li>Instead we ask how it performs <b>on average</b>, over all the datasets the noise could have produced.</li>
+</ul>
+
+<h2>3 · Measuring goodness: mean squared error</h2>
+<p>Both $\hat w_{\text{ML}}$ and $w$ live in $\mathbb R^d$, so measure their squared Euclidean distance, and average over the randomness in $y$:</p>
+$$\text{MSE}(\hat w_{\text{ML}})=\mathbb E\Big[\,\lVert\hat w_{\text{ML}}-w\rVert^2\,\Big].$$
+<div class="callout"><b>Thought experiment:</b> generate a dataset (same $x_i$, fresh noise), compute $\hat w_{\text{ML}}$, record $\lVert\hat w_{\text{ML}}-w\rVert^2$. Repeat many times and average. That average converges to the expectation above. The demo below does exactly this.</div>
+
+<h2>4 · The answer</h2>
+<p>The lecture states the result without derivation (it's a short algebraic exercise, done in the note below):</p>
+$$\boxed{\;\mathbb E\Big[\lVert\hat w_{\text{ML}}-w\rVert^2\Big]=\sigma^2\;\operatorname{tr}\!\Big(\big(XX^\top\big)^{-1}\Big)\;}$$
+<p>(use the pseudo-inverse if $XX^\top$ isn't invertible; for simplicity assume it is.) It is a product of two terms:</p>
+<table>
+<tr><th>Term</th><th>What it is</th><th>Effect</th></tr>
+<tr><td>$\sigma^2$</td><td>variance of the label noise</td><td>More noise, worse estimate. Makes sense: noise hides $w^\top x$.</td></tr>
+<tr><td>$\operatorname{tr}\big((XX^\top)^{-1}\big)$</td><td>depends only on the features; $XX^\top$ is like a covariance matrix</td><td>How the features relate to each other also decides the quality of the estimate.</td></tr>
+</table>
+
+<h2>5 · What we can and can't control</h2>
+<p>$\sigma^2$ belongs to the data-generating process. The noise is added before the data reaches us, so we have to live with it. The features $X$, though, are in our hands. So if a better estimator (lower mean squared error) exists at all, it has to come from doing something about the $\operatorname{tr}\big((XX^\top)^{-1}\big)$ part. That's the question for L35.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Two features, true $w=(1,\,-0.5)$. The features are drawn once (fixed); each dot is $\hat w_{\text{ML}}$ from one of 400 datasets with fresh label noise. Correlation makes the two features nearly redundant.</p>
+  <div class="row">
+    <label>noise σ = <b id="sV"></b> <input type="range" id="sg" min="10" max="150" value="50" aria-label="noise standard deviation"></label>
+    <label>feature correlation ρ = <b id="rV"></b> <input type="range" id="rho" min="0" max="99" value="0" aria-label="feature correlation"></label>
+    <label>n = <b id="nV"></b> <input type="range" id="n" min="10" max="200" step="5" value="40" aria-label="number of data points"></label>
+    <button id="again">Redraw</button>
+  </div>
+  <canvas id="wc" height="330" aria-label="Scatter of ML estimates around the true w"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>ŵ<sub>ML</sub> from one dataset</span><span><i class="dot" style="background:var(--s2)"></i>true w</span><span><i class="dot" style="background:var(--s3)"></i>average of the ŵ's</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="emp">–</div><div class="l">average ‖ŵ − w‖² (400 runs)</div></div>
+    <div class="stat"><div class="v" id="thy">–</div><div class="l">σ² · tr((XXᵀ)⁻¹)</div></div>
+    <div class="stat"><div class="v" id="eig">–</div><div class="l">eigenvalues of XXᵀ</div></div>
+  </div>
+  <p class="small" id="wTxt"></p>
+</div>
+
+<div class="beyond"><b>The derivation, going beyond the video.</b> Stack the noise into $\epsilon\in\mathbb R^n$, so $y=X^\top w+\epsilon$. Then
+$$\hat w_{\text{ML}}=(XX^\top)^{-1}X(X^\top w+\epsilon)=w+(XX^\top)^{-1}X\epsilon .$$
+Since $\mathbb E[\epsilon]=0$, $\mathbb E[\hat w_{\text{ML}}]=w$: the estimator is <b>unbiased</b> (the green dot sits on the orange one). Its error is $(XX^\top)^{-1}X\epsilon$, and with $\mathbb E[\epsilon\epsilon^\top]=\sigma^2 I$,
+$$\mathbb E\lVert\hat w_{\text{ML}}-w\rVert^2=\mathbb E\big[\epsilon^\top X^\top(XX^\top)^{-2}X\epsilon\big]=\sigma^2\operatorname{tr}\big(X^\top(XX^\top)^{-2}X\big)=\sigma^2\operatorname{tr}\big((XX^\top)^{-1}\big),$$
+using $\mathbb E[\epsilon^\top M\epsilon]=\sigma^2\operatorname{tr}(M)$ and the cyclic property of the trace.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The labels are random, so $\hat w_{\text{ML}}$ is random. Judge it on average over datasets, not on one.</li>
+<li>Goodness = mean squared error $\mathbb E\lVert\hat w_{\text{ML}}-w\rVert^2=\sigma^2\operatorname{tr}\big((XX^\top)^{-1}\big)$.</li>
+<li>Two factors: noise variance $\sigma^2$ (out of our control) and a feature term (possibly improvable).</li>
+<li>Any better estimator must attack the $\operatorname{tr}\big((XX^\top)^{-1}\big)$ term (L35).</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const W = [1, -0.5], RUNS = 400;
+let Xs = [], Z = [], sims = null;
+// features: x = (z1, ρ z1 + √(1-ρ²) z2); z kept fixed so moving ρ changes only the correlation
+function newZ(){ Z = Array.from({length: 200}, () => [randn(), randn()]); }
+function simulate(){
+  const s = +$('sg').value / 100, rho = +$('rho').value / 100, n = +$('n').value, c = Math.sqrt(1 - rho * rho);
+  Xs = Z.slice(0, n).map(([a, b]) => [a, rho * a + c * b]);
+  let a11 = 0, a12 = 0, a22 = 0; Xs.forEach(([p, q]) => { a11 += p * p; a12 += p * q; a22 += q * q; });
+  const det = a11 * a22 - a12 * a12, i11 = a22 / det, i12 = -a12 / det, i22 = a11 / det;
+  const tr = (a11 + a22) / 2, dd = Math.sqrt(((a11 - a22) / 2) ** 2 + a12 * a12);
+  const est = [];
+  for (let r = 0; r < RUNS; r++){ let b1 = 0, b2 = 0;   // b = X y
+    Xs.forEach(([p, q]) => { const y = W[0] * p + W[1] * q + s * randn(); b1 += p * y; b2 += q * y; });
+    est.push([i11 * b1 + i12 * b2, i12 * b1 + i22 * b2]); }
+  const emp = est.reduce((t, [u, v]) => t + (u - W[0]) ** 2 + (v - W[1]) ** 2, 0) / RUNS;
+  const mean = est.reduce((m, [u, v]) => [m[0] + u / RUNS, m[1] + v / RUNS], [0, 0]);
+  sims = {s, rho, n, est, emp, mean, thy: s * s * (i11 + i22), eig: [tr + dd, tr - dd]};
+  draw();
+}
+function draw(){
+  if (!sims) return;
+  $('sV').textContent = (+$('sg').value / 100).toFixed(2); $('rV').textContent = (+$('rho').value / 100).toFixed(2); $('nV').textContent = $('n').value;
+  $('emp').textContent = sims.emp.toFixed(4); $('thy').textContent = sims.thy.toFixed(4);
+  $('eig').textContent = sims.eig.map(v => v.toFixed(1)).join(', ');
+  const [ctx, Wd, H] = setupCanvas($('wc')), pad = {l: 40, r: 10, t: 10, b: 30}, R = 1.5;
+  const side = Math.min(Wd - pad.l - pad.r, H - pad.t - pad.b), ox = pad.l + (Wd - pad.l - pad.r - side) / 2;
+  const X = v => ox + (v - (W[0] - R)) / (2 * R) * side, Y = v => pad.t + side - (v - (W[1] - R)) / (2 * R) * side;
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [-0.5, 0, 0.5, 1, 1.5, 2].forEach(v => { if (Math.abs(v - W[0]) > R) return; ctx.beginPath(); ctx.moveTo(X(v), pad.t); ctx.lineTo(X(v), pad.t + side); ctx.stroke(); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), pad.t + side + 5); });
+  [-1.5, -1, -0.5, 0, 0.5].forEach(v => { ctx.beginPath(); ctx.moveTo(ox, Y(v)); ctx.lineTo(ox + side, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, ox - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('ŵ₁', ox + side / 2, H);
+  ctx.save(); ctx.translate(Math.max(10, ox - 42), pad.t + side / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('ŵ₂', 0, 0); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, pad.t, side, side); ctx.clip();
+  ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = 0.35; sims.est.forEach(([u, v]) => { ctx.beginPath(); ctx.arc(X(u), Y(v), 2.6, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.globalAlpha = 1;
+  const pt = (u, v, col, r) => { ctx.fillStyle = col; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(u), Y(v), r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); };
+  pt(W[0], W[1], cssv('--s2'), 8); pt(sims.mean[0], sims.mean[1], cssv('--s3'), 5); ctx.restore();
+  const out = sims.est.filter(([u, v]) => Math.abs(u - W[0]) > R || Math.abs(v - W[1]) > R).length;
+  $('wTxt').innerHTML = (sims.rho > 0.85
+    ? `With ρ = ${sims.rho.toFixed(2)} the features are nearly redundant: one eigenvalue of XXᵀ is small (${sims.eig[1].toFixed(1)}), its reciprocal is large, and the estimates smear out along a line. The data can pin down w₁ + w₂-type combinations but not how to split them.`
+    : 'The cloud of estimates is centred on the true w (the estimator is unbiased) and its average squared spread matches σ² · tr((XXᵀ)⁻¹). Raise σ, lower n, or push ρ towards 1 to see the spread grow.')
+    + (out ? ` <span class="muted">(${out} of ${RUNS} estimates fall outside the plot.)</span>` : '');
+}
+$('sg').oninput = simulate; $('rho').oninput = simulate; $('n').oninput = simulate; $('again').onclick = () => { newZ(); simulate(); };
+newZ(); simulate();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

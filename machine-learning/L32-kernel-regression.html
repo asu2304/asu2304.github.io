@@ -42,7 +42,7 @@ canvas{width:100%;display:block}
 <div class="kicker">Lecture 32 · Regression: non-linear relationships</div>
 <h1>Kernel Regression</h1>
 <p class="lede">What if the label depends on the features non-linearly, through terms like height² or height × weight? Use the same trick as kernel PCA: map the data to a richer feature space and do linear regression <b>there</b>, but write everything in terms of dot products so a <b>kernel</b> can stand in for the mapping.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=u9ir3yQynpE">this lecture on YouTube</a> (≈19 min). Previous: <a href="L31-gradient-descent.html">L31</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=u9ir3yQynpE">this lecture on YouTube</a> (≈19 min). Previous: <a href="L31-gradient-descent.html">L31</a> · Next: <a href="L33-probabilistic-regression.html">L33</a>.</p>
 
 <h2>1 · The problem with linear</h2>
 <p>If the true relationship is something like height² + 3·weight − weight², or contains a cross term like height × weight, linear regression can't capture it. Even the best $w$ makes large errors. Kernel PCA solved the same issue for PCA by working only with <b>dot products between data points</b> and replacing them with a kernel $k(x,x')=\phi(x)^\top\phi(x')$. The goal here is the same: express regression through dot products.</p>

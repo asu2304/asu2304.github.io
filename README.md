@@ -1,2 +1,5 @@
 # asu2304.github.io
-Ashutosh Patidar's notes blog. Series: Linear Algebra (source: Gilbert Strang notes)
+
+Personal notes blog of Ashutosh Patidar, served by GitHub Pages.
+
+- **Linear Algebra (source: Gilbert Strang notes)**: `/linear-algebra/`, 37 pages on MIT 18.06 (Gilbert Strang), with math rendered by MathJax.

@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>L14: K-means Clustering (Lloyd&#x27;s Algorithm)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--grid:#e6e5e0;--tint:#eef4fc;--accent:#2a78d6;--code:#f3f2ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--tint:#1f2a38;--accent:#5598e7;--code:#2a2a28}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--tint:#1f2a38;--accent:#5598e7;--code:#2a2a28}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2} h2{font-size:22px;margin-top:40px;padding-top:18px;border-top:1px solid var(--grid)} h3{font-size:17px}
+a{color:var(--accent)}
+table{border-collapse:collapse;font-size:14px;display:block;overflow-x:auto} th,td{padding:7px 10px;border-bottom:1px solid var(--grid);text-align:left} th{color:var(--muted)}
+blockquote{margin:14px 0;background:var(--tint);border-radius:10px;padding:10px 16px} blockquote p{margin:6px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:14px}
+pre{background:var(--code);padding:12px 14px;border-radius:10px;overflow-x:auto} pre code{background:none;padding:0}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+hr{border:none;border-top:1px solid var(--grid);margin:30px 0}
+</style></head>
+<body><main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<h1>L14: K-means Clustering (Lloyd's Algorithm)</h1>
+<p>Source: https://www.youtube.com/watch?v=QrXQ5cMzphA (≈12 min)
+Previous: <a href="L13-clustering-notes.html">L13 notes</a>, which set up the objective and showed it is NP-hard.</p>
+<blockquote>
+<p><strong>Scope note:</strong> this video presents the algorithm, says <em>that</em> it converges (proof deferred),
+and then <strong>lists</strong> four open questions: convergence, nature of the clusters, initialization and choice of K.
+It does not answer them yet; later lectures do. Section 6 (&quot;Going further&quot;) derives the
+answers in full d-dimensional form so you have them ahead of time.</p>
+</blockquote>
+<h2>Timestamped outline</h2>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>00:14</td>
+<td>Lloyd's algorithm, a.k.a. &quot;K-means algorithm&quot; (name is a misnomer)</td>
+</tr>
+<tr>
+<td>00:59</td>
+<td>Step 0: initialization z⁰</td>
+</tr>
+<tr>
+<td>02:01</td>
+<td>Step 1: compute means</td>
+</tr>
+<tr>
+<td>03:22</td>
+<td>Step 2: reassignment (the crux)</td>
+</tr>
+<tr>
+<td>05:28</td>
+<td>Tie rule: don't move unless strictly closer</td>
+</tr>
+<tr>
+<td>06:28</td>
+<td>What &quot;convergence&quot; means</td>
+</tr>
+<tr>
+<td>07:06</td>
+<td>Could it cycle forever?</td>
+</tr>
+<tr>
+<td>08:35</td>
+<td>Fact: Lloyd's converges, but not necessarily to the optimum</td>
+</tr>
+<tr>
+<td>10:06</td>
+<td>Works well in practice</td>
+</tr>
+<tr>
+<td>10:54</td>
+<td>Open questions: convergence, cluster shape, initialization, choice of K</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1. Naming</h2>
+<ul>
+<li><strong>K-means problem:</strong> minimise Σᵢ ‖xᵢ − μ_{zᵢ}‖² over all partitions (NP-hard, see L13).</li>
+<li><strong>Lloyd's algorithm:</strong> a <em>heuristic</em> for that problem. People often call it &quot;the K-means
+algorithm&quot;, which mixes up the problem with one method for solving it.</li>
+</ul>
+<h2>2. The algorithm</h2>
+<p><strong>Step 0: Initialization.</strong> Pick a starting assignment z⁰ = (z⁰₁, …, z⁰ₙ), with each z⁰ᵢ ∈ {1..K}.
+The superscript is the iteration number. <em>How</em> to initialise is covered later.</p>
+<p><strong>Repeat until convergence:</strong></p>
+<p><strong>Step 1: Compute means.</strong> For each k = 1..K:</p>
+<p>$$
+\mu_k^{t} = \frac{\sum_{i=1}^{n} \mathbb{1}(z_i^{t}=k)\,x_i}{\sum_{i=1}^{n} \mathbb{1}(z_i^{t}=k)}
+$$</p>
+<p><strong>Step 2: Reassignment.</strong> For each point i:</p>
+<p>$$
+z_i^{t+1} = \arg\min_{k\in\{1..K\}} \lVert x_i - \mu_k^{t} \rVert_2^2
+$$</p>
+<p><strong>Tie rule:</strong> if the point's current cluster is among the closest, it <strong>stays</strong>. A point
+moves only when another mean is <em>strictly</em> closer. This rule matters for the convergence
+proof, because it stops the algorithm flipping back and forth between equal options.</p>
+<p><strong>Intuition:</strong> each box has a centre. Every point checks every centre and moves to the
+nearest one. Then the centres are recomputed.</p>
+<h2>3. Convergence: what it means</h2>
+<ul>
+<li><strong>Converged:</strong> no point wants to switch boxes, so z^{t+1} = z^t. Every point is already
+closest to its own cluster's mean.</li>
+<li><strong>Worry:</strong> could the partitions cycle, A → B → C → A → …, and never stop?</li>
+<li><strong>The lecture's claim:</strong> Lloyd's algorithm <strong>does converge</strong> (proof later). See §6.2 for the proof.</li>
+</ul>
+<h2>4. Caveats</h2>
+<ul>
+<li>What it converges to <strong>may not be the optimal</strong> partition. You can't expect an
+efficient exact solver for an NP-hard problem.</li>
+<li><strong>In practice</strong> it is very popular and gives reasonable clusters.</li>
+</ul>
+<h2>5. Open questions (answered in later lectures)</h2>
+<ol>
+<li><strong>Convergence:</strong> does it always converge? <em>(Yes, see §6.2.)</em></li>
+<li><strong>Nature of clusters:</strong> what shapes can it find? <em>(Convex Voronoi cells, see §6.3.)</em></li>
+<li><strong>Initialization:</strong> how should z⁰ or μ⁰ be chosen? <em>(see §6.5)</em></li>
+<li><strong>Choice of K:</strong> how many clusters? <em>(see §6.6)</em></li>
+</ol>
+<hr />
+<h2>6. Going further: general d-dimensional derivations</h2>
+<p><em>This section goes beyond the video.</em></p>
+<h3>6.1 Why the mean? (Step 1 is optimal, for any dimension d)</h3>
+<p>Fix the assignments. For a cluster Cₖ with nₖ points, find the μ ∈ ℝᵈ that minimises</p>
+<p>$$
+J_k(\mu)=\sum_{i\in C_k}\lVert x_i-\mu\rVert^2=\sum_{i\in C_k}(x_i-\mu)^\top(x_i-\mu).
+$$</p>
+<p>Expand: J = Σ xᵢᵀxᵢ − 2μᵀΣxᵢ + nₖ μᵀμ. Use the vector-calculus identities
+∇_μ(aᵀμ) = a and ∇_μ(μᵀμ) = 2μ:</p>
+<p>$$
+\nabla_\mu J_k = -2\sum_{i\in C_k}x_i + 2n_k\mu = 0 \;\Rightarrow\; \mu^\star=\frac{1}{n_k}\sum_{i\in C_k}x_i .
+$$</p>
+<p>The Hessian is ∇²J = 2nₖ I_d, which is positive definite. So J is strictly convex and μ* is
+the <strong>unique global minimiser</strong>. The calculation is the same in 1-D or 1000-D; it just runs
+coordinate by coordinate.</p>
+<p><strong>A useful identity (bias–variance split):</strong> for any μ,</p>
+<p>$$
+\sum_{i\in C_k}\lVert x_i-\mu\rVert^2=\sum_{i\in C_k}\lVert x_i-\bar x_k\rVert^2 + n_k\lVert \bar x_k-\mu\rVert^2 .
+$$</p>
+<p>The cross term vanishes because Σ(xᵢ − x̄ₖ) = 0. So moving μ away from the mean adds exactly
+nₖ‖x̄ₖ − μ‖² to the cost.</p>
+<h3>6.2 Proof that Lloyd's converges</h3>
+<p>Treat the objective as a function of <strong>both</strong> the assignments and the centres:</p>
+<p>$$
+F(z,\mu)=\sum_{i=1}^n \lVert x_i-\mu_{z_i}\rVert^2 .
+$$</p>
+<p>Lloyd's algorithm is <strong>coordinate descent</strong> on F:</p>
+<ul>
+<li><strong>Step 1</strong> (z fixed, optimise μ): by §6.1, F(zᵗ, μᵗ) ≤ F(zᵗ, μ) for every μ. In particular
+F(zᵗ, μᵗ) ≤ F(zᵗ, μ^{t−1}).</li>
+<li><strong>Step 2</strong> (μ fixed, optimise z): the terms for different points are independent, so
+picking each zᵢ by argmin minimises the sum. This gives F(z^{t+1}, μᵗ) ≤ F(zᵗ, μᵗ),
+with <strong>strict</strong> inequality whenever at least one point moves, thanks to the tie rule.</li>
+</ul>
+<p>Chaining the two steps:</p>
+<p>$$
+F(z^{t+1},\mu^{t+1}) \le F(z^{t+1},\mu^{t}) &lt; F(z^{t},\mu^{t}) \quad\text{whenever some point moves.}
+$$</p>
+<ol>
+<li>F strictly decreases every time the partition changes.</li>
+<li>So <strong>no partition can repeat</strong>: a repeat would give the same F value, which contradicts
+strict decrease. That rules out cycles.</li>
+<li>There are at most Kⁿ partitions, which is a finite number.</li>
+<li>So the algorithm stops after finitely many iterations. ∎</li>
+</ol>
+<p>It reaches a <strong>local</strong> optimum: no single step (re-centring, or moving one point) can lower F.
+That is still not the global optimum.</p>
+<h3>6.3 What shape are the clusters? (Voronoi / linear boundaries)</h3>
+<p>Point x goes to cluster k rather than l when ‖x − μₖ‖² &lt; ‖x − μₗ‖². Expand both sides.
+The ‖x‖² terms cancel:</p>
+<p>$$
+-2\mu_k^\top x+\lVert\mu_k\rVert^2 &lt; -2\mu_l^\top x+\lVert\mu_l\rVert^2
+\;\Longleftrightarrow\;
+2(\mu_l-\mu_k)^\top x &lt; \lVert\mu_l\rVert^2-\lVert\mu_k\rVert^2 .
+$$</p>
+<p>This is a <strong>linear</strong> inequality in x. The boundary between two clusters is a hyperplane
+in ℝᵈ. It is the perpendicular bisector of the segment μₖμₗ: normal vector (μₗ − μₖ),
+passing through the midpoint (μₖ + μₗ)/2.</p>
+<p>Cluster k is the intersection of K − 1 half-spaces, so it is a <strong>convex polyhedron</strong>. The set
+of all these regions is the <strong>Voronoi partition</strong> of ℝᵈ generated by the means.</p>
+<p><strong>Consequence:</strong> K-means cannot find non-convex clusters such as two concentric rings or
+two interlocking half-moons. (Kernel K-means and spectral clustering fix this, in the same
+way kernel PCA extends PCA.)</p>
+<h3>6.4 Matrix form and cost per iteration</h3>
+<p>Stack the data as rows of X ∈ ℝ^{n×d}. Let Z ∈ {0,1}^{n×K} be the one-hot assignment
+matrix (Zᵢₖ = 1 iff zᵢ = k), and let M ∈ ℝ^{K×d} hold the means as rows. Then:</p>
+<p>$$
+F = \lVert X - ZM\rVert_F^2,\qquad
+\text{Step 1: } M = (Z^\top Z)^{-1}Z^\top X .
+$$</p>
+<p>ZᵀZ = diag(n₁, …, n_K) holds the cluster sizes, and ZᵀX holds the per-cluster sums. So
+Step 1 is exactly the <strong>least-squares solution</strong> for M with Z fixed. This is a nice link to
+linear regression.</p>
+<p>Distances for Step 2, all at once:
+‖xᵢ − μₖ‖² = ‖xᵢ‖² − 2xᵢᵀμₖ + ‖μₖ‖², i.e. D = diag(XXᵀ)𝟏ᵀ − 2XMᵀ + 𝟏 diag(MMᵀ)ᵀ.</p>
+<p><strong>Cost per iteration:</strong> O(nKd) for the distances plus O(nd) for the means. That is linear in
+the data size, which is why K-means scales so well.</p>
+<h3>6.5 Initialization (preview)</h3>
+<ul>
+<li>
+<p><strong>Random partition</strong> or <strong>random K data points as centres</strong>. Simple, but it can land in a
+bad local optimum.</p>
+</li>
+<li>
+<p><strong>K-means++</strong> (Arthur &amp; Vassilvitskii, 2007):</p>
+<ol>
+<li>Pick the first centre uniformly at random from the data.</li>
+<li>Pick each later centre with probability ∝ D(x)², the squared distance from x to the nearest centre chosen so far.</li>
+</ol>
+<p>This gives an expected cost of at most O(log K) times the optimum.</p>
+</li>
+<li>
+<p><strong>In practice:</strong> run several random restarts and keep the run with the lowest F.</p>
+</li>
+</ul>
+<h3>6.6 Choosing K (preview)</h3>
+<ul>
+<li>F*(K) always decreases as K grows (F* = 0 when K = n). So you <strong>cannot</strong> simply minimise F over K.</li>
+<li><strong>Elbow method:</strong> plot F*(K) against K and look for the &quot;knee&quot; where the gains flatten out.</li>
+<li><strong>Penalised objective:</strong> minimise F*(K) + λ·K, a trade-off between fit and complexity
+(AIC/BIC-style).</li>
+<li>Other options: silhouette score, gap statistic.</li>
+</ul>
+<h3>6.7 Minimal NumPy implementation (any d)</h3>
+<pre><code class="language-python">import numpy as np
+
+def lloyd(X, K, iters=100, seed=0):
+    rng = np.random.default_rng(seed)
+    n, d = X.shape
+    z = rng.integers(K, size=n)                    # Step 0: random partition
+    for _ in range(iters):
+        # Step 1: means (re-seed empty clusters with a random point)
+        M = np.stack([X[z == k].mean(0) if np.any(z == k) else X[rng.integers(n)]
+                      for k in range(K)])
+        # Step 2: squared distances n×K, via ||x||² - 2xᵀμ + ||μ||²
+        D = (X**2).sum(1)[:, None] - 2 * X @ M.T + (M**2).sum(1)[None, :]
+        best = D.argmin(1)
+        # tie rule: stay unless strictly closer
+        stay = D[np.arange(n), z] &lt;= D[np.arange(n), best]
+        z_new = np.where(stay, z, best)
+        if np.array_equal(z_new, z):               # converged
+            break
+        z = z_new
+    return z, M, ((X - M[z])**2).sum()
+</code></pre>
+<hr />
+<h2>Key takeaways</h2>
+<ol>
+<li>Lloyd's algorithm alternates two steps: <strong>compute the means</strong>, then <strong>reassign each point to its nearest mean</strong>.</li>
+<li>It is <strong>coordinate descent</strong> on F(z, μ). F strictly decreases, so no partition repeats,
+and the algorithm converges in finitely many steps.</li>
+<li>It converges to a <strong>local</strong>, not global, optimum. Initialization matters.</li>
+<li>Clusters are <strong>convex Voronoi cells</strong> with <strong>hyperplane boundaries</strong> in ℝᵈ.</li>
+<li>Each iteration costs O(nKd), so it scales to large data.</li>
+</ol>
+<h2>Self-check questions</h2>
+<ol>
+<li>Why does the tie rule (&quot;move only if strictly closer&quot;) matter for the convergence proof?</li>
+<li>Show that the boundary between two centres in ℝ³ is a plane, and find its normal vector.</li>
+<li>With z fixed, why is the mean the unique minimiser? Use the Hessian to argue it.</li>
+<li>Can K-means separate two concentric circles? Why or why not?</li>
+<li>Why can't you choose K by minimising F over K?</li>
+<li>What is the cost per iteration for n = 10⁶, K = 10, d = 100?
+<em>(≈ 10⁹ operations for the distances.)</em></li>
+</ol>
+
+</main>
+<script>window.addEventListener('load',()=>{if(window.renderMathInElement)renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});});</script>
+</body></html>

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solving Linear Regression</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+input[type=range]{width:240px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 29 · Regression</div>
+<h1>Solving Linear Regression in Closed Form</h1>
+<p class="lede">Write the problem with matrices, set the gradient to zero, and linear regression has an exact formula for the best weights: $w^\star=(XX^\top)^{+}Xy$. It looks a lot like PCA's covariance matrix, except the labels come in too. The lecture ends with four questions that the next lectures answer.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=JQPLz5YhjaM">this lecture on YouTube</a> (≈13 min). Previous: <a href="L28-linear-regression.html">L28</a> · Next: <a href="L30-geometric-interpretation.html">L30</a>.</p>
+
+<h2>1 · The same problem, with matrices</h2>
+<p>Stack the data points as <b>columns</b> of a $d\times n$ matrix $X$, so $X^\top$ has one point per row. Put the labels in an $n\times1$ vector $y$ and the weights in a $d\times1$ vector $w$. Then $X^\top w$ is the vector of all predictions $(x_1^\top w,\dots,x_n^\top w)$, and the total squared error is a squared length:</p>
+$$\sum_{i=1}^{n}(w^\top x_i-y_i)^2=\lVert X^\top w-y\rVert^2=(X^\top w-y)^\top(X^\top w-y).$$
+<p>This is an <b>unconstrained</b> (any $w\in\mathbb R^d$ allowed), <b>quadratic</b> (from the squared error) minimisation problem: a bowl with a single bottom.</p>
+
+<h2>2 · Find the bottom: gradient = 0</h2>
+<ol class="steps">
+<li>Take the gradient, the vector of partial derivatives with respect to each $w_j$ (a good exercise to verify): $\;\nabla_w=2XX^\top w-2Xy.$</li>
+<li>Set it to zero to get the <b>normal equations</b>: $\;XX^\top w=Xy.$</li>
+<li>Solve: $\;\boxed{w^\star=(XX^\top)^{+}\,Xy}$</li>
+</ol>
+<p>Here $^{+}$ is the <b>pseudo-inverse</b>. If $XX^\top$ is invertible, it's just the ordinary inverse. If not (some features are redundant, so the matrix isn't full rank), many $w$ fit equally well, and the pseudo-inverse picks the one with the <b>smallest length</b>, the "least-norm solution".</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">One feature, no intercept, so $w$ is a single number and the error is a parabola in $w$. Drag $w$: the left chart shows the line and its errors (the red segments), the right shows where you are on the error bowl.</p>
+  <div class="row"><label>w = <b id="wV"></b> <input type="range" id="wS" min="-50" max="250" value="20" aria-label="weight w"></label><button id="toStar">Jump to w*</button></div>
+  <div class="row"><div class="stat"><div class="v" id="err">–</div><div class="l">total squared error</div></div><div class="stat"><div class="v" id="wst">–</div><div class="l">w* = Σxᵢyᵢ / Σxᵢ²</div></div></div>
+  <div class="two"><canvas id="lineC" height="240" aria-label="Data with the current line and residuals"></canvas><canvas id="bowlC" height="240" aria-label="Error as a function of w"></canvas></div>
+</div>
+<p class="small muted">With one feature, $XX^\top=\sum_i x_i^2$ and $Xy=\sum_i x_iy_i$ are plain numbers, so $w^\star=\sum_i x_iy_i/\sum_i x_i^2$.</p>
+
+<h2>3 · A connection to PCA</h2>
+<p>$XX^\top$ is a $d\times d$ matrix: a (scaled) <b>covariance-like matrix</b>, the same object PCA's eigenvectors come from. So the regression solution also involves this matrix, here through its inverse. The key difference: PCA is unsupervised, while regression must match the labels, and $y$ enters through the $Xy$ term.</p>
+
+<h2>4 · Four questions for the next lectures</h2>
+<div class="callout">
+<ol style="margin:0;padding-left:20px">
+<li><b>Geometry:</b> what does $w^\star=(XX^\top)^+Xy$ mean geometrically? → <a href="L30-geometric-interpretation.html">L30</a></li>
+<li><b>Computation:</b> is it expensive to compute, like the eigenvectors in PCA? → <a href="L31-gradient-descent.html">L31</a></li>
+<li><b>Non-linear relationships:</b> what if the features relate to the label quadratically, cubically and so on? → <a href="L32-kernel-regression.html">L32</a></li>
+<li><b>A probabilistic view:</b> what exactly is the "noise"? → a later lecture</li>
+</ol></div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Matrix form: minimise $\lVert X^\top w-y\rVert^2$, an unconstrained quadratic.</li>
+<li>Gradient $2XX^\top w-2Xy=0$ gives the normal equations, so $w^\star=(XX^\top)^+Xy$.</li>
+<li>The pseudo-inverse handles a non-invertible $XX^\top$ by choosing the least-norm solution.</li>
+<li>Like PCA, it involves the covariance-like $XX^\top$; unlike PCA, the labels $y$ matter too.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const D = [[1, 1.1], [2, 2.9], [3, 2.6], [4, 4.4], [5, 4.7], [6, 6.8], [7, 6.4], [8, 8.9]];
+const sxy = D.reduce((s, [x, y]) => s + x * y, 0), sxx = D.reduce((s, [x]) => s + x * x, 0), wStar = sxy / sxx;
+const E = w => D.reduce((s, [x, y]) => s + (w * x - y) ** 2, 0);
+function draw(){
+  const w = +$('wS').value / 100; $('wV').textContent = w.toFixed(2); $('err').textContent = E(w).toFixed(2); $('wst').textContent = wStar.toFixed(3);
+  let [ctx, W, H] = setupCanvas($('lineC')); let pad = {l: 30, r: 10, t: 10, b: 24};
+  let X = v => pad.l + v / 9 * (W - pad.l - pad.r), Y = v => H - pad.b - (v + 1) / 13 * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 4, 8, 12].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 5, Y(v)); });
+  [0, 2, 4, 6, 8].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 4); });
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; D.forEach(([x, y]) => { ctx.beginPath(); ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(x), Y(w * x)); ctx.stroke(); });
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(9), Y(9 * w)); ctx.stroke();
+  ctx.fillStyle = cssv('--s1'); D.forEach(([x, y]) => { ctx.beginPath(); ctx.arc(X(x), Y(y), 5, 0, 2 * Math.PI); ctx.fill(); });
+  [ctx, W, H] = setupCanvas($('bowlC')); pad = {l: 44, r: 10, t: 10, b: 24};
+  const wr = [-0.5, 2.5], top = E(2.5) * 1.05;
+  X = v => pad.l + (v - wr[0]) / (wr[1] - wr[0]) * (W - pad.l - pad.r); Y = v => H - pad.b - v / top * (H - pad.t - pad.b);
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 500, 1000, 1500].filter(v => v < top).forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 5, Y(v)); });
+  [0, 1, 2].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('w=' + v, X(v), H - pad.b + 4); });
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 200; i++){ const v = wr[0] + (wr[1] - wr[0]) * i / 200; i ? ctx.lineTo(X(v), Y(E(v))) : ctx.moveTo(X(v), Y(E(v))); } ctx.stroke();
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(wStar), Y(0)); ctx.lineTo(X(wStar), Y(top * 0.9)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('w* (gradient = 0)', X(wStar) + 6, Y(top * 0.9));
+  ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(w), Y(E(w)), 6, 0, 2 * Math.PI); ctx.fill();
+}
+$('wS').oninput = draw; $('toStar').onclick = () => { $('wS').value = Math.round(wStar * 100); draw(); };
+draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

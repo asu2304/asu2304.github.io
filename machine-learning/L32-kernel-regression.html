@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kernel Regression</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:180px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 32 · Regression: non-linear relationships</div>
+<h1>Kernel Regression</h1>
+<p class="lede">What if the label depends on the features non-linearly, through terms like height² or height × weight? Use the same trick as kernel PCA: map the data to a richer feature space and do linear regression <b>there</b>, but write everything in terms of dot products so a <b>kernel</b> can stand in for the mapping.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=u9ir3yQynpE">this lecture on YouTube</a> (≈19 min). Previous: <a href="L31-gradient-descent.html">L31</a>.</p>
+
+<h2>1 · The problem with linear</h2>
+<p>If the true relationship is something like height² + 3·weight − weight², or contains a cross term like height × weight, linear regression can't capture it. Even the best $w$ makes large errors. Kernel PCA solved the same issue for PCA by working only with <b>dot products between data points</b> and replacing them with a kernel $k(x,x')=\phi(x)^\top\phi(x')$. The goal here is the same: express regression through dot products.</p>
+
+<h2>2 · Key fact: w* lies in the span of the data points</h2>
+<p>Suppose some optimal $w^\star$ pokes outside the span of the data. Split it into a part inside the span, $\tilde w$, and a part perpendicular to it, $w_\perp$. The perpendicular part has zero dot product with every data point, so</p>
+$$w^{\star\top}x_i=\tilde w^\top x_i+\underbrace{w_\perp^\top x_i}_{0}=\tilde w^\top x_i\quad\text{for every }i .$$
+<p>So $\tilde w$ makes exactly the same predictions and has the same error. We can always use a solution inside the span, which means $w^\star$ is a weighted combination of the data points:</p>
+$$w^\star=X\alpha^\star=\sum_{i=1}^{n}\alpha^\star_i\,x_i,\qquad \alpha^\star\in\mathbb R^n .$$
+
+<h2>3 · Solving for α in terms of dot products</h2>
+<ol class="steps">
+<li>Combine with L29's solution: $\;X\alpha^\star=(XX^\top)^{+}Xy$.</li>
+<li>Multiply both sides by $XX^\top$, which cancels the pseudo-inverse: $\;XX^\top X\alpha^\star=Xy$.</li>
+<li>Multiply both sides by $X^\top$: $\;(X^\top X)(X^\top X)\alpha^\star=(X^\top X)\,y$.</li>
+<li>$X^\top X$ is the $n\times n$ matrix of dot products between data points, the <b>kernel matrix</b> $K$. So $K^2\alpha^\star=Ky$, and if $K$ is invertible, $\;\boxed{\alpha^\star=K^{-1}y}$.</li>
+</ol>
+<p>Now replace the plain dot products with a kernel, $K_{ij}=k(x_i,x_j)=\phi(x_i)^\top\phi(x_j)$. That's linear regression on the mapped points $\phi(x_i)$, without ever computing $\phi$.</p>
+
+<h2>4 · Predicting a new point</h2>
+<p>For a test point, the prediction would be $w^{\star\top}\phi(x_{\text{test}})$. But $w^\star=\sum_i\alpha^\star_i\phi(x_i)$, so</p>
+$$\boxed{\;\hat y(x_{\text{test}})=\sum_{i=1}^{n}\alpha^\star_i\;k(x_i,\,x_{\text{test}})\;}$$
+<ul>
+<li>$k(x_i,x_{\text{test}})$: how <b>similar</b> the test point is to training point $i$.</li>
+<li>$\alpha^\star_i$: how <b>important</b> training point $i$ is to the solution.</li>
+<li>The prediction adds up similarity × importance over all training points. A test point close to an unimportant training point doesn't get much from it.</li>
+</ul>
+<div class="callout"><b>The algorithm:</b> (1) build the $n\times n$ kernel matrix $K$; (2) compute $\alpha^\star=K^{-1}y$; (3) predict with $\sum_i\alpha^\star_i k(x_i,x)$. Choose any kernel: polynomial (quadratic, cubic, …), Gaussian (RBF), etc. Unlike kernel PCA, the labels $y$ come in here.</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">20 noisy training points from a curved relationship. Each kernel gives a different family of fitted curves. Grey dots are fresh test points from the same process.</p>
+  <div class="row">
+    <button data-k="lin">linear: xᵀx′</button><button data-k="p2">quadratic: (1 + xᵀx′)²</button><button data-k="p3" class="on">cubic: (1 + xᵀx′)³</button><button data-k="rbf">Gaussian (RBF)</button>
+    <label id="bwL" style="display:none">bandwidth = <b id="bwV"></b> <input type="range" id="bw" min="5" max="200" value="80" aria-label="RBF bandwidth"></label>
+    <label><input type="checkbox" id="ridge"> use (K + λI)⁻¹y with λ = 0.1 instead of K⁻¹y</label>
+    <button id="newD">New data</button>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="trE">–</div><div class="l">training error (avg squared)</div></div>
+    <div class="stat"><div class="v" id="teE">–</div><div class="l">test error</div></div>
+  </div>
+  <canvas id="kc" height="290" aria-label="Kernel regression fit for the chosen kernel"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>training points</span><span><i style="background:var(--faint)"></i>test points</span></div>
+  <p class="small" id="kTxt"></p>
+</div>
+<div class="beyond"><b>Two implementation notes, going beyond the video.</b> (1) With a polynomial kernel, $K$ has low rank and isn't invertible, so the demo uses the pseudo-inverse $K^{+}$, the least-norm solution from L29. (2) With an RBF kernel, $K$ is invertible but <b>nearly singular</b>, so $\alpha=K^{-1}y$ fits every training point almost exactly, noise included, and the fitted curve can swing wildly elsewhere. That's the memorising problem from L28. The standard fix, tried in the demo, is to add a small amount to the diagonal: $(K+\lambda I)^{-1}y$ ("kernel ridge regression"), a form of regularisation the course covers later.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Non-linear relationships need non-linear features. Kernels supply them implicitly.</li>
+<li>The optimal $w^\star$ lies in the span of the data, $w^\star=X\alpha^\star$, so everything can be written with the kernel matrix $K$.</li>
+<li>$\alpha^\star=K^{-1}y$, and the prediction is $\sum_i\alpha^\star_i\,k(x_i,x)$: similarity × importance.</li>
+<li>Regression → kernel regression mirrors PCA → kernel PCA, with the labels added.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const truth = x => Math.sin(1.2 * x) + 0.25 * x;
+const make = m => Array.from({length: m}, () => { const x = -3 + 6 * Math.random(); return [x, truth(x) + 0.2 * randn()]; });
+let train = make(20), test = make(80), kind = 'p3';
+const bw = () => +$('bw').value / 100;
+const KF = {lin: (a, b) => a * b, p2: (a, b) => (1 + a * b) ** 2, p3: (a, b) => (1 + a * b) ** 3, rbf: (a, b) => Math.exp(-((a - b) ** 2) / (2 * bw() ** 2))};
+// symmetric eigendecomposition (cyclic Jacobi), used for the pseudo-inverse K⁺
+function eigSym(A){ const n = A.length, a = A.map(r => r.slice()), V = A.map((_, i) => A.map((_, j) => +(i === j)));
+  for (let sweep = 0; sweep < 60; sweep++){ let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += a[i][j] ** 2; if (off < 1e-20) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++){ if (Math.abs(a[p][q]) < 1e-15) continue;
+      const th = (a[q][q] - a[p][p]) / (2 * a[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++){ const akp = a[k][p], akq = a[k][q]; a[k][p] = c * akp - s * akq; a[k][q] = s * akp + c * akq; }
+      for (let k = 0; k < n; k++){ const apk = a[p][k], aqk = a[q][k]; a[p][k] = c * apk - s * aqk; a[q][k] = s * apk + c * aqk; }
+      for (let k = 0; k < n; k++){ const vkp = V[k][p], vkq = V[k][q]; V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq; } } }
+  return {vals: a.map((r, i) => r[i]), V}; }
+function fit(){ const k = KF[kind], n = train.length, K = train.map(([a]) => train.map(([b]) => k(a, b)));
+  const {vals, V} = eigSym(K), mx = Math.max(...vals.map(Math.abs)), tol = mx * 1e-10, lam = $('ridge').checked ? 0.1 : 0;
+  const alpha = new Array(n).fill(0);
+  vals.forEach((l, j) => { if (!lam && Math.abs(l) <= tol) return;   // pseudo-inverse: skip zero directions
+    let c = 0; for (let i = 0; i < n; i++) c += V[i][j] * train[i][1]; c /= (l + lam); for (let i = 0; i < n; i++) alpha[i] += c * V[i][j]; });
+  return x => train.reduce((s, [xi], i) => s + alpha[i] * k(xi, x), 0); }
+function draw(){
+  $('bwV').textContent = bw().toFixed(2); $('bwL').style.display = kind === 'rbf' ? '' : 'none';
+  const f = fit(), mse = D => D.reduce((s, [x, y]) => s + (f(x) - y) ** 2, 0) / D.length, tr = mse(train), te = mse(test);
+  $('trE').textContent = tr.toFixed(3); $('teE').textContent = te.toFixed(3);
+  const [ctx, W, H] = setupCanvas($('kc')), pad = {l: 34, r: 12, t: 10, b: 26}, xr = [-3.2, 3.2], yr = [-2.6, 2.6];
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [-2, -1, 0, 1, 2].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  [-3, -2, -1, 0, 1, 2, 3].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); });
+  const dot = (x, y, c, r) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(X(x), Y(y), r, 0, 2 * Math.PI); ctx.fill(); };
+  ctx.globalAlpha = 0.5; test.forEach(([x, y]) => dot(x, y, cssv('--faint'), 2.5)); ctx.globalAlpha = 1;
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 500; i++){ const x = xr[0] + (xr[1] - xr[0]) * i / 500; i ? ctx.lineTo(X(x), Y(f(x))) : ctx.moveTo(X(x), Y(f(x))); } ctx.stroke(); ctx.restore();
+  train.forEach(([x, y]) => dot(x, y, cssv('--s1'), 5));
+  const msg = {lin: 'The linear kernel is plain linear regression (a line through the origin). It misses the curve completely.',
+    p2: 'A quadratic kernel can bend once, which helps but still misses the S-shape.',
+    p3: 'A cubic kernel can follow the S-shaped curve well. Training and test error are both low.',
+    rbf: $('ridge').checked
+      ? (bw() < 0.25 ? 'With λ = 0.1 the narrow RBF no longer has to hit every point, though it still wiggles. Widen the bandwidth for a smoother fit.' : 'With λ = 0.1 the RBF fit is smooth and follows the curve: low training <b>and</b> low test error.')
+      : (bw() < 0.25 ? '<b>Exact α = K⁻¹y with a narrow RBF:</b> the curve passes through every training point (training error ≈ 0) and wiggles between them, so the test error is high. That’s overfitting, as in L28.'
+        : '<b>Exact α = K⁻¹y with an RBF kernel:</b> the training error is almost 0, but K is nearly singular, so the curve swings wildly between and beyond the points and the test error is large. Tick the λ box to fix it (see the note below).')};
+  $('kTxt').innerHTML = msg[kind];
+}
+document.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => { kind = b.dataset.k; document.querySelectorAll('button[data-k]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+$('bw').oninput = draw; $('ridge').onchange = draw; $('newD').onclick = () => { train = make(20); test = make(80); draw(); };
+draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

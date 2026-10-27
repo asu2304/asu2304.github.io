@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bayesian Estimation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  --surface:#fcfcfb; --card:#ffffff; --ink:#1f1e1d; --muted:#6b6a64; --faint:#9a998f; --grid:#e6e5e0;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --tint:#eef4fc; --warn-bg:#fdf3e7; --accent:#2a78d6;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface:#1a1a19; --card:#222220; --ink:#f0efec; --muted:#c3c2b7; --faint:#8d8c84; --grid:#34332f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --tint:#1f2a38; --warn-bg:#2e2519; --accent:#5598e7;}}
+:root[data-theme="dark"]{
+  --surface:#1a1a19; --card:#222220; --ink:#f0efec; --muted:#c3c2b7; --faint:#8d8c84; --grid:#34332f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --tint:#1f2a38; --warn-bg:#2e2519; --accent:#5598e7;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:960px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+h2{font-size:23px;margin:56px 0 10px;padding-top:24px;border-top:1px solid var(--grid)}
+h3{font-size:17px;margin:24px 0 6px}
+p{margin:10px 0}
+a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;letter-spacing:.02em;margin-bottom:6px}
+.lede{font-size:18px;color:var(--muted);max-width:760px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 4px}
+nav.toc a{font-size:13px;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--grid);border-radius:999px;padding:4px 12px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:18px;margin:18px 0}
+.card h3{margin-top:0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:16px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:16px 0;font-size:14px}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+input[type=range]{width:200px;accent-color:var(--s1)}
+.stat{display:inline-block;min-width:118px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:21px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+canvas{width:100%;display:block;border-radius:8px}
+table{border-collapse:collapse;font-size:14px;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.tablewrap{overflow-x:auto}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.grid3 .card{margin:0}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+details{border:1px solid var(--grid);border-radius:8px;padding:10px 14px;margin:10px 0;background:var(--card)}
+summary{cursor:pointer;font-weight:600}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
+.flow svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+
+<div class="kicker">Lecture 21 · Estimation, continued</div>
+<h1>Bayesian Estimation</h1>
+<p class="lede">Maximum likelihood looks only at the data. But before seeing any data, we often already have a <b>hunch</b> about the parameter. Bayesian estimation turns that hunch into a probability distribution (the <b>prior</b>), then uses Bayes' theorem to update it with the data into a new distribution (the <b>posterior</b>).</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=ZnkRbtZLPm4">this lecture on YouTube</a> (≈37 min). Previous: <a href="L20-maximum-likelihood.html">L20 · Maximum likelihood</a>. Sections marked <span style="background:var(--warn-bg);padding:1px 6px;border-radius:4px">Going further</span> go beyond the video.</p>
+
+<nav class="toc">
+  <a href="#hunch">1 · The missing ingredient</a>
+  <a href="#prior">2 · Parameter as a random variable</a>
+  <a href="#bayes">3 · Bayes' theorem</a>
+  <a href="#beta">4 · The Beta prior</a>
+  <a href="#conjugate">5 · Beta in, Beta out</a>
+  <a href="#explore">6 · Try it</a>
+  <a href="#ghost">7 · Ghost data</a>
+  <a href="#point">8 · From a distribution to one number</a>
+  <a href="#compare">9 · ML vs Bayesian</a>
+  <a href="#further">10 · Going further</a>
+  <a href="#check">Self-check</a>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="hunch">1 · The missing ingredient: what you know before the data</h2>
+<p>Suppose you haven't tossed the coin even once, and someone asks for your best guess of $p$. Maximum likelihood can't answer: it needs data, and with no data it has nothing to go on.</p>
+<p>But in practice you often <i>do</i> know something beforehand. Someone tells you "I believe this coin's bias is close to 1." Or your experience says "it's definitely a trick coin, so $p$ is near 0 or near 1, not near 0.5." These are statements about the <b>parameter</b>, not about any data. The lecture calls them <b>hunches</b> (or domain knowledge, or beliefs).</p>
+<div class="callout"><b>The goal of this lecture:</b> find a principled way to write such a hunch in mathematical form, and combine it with the data in the estimation process.</div>
+
+<!-- ============================================================ -->
+<h2 id="prior">2 · The key move: treat the parameter as a random variable</h2>
+<p>In maximum likelihood, $p$ was a fixed, unknown constant. The Bayesian approach instead describes our <b>uncertainty</b> about $p$ with a probability distribution, $P(\theta)$, over all the values it could take. This is called the <b>prior</b>, because it comes before seeing the data.</p>
+<ul>
+<li>Where the prior's density is high, you believe the true value is more likely to be.</li>
+<li>The prior must live where the parameter can live. For a coin, $p$ is between 0 and 1, so the prior must only cover $[0, 1]$.</li>
+<li>Integrating the prior over an interval gives "how much I believe, before seeing data, that the true value falls in this interval".</li>
+</ul>
+<p>Different hunches become different shapes:</p>
+<div class="grid3">
+  <div class="card"><h3>"p is close to 1"</h3><canvas id="h1" height="120" aria-label="Prior peaking near 0.9"></canvas><p class="small muted" style="margin-bottom:0">Most belief near 0.9, little near 0.</p></div>
+  <div class="card"><h3>"p is not near 0.5"</h3><canvas id="h2" height="120" aria-label="U-shaped prior"></canvas><p class="small muted" style="margin-bottom:0">Belief piled at both ends: a trick coin, one way or the other.</p></div>
+  <div class="card"><h3>"the mean μ is around 12.5"</h3><canvas id="h3" height="120" aria-label="Bell-shaped prior around 12.5"></canvas><p class="small muted" style="margin-bottom:0">For a Gaussian's mean, which can be any real number, a bell shape works.</p></div>
+</div>
+<p>After seeing the data, the hunch should be <b>updated</b>. If you expected about 90% heads but see 900 tails in 1,000 tosses, your belief must shift a lot. If the data agrees with you, your belief should become more confident. The updated hunch is again a distribution, now conditioned on the data: $P(\theta\mid\text{data})$, the <b>posterior</b>.</p>
+
+<!-- ============================================================ -->
+<h2 id="bayes">3 · Bayes' theorem does the updating</h2>
+<p>Bayes' rule from probability says $P(A\mid B)=\dfrac{P(B\mid A)\,P(A)}{P(B)}$. Set $A$ = the parameter $\theta$ and $B$ = the data $x_1,\dots,x_n$:</p>
+$$\underbrace{P(\theta\mid x_1,\dots,x_n)}_{\text{posterior}}=\frac{\overbrace{P(x_1,\dots,x_n\mid\theta)}^{\text{likelihood}}\;\;\overbrace{P(\theta)}^{\text{prior}}}{\underbrace{P(x_1,\dots,x_n)}_{\text{evidence}}} .$$
+
+<div class="card flow">
+<svg viewBox="0 0 860 170" width="100%" role="img" aria-label="Diagram: prior times likelihood, normalised, gives the posterior">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+  <rect x="10" y="30" width="200" height="90" rx="12" fill="var(--card)" stroke="var(--s2)" stroke-width="2"/>
+  <text x="110" y="64" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Prior  P(θ)</text>
+  <text x="110" y="90" text-anchor="middle" font-size="13" fill="var(--muted)">hunch before data</text>
+  <text x="245" y="83" text-anchor="middle" font-size="30" fill="var(--muted)">×</text>
+  <rect x="280" y="30" width="220" height="90" rx="12" fill="var(--card)" stroke="var(--s3)" stroke-width="2"/>
+  <text x="390" y="64" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Likelihood  P(data | θ)</text>
+  <text x="390" y="90" text-anchor="middle" font-size="13" fill="var(--muted)">what the data says (L20)</text>
+  <path d="M505,75 L590,75" stroke="var(--muted)" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="547" y="62" text-anchor="middle" font-size="12" fill="var(--muted)">÷ evidence</text>
+  <rect x="600" y="30" width="240" height="90" rx="12" fill="var(--tint)" stroke="var(--s1)" stroke-width="2"/>
+  <text x="720" y="64" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Posterior  P(θ | data)</text>
+  <text x="720" y="90" text-anchor="middle" font-size="13" fill="var(--muted)">updated hunch</text>
+  <text x="430" y="155" text-anchor="middle" font-size="13" fill="var(--muted)">The evidence doesn't depend on θ; it only rescales the result so the area under the posterior is 1.</text>
+</svg>
+</div>
+
+<ul>
+<li>The <b>likelihood</b> is the same object from L20: how probable the data is if the parameter were θ.</li>
+<li>The <b>evidence</b> is the overall probability of the data. It doesn't involve θ, so for the <i>shape</i> of the posterior we can ignore it:</li>
+</ul>
+$$\boxed{\;\text{posterior}\;\propto\;\text{likelihood}\times\text{prior}\;}$$
+<p>Read it as a <b>re-weighting</b>: start with your prior beliefs and multiply each candidate θ by how well it explains the data. Candidates that explain the data well gain weight; the others lose it.</p>
+
+<!-- ============================================================ -->
+<h2 id="beta">4 · A flexible prior for a coin: the Beta distribution</h2>
+<p>For a coin we need a distribution on $[0,1]$. A Gaussian won't do, because it spreads over all real numbers. The standard choice is the <b>Beta distribution</b>, with two positive shape parameters $\alpha$ and $\beta$:</p>
+$$P(p)=\frac{1}{Z}\,p^{\alpha-1}(1-p)^{\beta-1},\qquad p\in[0,1],\quad \alpha,\beta>0 .$$
+<p>$Z$ is just the constant that makes the area 1. What matters is the shape, $p^{\alpha-1}(1-p)^{\beta-1}$. Play with $\alpha$ and $\beta$ and see how many different hunches it can express:</p>
+
+<div class="card">
+  <div class="row">
+    <label>α = <b id="baV">2</b> <input type="range" id="baS" min="0.5" max="30" step="0.5" value="2" aria-label="alpha"></label>
+    <label>β = <b id="bbV">2</b> <input type="range" id="bbS" min="0.5" max="30" step="0.5" value="2" aria-label="beta"></label>
+  </div>
+  <div class="row">
+    <button data-ab="2,2">α=2, β=2</button><button data-ab="2,5">α=2, β=5</button><button data-ab="0.5,0.5">α=β=0.5</button><button data-ab="1,1">α=β=1</button><button data-ab="10,2">α=10, β=2</button><button data-ab="20,20">α=β=20</button>
+  </div>
+  <canvas id="betaCanvas" height="220" aria-label="Beta density for the chosen alpha and beta"></canvas>
+  <p class="small" id="betaTxt"></p>
+</div>
+<ul>
+<li><b>α = 2, β = 2:</b> a hump at 0.5. "Probably roughly fair, but I'm not sure."</li>
+<li><b>α = 2, β = 5:</b> leans towards 0. A small α with a large β puts belief closer to 0.</li>
+<li><b>α = β = 0.5:</b> a U shape. "A trick coin, either very low or very high, but not near 0.5."</li>
+<li><b>α = β = 1:</b> flat, "no idea". Every $p$ is equally plausible. <span class="muted">(Going further: this case connects Bayes back to maximum likelihood, section 8.)</span></li>
+<li>Making α and β both larger while keeping their ratio fixed makes the hump <b>narrower</b>: a more confident hunch. Compare α = β = 2 with α = β = 20.</li>
+</ul>
+<p>The average of a Beta distribution is $\dfrac{\alpha}{\alpha+\beta}$.</p>
+
+<!-- ============================================================ -->
+<h2 id="conjugate">5 · Beta prior + coin data = Beta posterior</h2>
+<p>Multiply the Bernoulli likelihood from L20 by the Beta prior. Write $n_H=\sum_i x_i$ for the number of heads and $n_T=\sum_i(1-x_i)$ for the number of tails.</p>
+<ol class="steps">
+<li>Likelihood: $\displaystyle\prod_{i=1}^{n}p^{x_i}(1-p)^{1-x_i}=p^{\,n_H}(1-p)^{\,n_T}$.</li>
+<li>Prior: $\;p^{\alpha-1}(1-p)^{\beta-1}$ (ignoring the constant).</li>
+<li>Multiply, adding the exponents of matching bases:
+$$P(p\mid\text{data})\;\propto\;p^{\,n_H}(1-p)^{\,n_T}\cdot p^{\alpha-1}(1-p)^{\beta-1}=p^{\,(\alpha+n_H)-1}(1-p)^{\,(\beta+n_T)-1}.$$</li>
+<li>That is exactly the shape of another Beta distribution:
+$$\boxed{\;\text{Beta}(\alpha,\beta)\ \text{prior}\;\xrightarrow{\;n_H\text{ heads},\ n_T\text{ tails}\;}\;\text{Beta}(\alpha+n_H,\ \beta+n_T)\ \text{posterior}\;}$$</li>
+</ol>
+<p>The posterior has the <b>same form as the prior</b>; only the parameters change. So updating your belief is just <b>adding counts</b>: heads to α, tails to β. You never need to compute the posterior density point by point or work out the evidence. Once you know the new parameters, you know the whole distribution.</p>
+<p>This doesn't happen for every prior. Pick some other distribution on $[0,1]$ and you still get a valid posterior, but usually not one with a neat known form. A prior that does keep its form like this is called a <b>conjugate prior</b>; Beta is conjugate to the coin (Bernoulli) likelihood.</p>
+
+<!-- ============================================================ -->
+<h2 id="explore">6 · Try it: prior + data → posterior</h2>
+<p>Set a prior, feed in coin tosses, and watch the posterior form. The two lecture scenarios are one click away: a hunch that $p$ is near 0.9, followed by data that either <b>disagrees</b> (2 heads, 8 tails) or <b>agrees</b> (9 heads, 1 tail).</p>
+
+<div class="card">
+  <h3>Prior</h3>
+  <div class="row">
+    <label>α = <b id="paV">10</b> <input type="range" id="paS" min="0.5" max="100" step="0.5" value="10" aria-label="prior alpha"></label>
+    <label>β = <b id="pbV">2</b> <input type="range" id="pbS" min="0.5" max="100" step="0.5" value="2" aria-label="prior beta"></label>
+  </div>
+  <div class="row"><button data-pr="1,1">Flat (1,1)</button><button data-pr="2,2">Roughly fair (2,2)</button><button data-pr="10,2">Near 0.9 (10,2)</button><button data-pr="0.5,0.5">Not 0.5 (0.5,0.5)</button><button data-pr="80,20">80 heads, 20 tails heard (80,20)</button></div>
+  <h3 style="margin-top:14px">Data</h3>
+  <div class="row">
+    <button id="addH">+ heads</button><button id="addT">+ tails</button><button id="clr">Clear data</button>
+    <button id="lecA">Lecture case A: 2 H, 8 T</button><button id="lecB">Lecture case B: 9 H, 1 T</button>
+    <button id="toss10">Toss a p = 0.3 coin ×10</button>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="dHT">0 H · 0 T</div><div class="l">data so far</div></div>
+    <div class="stat"><div class="v" id="post">–</div><div class="l">posterior</div></div>
+    <div class="stat"><div class="v" id="eML">–</div><div class="l">ML: n_H / n</div></div>
+    <div class="stat"><div class="v" id="eMean">–</div><div class="l">posterior mean</div></div>
+    <div class="stat"><div class="v" id="eMAP">–</div><div class="l">MAP (posterior peak)</div></div>
+  </div>
+  <canvas id="bayesCanvas" height="280" aria-label="Prior, likelihood and posterior densities"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>prior</span><span><i style="background:var(--s3)"></i>likelihood (rescaled to area 1)</span><span><i style="background:var(--s1);height:4px"></i>posterior</span></div>
+  <p class="small" id="bayesTxt"></p>
+</div>
+
+<p>What to notice:</p>
+<ul>
+<li><b>Case A (disagreement):</b> the posterior lands <b>between</b> the prior and the likelihood. The lecture's sketch puts it around 0.27, as a rough illustration; the exact Beta(12, 10) posterior here peaks at 0.55, because a Beta(10, 2) prior is worth 12 ghost tosses and 10 real ones don't outweigh it. Try Clear, then case A twice or three times: as real data accumulates, it wins.</li>
+<li><b>Case B (agreement):</b> the posterior stays near 0.9 and becomes <b>sharper</b> than the prior. Agreeing data increases confidence.</li>
+<li><b>A flat prior (1,1):</b> the posterior has exactly the same shape as the likelihood.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="ghost">7 · The prior as "ghost data"</h2>
+<p>Compare the two estimates:</p>
+$$\hat p_{\text{ML}}=\frac{n_H}{n}\qquad\text{vs.}\qquad \mathbb E[p\mid\text{data}]=\frac{\alpha+n_H}{\alpha+\beta+n}.$$
+<p>The second is exactly what maximum likelihood would give if, on top of your real data, you had seen <b>α extra heads and β extra tails</b>. So a Beta(α, β) prior acts like <b>α + β imaginary tosses</b> ("ghost" or pseudo-observations) done before the real experiment.</p>
+<div class="callout">Example: someone says "I tossed this coin 100 times and got 80 heads and 20 tails." You can encode that as a Beta(80, 20) prior. The posterior then counts those 100 ghost tosses alongside your own. <b>The bigger α + β, the more real data it takes to move your belief.</b></div>
+
+<!-- ============================================================ -->
+<h2 id="point">8 · From a distribution to a single number</h2>
+<p>Maximum likelihood gives one number, a <b>point estimate</b>. The Bayesian approach gives a whole distribution over the parameter, which carries more information: where the value probably is <i>and</i> how unsure we are. If you must commit to one number, you have choices:</p>
+<div class="tablewrap"><table>
+<tr><th>Point estimate</th><th>Definition</th><th>For a Beta(a, b) posterior</th></tr>
+<tr><td><b>Posterior mean</b></td><td>the average of the posterior</td><td>$\dfrac{a}{a+b}=\dfrac{\alpha+n_H}{\alpha+\beta+n}$</td></tr>
+<tr><td><b>MAP</b> (maximum a posteriori)</td><td>the peak of the posterior: like ML, but maximising the posterior instead of the likelihood</td><td>$\dfrac{a-1}{a+b-2}=\dfrac{\alpha+n_H-1}{\alpha+\beta+n-2}$ <span class="muted">(when $a,b>1$)</span></td></tr>
+<tr><td>Others</td><td>e.g. draw samples from the posterior and average them</td><td>–</td></tr>
+</table></div>
+<p>The lecture states that MAP differs slightly from the mean but doesn't give the formula. The derivation is the same as in L20: take the log of the posterior, $(a-1)\log p+(b-1)\log(1-p)$, set its derivative $\frac{a-1}{p}-\frac{b-1}{1-p}$ to zero, and solve to get $p=\frac{a-1}{a+b-2}$.</p>
+<div class="beyond"><b>Going further: MAP with a flat prior is maximum likelihood.</b> With α = β = 1 the prior is constant, so the posterior is proportional to the likelihood and the two peaks coincide: $\hat p_{\text{MAP}}=\frac{1+n_H-1}{2+n-2}=\frac{n_H}{n}=\hat p_{\text{ML}}$. Maximum likelihood is the special case "Bayes with no hunch, then take the peak".</div>
+
+<!-- ============================================================ -->
+<h2 id="compare">9 · Two ways to estimate, side by side</h2>
+<div class="tablewrap"><table>
+<tr><th></th><th>Maximum likelihood (L20)</th><th>Bayesian (this lecture)</th></tr>
+<tr><td>The parameter is…</td><td>a fixed, unknown constant</td><td>a random variable describing our uncertainty</td></tr>
+<tr><td>Uses</td><td>data only</td><td>data <b>and</b> a prior (hunch)</td></tr>
+<tr><td>With no data</td><td>can't give any answer</td><td>answers with the prior</td></tr>
+<tr><td>Output</td><td>one number, $\hat\theta_{\text{ML}}$</td><td>a whole distribution, $P(\theta\mid\text{data})$; reduce it to a number if needed (mean, MAP, …)</td></tr>
+<tr><td>Main tool</td><td>maximise the likelihood</td><td>Bayes' theorem: posterior ∝ likelihood × prior</td></tr>
+</table></div>
+<div class="callout"><b>What's next in the course:</b> these estimation ideas, especially maximum likelihood, get applied to unsupervised learning. The first target is a <b>probabilistic version of K-means</b>: clustering with a probability model behind it.</div>
+
+<!-- ============================================================ -->
+<h2 id="further">10 · Going further</h2>
+<div class="beyond">This section goes beyond the video. It stays in the lecture's coin setting.</div>
+
+<h3>10.1 The posterior mean is a weighted average of the prior and the data</h3>
+<p>Rearranging the posterior mean shows exactly how the two are balanced:</p>
+$$\frac{\alpha+n_H}{\alpha+\beta+n}=\underbrace{\frac{\alpha+\beta}{\alpha+\beta+n}}_{w}\cdot\underbrace{\frac{\alpha}{\alpha+\beta}}_{\text{prior mean}}\;+\;\underbrace{\frac{n}{\alpha+\beta+n}}_{1-w}\cdot\underbrace{\frac{n_H}{n}}_{\hat p_{\text{ML}}}.$$
+<p>The prior's weight $w$ shrinks as $n$ grows. With little data the prior dominates; with lots of data the estimate approaches maximum likelihood, and the hunch stops mattering. Watch it happen:</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">A coin with true p = 0.3 is tossed n times. The prior is Beta(10, 2), a confident but <i>wrong</i> hunch near 0.9.</p>
+  <div class="row"><label>n = <b id="nV">0</b> <input type="range" id="nS" min="0" max="400" step="1" value="0" aria-label="number of tosses"></label><button id="nPlay">▶ Animate</button><button id="nNew">New coin tosses</button></div>
+  <canvas id="shrinkCanvas" height="240" aria-label="ML and posterior-mean estimates as the number of tosses grows"></canvas>
+  <div class="legend"><span><i style="background:var(--s3)"></i>ML: n_H / n</span><span><i style="background:var(--s1);height:4px"></i>posterior mean</span><span><i style="background:var(--faint)"></i>true p = 0.3</span></div>
+  <p class="small" id="shrinkTxt"></p>
+</div>
+
+<h3>10.2 Where the prior earns its keep: very little data</h3>
+<p>Toss a coin 3 times and get 3 heads. Maximum likelihood says $\hat p = 1$: it claims tails are <i>impossible</i>, which is a very strong conclusion from 3 tosses. With even a mild Beta(2, 2) prior, the posterior is Beta(5, 2), with mean $5/7 \approx 0.71$ and MAP $4/5 = 0.8$. The prior stops the estimate from jumping to an extreme on tiny data.</p>
+
+<h3>10.3 Uncertainty comes for free</h3>
+<p>The posterior's spread tells you how sure you are. For a Beta(a, b) posterior the variance is $\dfrac{ab}{(a+b)^2(a+b+1)}$. With a flat prior and 7 heads in 10 tosses, the posterior Beta(8, 4) has a standard deviation of about 0.13. After 70 heads in 100 tosses, Beta(71, 31) has about 0.045. Same proportion of heads, but much more certainty.</p>
+
+<!-- ============================================================ -->
+<h2 id="check">Key takeaways</h2>
+<ol>
+<li>Maximum likelihood ignores any knowledge you have <b>before</b> the data. Bayesian estimation includes it.</li>
+<li>Encode the hunch as a <b>prior</b> distribution $P(\theta)$ by treating the parameter as a random variable.</li>
+<li><b>Bayes' theorem:</b> posterior = likelihood × prior ÷ evidence, so <b>posterior ∝ likelihood × prior</b>.</li>
+<li>For a coin, a <b>Beta(α, β)</b> prior gives a <b>Beta(α + n_H, β + n_T)</b> posterior. Updating means adding counts (a conjugate prior).</li>
+<li>The prior acts like <b>α heads and β tails of ghost data</b>.</li>
+<li>The result is a whole distribution. Reduce it to one number with the <b>posterior mean</b> $\frac{\alpha+n_H}{\alpha+\beta+n}$ or the <b>MAP</b> estimate (the posterior's peak).</li>
+</ol>
+
+<h2>Self-check</h2>
+<details><summary>1. Why can't maximum likelihood give an estimate before any data is seen, while the Bayesian approach can?</summary><p>Maximum likelihood depends only on the data, so with no data there's nothing to maximise. The Bayesian approach starts from the prior, which exists before any data; with no data the posterior simply equals the prior.</p></details>
+<details><summary>2. Why is a Gaussian a poor prior for a coin's p?</summary><p>A Gaussian puts probability on every real number, including values below 0 and above 1, which are impossible for p. The Beta distribution lives only on [0, 1].</p></details>
+<details><summary>3. Prior Beta(3, 3). Data: 6 heads, 2 tails. What is the posterior, its mean, and its MAP?</summary><p>Beta(9, 5). Mean = 9/14 ≈ 0.643. MAP = 8/12 ≈ 0.667. (ML would be 6/8 = 0.75.)</p></details>
+<details><summary>4. Why can we ignore the evidence P(data) when finding the posterior's shape?</summary><p>It doesn't depend on θ. It's the same number for every θ, so it only rescales the curve to have area 1; the shape and the peak stay the same.</p></details>
+<details><summary>5. Two people have priors Beta(2, 2) and Beta(200, 200). Both see 10 heads and 0 tails. Whose belief moves more, and why?</summary><p>The Beta(2, 2) person: posterior Beta(12, 2), mean ≈ 0.86. The Beta(200, 200) person: posterior Beta(210, 200), mean ≈ 0.51. A prior with α + β = 400 is like 400 ghost tosses, so 10 real tosses barely move it.</p></details>
+<details><summary>6. What prior makes the MAP estimate equal to the ML estimate for a coin?</summary><p>The flat prior Beta(1, 1). Then the posterior is proportional to the likelihood, so they peak at the same place.</p></details>
+
+<p class="small muted" style="margin-top:40px">For the exact wording of the lecture, open the video on YouTube and use "Show transcript".</p>
+</main>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');   // cv.height below overwrites the attribute
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [ctx, r.width, h];
+}
+function axes(ctx, W, H, pad, xr, yr, xt, yt, xlab, ylab, xfmt, yfmt){
+  const grid = cssv('--grid'), muted = cssv('--muted');
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r);
+  const Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,-apple-system,sans-serif'; ctx.lineWidth = 1;
+  yt.forEach(v => { ctx.strokeStyle = grid; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke();
+    if (yfmt){ ctx.fillStyle = muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(yfmt(v), pad.l - 6, Y(v)); } });
+  xt.forEach(v => { ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(xfmt(v), X(v), H - pad.b + 5); });
+  if (xlab){ ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(xlab, (pad.l + W - pad.r) / 2, H - 1); }
+  if (ylab){ ctx.save(); ctx.translate(12, (pad.t + H - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.textAlign = 'center'; ctx.fillStyle = muted; ctx.fillText(ylab, 0, 0); ctx.restore(); }
+  return [X, Y];
+}
+function line(ctx, pts, color, width, dash){ ctx.strokeStyle = color; ctx.lineWidth = width || 2; ctx.setLineDash(dash || []);
+  ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); ctx.setLineDash([]); }
+function fill(ctx, pts, base, color, alpha){ ctx.fillStyle = color; ctx.globalAlpha = alpha; ctx.beginPath(); ctx.moveTo(pts[0][0], base);
+  pts.forEach(([x, y]) => ctx.lineTo(x, y)); ctx.lineTo(pts[pts.length - 1][0], base); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; }
+function label(ctx, t, x, y, align, base, color){ ctx.fillStyle = color || cssv('--ink'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = align || 'left'; ctx.textBaseline = base || 'bottom'; ctx.fillText(t, x, y); }
+// log-gamma (Lanczos approximation)
+function lgamma(z){ const g = 7, c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61503916999185, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  if (z < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * z))) - lgamma(1 - z);
+  z -= 1; let x = c[0]; for (let i = 1; i < g + 2; i++) x += c[i] / (z + i); const t = z + g + 0.5;
+  return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x); }
+const betaPdf = (p, a, b) => Math.exp((a - 1) * Math.log(p) + (b - 1) * Math.log(1 - p) + lgamma(a + b) - lgamma(a) - lgamma(b));
+const GRID = Array.from({length: 499}, (_, i) => (i + 1) / 500);
+const fmt = v => (v === null || isNaN(v)) ? '–' : v.toFixed(3);
+const mapOf = (a, b) => (a > 1 && b > 1) ? (a - 1) / (a + b - 2) : null;
+const mapTxt = (a, b) => { const m = mapOf(a, b); if (m !== null) return m.toFixed(3);
+  if (a <= 1 && b <= 1) return 'at 0 or 1'; return a <= 1 ? '0 (edge)' : '1 (edge)'; };
+// draw a set of densities on [0,1]; y-range from the curves, capped so U-shapes stay readable
+function densPlot(cv, curves, opts){
+  const [ctx, W, H] = setupCanvas(cv);
+  const vals = curves.map(c => GRID.map(p => c.f(p)));
+  let ymax = Math.max(...vals.flat().filter(isFinite)); ymax = Math.min(ymax, opts.cap || 12) * 1.12;
+  const yt = []; const step = ymax > 8 ? 4 : ymax > 4 ? 2 : ymax > 2 ? 1 : 0.5; for (let v = 0; v <= ymax; v += step) yt.push(v);
+  const pad = opts.small ? {l: 8, r: 8, t: 6, b: 18} : {l: 46, r: 12, t: 12, b: 34};
+  const [X, Y] = axes(ctx, W, H, pad, [0, 1], [0, ymax], opts.small ? [0, 0.5, 1] : [0, 0.25, 0.5, 0.75, 1], opts.small ? [] : yt,
+    opts.small ? '' : 'p', opts.small ? '' : 'density', v => v, opts.small ? null : (v => v));
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t - 4, W - pad.l - pad.r, H - pad.t - pad.b + 4); ctx.clip();
+  curves.forEach((c, i) => { const pts = GRID.map((p, j) => [X(p), Y(Math.min(vals[i][j], ymax * 2))]);
+    if (c.fill) fill(ctx, pts, Y(0), c.color, 0.15); line(ctx, pts, c.color, c.width || 2, c.dash); });
+  ctx.restore();
+  return [ctx, X, Y, ymax];
+}
+
+/* ---------- 2 · hunch sketches ---------- */
+function drawHunches(){
+  densPlot($('h1'), [{f: p => betaPdf(p, 10, 2), color: cssv('--s2'), fill: true}], {small: true});
+  densPlot($('h2'), [{f: p => betaPdf(p, 0.5, 0.5), color: cssv('--s2'), fill: true}], {small: true, cap: 4});
+  const cv = $('h3'), [ctx, W, H] = setupCanvas(cv);
+  const [X, Y] = axes(ctx, W, H, {l: 8, r: 8, t: 6, b: 18}, [5, 20], [0, 0.32], [5, 12.5, 20], [], '', '', v => v, null);
+  const pts = []; for (let i = 0; i <= 200; i++){ const m = 5 + 15 * i / 200; pts.push([X(m), Y(Math.exp(-((m - 12.5) ** 2) / 4.5) / Math.sqrt(2 * Math.PI * 2.25))]); }
+  fill(ctx, pts, Y(0), cssv('--s2'), 0.15); line(ctx, pts, cssv('--s2'), 2);
+}
+
+/* ---------- 4 · Beta shapes ---------- */
+function drawBeta(){
+  const a = +$('baS').value, b = +$('bbS').value; $('baV').textContent = a; $('bbV').textContent = b;
+  densPlot($('betaCanvas'), [{f: p => betaPdf(p, a, b), color: cssv('--s2'), fill: true, width: 2.5}], {cap: 10});
+  const sd = Math.sqrt(a * b / ((a + b) ** 2 * (a + b + 1)));
+  $('betaTxt').innerHTML = `Beta(${a}, ${b}): mean α/(α+β) = <b>${(a / (a + b)).toFixed(3)}</b>, peak = <b>${mapTxt(a, b)}</b>, spread (sd) = <b>${sd.toFixed(3)}</b>.`;
+}
+['baS', 'bbS'].forEach(id => $(id).oninput = drawBeta);
+document.querySelectorAll('button[data-ab]').forEach(btn => btn.onclick = () => { const [a, b] = btn.dataset.ab.split(','); $('baS').value = a; $('bbS').value = b; drawBeta(); });
+
+/* ---------- 6 · Bayes explorer ---------- */
+let nH = 0, nT = 0;
+function drawBayes(){
+  const a = +$('paS').value, b = +$('pbS').value; $('paV').textContent = a; $('pbV').textContent = b;
+  const A = a + nH, B = b + nT, n = nH + nT;
+  $('dHT').textContent = `${nH} H · ${nT} T`; $('post').textContent = `Beta(${A}, ${B})`;
+  $('eML').textContent = n ? (nH / n).toFixed(3) : 'no data';
+  $('eMean').textContent = (A / (A + B)).toFixed(3); $('eMAP').textContent = mapTxt(A, B);
+  const curves = [{f: p => betaPdf(p, a, b), color: cssv('--s2'), dash: [6, 4]}];
+  if (n) curves.push({f: p => betaPdf(p, nH + 1, nT + 1), color: cssv('--s3'), dash: [2, 3]});
+  curves.push({f: p => betaPdf(p, A, B), color: cssv('--s1'), fill: true, width: 3});
+  const [ctx, X, Y, ymax] = densPlot($('bayesCanvas'), curves, {cap: 14});
+  const m = mapOf(A, B);
+  if (m !== null){ const y = Math.min(betaPdf(m, A, B), ymax / 1.12);
+    ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(X(m), Y(y), 5, 0, 2 * Math.PI); ctx.fill();
+    label(ctx, `posterior peak ${m.toFixed(2)}`, X(m) + (m > 0.7 ? -8 : 8), Y(y) - 4, m > 0.7 ? 'right' : 'left'); }
+  const w = (a + b) / (a + b + n);
+  $('bayesTxt').innerHTML = n
+    ? `The prior counts as <b>${a + b}</b> ghost tosses and the data as <b>${n}</b> real ones, so the prior's weight in the posterior mean is <b>${(w * 100).toFixed(0)}%</b> (section 10.1).`
+    : 'No data yet, so the posterior is just the prior. Add some tosses.';
+}
+['paS', 'pbS'].forEach(id => $(id).oninput = drawBayes);
+document.querySelectorAll('button[data-pr]').forEach(btn => btn.onclick = () => { const [a, b] = btn.dataset.pr.split(','); $('paS').value = a; $('pbS').value = b; drawBayes(); });
+$('addH').onclick = () => { nH++; drawBayes(); }; $('addT').onclick = () => { nT++; drawBayes(); };
+$('clr').onclick = () => { nH = nT = 0; drawBayes(); };
+$('lecA').onclick = () => { nH += 2; nT += 8; drawBayes(); };
+$('lecB').onclick = () => { nH += 9; nT += 1; drawBayes(); };
+$('toss10').onclick = () => { for (let i = 0; i < 10; i++) Math.random() < 0.3 ? nH++ : nT++; drawBayes(); };
+
+/* ---------- 10.1 · shrinkage as n grows ---------- */
+let tosses = [];
+const newTosses = () => { tosses = Array.from({length: 400}, () => Math.random() < 0.3 ? 1 : 0); };
+function drawShrink(){
+  const n = +$('nS').value; $('nV').textContent = n;
+  const [ctx, W, H] = setupCanvas($('shrinkCanvas'));
+  const [X, Y] = axes(ctx, W, H, {l: 46, r: 12, t: 12, b: 34}, [0, 400], [0, 1], [0, 100, 200, 300, 400], [0, 0.25, 0.5, 0.75, 1],
+    'number of tosses n', 'estimate of p', v => v, v => v);
+  line(ctx, [[X(0), Y(0.3)], [X(400), Y(0.3)]], cssv('--faint'), 1.5, [5, 4]);
+  const ml = [], pm = []; let h = 0;
+  for (let k = 0; k <= n; k++){ if (k) h += tosses[k - 1]; pm.push([X(k), Y((10 + h) / (12 + k))]); if (k) ml.push([X(k), Y(h / k)]); }
+  if (ml.length) line(ctx, ml, cssv('--s3'), 1.5);
+  line(ctx, pm, cssv('--s1'), 3);
+  const est = (10 + h) / (12 + n);
+  $('shrinkTxt').innerHTML = `After n = ${n}: ML = <b>${n ? (h / n).toFixed(3) : '–'}</b>, posterior mean = <b>${est.toFixed(3)}</b>, prior weight w = 12/(12+n) = <b>${(12 / (12 + n) * 100).toFixed(0)}%</b>. ` +
+    (n < 15 ? 'With so little data, the wrong hunch still dominates.' : n < 80 ? 'The data is taking over.' : 'The prior barely matters now: both estimates sit near the truth.');
+}
+let nTimer = null;
+$('nS').oninput = drawShrink;
+$('nNew').onclick = () => { newTosses(); drawShrink(); };
+$('nPlay').onclick = () => {
+  if (nTimer){ clearInterval(nTimer); nTimer = null; $('nPlay').textContent = '▶ Animate'; return; }
+  if (+$('nS').value >= 400) $('nS').value = 0;
+  $('nPlay').textContent = '⏸ Pause';
+  nTimer = setInterval(() => { const v = +$('nS').value + 2; $('nS').value = Math.min(400, v); drawShrink();
+    if (v >= 400){ clearInterval(nTimer); nTimer = null; $('nPlay').textContent = '▶ Animate'; } }, 30);
+};
+
+/* ---------- init ---------- */
+function redrawAll(){ drawHunches(); drawBeta(); drawBayes(); drawShrink(); }
+newTosses(); redrawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => {
+  if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});
+  redrawAll();
+});
+</script>
+</body>
+</html>

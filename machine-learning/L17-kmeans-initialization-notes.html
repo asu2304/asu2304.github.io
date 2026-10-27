@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>L17: Initialization of Centroids in K-means (Random Restarts &amp; K-means++)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--grid:#e6e5e0;--tint:#eef4fc;--accent:#2a78d6;--code:#f3f2ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--tint:#1f2a38;--accent:#5598e7;--code:#2a2a28}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--tint:#1f2a38;--accent:#5598e7;--code:#2a2a28}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2} h2{font-size:22px;margin-top:40px;padding-top:18px;border-top:1px solid var(--grid)} h3{font-size:17px}
+a{color:var(--accent)}
+table{border-collapse:collapse;font-size:14px;display:block;overflow-x:auto} th,td{padding:7px 10px;border-bottom:1px solid var(--grid);text-align:left} th{color:var(--muted)}
+blockquote{margin:14px 0;background:var(--tint);border-radius:10px;padding:10px 16px} blockquote p{margin:6px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:14px}
+pre{background:var(--code);padding:12px 14px;border-radius:10px;overflow-x:auto} pre code{background:none;padding:0}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+hr{border:none;border-top:1px solid var(--grid);margin:30px 0}
+</style></head>
+<body><main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<h1>L17: Initialization of Centroids in K-means (Random Restarts &amp; K-means++)</h1>
+<p>Source: https://www.youtube.com/watch?v=Cbrdtxq6bdk (≈19 min)
+Previous: <a href="L13-clustering-notes.html">L13</a> · <a href="L14-kmeans-lloyd-notes.html">L14</a> · <a href="L15-kmeans-convergence-notes.html">L15</a> · <a href="L16-kmeans-voronoi-notes.html">L16</a></p>
+<blockquote>
+<p>The lecture explains K-means++ and states its guarantee without proof (&quot;constant times the
+optimum&quot;). Section 5 adds: the exact theorem, a full d-dimensional proof of the key lemma
+(random seeding costs 2× the optimum in expectation), why the distance is <em>squared</em>, why the
+deterministic version breaks, efficient implementation, scalable variants, and a tested
+comparison.</p>
+</blockquote>
+<h2>Timestamped outline</h2>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>00:26</td>
+<td>Lloyd's converges for <em>any</em> initialization, but the result depends on it</td>
+</tr>
+<tr>
+<td>01:02</td>
+<td>Option 1: put points into boxes uniformly at random (not recommended)</td>
+</tr>
+<tr>
+<td>01:44</td>
+<td>Option 2: pick K data points at random as the initial <strong>means</strong></td>
+</tr>
+<tr>
+<td>04:25</td>
+<td>Random restarts: run several times and keep the lowest objective</td>
+</tr>
+<tr>
+<td>05:02</td>
+<td>Option 3: <strong>K-means++</strong>, a more principled seeding</td>
+</tr>
+<tr>
+<td>05:42</td>
+<td>Intuition: good means should be far apart from each other</td>
+</tr>
+<tr>
+<td>07:03</td>
+<td>Algorithm: first mean uniform; then l = 2..K sampled ∝ score</td>
+</tr>
+<tr>
+<td>09:17</td>
+<td>Worked sampling example: scores 10/20/30 give probabilities 1/6, 1/3, 1/2</td>
+</tr>
+<tr>
+<td>10:50</td>
+<td>Score = squared distance to the <strong>nearest</strong> mean chosen so far</td>
+</tr>
+<tr>
+<td>12:40</td>
+<td>Why randomised and not &quot;always pick the max&quot;?</td>
+</tr>
+<tr>
+<td>13:44</td>
+<td>The guarantee: E[objective] ≤ (factor) × optimum</td>
+</tr>
+<tr>
+<td>17:14</td>
+<td>Downside: K passes over the data, slow for huge n</td>
+</tr>
+<tr>
+<td>18:03</td>
+<td>In practice: uniform random with restarts is also widely used</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1. Why initialization matters</h2>
+<ul>
+<li>The convergence proof (L15) works for <strong>any</strong> starting point. But <em>where</em> the algorithm ends
+up, which local minimum, depends heavily on where it starts.</li>
+<li>Goal: start in a way that helps avoid bad local minima, like the rectangle example in L15 §7.5.</li>
+</ul>
+<h2>2. Simple strategies</h2>
+<p><strong>(a) Random partition.</strong> Throw each point into one of the K boxes uniformly at random.</p>
+<ul>
+<li>It works, but it ignores the structure of the data entirely.</li>
+<li>Side effect: every initial mean comes out close to the global mean, so the starting means
+are bunched together.</li>
+</ul>
+<p><strong>(b) Random data points as means (the &quot;Forgy&quot; method).</strong> Pick K data points uniformly at random
+and treat them as the initial means.</p>
+<ul>
+<li>This initializes the <strong>means</strong> rather than the assignments. The first reassignment step
+then sends every point to its nearest chosen point.</li>
+<li>That isn't convergence yet: the means get recomputed and Lloyd's continues as usual.</li>
+</ul>
+<p><strong>(c) Random restarts.</strong> Repeat (b) several times with fresh random draws, run Lloyd's each
+time, and <strong>keep the partition with the lowest objective</strong>. This is very common in practice.</p>
+<h2>3. K-means++</h2>
+<p><strong>Intuition:</strong> at the end, the K means act as K &quot;representatives&quot; of the data. If two of them
+were close together, the two clusters would be redundant. So start with means that are
+<strong>spread apart</strong>, but choose them with randomness.</p>
+<p><strong>Algorithm:</strong></p>
+<ol>
+<li>
+<p>Choose μ₁⁰ uniformly at random from {x₁, …, xₙ}.</p>
+</li>
+<li>
+<p>For l = 2, …, K:</p>
+<ul>
+<li>
+<p>Give every point x a <strong>score</strong>:</p>
+<p>$$
+     \text{score}(x)=\min_{j=1,\dots,l-1}\lVert x-\mu_j^0\rVert^2
+     $$</p>
+<p>This is the squared distance to the <em>nearest</em> mean chosen so far. If even the nearest
+mean is far away, then every chosen mean is far away.</p>
+</li>
+<li>
+<p><strong>Sample</strong> μₗ⁰ with probability ∝ score:</p>
+<p>$$
+     P(\mu_l^0=x_i)=\frac{\text{score}(x_i)}{\sum_{j}\text{score}(x_j)} .
+     $$</p>
+</li>
+</ul>
+</li>
+<li>
+<p>Run ordinary Lloyd's algorithm from these K means.</p>
+</li>
+</ol>
+<p><strong>Sampling example:</strong> three candidates with scores 10, 20 and 30. The total is 60, so the
+probabilities are 1/6, 1/3 and 1/2. The farthest point is the <em>most likely</em> pick, but not a
+certain one.</p>
+<p>Note: points that have already been chosen have score 0, so they can never be picked again.</p>
+<h2>4. Why randomise? And the guarantee</h2>
+<ul>
+<li><strong>Deterministic alternative:</strong> always pick the point with the largest score. For any fixed
+deterministic rule, you can construct an <strong>adversarial</strong> dataset that defeats it.</li>
+<li>Randomising keeps the &quot;go far away&quot; preference, because the max is the most likely pick,
+while still allowing other choices. That makes an <strong>average-case (expected) guarantee</strong> possible.</li>
+<li><strong>The guarantee:</strong> the randomness comes only from the seeding; Lloyd's itself is deterministic.
+Over that randomness,</li>
+</ul>
+<p>$$
+\mathbb{E}\Big[\sum_i\lVert x_i-\mu_{z_i}\rVert^2\Big]\;\le\;c\cdot\min_{z_1..z_n}\sum_i\lVert x_i-\mu_{z_i}\rVert^2 .
+$$</p>
+<p>The lecture's illustration: if the best possible objective is 10, then on average K-means++
+might give something like ≤ 5 × 10. It won't be optimal, but it also won't be terrible.
+(The exact factor is in §5.1.)</p>
+<p><strong>Trade-offs:</strong></p>
+<ul>
+<li>K-means++ needs <strong>K sequential passes</strong> over the data, each computing scores. That's expensive
+for something like a billion points.</li>
+<li>Uniform random seeding with restarts is cheaper and still widely used, especially for
+high-dimensional data.</li>
+<li>K-means++ is a solid default. The right choice depends on your compute budget.</li>
+</ul>
+<hr />
+<h2>5. Going further: d-dimensional analysis</h2>
+<p><em>This section goes beyond the video.</em></p>
+<h3>5.1 The exact theorem</h3>
+<p><strong>Arthur &amp; Vassilvitskii (2007).</strong> Let OPT be the optimal K-means cost. Then for the
+K-means++ seeds <em>alone</em>, before any Lloyd iterations:</p>
+<p>$$
+\mathbb{E}[F_{\text{seed}}]\;\le\;8(\ln K+2)\cdot\text{OPT}.
+$$</p>
+<ul>
+<li>Lloyd's iterations can only lower the cost (L15), so the final result satisfies the same bound.</li>
+<li>The factor is <strong>O(log K)</strong>. It depends on K, not on n or d. For K = 10 that's ≈ 34, a loose
+worst-case bound. In practice it does much better.</li>
+<li>The paper also shows the bound is tight up to constants: some datasets really do reach Ω(log K).</li>
+</ul>
+<h3>5.2 Key lemma (proved in ℝᵈ): one random point costs 2× the optimum</h3>
+<p>Take a single optimal cluster C with mean μ, and suppose its centre is a <strong>uniformly random
+point a ∈ C</strong>. What's the expected cost?</p>
+<p>Use the L15 identity, Σ_{x∈C}‖x − v‖² = Σ_{x∈C}‖x − μ‖² + |C|·‖μ − v‖², with v = a:</p>
+<p>$$
+\mathbb{E}_a\Big[\sum_{x\in C}\lVert x-a\rVert^2\Big]
+=\underbrace{\sum_{x\in C}\lVert x-\mu\rVert^2}_{\text{OPT}(C)}
++|C|\cdot\underbrace{\frac{1}{|C|}\sum_{a\in C}\lVert a-\mu\rVert^2}_{=\,\text{OPT}(C)/|C|}
+=2\,\text{OPT}(C).
+$$</p>
+<p>So <strong>choosing a centre uniformly from the right cluster costs, on average, exactly twice the
+optimum</strong>, in any dimension. That's why step 1 of K-means++ (uniform) is fine.</p>
+<p><strong>The hard part of the proof</strong> (stated, not proved here): when a later centre is drawn with
+D² weighting and it lands in a not-yet-covered optimal cluster, the expected cost of that
+cluster is at most <strong>8·OPT(C)</strong>. The D² weighting makes &quot;landing in an uncovered cluster&quot;
+likely, because uncovered clusters contain most of the remaining score. A harmonic-series
+argument over the K rounds gives the (ln K + 2) factor.</p>
+<h3>5.3 Why <em>squared</em> distance? (D^α sampling)</h3>
+<p>You could sample with probability ∝ D(x)^α for any α ≥ 0.</p>
+<ul>
+<li><strong>α = 0</strong> gives uniform sampling, the Forgy method. This has <strong>no constant-factor guarantee</strong>:
+K well-separated clusters, one of them tiny, and uniform sampling will usually miss it.</li>
+<li><strong>α = 2</strong> matches the objective, which is also a squared distance. A point's score then <em>is</em>
+its contribution to the cost if no further centre were added. So you sample in proportion to
+&quot;how much cost this point is currently causing&quot;. That alignment is what makes the proof work.</li>
+<li><strong>α → ∞</strong> concentrates all the probability on the farthest point: deterministic
+farthest-first (§5.4).</li>
+</ul>
+<p>General result: D^α seeding is an O(2^{2α} log K) approximation for the cost Σ‖x − μ‖^α
+(K-medians uses α = 1).</p>
+<h3>5.4 Why the deterministic version (farthest-first) fails</h3>
+<p><strong>Farthest-first traversal</strong> (Gonzalez, 1985) always picks argmax score. It is a provable
+<strong>2-approximation for a different problem</strong>, <em>K-center</em> (minimise the maximum radius). But for
+K-means it is <strong>fragile to outliers</strong>:</p>
+<ul>
+<li>One outlier at distance 1000 has score 10⁶, while every &quot;normal&quot; point has score around 1.</li>
+<li>Farthest-first picks the outlier <strong>with certainty</strong> and wastes a centre on a single point.</li>
+<li>K-means++ gives the outlier probability ≈ 10⁶ / (10⁶ + n·1). That's still high, but if there
+are many genuine far-apart clusters, their <em>combined</em> score competes. And over restarts it
+won't make the same mistake every time.</li>
+</ul>
+<p>The tested demo in §5.7 shows exactly this.</p>
+<h3>5.5 Efficient implementation: O(nKd) total, the same as one Lloyd iteration</h3>
+<p>The naive approach recomputes the distance from every point to every chosen centre in every
+round, giving O(nK²d) work. Instead, <strong>keep a running minimum</strong>:</p>
+<p>$$
+D^2_{(l)}(x)=\min\big(D^2_{(l-1)}(x),\;\lVert x-\mu_l\rVert^2\big)\quad\Rightarrow\quad O(nd)\text{ per new centre}.
+$$</p>
+<p>Sampling ∝ D²: compute the cumulative sum of the scores, draw u ~ Uniform(0, ΣD²), and
+binary-search for it. That's O(n) for the cumulative sum and O(log n) per draw. So seeding costs
+about <strong>one extra Lloyd iteration</strong>, which is cheap compared with the iterations that follow.
+The lecture's &quot;slow&quot; concern applies mainly at billion-point scale, where K <em>sequential</em> passes
+are the bottleneck.</p>
+<p><strong>Greedy K-means++</strong> (the scikit-learn default): in each round, draw 2 + ⌊ln K⌋ candidates by D²
+sampling and keep the one that <strong>lowers the current cost the most</strong>. This is empirically better
+and costs a little more.</p>
+<h3>5.6 Scaling up: K-means|| (Bahmani et al., 2012)</h3>
+<p>This fixes the &quot;K sequential passes&quot; problem:</p>
+<ol>
+<li>Start with one uniform centre.</li>
+<li>For about <strong>5 rounds</strong> (O(log ψ) in theory): sample each point <em>independently</em> with probability
+∝ ℓ·D²(x)/ΣD², where ℓ ≈ 2K. Each round adds about ℓ centres and is a single parallel pass,
+which suits map-reduce.</li>
+<li>You now have roughly ℓ × rounds candidate centres. Weight each by the number of points closest
+to it, then run ordinary K-means++ on this small weighted set to get K seeds.</li>
+</ol>
+<p>The guarantee is still O(log K). This is the default seeding in Spark MLlib.</p>
+<h3>5.7 Tested comparison (n = 1000, K = 10, d = 5, 50 seeds each)</h3>
+<pre><code class="language-python">import numpy as np
+
+def init_random(X, K, rng):
+    return X[rng.choice(len(X), K, replace=False)]
+
+def init_kmeanspp(X, K, rng):
+    n = len(X)
+    M = [X[rng.integers(n)]]                       # first mean: uniform
+    D2 = ((X - M[0])**2).sum(1)                    # score = min squared distance
+    for _ in range(1, K):
+        p = D2 / D2.sum()                          # normalise scores
+        M.append(X[rng.choice(n, p=p)])            # sample ∝ score
+        D2 = np.minimum(D2, ((X - M[-1])**2).sum(1))   # O(nd) incremental update
+    return np.array(M)
+
+def init_farthest(X, K, rng):
+    n = len(X)
+    M = [X[rng.integers(n)]]
+    D2 = ((X - M[0])**2).sum(1)
+    for _ in range(1, K):
+        M.append(X[D2.argmax()])                   # deterministic: take the max
+        D2 = np.minimum(D2, ((X - M[-1])**2).sum(1))
+    return np.array(M)
+
+def lloyd(X, M, iters=300):
+    for _ in range(iters):
+        z = ((X[:, None] - M[None])**2).sum(-1).argmin(1)
+        M_new = np.stack([X[z == k].mean(0) if np.any(z == k) else M[k] for k in range(len(M))])
+        if np.allclose(M_new, M): break
+        M = M_new
+    return ((X - M[z])**2).sum()
+
+rng = np.random.default_rng(0)
+K, d = 10, 5
+centres = rng.uniform(-20, 20, (K, d))
+X = np.vstack([rng.normal(c, 1.0, (100, d)) for c in centres])
+X_out = np.vstack([X, rng.uniform(-200, 200, (5, d))])      # same data + 5 far outliers
+
+for name, data in [(&quot;clean&quot;, X), (&quot;with outliers&quot;, X_out)]:
+    print(f&quot;--- {name} (n={len(data)}, K={K}, d={d}) ---&quot;)
+    for init in (init_random, init_kmeanspp, init_farthest):
+        F = np.array([lloyd(data, init(data, K, np.random.default_rng(s))) for s in range(50)])
+        print(f&quot;{init.__name__:14s} mean F = {F.mean():9.0f}   best = {F.min():9.0f}   worst = {F.max():9.0f}&quot;)
+</code></pre>
+<p>Output when I ran it (final objective after Lloyd's, over 50 runs):</p>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Init</th>
+<th>Mean F</th>
+<th>Best</th>
+<th>Worst</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>clean</td>
+<td>random (Forgy)</td>
+<td>65,153</td>
+<td>4,920</td>
+<td>168,619</td>
+</tr>
+<tr>
+<td>clean</td>
+<td><strong>K-means++</strong></td>
+<td><strong>9,802</strong></td>
+<td>4,920</td>
+<td>41,324</td>
+</tr>
+<tr>
+<td>clean</td>
+<td>farthest-first</td>
+<td>4,920</td>
+<td>4,920</td>
+<td>4,920</td>
+</tr>
+<tr>
+<td>+ 5 outliers</td>
+<td>random (Forgy)</td>
+<td>228,841</td>
+<td>132,098</td>
+<td>319,588</td>
+</tr>
+<tr>
+<td>+ 5 outliers</td>
+<td><strong>K-means++</strong></td>
+<td><strong>139,351</strong></td>
+<td>112,036</td>
+<td>200,903</td>
+</tr>
+<tr>
+<td>+ 5 outliers</td>
+<td>farthest-first</td>
+<td>187,342</td>
+<td>168,887</td>
+<td>222,146</td>
+</tr>
+</tbody>
+</table>
+<p><strong>How to read it:</strong></p>
+<ul>
+<li>On clean, well-separated blobs, farthest-first is perfect every time. Each blob's farthest
+point is in a new blob.</li>
+<li>Add just <strong>5 outliers</strong> and farthest-first gets worse than K-means++ on average. It spends
+5 of its 10 centres on the outliers every time. Even its <em>best</em> run is worse than
+K-means++'s <em>mean</em>.</li>
+<li>Random seeding has the widest spread. Its best run matches the others, which is why
+<strong>many restarts</strong> can rescue it.</li>
+<li>K-means++ is the most <strong>robust</strong> of the three: never the worst, and the best on average with
+outliers present.</li>
+</ul>
+<hr />
+<h2>Key takeaways</h2>
+<ol>
+<li>Lloyd's converges from <strong>any</strong> start, but the start decides which local minimum it reaches.</li>
+<li><strong>Forgy + restarts:</strong> pick K random data points, run, repeat, and keep the lowest F. It's
+cheap and common.</li>
+<li><strong>K-means++:</strong> choose the first centre uniformly, then each later centre ∝ D²(x), the squared
+distance to the nearest centre so far. It spreads the centres while staying randomised.</li>
+<li><strong>Guarantee:</strong> E[cost] ≤ 8(ln K + 2)·OPT. The key lemma is that a uniform random point
+from a cluster costs exactly 2·OPT in expectation.</li>
+<li>Deterministic farthest-first is great for K-center but <strong>breaks with outliers</strong>. Randomisation
+gives robustness and makes an expected guarantee possible.</li>
+<li>With a running minimum, seeding costs O(nKd), about one Lloyd iteration. K-means|| makes it
+parallel.</li>
+</ol>
+<h2>Self-check questions</h2>
+<ol>
+<li>Scores are 4, 4, 2 and 0 for four points. What is the sampling probability of each?
+Why is the 0-score point special? <em>(0.4, 0.4, 0.2, 0. Score 0 means it's already a centre.)</em></li>
+<li>Prove that E_a[Σ_{x∈C}‖x − a‖²] = 2·OPT(C) for a uniform over C, using the L15 identity.</li>
+<li>Why does sampling ∝ D (not D²) fit K-medians better than K-means?</li>
+<li>Construct a 1-D dataset with K = 2 where farthest-first gives an arbitrarily bad K-means cost.
+<em>(Hint: one far outlier plus two tight, well-separated clusters.)</em></li>
+<li>How does the running-minimum trick bring seeding from O(nK²d) down to O(nKd)?</li>
+<li>For farthest-first specifically, explain how an adversary who knows the rule can build a
+dataset that defeats it. Then explain why the same trick doesn't work against K-means++.
+<em>(Note: deterministic constant-factor algorithms for K-means do exist, e.g. local search,
+but they are much slower. The lecture's point is about simple greedy seeding rules.)</em></li>
+</ol>
+
+</main>
+<script>window.addEventListener('load',()=>{if(window.renderMathInElement)renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});});</script>
+</body></html>

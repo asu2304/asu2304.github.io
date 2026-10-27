@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient Descent and SGD</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--accent:#2a78d6;--heat:42,120,214}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7;--heat:85,152,231}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7;--heat:85,152,231}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block;border-radius:8px}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.algo{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;line-height:1.8;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 16px;margin:10px 0;overflow-x:auto}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 31 · Regression: computational considerations</div>
+<h1>Gradient Descent and Stochastic Gradient Descent</h1>
+<p class="lede">The closed form $w^\star=(XX^\top)^{+}Xy$ needs a $d\times d$ matrix inverse, which costs about $d^3$ operations, too slow for millions of features. <b>Gradient descent</b> reaches the same $w^\star$ by repeated small steps, with no inverse. When the number of data points $n$ is also huge, <b>stochastic gradient descent</b> uses a small random batch per step.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=vS1LK8xoM4g">this lecture on YouTube</a> (≈25 min). Previous: <a href="L30-geometric-interpretation.html">L30</a> · Next: <a href="L32-kernel-regression.html">L32</a>.</p>
+
+<h2>1 · The problem: the inverse is expensive</h2>
+<p>Inverting the $d\times d$ matrix $XX^\top$ takes roughly $O(d^3)$ time, as hard as computing PCA's eigenvectors. With a billion features, it's out of reach. But $w^\star$ is the minimiser of an unconstrained function, so general-purpose minimisation tools also find it.</p>
+
+<h2>2 · Gradient descent: walk downhill</h2>
+<p>The gradient points in the direction where the function <b>increases fastest</b>. So step the <b>opposite</b> way, scaled by a step size $\eta_t$:</p>
+$$w_{t+1}=w_t-\eta_t\,\nabla f(w_t).$$
+<ul>
+<li>With a good step size, repeating this reaches a point where the gradient is 0: a <b>local minimum</b>. For a wiggly function, that may not be the global minimum.</li>
+<li>The squared error is a <b>quadratic</b>, which is <b>convex</b>: one bowl, so every local minimum is the global one. Gradient descent reaches $w^\star$ from <b>any</b> start.</li>
+</ul>
+<p>For linear regression, $\nabla f(w)=2XX^\top w-2Xy$, so:</p>
+<div class="callout">$$w_{t+1}=w_t-\eta_t\big(2XX^\top w_t-2Xy\big)\qquad\text{(no inverse anywhere)}$$
+The 2 can be absorbed into $\eta_t$ (or avoided by putting a ½ in front of the error). This works even with millions of features.</div>
+
+<h2>3 · When n is huge too: stochastic gradient descent</h2>
+<p>Each gradient step still involves $XX^\top$, which is built from <b>all $n$ points</b>. With hundreds of millions of points, even one gradient is costly. SGD's idea: <b>pretend a small random batch is the whole dataset</b> for one step.</p>
+<div class="algo">
+<b>for</b> t = 1 … T:<br>
+&nbsp;&nbsp;sample k points uniformly at random &nbsp;<span class="muted">(k = batch size, e.g. 100)</span><br>
+&nbsp;&nbsp;w<sub>t+1</sub> = w<sub>t</sub> − η<sub>t</sub> · ( 2 X̃X̃⊤w<sub>t</sub> − 2 X̃ỹ ) &nbsp;<span class="muted">(X̃: d × k matrix of the sampled points)</span><br>
+<b>output</b> the average of the iterates: w̄ = (1/T) Σ<sub>t</sub> w<sub>t</sub>
+</div>
+<ul>
+<li>A different random batch each round gives a <b>noisy</b> version of the true gradient. On average the noise cancels, and SGD heads towards the same $w^\star$, with high probability.</li>
+<li><b>Output the average</b> of the iterates, not the last one: a single unlucky last batch can push the final $w_T$ off course.</li>
+<li><b>Batch size k:</b> smaller is cheaper per step but noisier, so it needs more rounds.</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Fitting $y \approx b + m\,x$ to 200 noisy points (true $b = 1$, $m = 2$). The shading is the average squared error over $(b, m)$; darker means lower. Both methods start from the same point and take 60 steps. (Errors are averaged rather than summed, which only rescales the step size.)</p>
+  <div class="row">
+    <label>step size η = <b id="etaV"></b> <input type="range" id="eta" min="2" max="60" value="15" aria-label="step size"></label>
+    <label>SGD batch size k = <b id="kV"></b> <input type="range" id="k" min="1" max="50" value="5" aria-label="batch size"></label>
+    <button class="primary" id="run">Run again (new random batches)</button>
+  </div>
+  <canvas id="cont" height="360" aria-label="Error landscape with gradient descent and SGD paths"></canvas>
+  <div class="legend"><span><i style="background:var(--ink)"></i>gradient descent (all 200 points per step)</span><span><i style="background:var(--s2)"></i>SGD path (k points per step)</span><span><i style="background:var(--s3)"></i>SGD average of iterates</span><span><i style="background:var(--muted)"></i>w* (closed form)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="eGD">–</div><div class="l">GD final error</div></div>
+    <div class="stat"><div class="v" id="eSL">–</div><div class="l">SGD last iterate</div></div>
+    <div class="stat"><div class="v" id="eSA">–</div><div class="l">SGD average</div></div>
+    <div class="stat"><div class="v" id="eSt">–</div><div class="l">best possible (w*)</div></div>
+  </div>
+  <p class="small" id="gdTxt"></p>
+</div>
+
+<h2>4 · Summary of the trade-offs</h2>
+<table>
+<tr><th>Method</th><th>Main cost</th><th>Good when</th></tr>
+<tr><td>Closed form $(XX^\top)^+Xy$</td><td>forming $XX^\top$ and inverting it: $O(nd^2+d^3)$</td><td>small $d$: one exact answer</td></tr>
+<tr><td>Gradient descent</td><td>each step uses all $n$ points; no inverse</td><td>large $d$, moderate $n$</td></tr>
+<tr><td>SGD</td><td>each step uses only $k$ points</td><td>large $d$ <b>and</b> large $n$. The everyday workhorse.</td></tr>
+</table>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The closed form needs an $O(d^3)$ inverse, impractical for huge $d$.</li>
+<li><b>Gradient descent</b> $w_{t+1}=w_t-\eta\nabla f(w_t)$ avoids the inverse. The squared error is convex, so it reaches the global minimum.</li>
+<li><b>SGD</b> uses a random batch of $k$ points per step, making each step cheap even for huge $n$. Average the iterates for the final answer.</li>
+<li>The batch size trades cost per step against noise and the number of steps needed.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const N = 200, D = Array.from({length: N}, () => { const x = -2 + 4 * rnd(); return [x, 1 + 2 * x + 0.5 * gauss()]; });
+const loss = (b, m, S = D) => S.reduce((s, [x, y]) => s + (b + m * x - y) ** 2, 0) / S.length;
+const grad = (b, m, S) => { let gb = 0, gm = 0; S.forEach(([x, y]) => { const r = b + m * x - y; gb += 2 * r; gm += 2 * r * x; }); return [gb / S.length, gm / S.length]; };
+// closed form for (b, m)
+const sx = D.reduce((s, [x]) => s + x, 0), sy = D.reduce((s, [, y]) => s + y, 0), sxx = D.reduce((s, [x]) => s + x * x, 0), sxy = D.reduce((s, [x, y]) => s + x * y, 0);
+const mStar = (N * sxy - sx * sy) / (N * sxx - sx * sx), bStar = (sy - mStar * sx) / N;
+const START = [-1.5, 4.6], STEPS = 60, BR = [-2.2, 3.8], MR = [-0.6, 5.2];
+let paths = null;
+function run(){
+  const eta = +$('eta').value / 100, k = +$('k').value;
+  const gd = [START.slice()]; for (let t = 0; t < STEPS; t++){ const [b, m] = gd[t], g = grad(b, m, D); gd.push([b - eta * g[0], m - eta * g[1]]); }
+  const sg = [START.slice()], r = Math.random;
+  for (let t = 0; t < STEPS; t++){ const S = Array.from({length: k}, () => D[Math.floor(r() * N)]); const [b, m] = sg[t], g = grad(b, m, S); sg.push([b - eta * g[0], m - eta * g[1]]); }
+  const avg = sg.slice(1).reduce((a, p) => [a[0] + p[0] / STEPS, a[1] + p[1] / STEPS], [0, 0]);
+  paths = {gd, sg, avg, eta, k}; draw();
+}
+let bg = null;
+function draw(){
+  if (!paths) return;
+  $('etaV').textContent = (+$('eta').value / 100).toFixed(2); $('kV').textContent = $('k').value;
+  const [ctx, W, H] = setupCanvas($('cont')), pad = {l: 40, r: 10, t: 10, b: 30};
+  const X = b => pad.l + (b - BR[0]) / (BR[1] - BR[0]) * (W - pad.l - pad.r), Y = m => H - pad.b - (m - MR[0]) / (MR[1] - MR[0]) * (H - pad.t - pad.b);
+  const cell = 6, heat = cssv('--heat'), lmax = Math.log(loss(BR[0], MR[1]) + 1), lmin = Math.log(loss(bStar, mStar) + 1);
+  for (let px = pad.l; px < W - pad.r; px += cell) for (let py = pad.t; py < H - pad.b; py += cell){
+    const b = BR[0] + (px + cell / 2 - pad.l) / (W - pad.l - pad.r) * (BR[1] - BR[0]), m = MR[0] + (H - pad.b - py - cell / 2) / (H - pad.t - pad.b) * (MR[1] - MR[0]);
+    const t = 1 - (Math.log(loss(b, m) + 1) - lmin) / (lmax - lmin);
+    ctx.fillStyle = `rgba(${heat},${(0.06 + 0.6 * Math.max(0, t) ** 2).toFixed(3)})`; ctx.fillRect(px, py, cell, cell); }
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted');
+  [-2, -1, 0, 1, 2, 3].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); });
+  [0, 1, 2, 3, 4, 5].forEach(v => { ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('intercept b', (pad.l + W) / 2, H);
+  ctx.save(); ctx.translate(11, (pad.t + H - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('slope m', 0, 0); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  const path = (P, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); P.forEach(([b, m], i) => i ? ctx.lineTo(X(b), Y(m)) : ctx.moveTo(X(b), Y(m))); ctx.stroke(); };
+  path(paths.sg, cssv('--s2'), 1.5); path(paths.gd, cssv('--ink'), 2.5);
+  const pt = (b, m, col, r) => { ctx.fillStyle = col; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(b), Y(m), r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); };
+  pt(bStar, mStar, cssv('--muted'), 7); pt(...paths.avg, cssv('--s3'), 6); pt(...START, cssv('--ink'), 5);
+  ctx.restore();
+  const gdE = loss(...paths.gd[STEPS]), slE = loss(...paths.sg[STEPS]), saE = loss(...paths.avg), st = loss(bStar, mStar);
+  $('eGD').textContent = gdE.toFixed(3); $('eSL').textContent = isFinite(slE) ? slE.toFixed(3) : 'diverged';
+  $('eSA').textContent = isFinite(saE) ? saE.toFixed(3) : 'diverged'; $('eSt').textContent = st.toFixed(3);
+  const div = !isFinite(gdE) || gdE > 100;
+  $('gdTxt').innerHTML = div ? '<b>Step size too large:</b> the steps overshoot the bottom of the bowl and blow up. Lower η.'
+    : `Gradient descent heads smoothly to w* = (${bStar.toFixed(2)}, ${mStar.toFixed(2)}). SGD with k = ${paths.k} zig-zags because each batch gives a noisy gradient, but its <b>average</b> lands close to w*. Try k = 1 (noisiest) and k = 50 (close to full GD).`;
+}
+['eta', 'k'].forEach(id => $(id).oninput = run); $('run').onclick = run;
+run();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

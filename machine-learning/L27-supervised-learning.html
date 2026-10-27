@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Supervised Learning</title>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.grid3 .card{margin:0} .grid3 h3{margin:0 0 4px;font-size:16px}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff}
+.quiz{display:grid;gap:8px}
+.q{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:10px 12px}
+.q .txt{flex:1;min-width:220px;font-size:15px}
+button{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+.res{font-size:13px;min-width:120px}
+code{font-size:14px}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 27 · Part 2 of the course begins</div>
+<h1>Supervised Learning</h1>
+<p class="lede">So far the data was just $x$'s. Now each data point comes with a <b>label</b> $y$ telling us the right answer. The task is to learn a rule that predicts the label of <b>new</b> points. What kind of value the label takes decides what kind of problem it is.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=AIKTk9KtPJ0">this lecture on YouTube</a> (≈9 min). Next: <a href="L28-linear-regression.html">L28 · Linear regression</a>.</p>
+
+<h2>1 · The setup</h2>
+<p>We have $n$ data points $x_1,\dots,x_n\in\mathbb R^d$, the same as in unsupervised learning. Each entry of $x$ is called a <b>feature</b> (also an attribute or predictor). Now each point also comes with a <b>label</b> $y_1,\dots,y_n$. The labels are the "supervision": someone has supplied the correct answer for each training example.</p>
+<div class="callout"><b>Goal:</b> learn from the pairs $(x_i, y_i)$ so that for a <b>new</b> $x$ you've never seen, you can predict its label well.</div>
+
+<h2>2 · Three kinds of supervised problems</h2>
+<div class="grid3">
+  <div class="card"><span class="tag" style="background:var(--s1)">binary classification</span>
+    <h3 style="margin-top:8px">Labels: two values</h3>
+    <p class="small" style="margin:0">$y\in\{+1,-1\}$ or $\{0,1\}$ (the two are interchangeable).<br><b>Example:</b> is an email <i>spam</i> or <i>not spam</i>? Each email is turned into a vector of numbers (features).</p></div>
+  <div class="card"><span class="tag" style="background:var(--s3)">multi-class classification</span>
+    <h3 style="margin-top:8px">Labels: a finite set</h3>
+    <p class="small" style="margin:0">$y\in\{0,1,\dots,k\}$.<br><b>Example:</b> handwritten digit recognition. The image is the feature vector, and the label is which of the digits 0–9 was written.</p></div>
+  <div class="card"><span class="tag" style="background:var(--s2)">regression</span>
+    <h3 style="margin-top:8px">Labels: any real number</h3>
+    <p class="small" style="margin:0">$y\in\mathbb R$.<br><b>Example:</b> predict a day's rainfall (say 100.23 cm) from temperature, precipitation, air pressure and so on.</p></div>
+</div>
+<p>Each kind needs its own algorithms. The reasons come up as the course goes on.</p>
+
+<h2>3 · Quick check: which kind is it?</h2>
+<p class="small muted">Pick an answer for each task.</p>
+<div class="quiz" id="quiz"></div>
+
+<h2>4 · Roadmap for part 2</h2>
+<ol>
+<li><b>Regression first</b>, starting with linear regression, for a couple of weeks. It's the oldest supervised problem, with deep roots in statistics.</li>
+<li><b>Binary classification</b> next, which gets the most time.</li>
+<li><b>Multi-class</b> briefly, mainly by building it out of binary classifiers.</li>
+</ol>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Supervised learning = features $x$ plus labels $y$. Learn to predict $y$ for new $x$.</li>
+<li>Two labels gives <b>binary classification</b>; a finite set gives <b>multi-class</b>; real numbers give <b>regression</b>.</li>
+</ol>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" defer></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script>
+const Q = [
+  ['Predict a house price from its size, location and age.', 'r'],
+  ['Decide whether a bank transaction is fraudulent.', 'b'],
+  ['Recognise which of 26 letters a handwritten character is.', 'm'],
+  ['Predict tomorrow’s temperature in °C.', 'r'],
+  ['Decide whether a tumour scan is benign or malignant.', 'b'],
+  ['Tag a news article as sports, politics, business or tech.', 'm']
+];
+const NAME = {b: 'binary classification', m: 'multi-class', r: 'regression'};
+const box = document.getElementById('quiz');
+box.innerHTML = Q.map(([t], i) => `<div class="q"><span class="txt">${t}</span>
+  <button data-i="${i}" data-a="b">binary</button><button data-i="${i}" data-a="m">multi-class</button><button data-i="${i}" data-a="r">regression</button>
+  <span class="res" id="r${i}"></span></div>`).join('');
+box.querySelectorAll('button').forEach(b => b.onclick = () => {
+  const i = +b.dataset.i, ok = b.dataset.a === Q[i][1];
+  document.getElementById('r' + i).innerHTML = ok ? `✓ <b>${NAME[Q[i][1]]}</b>` : `✗ it's <b>${NAME[Q[i][1]]}</b>`;
+});
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); });
+</script>
+</body>
+</html>

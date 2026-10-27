@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>L15: Convergence of the K-means (Lloyd&#x27;s) Algorithm</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--grid:#e6e5e0;--tint:#eef4fc;--accent:#2a78d6;--code:#f3f2ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--tint:#1f2a38;--accent:#5598e7;--code:#2a2a28}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--tint:#1f2a38;--accent:#5598e7;--code:#2a2a28}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2} h2{font-size:22px;margin-top:40px;padding-top:18px;border-top:1px solid var(--grid)} h3{font-size:17px}
+a{color:var(--accent)}
+table{border-collapse:collapse;font-size:14px;display:block;overflow-x:auto} th,td{padding:7px 10px;border-bottom:1px solid var(--grid);text-align:left} th{color:var(--muted)}
+blockquote{margin:14px 0;background:var(--tint);border-radius:10px;padding:10px 16px} blockquote p{margin:6px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:14px}
+pre{background:var(--code);padding:12px 14px;border-radius:10px;overflow-x:auto} pre code{background:none;padding:0}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+hr{border:none;border-top:1px solid var(--grid);margin:30px 0}
+</style></head>
+<body><main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<h1>L15: Convergence of the K-means (Lloyd's) Algorithm</h1>
+<p>Source: https://www.youtube.com/watch?v=5geXmawaImk (≈33 min)
+Previous: <a href="L13-clustering-notes.html">L13</a> · <a href="L14-kmeans-lloyd-notes.html">L14</a></p>
+<blockquote>
+<p>L14's &quot;Going further&quot; section previewed this proof in compact form. This lecture is the
+official version: a <strong>three-quantity sandwich</strong> argument. Section 7 extends it in
+d dimensions: deriving Fact 1, the <em>exact</em> drop per iteration, counting partitions,
+how many iterations it takes, and a concrete local-minimum example.</p>
+</blockquote>
+<h2>Timestamped outline</h2>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Topic</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>00:13</td>
+<td>Recap of Lloyd's algorithm</td>
+</tr>
+<tr>
+<td>01:16</td>
+<td>The four open questions (convergence, cluster shape, initialization, K)</td>
+</tr>
+<tr>
+<td>01:54</td>
+<td>Example where K is known: grading students into S/A/B/C/D</td>
+</tr>
+<tr>
+<td>02:46</td>
+<td>Question 1: does Lloyd's converge?</td>
+</tr>
+<tr>
+<td>03:36</td>
+<td><strong>Fact 1:</strong> the mean minimises the sum of squared distances</td>
+</tr>
+<tr>
+<td>05:43</td>
+<td>v* = mean (derivative/gradient exercise)</td>
+</tr>
+<tr>
+<td>07:09</td>
+<td>Proof setup: iteration t, assignments zᵗ, means μᵗ</td>
+</tr>
+<tr>
+<td>08:51</td>
+<td>Assume no convergence, so at least one point moves</td>
+</tr>
+<tr>
+<td>11:05</td>
+<td>Intermediate quantity: distance to the <em>old</em> mean of the <em>new</em> box</td>
+</tr>
+<tr>
+<td>14:38</td>
+<td>Step A: intermediate &lt; F(zᵗ), because of the algorithm's choice</td>
+</tr>
+<tr>
+<td>15:04</td>
+<td>The intermediate quantity is not F(zᵗ⁺¹)</td>
+</tr>
+<tr>
+<td>17:55</td>
+<td>Step B: F(zᵗ⁺¹) ≤ intermediate, by Fact 1 applied per cluster</td>
+</tr>
+<tr>
+<td>25:39</td>
+<td>So F strictly decreases after every reassignment</td>
+</tr>
+<tr>
+<td>28:08</td>
+<td>Why strict decrease implies convergence: finitely many partitions</td>
+</tr>
+<tr>
+<td>31:02</td>
+<td>Caveat 1: says nothing about the number of rounds (fast in practice)</td>
+</tr>
+<tr>
+<td>31:48</td>
+<td>Caveat 2: converges to a local, not global, optimum</td>
+</tr>
+<tr>
+<td>33:02</td>
+<td>Next: nature of the clusters</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>1. When K is known vs. unknown</h2>
+<ul>
+<li><strong>Known K:</strong> a teacher grouping students into grades S, A, B, C, D has K = 5 fixed in advance.</li>
+<li><strong>Unknown K:</strong> you're just given points and need to find natural groupings. Choosing K is a
+separate question, covered later.</li>
+</ul>
+<h2>2. Fact 1: the mean minimises the sum of squared distances</h2>
+<p>For points x₁, …, x_ℓ ∈ ℝᵈ:</p>
+<p>$$
+v^\star=\arg\min_{v\in\mathbb{R}^d}\sum_{i=1}^{\ell}\lVert x_i-v\rVert^2=\frac{1}{\ell}\sum_{i=1}^{\ell}x_i .
+$$</p>
+<ul>
+<li>Minimising the sum and minimising the average give the same v, since one is a positive
+multiple of the other.</li>
+<li>The lecture leaves the derivation as an exercise (take the gradient with respect to v and
+set it to 0). It is done in full in §7.1.</li>
+</ul>
+<h2>3. Proof setup</h2>
+<ul>
+<li>At iteration t: assignments zᵗ = (z₁ᵗ, …, zₙᵗ), and means μₖᵗ of each cluster under zᵗ.</li>
+<li>Objective: F(z₁, …, zₙ) = Σᵢ ‖xᵢ − μ_{zᵢ}‖², where the μ's are the means <em>of that partition</em>.</li>
+<li>If the algorithm has already converged at t, there is nothing to prove. So assume
+<strong>at least one point moves</strong>, giving zᵗ⁺¹ ≠ zᵗ.</li>
+</ul>
+<h2>4. The three quantities</h2>
+<table>
+<thead>
+<tr>
+<th>Symbol</th>
+<th>Expression</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>R</strong> (right)</td>
+<td>Σᵢ ‖xᵢ − μᵗ_{zᵢᵗ}‖² = F(zᵗ)</td>
+<td>each point to the mean of its <strong>current</strong> box</td>
+</tr>
+<tr>
+<td><strong>I</strong> (intermediate)</td>
+<td>Σᵢ ‖xᵢ − μᵗ_{zᵢᵗ⁺¹}‖²</td>
+<td>each point to the <strong>old mean of the box it wants to move to</strong></td>
+</tr>
+<tr>
+<td><strong>L</strong> (left)</td>
+<td>Σᵢ ‖xᵢ − μᵗ⁺¹_{zᵢᵗ⁺¹}‖² = F(zᵗ⁺¹)</td>
+<td>each point to the <strong>new mean of its new box</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>I is not an objective value.</strong> It mixes the new assignment with the old means. It is only
+a stepping stone.</p>
+<h2>5. The sandwich: L ≤ I &lt; R</h2>
+<p><strong>Step A: I &lt; R (the algorithm's choice).</strong></p>
+<ul>
+<li>A point that stays (zᵢᵗ⁺¹ = zᵢᵗ) contributes exactly the same term to I and to R.</li>
+<li>A point that moves does so only because the new mean is <strong>strictly</strong> closer:
+‖xᵢ − μᵗ_{zᵢᵗ⁺¹}‖² &lt; ‖xᵢ − μᵗ_{zᵢᵗ}‖².</li>
+<li>At least one point moves, so I &lt; R strictly.</li>
+</ul>
+<p><strong>Step B: L ≤ I (Fact 1, one cluster at a time).</strong></p>
+<ul>
+<li>Group both sums by the new clusters Cₖᵗ⁺¹ = {i : zᵢᵗ⁺¹ = k}:</li>
+</ul>
+<p>$$
+L=\sum_{k=1}^{K}\sum_{i\in C_k^{t+1}}\lVert x_i-\mu_k^{t+1}\rVert^2,
+\qquad
+I=\sum_{k=1}^{K}\sum_{i\in C_k^{t+1}}\lVert x_i-\mu_k^{t}\rVert^2 .
+$$</p>
+<ul>
+<li>Every point in Cₖᵗ⁺¹ is in I measured against the <strong>same</strong> vector μₖᵗ. Some points stayed
+and compared themselves to μₖᵗ; others jumped in because μₖᵗ was closer.</li>
+<li>μₖᵗ⁺¹ is the mean of exactly the set Cₖᵗ⁺¹. By Fact 1 (with v = μₖᵗ), the inner sum for L is
+≤ the inner sum for I, for every k. Adding over k gives L ≤ I.</li>
+</ul>
+<p><strong>Putting it together:</strong></p>
+<p>$$
+F(z^{t+1}) \;\le\; I \;&lt;\; F(z^{t}) \qquad\text{whenever a reassignment happens.}
+$$</p>
+<p>Intuition: points that move pay less right away (Step A), and then the means re-centre,
+which makes things better still (Step B).</p>
+<h2>6. Why strict decrease means the algorithm converges</h2>
+<ul>
+<li>A strictly decreasing F means <strong>no partition can ever repeat</strong>, since a repeat would give
+the same F value.</li>
+<li>There are only <strong>finitely many</strong> partitions (at most Kⁿ).</li>
+<li>Each reassignment crosses one partition off the list. Eventually reassignments must stop,
+so the algorithm converges. ∎</li>
+</ul>
+<p><strong>Two caveats:</strong></p>
+<ol>
+<li>The proof gives <strong>no useful bound on the number of rounds</strong>. Kⁿ is only a worst-case
+ceiling. In practice Lloyd's converges quickly.</li>
+<li>Convergence does <strong>not</strong> mean optimality. It reaches a partition where every point is
+happy (a <em>local</em> minimum), which may be far from the global minimum.</li>
+</ol>
+<hr />
+<h2>7. Going further: d-dimensional derivations and extensions</h2>
+<p><em>This section goes beyond the video.</em></p>
+<h3>7.1 Deriving Fact 1 in ℝᵈ (the exercise the lecture skipped)</h3>
+<p>Let J(v) = Σᵢ ‖xᵢ − v‖² = Σᵢ (xᵢ − v)ᵀ(xᵢ − v).</p>
+<p><strong>Method 1: one coordinate at a time.</strong> Write v = (v₁, …, v_d). Then</p>
+<p>$$
+J(v)=\sum_{i=1}^{\ell}\sum_{j=1}^{d}(x_{ij}-v_j)^2
+\;\Rightarrow\;
+\frac{\partial J}{\partial v_j}=-2\sum_{i=1}^{\ell}(x_{ij}-v_j)=0
+\;\Rightarrow\;
+v_j=\frac1\ell\sum_i x_{ij}.
+$$</p>
+<p>J separates into d independent 1-D problems. Each is solved by the 1-D mean, so the
+d-dimensional answer is just the vector of coordinate means.</p>
+<p><strong>Method 2: vector calculus.</strong> Expand: J(v) = Σᵢ‖xᵢ‖² − 2vᵀ(Σᵢxᵢ) + ℓ‖v‖². Use</p>
+<ul>
+<li>∇_v(aᵀv) = a</li>
+<li>∇_v(vᵀv) = 2v</li>
+</ul>
+<p>to get</p>
+<p>$$
+\nabla_v J = -2\sum_i x_i + 2\ell v \overset{!}{=} 0 \;\Rightarrow\; v^\star=\bar x .
+$$</p>
+<p><strong>Is it a minimum?</strong> The Hessian is ∇²J = 2ℓ·I_d ≻ 0, so J is strictly convex and v* is
+the unique global minimiser.</p>
+<p><strong>Method 3: no calculus (completing the square).</strong> Write xᵢ − v = (xᵢ − x̄) + (x̄ − v)
+and expand:</p>
+<p>$$
+\sum_i\lVert x_i-v\rVert^2=\sum_i\lVert x_i-\bar x\rVert^2+2(\bar x-v)^\top\underbrace{\sum_i(x_i-\bar x)}_{=0}+\ell\lVert\bar x-v\rVert^2 .
+$$</p>
+<p>$$
+\boxed{\;\sum_i\lVert x_i-v\rVert^2=\sum_i\lVert x_i-\bar x\rVert^2+\ell\,\lVert\bar x-v\rVert^2\;}
+$$</p>
+<p>The second term is ≥ 0 and equals 0 only when v = x̄. This proves Fact 1 <em>and</em> says exactly
+how much worse any other v is. That is the key to §7.2.</p>
+<h3>7.2 The exact drop per iteration</h3>
+<p>Apply the boxed identity to each new cluster, with v = μₖᵗ:</p>
+<p>$$
+I - L = \sum_{k=1}^{K} n_k^{t+1}\,\lVert \mu_k^{t+1}-\mu_k^{t}\rVert^2 \quad(\ge 0).
+$$</p>
+<p>Add the gain from Step A:</p>
+<p>$$
+F(z^t)-F(z^{t+1})=\underbrace{\sum_{i:\,\text{moved}}\Big(\lVert x_i-\mu^t_{z_i^t}\rVert^2-\lVert x_i-\mu^t_{z_i^{t+1}}\rVert^2\Big)}_{\text{reassignment gain} \;&gt;\;0}
++\underbrace{\sum_k n_k^{t+1}\lVert\mu_k^{t+1}-\mu_k^t\rVert^2}_{\text{re-centring gain}\;\ge 0}.
+$$</p>
+<ul>
+<li>The <strong>reassignment gain</strong> comes from points getting closer to a centre.</li>
+<li>The <strong>re-centring gain</strong> comes from centres moving. It is weighted by cluster size.</li>
+<li>The algorithm stalls exactly when both are zero: no point wants to move, and the means are fixed.</li>
+</ul>
+<h3>7.3 How many partitions are there, really?</h3>
+<p>Kⁿ counts labelled assignments, including ones that leave boxes empty. The number of ways to
+split n points into <strong>exactly K non-empty, unlabelled</strong> clusters is the
+<strong>Stirling number of the second kind</strong>:</p>
+<p>$$
+S(n,K)=\frac{1}{K!}\sum_{j=0}^{K}(-1)^j\binom{K}{j}(K-j)^n \;\approx\; \frac{K^n}{K!}\ \text{for large }n.
+$$</p>
+<p>Example: S(5,3) = 25, compared with 3⁵ = 243. That is still exponential in n, so the
+lecture's conclusion holds.</p>
+<h3>7.4 How many iterations? (what's known)</h3>
+<ul>
+<li><strong>Worst case:</strong> there are inputs in the plane (d = 2) where Lloyd's takes <strong>2^Ω(n)</strong>
+iterations (Vattani, 2011). So the finiteness argument is essentially as good as you can do
+in the worst case.</li>
+<li><strong>Smoothed analysis:</strong> if the input is slightly perturbed by random noise, the expected
+number of iterations is <strong>polynomial</strong> in n (Arthur, Manthey &amp; Röglin, 2009). This explains
+why it converges fast in practice.</li>
+<li><strong>In practice:</strong> implementations stop when the drop F(zᵗ) − F(zᵗ⁺¹) falls below a tolerance,
+or after a maximum number of iterations.</li>
+</ul>
+<h3>7.5 A concrete bad local minimum</h3>
+<p>Take four points at the corners of a <strong>wide rectangle</strong>, with K = 2:</p>
+<p>$$
+x_1=(0,0),\;x_2=(0,1),\;x_3=(4,0),\;x_4=(4,1).
+$$</p>
+<table>
+<thead>
+<tr>
+<th>Partition</th>
+<th>Means</th>
+<th>F</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Left vs. right</strong> {x₁,x₂}, {x₃,x₄}</td>
+<td>(0, ½), (4, ½)</td>
+<td>4·(½)² = <strong>1</strong> (global optimum)</td>
+</tr>
+<tr>
+<td><strong>Bottom vs. top</strong> {x₁,x₃}, {x₂,x₄}</td>
+<td>(2, 0), (2, 1)</td>
+<td>4·2² = <strong>16</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why bottom vs. top is stuck:</strong> check x₁ = (0,0).</p>
+<ul>
+<li>Distance² to its own mean (2,0) is 4.</li>
+<li>Distance² to the other mean (2,1) is 4 + 1 = 5.</li>
+</ul>
+<p>So x₁ stays, and by symmetry so does every other point. Lloyd's algorithm has converged at
+<strong>16 times the optimal cost</strong>. This is why initialization matters, which is the next big topic.</p>
+<h3>7.6 Edge case: empty clusters</h3>
+<p>If every point leaves cluster k, then μₖᵗ⁺¹ is 0/0, which is undefined. The proof still works if
+you either drop the cluster (F can only stay the same) or re-seed it with the point farthest
+from its centre (F strictly drops). Libraries do one of these silently.</p>
+<h3>7.7 Why the proof works: a broader view</h3>
+<p>The proof only used two facts:</p>
+<ol>
+<li>Assigning each point to its nearest centre minimises F when the centres are fixed.</li>
+<li>The <strong>mean</strong> minimises the cost when the clusters are fixed.</li>
+</ol>
+<p>Any distance for which some &quot;centre&quot; minimises the within-cluster cost gives an algorithm that
+converges in the same way. Examples:</p>
+<ul>
+<li><strong>K-medians:</strong> ℓ₁ distance, and the centre is the coordinate-wise median.</li>
+<li><strong>K-medoids:</strong> the centre must be one of the data points.</li>
+<li><strong>Bregman divergences</strong> (e.g. KL divergence): the <strong>mean</strong> is still the optimal centre
+(Banerjee et al., 2005).</li>
+</ul>
+<p>The general pattern is <strong>alternating minimisation</strong> (block coordinate descent). The EM algorithm
+for Gaussian mixtures, coming later in the course, follows the same template. That makes
+K-means a &quot;hard-assignment&quot; version of EM.</p>
+<h3>7.8 Seeing it numerically (any d)</h3>
+<pre><code class="language-python">import numpy as np
+rng = np.random.default_rng(0)
+X = np.vstack([rng.normal(c, 1.0, (100, 10)) for c in (0, 4, 8)])  # 300 points in R^10
+K, n = 3, len(X)
+z = rng.integers(K, size=n)
+F = lambda z, M: ((X - M[z])**2).sum()
+while True:
+    M = np.stack([X[z == k].mean(0) for k in range(K)])
+    D = ((X[:, None, :] - M[None])**2).sum(-1)
+    best = D.argmin(1)
+    z_new = np.where(D[np.arange(n), z] &lt;= D[np.arange(n), best], z, best)
+    print(f&quot;F = {F(z, M):.2f}&quot;)
+    if np.array_equal(z_new, z): break
+    z = z_new
+</code></pre>
+<p>The printed values strictly decrease, as the proof says.</p>
+<hr />
+<h2>Key takeaways</h2>
+<ol>
+<li><strong>Fact 1:</strong> the mean is the unique minimiser of the sum of squared distances in any dimension.
+Moving the centre by Δ costs exactly ℓ‖Δ‖² extra.</li>
+<li><strong>The sandwich:</strong> F(zᵗ⁺¹) ≤ I &lt; F(zᵗ). Step A uses the algorithm's strict-move rule;
+Step B uses Fact 1 on each cluster.</li>
+<li>Strict decrease plus finitely many partitions means <strong>guaranteed convergence</strong>.</li>
+<li>The proof gives <strong>no useful iteration bound</strong> (the worst case is exponential), but
+convergence is fast in practice.</li>
+<li>Convergence is to a <strong>local</strong> optimum, which can be arbitrarily worse than the global one
+(e.g. the rectangle example, 16× worse).</li>
+</ol>
+<h2>Self-check questions</h2>
+<ol>
+<li>In the proof, why is the intermediate quantity I not an objective value?</li>
+<li>Which step uses the &quot;strictly closer&quot; rule, and which uses Fact 1?</li>
+<li>Using the completing-the-square identity, compute Σ‖xᵢ − v‖² for the points (0,0), (2,0), (1,3)
+and v = (0,0), without summing directly.
+<em>(Mean (1,1). Spread around the mean = 2 + 2 + 4 = 8. Shift penalty = 3·‖(1,1)‖² = 6. Total = 14.)</em></li>
+<li>Why doesn't &quot;F strictly decreases&quot; alone guarantee stopping for a continuous problem,
+and what extra fact rescues the K-means case?</li>
+<li>In the rectangle example, how wide must the rectangle be for the bottom-vs-top split to be
+stuck? <em>(For width w and height 1: distance² to own mean is (w/2)², to the other is
+(w/2)² + 1. So it is stuck for every w &gt; 0, and it is worse than left-vs-right whenever w &gt; 1.)</em></li>
+<li>Is S(n,K) or Kⁿ the right count of partitions for the convergence argument? Does it matter?</li>
+</ol>
+
+</main>
+<script>window.addEventListener('load',()=>{if(window.renderMathInElement)renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});});</script>
+</body></html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Estimating GMM Parameters</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:900px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+h2{font-size:22px;margin:44px 0 8px;padding-top:20px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px}
+.lede{font-size:18px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:16px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:150px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+table{border-collapse:collapse;font-size:14px;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.tablewrap{overflow-x:auto}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+details{border:1px solid var(--grid);border-radius:8px;padding:10px 14px;margin:8px 0;background:var(--card)}
+summary{cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 25 · Fitting a GMM, part 2</div>
+<h1>Estimating GMM Parameters with a Lower Bound</h1>
+<p class="lede">The GMM log-likelihood is hard to maximise because of the log of a sum. The trick: add some extra helper numbers λ, use Jensen to get a <b>lower bound</b> with the sum outside the log, and notice that this bound is <b>easy to maximise one half at a time</b>, with simple formulas for each half.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=idWmaE39OIk">this lecture on YouTube</a> (≈23 min). Previous: <a href="L24-convexity-jensen.html">L24 · Convexity and Jensen</a> · <a href="L23-gmm-likelihood.html">L23 · GMM likelihood</a>.</p>
+
+<h2>1 · The trick: multiply and divide by λ</h2>
+<p>For every data point $i$, introduce $K$ new numbers $\lambda_{i1},\dots,\lambda_{iK}$ that behave like probabilities: each is between 0 and 1, and $\sum_k\lambda_{ik}=1$. Then multiply and divide each term inside the log by $\lambda_{ik}$. That changes nothing:</p>
+$$\log L(\theta)=\sum_{i=1}^{n}\log\sum_{k=1}^{K}\lambda_{ik}\,\frac{\pi_k\,\mathcal N(x_i;\mu_k,\sigma_k^2)}{\lambda_{ik}} .$$
+<p>Now the inside of the log <b>is</b> a weighted average, with weights $\lambda_{ik}$, of the numbers $\pi_k\mathcal N(x_i;\mu_k,\sigma_k^2)/\lambda_{ik}$. Since log is concave, Jensen (L24) lets us pull the sum outside:</p>
+$$\log L(\theta)\;\ge\;\underbrace{\sum_{i=1}^{n}\sum_{k=1}^{K}\lambda_{ik}\,\log\frac{\pi_k\,\mathcal N(x_i;\mu_k,\sigma_k^2)}{\lambda_{ik}}}_{\text{modified log-likelihood }\tilde\ell(\theta,\lambda)} .$$
+<ul>
+<li>$\tilde\ell$ is a <b>lower bound</b> on the true log-likelihood, and it holds for <b>every</b> valid choice of λ.</li>
+<li><b>What's λ?</b> For now just helper numbers. They'll turn out to mean "how likely point $i$ is to have come from component $k$": a <b>soft cluster assignment</b>.</li>
+</ul>
+
+<h2>2 · Why add <i>more</i> unknowns?</h2>
+<p>This looks backwards: $\tilde\ell$ isn't the function we wanted, and it has $nK$ extra unknowns. It's worth it because of one key property:</p>
+<div class="callout"><b>Key insight.</b> Fix λ, and maximising over θ is easy. Fix θ, and maximising over λ is easy. Both have closed-form answers.</div>
+<p>So instead of one hard problem, we get two easy ones that can take turns. Putting them together into an algorithm is the next lecture.</p>
+
+<h2>3 · Fix λ, solve for θ: weighted averages</h2>
+<p>With λ held fixed, the log in $\tilde\ell$ now contains a <b>product</b>, $\pi_k \times$ Gaussian, so it splits apart and the exponential cancels. The $-\lambda_{ik}\log\lambda_{ik}$ part is now a constant. Setting derivatives to zero gives:</p>
+<div class="tablewrap"><table>
+<tr><th>Parameter</th><th>Best value for fixed λ</th><th>In words</th></tr>
+<tr><td>mean $\mu_k$</td><td>$\displaystyle\hat\mu_k=\frac{\sum_i\lambda_{ik}\,x_i}{\sum_i\lambda_{ik}}$</td><td>weighted mean of all points, weighted by how much each belongs to $k$</td></tr>
+<tr><td>variance $\sigma_k^2$</td><td>$\displaystyle\hat\sigma_k^2=\frac{\sum_i\lambda_{ik}\,(x_i-\hat\mu_k)^2}{\sum_i\lambda_{ik}}$</td><td>weighted variance around that mean</td></tr>
+<tr><td>mixing proportion $\pi_k$</td><td>$\displaystyle\hat\pi_k=\frac1n\sum_i\lambda_{ik}$</td><td>average membership in $k$ (π is constrained, so this one uses Lagrange multipliers)</td></tr>
+</table></div>
+<p><b>Sanity check with hard assignments.</b> If every λ is 0 or 1 (each point fully in one cluster), these become the plain mean, variance and fraction of the points in cluster $k$, just like K-means. Soft λ values simply let each point count partially towards several clusters.</p>
+
+<h2>4 · Fix θ, solve for λ: Bayes' theorem</h2>
+<p>With the means, variances and πs held fixed, $\tilde\ell$ splits into a separate small problem for each point. Solving each one, with the constraint $\sum_k\lambda_{ik}=1$ handled by a Lagrange multiplier, gives:</p>
+$$\hat\lambda_{ik}=\frac{\pi_k\,\mathcal N(x_i;\mu_k,\sigma_k^2)}{\sum_{l=1}^{K}\pi_l\,\mathcal N(x_i;\mu_l,\sigma_l^2)} .$$
+<p>This is exactly <b>Bayes' theorem</b> for the probability that point $i$ came from component $k$, given its value:</p>
+$$P(z_i=k\mid x_i)=\frac{P(x_i\mid z_i=k)\,P(z_i=k)}{P(x_i)} .$$
+<p>So the best λ is the <b>posterior probability</b> of each component for each point. It's the same "who could have generated this point?" share from the <a href="L23-gmm-likelihood.html">L23 page</a>.</p>
+
+<h2>5 · Try the two steps by hand</h2>
+<p>Two-component data, starting from a bad guess. Each button applies one of the two formulas above. Point colours show λ: blue means component 1, orange means component 2, and mixed shades mean the point is shared between them. Watch the lower bound $\tilde\ell$ stay at or below the true $\log L$.</p>
+<div class="card">
+  <div class="row">
+    <button class="primary" id="stepL">Update λ (fix θ, use Bayes)</button>
+    <button class="primary" id="stepT">Update θ (fix λ, weighted averages)</button>
+    <button id="run10">Do 10 rounds (λ, θ)</button>
+    <button id="reset">Reset</button>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="ll">–</div><div class="l">true log L(θ)</div></div>
+    <div class="stat"><div class="v" id="lb">–</div><div class="l">lower bound ℓ̃(θ, λ)</div></div>
+    <div class="stat"><div class="v" id="gap">–</div><div class="l">gap (≥ 0)</div></div>
+  </div>
+  <canvas id="emCanvas" height="250" aria-label="Data coloured by soft assignment with the two current Gaussian components"></canvas>
+  <p class="small" id="emTxt"></p>
+</div>
+<div class="beyond"><b>Going further: why the gap hits 0 after a λ step.</b> With λ set by Bayes, every term inside Jensen's average, $\pi_k\mathcal N(x_i;\cdot)/\lambda_{ik}$, equals the same number, $f(x_i)$. Averaging identical numbers loses nothing, so Jensen holds with equality and the bound touches the true log-likelihood (as in the L24 check, where equal values gave a gap of 0). This is why alternating the two steps keeps pushing the true likelihood up, which the next lecture builds on.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Introduce soft weights $\lambda_{ik}$ (one probability distribution over components per point), then multiply and divide by them.</li>
+<li>Jensen then gives a <b>lower bound</b> $\tilde\ell(\theta,\lambda)\le\log L(\theta)$ with the sum <b>outside</b> the log, valid for any λ.</li>
+<li><b>Fix λ:</b> θ has closed forms: weighted mean, weighted variance, and average λ for π.</li>
+<li><b>Fix θ:</b> λ is the Bayes posterior, $P(z_i=k\mid x_i)$.</li>
+<li>Two easy steps instead of one hard problem. Alternating them gives an algorithm for fitting a GMM, next lecture.</li>
+</ol>
+<details><summary>Self-check: if all λ for component k were 1/2, what would μ̂ₖ be?</summary><p>The plain mean of all the data. Every point gets the same weight, so the weighted mean reduces to the ordinary average.</p></details>
+<details><summary>Self-check: why is the λ that maximises the bound the same as P(zᵢ = k | xᵢ)?</summary><p>The Lagrange-multiplier solution comes out as πₖ𝒩(xᵢ) divided by the sum over all components, which is exactly Bayes' theorem with prior πₖ and likelihood 𝒩(xᵢ; μₖ, σₖ²).</p></details>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h];
+}
+const npdf = (x, m, s) => Math.exp(-((x - m) ** 2) / (2 * s * s)) / (Math.sqrt(2 * Math.PI) * s);
+let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const X = []; for (let i = 0; i < 40; i++) X.push(-3 + 0.8 * gauss()); for (let i = 0; i < 30; i++) X.push(2 + 1.2 * gauss());
+const n = X.length, K = 2;
+let th, lam, steps;
+function reset(){ th = {mu: [-0.5, 0.5], sd: [2, 2], pi: [0.5, 0.5]}; lam = X.map(() => [0.5, 0.5]); steps = []; draw(); }
+const logL = () => X.reduce((s, x) => s + Math.log(th.pi[0] * npdf(x, th.mu[0], th.sd[0]) + th.pi[1] * npdf(x, th.mu[1], th.sd[1])), 0);
+const bound = () => X.reduce((s, x, i) => s + [0, 1].reduce((t, k) => { const l = lam[i][k]; return l > 0 ? t + l * Math.log(th.pi[k] * npdf(x, th.mu[k], th.sd[k]) / l) : t; }, 0), 0);
+function stepLambda(){ lam = X.map(x => { const a = [0, 1].map(k => th.pi[k] * npdf(x, th.mu[k], th.sd[k])), s = a[0] + a[1]; return a.map(v => v / s); }); steps.push('λ'); draw(); }
+function stepTheta(){
+  for (let k = 0; k < K; k++){
+    const w = lam.reduce((s, l) => s + l[k], 0);
+    const mu = X.reduce((s, x, i) => s + lam[i][k] * x, 0) / w;
+    const v = X.reduce((s, x, i) => s + lam[i][k] * (x - mu) ** 2, 0) / w;
+    th.mu[k] = mu; th.sd[k] = Math.sqrt(Math.max(v, 1e-4)); th.pi[k] = w / n;
+  }
+  steps.push('θ'); draw();
+}
+function mix(c1, c2, t){ const h = c => [1, 3, 5].map(j => parseInt(c.slice(j, j + 2), 16)); const a = h(c1), b = h(c2);
+  return `rgb(${a.map((v, j) => Math.round(v * t + b[j] * (1 - t))).join(',')})`; }
+function draw(){
+  const L = logL(), B = bound();
+  $('ll').textContent = L.toFixed(2); $('lb').textContent = B.toFixed(2); $('gap').textContent = Math.max(0, L - B).toFixed(2);
+  const c1 = cssv('--s1'), c2 = cssv('--s2');
+  const [ctx, W, H] = setupCanvas($('emCanvas')), xr = [-7, 7], pad = {l: 12, r: 12, t: 12, b: 40};
+  const comp = k => x => th.pi[k] * npdf(x, th.mu[k], th.sd[k]);
+  let top = 0; for (let i = 0; i <= 300; i++){ const x = xr[0] + 14 * i / 300; top = Math.max(top, comp(0)(x), comp(1)(x)); } top *= 1.15;
+  const PX = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), PY = v => H - pad.b - v / top * (H - pad.t - pad.b);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, PY(0)); ctx.lineTo(W - pad.r, PY(0)); ctx.stroke();
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [-6, -4, -2, 0, 2, 4, 6].forEach(v => ctx.fillText(v, PX(v), H - 16));
+  [[0, c1], [1, c2]].forEach(([k, c]) => { ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let i = 0; i <= 300; i++){ const x = xr[0] + 14 * i / 300; i ? ctx.lineTo(PX(x), PY(comp(k)(x))) : ctx.moveTo(PX(x), PY(comp(k)(x))); } ctx.stroke(); });
+  X.forEach((x, i) => { ctx.fillStyle = mix(c1, c2, lam[i][0]); ctx.beginPath(); ctx.arc(PX(x), PY(0) + 12, 5, 0, 2 * Math.PI); ctx.fill(); });
+  const last = steps[steps.length - 1];
+  $('emTxt').innerHTML = `Steps so far: ${steps.length ? (steps.length > 12 ? `${steps.length} (…${steps.slice(-4).join(' → ')})` : steps.join(' → ')) : 'none'}. ` +
+    `Component 1: μ = ${th.mu[0].toFixed(2)}, σ = ${th.sd[0].toFixed(2)}, π = ${th.pi[0].toFixed(2)} · Component 2: μ = ${th.mu[1].toFixed(2)}, σ = ${th.sd[1].toFixed(2)}, π = ${th.pi[1].toFixed(2)}. ` +
+    (last === 'λ' ? 'Right after a λ step the gap is 0: the bound touches log L.' : last === 'θ' ? 'The θ step raised the bound, and log L went up with it.' : 'Start with “Update λ”, then alternate. (True clusters: μ ≈ −3 and 2.)');
+}
+$('stepL').onclick = stepLambda; $('stepT').onclick = stepTheta; $('reset').onclick = reset;
+$('run10').onclick = () => { for (let t = 0; t < 10; t++){ stepLambda(); stepTheta(); } };
+reset();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => {
+  if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});
+  draw();
+});
+</script>
+</body>
+</html>

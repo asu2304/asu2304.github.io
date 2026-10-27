@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regression as Projection</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--accent:#2a78d6;--plane:rgba(42,120,214,.13)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7;--plane:rgba(57,135,229,.18)}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7;--plane:rgba(57,135,229,.18)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+input[type=range]{width:150px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:150px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+table{border-collapse:collapse;font-size:14px} th,td{padding:5px 12px;border-bottom:1px solid var(--grid);text-align:center} th{color:var(--muted)}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 30 · Regression</div>
+<h1>The Geometry of Linear Regression: a Projection</h1>
+<p class="lede">Stop picturing data <i>points</i>. Picture each <b>feature</b> as one long vector holding that feature's value for every person. All weighted combinations of these vectors form a flat plane. Linear regression finds the point on that plane <b>closest to the label vector</b> $y$: it <b>projects</b> $y$ onto the plane.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=SGbelq087Qs">this lecture on YouTube</a> (≈13 min). Previous: <a href="L29-optimizing-error.html">L29</a> · Next: <a href="L31-gradient-descent.html">L31</a>.</p>
+
+<h2>1 · Features as vectors in ℝⁿ</h2>
+<p>The lecture's small example: $n=3$ people and $d=2$ features, height and weight.</p>
+<table><tr><th></th><th>height</th><th>weight</th><th>label y</th></tr>
+<tr><td>person 1</td><td>2</td><td>0</td><td id="t1">1</td></tr>
+<tr><td>person 2</td><td>1</td><td>1</td><td id="t2">3</td></tr>
+<tr><td>person 3</td><td>0</td><td>2</td><td id="t3">1</td></tr></table>
+<p class="small muted">(Made-up, scaled numbers so the picture is easy to read.)</p>
+<p>Read the table <b>by columns</b>. The height column $F_1=(2,1,0)$ is a vector in $\mathbb R^3$, one entry per person. The same goes for weight, $F_2=(0,1,2)$, and for the labels $y$. These are <b>not</b> the data points; each is a feature across all the data points.</p>
+
+<h2>2 · The plane of all possible predictions</h2>
+<p>Any weighting of the features, $aF_1+bF_2$, is a vector of predictions for the three people. As $a$ and $b$ vary, these vectors fill a <b>2-D plane</b> through the origin: the subspace <b>spanned by the features</b>. In matrix form, $aF_1+bF_2=X^\top\alpha$ with $\alpha=(a,b)$.</p>
+<p>Usually $y$ is <b>not</b> on this plane, because no weighting of the features explains the labels exactly. The best we can do is find the point on the plane <b>closest</b> to $y$.</p>
+
+<div class="card">
+  <div class="row">
+    <label>y₁ = <b id="y1V"></b> <input type="range" id="y1" min="-10" max="40" value="10" aria-label="label y1"></label>
+    <label>y₂ = <b id="y2V"></b> <input type="range" id="y2" min="-10" max="40" value="30" aria-label="label y2"></label>
+    <label>y₃ = <b id="y3V"></b> <input type="range" id="y3" min="-10" max="40" value="10" aria-label="label y3"></label>
+    <label>rotate view <input type="range" id="az" min="0" max="360" value="150" aria-label="rotate view"></label>
+  </div>
+  <canvas id="c3" height="340" aria-label="3-D view of the feature plane, the label vector y, its projection and the residual"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>features F₁, F₂ and their plane</span><span><i style="background:var(--s2)"></i>label vector y</span><span><i style="background:var(--s3)"></i>projection X⊤w* (closest point)</span><span><i style="background:var(--muted)"></i>residual y − X⊤w*</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="wv">–</div><div class="l">w* = (XX⊤)⁻¹Xy</div></div>
+    <div class="stat"><div class="v" id="pv">–</div><div class="l">projection X⊤w*</div></div>
+    <div class="stat"><div class="v" id="dv">–</div><div class="l">residual · F₁ and residual · F₂</div></div>
+  </div>
+  <p class="small" id="t3d"></p>
+</div>
+
+<h2>3 · Closest point means a right angle</h2>
+<p>Call the closest point $X^\top\alpha^\star$. The line from it up to $y$, the <b>residual</b> $y-X^\top\alpha^\star$, must be <b>perpendicular</b> to the plane. If it leaned at all, you could slide along the plane and get closer. Perpendicular to the plane means perpendicular to every vector in it:</p>
+$$\big(y-X^\top\alpha^\star\big)^\top X^\top\alpha^\star=0 .$$
+<p>Substitute the closed-form solution from L29, $w^\star=(XX^\top)^{+}Xy$, for $\alpha^\star$. Using the fact that $XX^\top$ is symmetric, the equation holds (the lecture leaves the algebra as an exercise). So:</p>
+<div class="callout"><b>Geometric meaning:</b> $X^\top w^\star$ is the <b>projection of the label vector $y$ onto the subspace spanned by the features</b>. Linear regression is exactly that projection, and $w^\star$ holds the coordinates of the projected point in terms of the features.</div>
+<p>The demo checks this numerically: the residual's dot product with both $F_1$ and $F_2$ is 0.</p>
+
+<h2>4 · The lecture's exercise: what if y is on the plane?</h2>
+<p>Then $y$ is its own closest point, so the residual is $0$. Some exact weighting of the features gives every label, and the squared error is <b>zero</b>: the noise-free case from L28. Try it in the demo by setting $y=(2,2,2)$, which is $F_1+F_2$.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Treat each feature as a vector in $\mathbb R^n$ (one entry per data point). Their combinations form a subspace, a plane here.</li>
+<li>Linear regression finds the point on that subspace closest to the label vector $y$.</li>
+<li>That point is $X^\top w^\star$, the <b>orthogonal projection</b> of $y$, and the residual is perpendicular to every feature vector.</li>
+<li>Zero training error ⇔ $y$ already lies in the feature subspace.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const F1 = [2, 1, 0], F2 = [0, 1, 2];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+const add = (a, b, s = 1) => a.map((v, i) => v + s * b[i]);
+const scl = (a, s) => a.map(v => v * s);
+function solve(y){ // normal equations, 2x2
+  const a = dot(F1, F1), b = dot(F1, F2), c = dot(F2, F2), p = dot(F1, y), q = dot(F2, y), det = a * c - b * b;
+  return [(c * p - b * q) / det, (a * q - b * p) / det]; }
+function draw(){
+  const y = ['y1', 'y2', 'y3'].map(id => +$(id).value / 10);
+  ['y1', 'y2', 'y3'].forEach((id, i) => { $(id + 'V').textContent = y[i].toFixed(1); $('t' + (i + 1)).textContent = y[i].toFixed(1); });
+  const w = solve(y), yh = add(scl(F1, w[0]), scl(F2, w[1])), r = add(y, yh, -1);
+  $('wv').textContent = `(${w[0].toFixed(3)}, ${w[1].toFixed(3)})`;
+  $('pv').textContent = `(${yh.map(v => v.toFixed(2)).join(', ')})`;
+  const z = v => Math.abs(v) < 5e-10 ? 0 : v;
+  $('dv').textContent = `${z(dot(r, F1)).toFixed(4)}, ${z(dot(r, F2)).toFixed(4)}`;
+  const rn = Math.sqrt(dot(r, r));
+  $('t3d').innerHTML = rn < 1e-6 ? '<b>y lies on the plane</b>: the projection is y itself, the residual is 0, and the training error is 0.'
+    : `Residual length = ${rn.toFixed(3)} (the square root of the squared error). Its dot product with each feature vector is 0: it meets the plane at a right angle.`;
+  const [ctx, W, H] = setupCanvas($('c3')), az = +$('az').value * Math.PI / 180, el = 0.42, S = Math.min(W, H) / 7.5;
+  const P = v => { const x = Math.cos(az) * v[0] - Math.sin(az) * v[1], yy = Math.sin(az) * v[0] + Math.cos(az) * v[1];
+    return [W / 2 + x * S, H * 0.6 - (v[2] * Math.cos(el) - yy * Math.sin(el)) * S]; };
+  const seg = (a, b, col, wd, dash) => { const p = P(a), q = P(b); ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(...p); ctx.lineTo(...q); ctx.stroke(); ctx.setLineDash([]); };
+  const arrow = (a, b, col, label) => { seg(a, b, col, 2.5); const p = P(a), q = P(b), ang = Math.atan2(q[1] - p[1], q[0] - p[0]);
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(...q); ctx.lineTo(q[0] - 10 * Math.cos(ang - 0.4), q[1] - 10 * Math.sin(ang - 0.4)); ctx.lineTo(q[0] - 10 * Math.cos(ang + 0.4), q[1] - 10 * Math.sin(ang + 0.4)); ctx.fill();
+    if (label){ ctx.font = '13px system-ui,sans-serif'; ctx.fillStyle = col; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(label, q[0] + 6, q[1] - 2); } };
+  const O = [0, 0, 0];
+  [[3, 0, 0, 'person 1'], [0, 3, 0, 'person 2'], [0, 0, 3.5, 'person 3']].forEach(([a, b, c, t]) => { seg(O, [a, b, c], cssv('--grid'), 1);
+    const q = P([a, b, c]); ctx.fillStyle = cssv('--faint'); ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillText(t, q[0], q[1] - 4); });
+  const s0 = -0.4, s1 = 1.6, corners = [[s0, s0], [s1, s0], [s1, s1], [s0, s1]].map(([a, b]) => P(add(scl(F1, a), scl(F2, b))));
+  ctx.fillStyle = cssv('--plane'); ctx.beginPath(); corners.forEach((p, i) => i ? ctx.lineTo(...p) : ctx.moveTo(...p)); ctx.closePath(); ctx.fill();
+  arrow(O, F1, cssv('--s1'), 'F₁ (height)'); arrow(O, F2, cssv('--s1'), 'F₂ (weight)');
+  seg(O, yh, cssv('--s3'), 2.5); arrow(O, y, cssv('--s2'), 'y');
+  if (rn > 1e-6) seg(yh, y, cssv('--muted'), 2, [5, 4]);
+  const q = P(yh); ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(q[0], q[1], 5, 0, 2 * Math.PI); ctx.fill();
+  ctx.font = '13px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('X⊤w*', q[0] + 7, q[1] + 3);
+}
+['y1', 'y2', 'y3', 'az'].forEach(id => $(id).oninput = draw);
+draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

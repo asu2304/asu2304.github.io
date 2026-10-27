@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Convexity and Jensen</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:900px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+h2{font-size:22px;margin:44px 0 8px;padding-top:20px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px}
+.lede{font-size:18px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:16px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.muted{color:var(--muted)} .small{font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)}
+label{font-size:14px}
+canvas{width:100%;display:block}
+.grid4{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.grid4 .card{margin:0}
+.grid4 h3{margin:0 0 4px;font-size:15px}
+.stat{display:inline-block;min-width:150px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+details{border:1px solid var(--grid);border-radius:8px;padding:10px 14px;margin:8px 0;background:var(--card)}
+summary{cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 24 · A quick detour for GMMs</div>
+<h1>Convex Functions and Jensen's Inequality</h1>
+<p class="lede">The GMM log-likelihood got stuck on a <b>log of a sum</b>. The tool that gets around it is <b>Jensen's inequality</b>: for a concave function like log, it lets you swap the log of a sum for a sum of logs, giving up equality in exchange for an inequality. This lecture covers only the convexity facts needed for that.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=4s0aNldT02Y">this lecture on YouTube</a> (≈15 min). Previous: <a href="L23-gmm-likelihood.html">L23 · GMM likelihood</a>.</p>
+
+<h2>1 · Convex and concave: the chord test</h2>
+<p>Pick two points $a$ and $b$, and draw the straight line (the <b>chord</b>) between $(a,f(a))$ and $(b,f(b))$. Then compare the curve with the chord at the midpoint:</p>
+<ul>
+<li>The curve's height at the midpoint is $f\!\big(\frac{a+b}{2}\big)$.</li>
+<li>The chord's height there is halfway between $f(a)$ and $f(b)$: $\frac{f(a)+f(b)}{2}$.</li>
+</ul>
+<div class="grid4">
+  <div class="card"><h3>Convex</h3><p class="small" style="margin:0">Curve <b>below</b> the chord, for every $a,b$:<br>$f\!\big(\tfrac{a+b}2\big)\le\tfrac{f(a)+f(b)}2$. A bowl, like $x^2$.</p></div>
+  <div class="card"><h3>Concave</h3><p class="small" style="margin:0">Curve <b>above</b> the chord, for every $a,b$:<br>$f\!\big(\tfrac{a+b}2\big)\ge\tfrac{f(a)+f(b)}2$. A dome, like $\log x$.</p></div>
+  <div class="card"><h3>Both</h3><p class="small" style="margin:0">Equality always, so the curve <b>is</b> the chord: a <b>linear</b> function.</p></div>
+  <div class="card"><h3>Neither</h3><p class="small" style="margin:0">Below the chord for some pairs, above it for others: a wiggly curve.</p></div>
+</div>
+<p>Like convex and concave mirrors: a convex function curves up like a bowl, a concave one curves down like a dome.</p>
+
+<h2>2 · Any point on the chord, not just the midpoint</h2>
+<p>Write the midpoint as $\tfrac12a+\tfrac12b$. If the midpoint test holds for every $a, b$, it also holds for <b>any</b> weighting $\lambda\in[0,1]$:</p>
+$$\text{convex:}\quad f\big(\lambda a+(1-\lambda)b\big)\;\le\;\lambda f(a)+(1-\lambda)f(b).$$
+<p>As λ goes from 1 to 0, the point $\lambda a+(1-\lambda)b$ slides from $a$ to $b$, and the curve stays below the chord the whole way. For concave, flip the inequality. Try it:</p>
+
+<div class="card">
+  <div class="row">
+    <button class="on" data-f="sq">x²</button><button data-f="log">log x</button><button data-f="lin">linear</button><button data-f="wig">wiggly</button>
+  </div>
+  <div class="row">
+    <label>a = <b id="aV"></b> <input type="range" id="aS" min="0" max="100" value="15" aria-label="point a"></label>
+    <label>b = <b id="bV"></b> <input type="range" id="bS" min="0" max="100" value="85" aria-label="point b"></label>
+    <label>λ = <b id="lV"></b> <input type="range" id="lS" min="0" max="100" value="50" aria-label="lambda"></label>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="curveV">–</div><div class="l">curve: f(λa + (1−λ)b)</div></div>
+    <div class="stat"><div class="v" id="chordV">–</div><div class="l">chord: λf(a) + (1−λ)f(b)</div></div>
+    <div class="stat" style="min-width:210px"><div class="v" id="verdict" style="font-size:16px">–</div><div class="l">at this point</div></div>
+  </div>
+  <canvas id="cCanvas" height="260" aria-label="Function, chord between a and b, and the point at lambda"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>function</span><span><i style="background:var(--s2)"></i>chord</span></div>
+  <p class="small muted" id="fTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>3 · Many points: Jensen's inequality</h2>
+<p>The same holds for any number of points $a_1,\dots,a_K$ with weights $\lambda_k\ge0$ that sum to 1. For a <b>concave</b> function:</p>
+$$\boxed{\;f\Big(\sum_{k=1}^{K}\lambda_k a_k\Big)\;\ge\;\sum_{k=1}^{K}\lambda_k f(a_k)\;}$$
+<p>(For a convex function, the inequality flips.) The weighted average $\sum_k\lambda_k a_k$ lies somewhere among the points: in 2-D, inside the triangle or polygon they form, which is called their <b>convex hull</b>. A concave function, evaluated there, sits above the flat surface that joins the function values at the points.</p>
+<p><b>In words, for concave f:</b> f of the average is at least the average of the f values.</p>
+
+<h2>4 · Why this matters: log is concave</h2>
+<p>The logarithm is concave (the lecture leaves the proof as an exercise; there's a hint below). So Jensen gives</p>
+$$\log\Big(\sum_{k}\lambda_k a_k\Big)\;\ge\;\sum_{k}\lambda_k\log a_k .$$
+<p>On the left, a <b>sum inside a log</b>: exactly the shape that blocked the GMM log-likelihood in L23. On the right, the sum is <b>outside</b> the log, and each $\log a_k$ can simplify (a log of a Gaussian density is just a quadratic). The price is that we get "≥" instead of "=". The next lectures show how to work with that inequality to fit a GMM.</p>
+
+<div class="card">
+  <h3>Check it with numbers</h3>
+  <p class="small muted" style="margin-top:0">Three positive numbers with weights λ₁ = 0.2, λ₂ = 0.5, λ₃ = 0.3. Move them and the left side never drops below the right.</p>
+  <div class="row">
+    <label>a₁ = <b id="j1V"></b> <input type="range" id="j1" min="1" max="100" value="5" aria-label="a1"></label>
+    <label>a₂ = <b id="j2V"></b> <input type="range" id="j2" min="1" max="100" value="30" aria-label="a2"></label>
+    <label>a₃ = <b id="j3V"></b> <input type="range" id="j3" min="1" max="100" value="80" aria-label="a3"></label>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="jL">–</div><div class="l">log(Σ λₖaₖ): log of the average</div></div>
+    <div class="stat"><div class="v" id="jR">–</div><div class="l">Σ λₖ log aₖ: average of the logs</div></div>
+    <div class="stat"><div class="v" id="jG">–</div><div class="l">gap (always ≥ 0)</div></div>
+  </div>
+  <p class="small muted" style="margin-bottom:0">Make all three equal and the gap becomes 0: equality holds exactly when there's nothing to average.</p>
+</div>
+
+<details><summary>Exercise from the lecture: why is log concave?</summary><p>One quick route uses the second derivative: $\frac{d}{dx}\log x=\frac1x$ and $\frac{d^2}{dx^2}\log x=-\frac1{x^2}<0$ for every $x>0$. A function whose slope keeps decreasing bends downward everywhere, so it's concave. (A negative second derivative everywhere is a standard sufficient test; the lecture's chord definition is the underlying idea.)</p></details>
+
+<h2>Key takeaways</h2>
+<ol>
+<li><b>Convex:</b> the curve lies below every chord. <b>Concave:</b> above. <b>Linear:</b> both. Some functions are neither.</li>
+<li>The chord test works at any weight λ ∈ [0, 1], not just the midpoint.</li>
+<li><b>Jensen (concave f):</b> $f(\sum\lambda_k a_k)\ge\sum\lambda_k f(a_k)$, with λ ≥ 0 and Σλ = 1.</li>
+<li><b>log is concave</b>, so Jensen turns log(sum) into a sum of logs, at the cost of an inequality. That's the way past the GMM bottleneck.</li>
+</ol>
+<details><summary>Self-check: is f(x) = −x² convex, concave, both, or neither?</summary><p>Concave. It's an upside-down bowl, so every chord lies below the curve.</p></details>
+<details><summary>Self-check: when does Jensen's inequality become an equality for log?</summary><p>When all the aₖ (with non-zero weight) are equal, or when f is linear. Then the average of the logs equals the log of the average.</p></details>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h];
+}
+const FUNCS = {
+  sq:  {f: x => x * x, xr: [-2, 2], init: [15, 85, 50], name: 'x² is convex: the curve is never above a chord.'},
+  log: {f: x => Math.log(x), xr: [0.15, 5], init: [5, 90, 50], name: 'log x is concave: the curve is never below a chord.'},
+  lin: {f: x => 0.6 * x + 0.5, xr: [-2, 2], init: [15, 85, 50], name: 'A linear function is both convex and concave: the curve is the chord.'},
+  wig: {f: x => Math.sin(1.6 * x) + 0.15 * x, xr: [-3, 3], init: [8, 42, 50], name: 'Neither: here the curve is below the chord. Move a and b to the right half (e.g. a = 0.5, b = 1.5) and it goes above.'}
+};
+let cur = 'sq';
+const val = (s, xr) => xr[0] + (xr[1] - xr[0]) * (+s.value / 100);
+function drawChord(){
+  const F = FUNCS[cur], a = val($('aS'), F.xr), b = val($('bS'), F.xr), lam = +$('lS').value / 100;
+  $('aV').textContent = a.toFixed(2); $('bV').textContent = b.toFixed(2); $('lV').textContent = lam.toFixed(2);
+  const m = lam * a + (1 - lam) * b, cv = F.f(m), ch = lam * F.f(a) + (1 - lam) * F.f(b), d = cv - ch;
+  const f3 = v => (Math.abs(v) < 5e-4 ? 0 : v).toFixed(3);
+  $('curveV').textContent = f3(cv); $('chordV').textContent = f3(ch);
+  $('verdict').textContent = Math.abs(d) < 1e-9 ? 'curve = chord' : d < 0 ? 'curve below chord' : 'curve above chord';
+  $('fTxt').textContent = F.name;
+  const [ctx, W, H] = setupCanvas($('cCanvas')), pad = {l: 40, r: 14, t: 14, b: 28}, xr = F.xr;
+  let lo = Infinity, hi = -Infinity; for (let i = 0; i <= 300; i++){ const v = F.f(xr[0] + (xr[1] - xr[0]) * i / 300); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  const span = hi - lo || 1; lo -= span * 0.08; hi += span * 0.12;
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - lo) / (hi - lo) * (H - pad.t - pad.b);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, H - pad.b); ctx.lineTo(W - pad.r, H - pad.b); ctx.moveTo(pad.l, pad.t); ctx.lineTo(pad.l, H - pad.b); ctx.stroke();
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 300; i++){ const x = xr[0] + (xr[1] - xr[0]) * i / 300; i ? ctx.lineTo(X(x), Y(F.f(x))) : ctx.moveTo(X(x), Y(F.f(x))); } ctx.stroke();
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(a), Y(F.f(a))); ctx.lineTo(X(b), Y(F.f(b))); ctx.stroke();
+  const dot = (x, y, c, r) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill(); };
+  dot(X(a), Y(F.f(a)), cssv('--ink'), 4); dot(X(b), Y(F.f(b)), cssv('--ink'), 4);
+  ctx.strokeStyle = cssv('--faint'); ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(m), H - pad.b); ctx.lineTo(X(m), Math.min(Y(cv), Y(ch))); ctx.stroke(); ctx.setLineDash([]);
+  dot(X(m), Y(ch), cssv('--s2'), 6); dot(X(m), Y(cv), cssv('--s1'), 6);
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('a', X(a), H - pad.b + 5); ctx.fillText('b', X(b), H - pad.b + 5); ctx.fillText('λa+(1−λ)b', X(m), H - pad.b + 5);
+}
+document.querySelectorAll('button[data-f]').forEach(btn => btn.onclick = () => {
+  cur = btn.dataset.f; document.querySelectorAll('button[data-f]').forEach(x => x.classList.toggle('on', x === btn));
+  [$('aS').value, $('bS').value, $('lS').value] = FUNCS[cur].init; drawChord(); });
+['aS', 'bS', 'lS'].forEach(id => $(id).oninput = drawChord);
+
+const LAM = [0.2, 0.5, 0.3];
+function drawJensen(){
+  const a = ['j1', 'j2', 'j3'].map(id => +$(id).value);
+  ['j1', 'j2', 'j3'].forEach((id, i) => $(id + 'V').textContent = a[i]);
+  const L = Math.log(LAM.reduce((s, l, i) => s + l * a[i], 0)), R = LAM.reduce((s, l, i) => s + l * Math.log(a[i]), 0);
+  $('jL').textContent = L.toFixed(4); $('jR').textContent = R.toFixed(4); $('jG').textContent = (L - R).toFixed(4);
+}
+['j1', 'j2', 'j3'].forEach(id => $(id).oninput = drawJensen);
+
+drawChord(); drawJensen();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawChord, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawChord);
+window.addEventListener('load', () => {
+  if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});
+  drawChord();
+});
+</script>
+</body>
+</html>

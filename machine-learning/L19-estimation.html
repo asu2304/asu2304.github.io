@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Introduction to Estimation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  --surface:#fcfcfb; --card:#ffffff; --ink:#1f1e1d; --muted:#6b6a64; --faint:#9a998f; --grid:#e6e5e0;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --tint:#eef4fc; --warn-bg:#fdf3e7; --accent:#2a78d6;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface:#1a1a19; --card:#222220; --ink:#f0efec; --muted:#c3c2b7; --faint:#8d8c84; --grid:#34332f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --tint:#1f2a38; --warn-bg:#2e2519; --accent:#5598e7;}}
+:root[data-theme="dark"]{
+  --surface:#1a1a19; --card:#222220; --ink:#f0efec; --muted:#c3c2b7; --faint:#8d8c84; --grid:#34332f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --tint:#1f2a38; --warn-bg:#2e2519; --accent:#5598e7;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:960px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+h2{font-size:23px;margin:56px 0 10px;padding-top:24px;border-top:1px solid var(--grid)}
+h3{font-size:17px;margin:24px 0 6px}
+p{margin:10px 0}
+a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;letter-spacing:.02em;margin-bottom:6px}
+.lede{font-size:18px;color:var(--muted);max-width:760px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 4px}
+nav.toc a{font-size:13px;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--grid);border-radius:999px;padding:4px 12px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:18px;margin:18px 0}
+.card h3{margin-top:0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:16px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:16px 0;font-size:14px}
+.beyond b{color:var(--ink)}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+button:disabled{opacity:.5;cursor:default}
+input[type=range]{width:220px;accent-color:var(--s1)}
+.stat{display:inline-block;min-width:120px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+.tape{display:flex;flex-wrap:wrap;gap:3px;min-height:30px;margin:8px 0;max-height:150px;overflow:auto}
+.chip{width:22px;height:22px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.chip.h{background:var(--s1)} .chip.t{background:var(--s2)}
+.chip.big{width:32px;height:32px;font-size:15px}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+canvas{width:100%;display:block;border-radius:8px}
+table{border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;width:100%}
+th,td{padding:7px 10px;border-bottom:1px solid var(--grid);text-align:left}
+th{color:var(--muted);font-weight:600}
+.tablewrap{overflow-x:auto}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+details{border:1px solid var(--grid);border-radius:8px;padding:10px 14px;margin:10px 0;background:var(--card)}
+summary{cursor:pointer;font-weight:600}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
+/* black box */
+.boxwrap{display:flex;gap:22px;flex-wrap:wrap;align-items:center}
+.blackbox{position:relative;width:200px;height:170px;flex:none}
+.bb-body{position:absolute;left:0;right:0;top:34px;bottom:0;background:#1f1e1d;border-radius:14px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 2px #3a3936}
+.bb-q{color:#8d8c84;font-size:13px;position:absolute;bottom:10px;width:100%;text-align:center}
+.bb-btn{position:absolute;top:0;left:50%;transform:translateX(-50%);width:64px;height:40px;border-radius:12px 12px 4px 4px;background:var(--s2);border:none;color:#fff;font-weight:700;font-size:13px;box-shadow:0 4px 0 #9c3f19;cursor:pointer;padding:0}
+.bb-btn:active{transform:translateX(-50%) translateY(3px);box-shadow:0 1px 0 #9c3f19}
+.coin{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:#fff;background:#55544e;transition:transform .5s}
+.coin.flip{animation:flip .5s ease-in-out}
+@keyframes flip{0%{transform:rotateY(0) scale(1)}50%{transform:rotateY(540deg) scale(1.15)}100%{transform:rotateY(1080deg) scale(1)}}
+.coin.h{background:var(--s1)} .coin.t{background:var(--s2)}
+/* flow diagram */
+.flow svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+@media (prefers-reduced-motion:reduce){.coin.flip{animation:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+
+<div class="kicker">Lecture 19 · Unsupervised learning → Estimation</div>
+<h1>Introduction to Estimation</h1>
+<p class="lede">Until now, PCA and K-means worked directly on the data, with no story about where it came from. This lecture adds that story: assume some <b>random process generated the data</b>, admit that part of the process is <b>unknown</b>, and use the data to <b>estimate</b> the unknown part.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=382yNz5LoX0">L19 on YouTube</a> (≈20 min). Sections marked <span style="background:var(--warn-bg);padding:1px 6px;border-radius:4px">Going further</span> go beyond what the video covers.</p>
+
+<nav class="toc">
+  <a href="#shift">1 · The shift</a>
+  <a href="#box">2 · The black box</a>
+  <a href="#goal">3 · What estimation is</a>
+  <a href="#guess">4 · Guessing p</a>
+  <a href="#possible">5 · Every p is possible</a>
+  <a href="#iid">6 · The i.i.d. assumption</a>
+  <a href="#question">7 · The open question</a>
+  <a href="#further">8 · Going further in ℝᵈ</a>
+  <a href="#check">Self-check</a>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="shift">1 · The shift: from methods to models</h2>
+<p>Everything in the unsupervised part of the course so far was <b>deterministic</b>. You run PCA or Lloyd's algorithm on the points, and they hand back directions or clusters. Nowhere did we say <i>how</i> the points came to exist.</p>
+<p><b>Estimation</b> changes the starting point. We hypothesise that the data was produced by a <b>probabilistic mechanism</b>. We know its <i>shape</i>, but some of its details are unknown. Those unknown details are what we try to recover. We're still in unsupervised learning (there are no labels), but now probability is part of the picture. The same ideas will later carry over to supervised learning too.</p>
+
+<div class="card flow">
+<svg viewBox="0 0 860 210" width="100%" role="img" aria-label="Diagram: a model with an unknown parameter generates data; estimation goes from the data back to a guess of the parameter">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+  </defs>
+  <rect x="20" y="40" width="230" height="110" rx="14" fill="var(--tint)" stroke="var(--s1)" stroke-width="1.5"/>
+  <text x="135" y="78" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Probabilistic model</text>
+  <text x="135" y="104" text-anchor="middle" font-size="14" fill="var(--muted)">we assume its form</text>
+  <text x="135" y="130" text-anchor="middle" font-size="15" fill="var(--s2)" font-weight="700">parameter θ = unknown</text>
+  <path d="M255,80 L590,80" stroke="var(--muted)" stroke-width="2" marker-end="url(#ar)" fill="none"/>
+  <text x="422" y="68" text-anchor="middle" font-size="14" fill="var(--muted)">generates (nature does this)</text>
+  <rect x="600" y="40" width="240" height="110" rx="14" fill="var(--card)" stroke="var(--grid)" stroke-width="1.5"/>
+  <text x="720" y="78" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">Observed data</text>
+  <text x="720" y="104" text-anchor="middle" font-size="14" fill="var(--muted)">x₁, x₂, …, xₙ</text>
+  <text x="720" y="130" text-anchor="middle" font-size="14" fill="var(--muted)">known to us</text>
+  <path d="M600,120 L265,120" stroke="var(--s1)" stroke-width="2.5" marker-end="url(#ar)" fill="none" stroke-dasharray="7 5"/>
+  <text x="430" y="145" text-anchor="middle" font-size="14" fill="var(--s1)" font-weight="700">estimation (we do this)</text>
+  <text x="430" y="190" text-anchor="middle" font-size="13" fill="var(--muted)">PCA and K-means only ever lived on the right-hand side. Estimation adds the box on the left.</text>
+</svg>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="box">2 · The black box with a button</h2>
+<p>The lecture's running example: a sealed box with a button on top. Inside is a coin that <b>may be biased</b>. Its chance of heads is some number $p$ that could be 0.5, 0.7, 0.9 or anything else. Each press flips the coin once. You never see the coin; you only see the outcome, written as <b>1 for heads</b> and <b>0 for tails</b>.</p>
+<p>The box below has a secret $p$ picked at random when the page loaded. Press the button and watch the observations pile up.</p>
+
+<div class="card">
+  <div class="boxwrap">
+    <div class="blackbox">
+      <button class="bb-btn" id="press" aria-label="Press the button to flip the hidden coin">PRESS</button>
+      <div class="bb-body"><div class="coin" id="coin">?</div><div class="bb-q">p = ???</div></div>
+    </div>
+    <div style="flex:1;min-width:240px">
+      <div class="row">
+        <div class="stat"><div class="v" id="bbN">0</div><div class="l">presses (n)</div></div>
+        <div class="stat"><div class="v" id="bbH">0</div><div class="l">heads (1s)</div></div>
+        <div class="stat"><div class="v" id="bbP">–</div><div class="l">fraction of 1s</div></div>
+      </div>
+      <div class="row">
+        <button id="press10">Press ×10</button>
+        <button id="press100">Press ×100</button>
+        <button id="reveal">Reveal the true p</button>
+        <button id="newbox">New box</button>
+      </div>
+      <div id="revealTxt" class="small muted"></div>
+    </div>
+  </div>
+  <div class="legend" style="margin-top:12px"><span><i style="background:var(--s1)"></i>1 = heads</span><span><i style="background:var(--s2)"></i>0 = tails</span></div>
+  <div class="tape" id="tape" aria-live="polite"></div>
+  <canvas id="runCanvas" height="200" aria-label="Running fraction of heads as the number of presses grows"></canvas>
+  <p class="small muted" style="margin-bottom:0">The line is the fraction of 1s so far. Early on it jumps around. As n grows it settles down, close to the hidden p once you reveal it.</p>
+</div>
+
+<div class="callout"><b>The parameter is a compressed summary of the data.</b> After 1,000 presses you have 1,000 zeros and ones. But under this story, everything about how they were produced is captured by <b>one number</b>, $p$. Know $p$ and you have the whole mechanism. You could throw the data away and make as much new data as you like.</div>
+
+<!-- ============================================================ -->
+<h2 id="goal">3 · What estimation is, precisely</h2>
+<div class="grid3">
+  <div class="card"><h3>① Observe</h3><p>You're given data $x_1, \dots, x_n$. Here, a list of 0s and 1s.</p></div>
+  <div class="card"><h3>② Assume a model</h3><p>You <b>assume</b> a probabilistic mechanism that generated it. Here, a coin with $P(x=1)=p$ and $P(x=0)=1-p$. This is an assumption. The real world may not work this way.</p></div>
+  <div class="card"><h3>③ Estimate</h3><p>Use the data to make a guess $\hat p$ (read "p-hat") for the unknown parameter $p$.</p></div>
+</div>
+<p>The lecturer stresses the word <b>assume</b> repeatedly. The model is a story we tell to explain the data. Whether it's a good story is a separate question, to be tackled later. Everything that follows is "correct" only <i>relative to the assumed model</i>.</p>
+<p>In symbols, this coin model is the <b>Bernoulli distribution</b>:</p>
+$$P(x;\,p)=p^{x}(1-p)^{1-x},\qquad x\in\{0,1\},\quad p\in[0,1].$$
+<p class="small muted">Plug in $x=1$ to get $p$, and $x=0$ to get $1-p$. One formula covers both cases, which will be handy once we start multiplying probabilities together.</p>
+
+<!-- ============================================================ -->
+<h2 id="guess">4 · Making a guess, then "playing God"</h2>
+<p>The lecture uses these 12 observations:</p>
+<div class="tape" id="lectureTape"></div>
+<p>There are 9 ones and 3 zeros. The guess almost everyone makes is the fraction of heads:</p>
+$$\hat p=\frac{\text{number of 1s}}{n}=\frac{9}{12}=\frac34 .$$
+<p>Once you have $\hat p$, you can build <b>your own box</b> with a coin of bias $3/4$ and generate as much new data as you want. The lecturer calls this "playing God". The data's only job was to tell you about the mechanism. Once you think you know the mechanism, the data has done its job.</p>
+
+<div class="card">
+  <h3>Your box: a coin with p̂ = 3/4</h3>
+  <p class="small muted">Each press of the button below generates a fresh batch of 12 tosses from your estimated box.</p>
+  <div class="row"><button class="primary" id="god">Generate 12 tosses</button><button id="god20">Generate 20 batches</button></div>
+  <div id="godOut"></div>
+  <p class="small" id="godSummary"></p>
+</div>
+<p>Notice that batches from a $3/4$ coin often contain 8, 10 or 11 heads rather than exactly 9. That's the first hint of the next idea: <b>$\hat p$ is a guess, not the truth</b>. Once probability is involved, you can never be 100% sure you've found the true $p$.</p>
+
+<!-- ============================================================ -->
+<h2 id="possible">5 · Almost every p could have produced this data</h2>
+<p>Could a coin with $p = 2/3$ have produced 9 heads in 12 tosses? Yes, easily. What about $p = 0.0001$? Also yes. It would take an astonishingly unlucky day, but the probability isn't zero. The only values ruled out with certainty are the two extremes:</p>
+<ul>
+<li>$p = 0$ means the coin <i>never</i> lands heads. But we saw heads, so this is impossible.</li>
+<li>$p = 1$ means the coin <i>always</i> lands heads. But we saw tails, so this is impossible too.</li>
+</ul>
+<p>Every $p$ strictly between 0 and 1 remains a contender. Drag the slider to see how probable our exact 12 observations are under each candidate.</p>
+
+<div class="card">
+  <div class="row">
+    <label for="pSlider"><b>Candidate p = <span id="pVal">0.750</span></b></label>
+    <input type="range" id="pSlider" min="0" max="1" step="0.001" value="0.75" aria-label="Candidate value of p">
+  </div>
+  <div class="row">
+    <button data-p="0">p = 0</button><button data-p="0.0001">p = 0.0001</button><button data-p="0.6666667">p = 2/3</button><button data-p="0.75">p = 3/4</button><button data-p="1">p = 1</button>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="seqProb">–</div><div class="l">P(this exact sequence)</div></div>
+    <div class="stat"><div class="v" id="binProb">–</div><div class="l">P(9 heads in 12, any order)</div></div>
+    <div class="stat" style="min-width:200px"><div class="v" id="verdict" style="font-size:16px">–</div><div class="l">verdict</div></div>
+  </div>
+  <canvas id="likeCanvas" height="240" aria-label="Probability of the observed sequence as a function of p"></canvas>
+  <p class="small muted" style="margin-bottom:0">Curve: $P(\text{data}\mid p)=p^{9}(1-p)^{3}$. That's the product of the 12 individual probabilities, one factor of $p$ for each 1 and one factor of $(1-p)$ for each 0. Multiplying them is allowed because of the <b>independence</b> assumption in section 6.</p>
+</div>
+
+<div class="beyond"><b>Going further (a preview of what comes next).</b> The curve is highest at exactly $p = 3/4$, so our intuitive guess is the value that makes the observed data <i>most probable</i>. The lecture ends without making this claim; it only asks whether there is a principled way to prefer one guess. This "pick the most probable explanation" idea is called <b>maximum likelihood</b>, and it is the answer the next lectures build towards (derived in section 8.3).</div>
+
+<!-- ============================================================ -->
+<h2 id="iid">6 · The hidden assumptions: i.i.d.</h2>
+<p>Why did "fraction of heads" feel so natural? Because we silently assumed two things about the observations. Together they're called <b>i.i.d.</b>, short for <b>independent and identically distributed</b>.</p>
+
+<div class="grid2">
+<div class="card">
+<h3>Independent</h3>
+<p>Knowing one toss tells you nothing about another:</p>
+$$P(x_i = a \mid x_j = b) = P(x_i = a)\quad\text{for all } i\ne j .$$
+<p>Hearing that toss 3 was heads doesn't change your uncertainty about toss 4. This holds for any set of other tosses, not just one.</p>
+</div>
+<div class="card">
+<h3>Identically distributed</h3>
+<p>Every toss follows the same law:</p>
+$$P(x_i = 1) = P(x_j = 1) = p\quad\text{for all } i, j .$$
+<p>It's the <b>same coin, in the same box,</b> every time. Swapping to a different coin between presses could keep tosses independent, but they would no longer be identically distributed.</p>
+</div>
+</div>
+
+<p>To see what each assumption buys you, compare three boxes. Each produces 60 tosses whose long-run fraction of heads is 0.5. Only the first is i.i.d.</p>
+<div class="card">
+  <div class="row"><button id="iidRegen" class="primary">Regenerate all three</button></div>
+  <h3>A. i.i.d. (one fair coin)</h3>
+  <div class="tape" id="iidA"></div>
+  <p class="small muted" id="iidAtxt"></p>
+  <h3>B. Independent but <i>not</i> identical (the coin is swapped halfway)</h3>
+  <div class="tape" id="iidB"></div>
+  <p class="small muted" id="iidBtxt"></p>
+  <h3>C. Identical but <i>not</i> independent (a "sticky" coin)</h3>
+  <div class="tape" id="iidC"></div>
+  <p class="small muted" id="iidCtxt"></p>
+</div>
+<ul>
+<li><b>Box B</b> uses a 0.2 coin for the first 30 tosses and a 0.8 coin for the rest. A single "$\hat p$" averages two different coins and describes neither.</li>
+<li><b>Box C</b> repeats its previous outcome 85% of the time and otherwise tosses a fair coin. Each toss on its own has the same 50/50 law, but the tosses come in long runs. With dependent tosses, 60 of them carry much less information than 60 independent ones, so the fraction of heads wanders much more from one batch of 60 to the next.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="question">7 · The question the lecture ends on</h2>
+<p>Under the i.i.d. assumption, every $p\in(0,1)$ could still have produced the 12 observations. So why prefer $3/4$ over $2/3$ or $0.0001$? "Use the fraction of heads" is intuitive, but so far it isn't <b>principled</b>.</p>
+<div class="callout"><b>The lecture's closing question:</b> is there a principled way to get estimators from data, so that we can say one guess is better than another? The next lectures answer it.</div>
+
+<!-- ============================================================ -->
+<h2 id="further">8 · Going further: estimation in ℝᵈ</h2>
+<div class="beyond">Everything in this section goes beyond the video. It writes the lecture's coin idea in general form, previews the answer to its closing question, and connects it back to K-means and PCA.</div>
+
+<h3>8.1 The general setup</h3>
+<p>A <b>parametric model</b> is a family of distributions indexed by a parameter vector:</p>
+$$\{\,p(x;\theta)\;:\;\theta\in\Theta\subseteq\mathbb R^{k}\,\},\qquad x\in\mathbb R^{d}.$$
+<p>For the coin, $d = 1$, $k = 1$ and $\theta = p \in [0, 1]$. An <b>estimator</b> is any function of the data, $\hat\theta = T(x_1,\dots,x_n)$. "Fraction of heads" is one estimator; "always say 0.5" is another, worse one.</p>
+
+<h3>8.2 What i.i.d. gives you: the joint probability factorises</h3>
+<p>Independence turns the joint probability of all $n$ observations into a product. Identical distribution makes every factor the <i>same</i> function $p(\cdot\,;\theta)$:</p>
+$$p(x_1,\dots,x_n;\theta)\;\overset{\text{indep.}}{=}\;\prod_{i=1}^{n}p_i(x_i;\theta)\;\overset{\text{identical}}{=}\;\prod_{i=1}^{n}p(x_i;\theta).$$
+<p>For the coin, with $h=\sum_i x_i$ heads:</p>
+$$P(x_1,\dots,x_n;p)=\prod_{i=1}^{n}p^{x_i}(1-p)^{1-x_i}=p^{\,h}(1-p)^{\,n-h}.$$
+<p>That is exactly the curve from section 5, with $h = 9$ and $n = 12$. Notice that it depends on the data only through $h$. The count of heads is all you need; the order doesn't matter.</p>
+
+<h3>8.3 Preview: the principled answer (maximum likelihood)</h3>
+<p>Treat the joint probability as a function of $\theta$ with the data held fixed. This is the <b>likelihood</b> $L(\theta)$. Choose the $\theta$ that maximises it. Since the logarithm is increasing, maximise the sum $\ell(\theta)=\log L(\theta)$ instead of the product:</p>
+$$\ell(p)=h\log p+(n-h)\log(1-p),\qquad
+\frac{d\ell}{dp}=\frac{h}{p}-\frac{n-h}{1-p}=0\;\Longrightarrow\;\boxed{\hat p=\frac{h}{n}} .$$
+<p>The second derivative, $-h/p^2-(n-h)/(1-p)^2$, is negative, so this is a maximum. The "intuitive" fraction of heads turns out to be the maximum-likelihood estimate. With $h=9$ and $n=12$, it's $3/4$, the peak of the curve in section 5.</p>
+
+<h3>8.4 The same idea in d dimensions: the Gaussian</h3>
+<p>Let $x_i\in\mathbb R^d$ be i.i.d. from a multivariate Gaussian with unknown mean $\mu\in\mathbb R^d$ and covariance $\Sigma\in\mathbb R^{d\times d}$ (symmetric and positive definite):</p>
+$$p(x;\mu,\Sigma)=\frac{1}{(2\pi)^{d/2}|\Sigma|^{1/2}}\exp\!\Big(-\tfrac12(x-\mu)^{\top}\Sigma^{-1}(x-\mu)\Big).$$
+<p>The log-likelihood of $n$ points is</p>
+$$\ell(\mu,\Sigma)=-\frac{nd}{2}\log 2\pi-\frac n2\log|\Sigma|-\frac12\sum_{i=1}^{n}(x_i-\mu)^{\top}\Sigma^{-1}(x_i-\mu).$$
+<p><b>Mean.</b> Use $\nabla_v\,(v^{\top}Av)=2Av$ for symmetric $A$. Then</p>
+$$\nabla_\mu\ell=\Sigma^{-1}\sum_{i=1}^{n}(x_i-\mu)=0\;\Longrightarrow\;\hat\mu=\frac1n\sum_{i=1}^{n}x_i .$$
+<p><b>Covariance.</b> Write $\Lambda=\Sigma^{-1}$, so $-\tfrac n2\log|\Sigma| = \tfrac n2\log|\Lambda|$, and $\sum_i(x_i-\mu)^{\top}\Lambda(x_i-\mu)=\operatorname{tr}(\Lambda S)$ with $S=\sum_i(x_i-\hat\mu)(x_i-\hat\mu)^{\top}$. Using $\partial\log|\Lambda|/\partial\Lambda=\Lambda^{-1}$ and $\partial\operatorname{tr}(\Lambda S)/\partial\Lambda=S$:</p>
+$$\frac n2\Lambda^{-1}-\frac12 S=0\;\Longrightarrow\;\hat\Sigma=\frac1n\sum_{i=1}^{n}(x_i-\hat\mu)(x_i-\hat\mu)^{\top}.$$
+
+<div class="callout"><b>Old friends, from a new angle.</b>
+<ul style="margin:6px 0 0;padding-left:20px">
+<li>$\hat\mu$ is the plain average. That's <b>Fact 1</b> from L15: the mean minimises the sum of squared distances. Here it appears again as the most likely centre of a Gaussian.</li>
+<li>$\hat\Sigma$ is the <b>covariance matrix whose eigenvectors PCA uses</b>. PCA's principal directions are the axes of the fitted Gaussian's ellipse.</li>
+<li>In L18, K-means turned out to be maximum likelihood for spherical Gaussians with shared variance. Estimation is the framework that ties all three methods together.</li>
+</ul></div>
+
+<div class="card">
+  <h3>Watch a 2-D Gaussian get estimated</h3>
+  <p class="small muted">A hidden Gaussian (dashed ellipse) produces the points. The solid ellipse is the fit from $\hat\mu$ and $\hat\Sigma$ so far. Both are 2-standard-deviation ellipses, containing about 86% of the probability. Add points and watch the estimate lock on.</p>
+  <div class="row">
+    <button class="primary" id="g10">Add 10 points</button><button id="g100">Add 100 points</button><button id="gPlay">▶ Animate to 500</button><button id="gNew">New hidden Gaussian</button>
+  </div>
+  <canvas id="gCanvas" height="380" aria-label="2-D Gaussian samples with true and estimated covariance ellipses"></canvas>
+  <div class="legend" style="margin-top:8px"><span><i style="background:var(--faint)"></i>true ellipse (dashed)</span><span><i style="background:var(--s1)"></i>estimated ellipse (solid)</span><span><i style="background:var(--s2)"></i>sampled points</span></div>
+  <div class="tablewrap" style="margin-top:10px"><table id="gTable"></table></div>
+</div>
+
+<h3>8.5 Compression, counted in ℝᵈ</h3>
+<p>The lecture's "the parameter is a compressed representation" becomes concrete once you count numbers. $n$ points in $\mathbb R^d$ are $nd$ numbers. A model replaces them with $k$ parameters:</p>
+<div class="tablewrap"><table>
+<tr><th>Model</th><th>Parameters θ</th><th>Count k</th><th>d = 10</th></tr>
+<tr><td>Coin (Bernoulli)</td><td>$p$</td><td>1</td><td>–</td></tr>
+<tr><td>Die with m faces (categorical)</td><td>$p_1..p_m$, summing to 1</td><td>$m-1$</td><td>–</td></tr>
+<tr><td>Gaussian, spherical $\sigma^2 I$</td><td>$\mu,\ \sigma^2$</td><td>$d+1$</td><td>11</td></tr>
+<tr><td>Gaussian, diagonal</td><td>$\mu,\ \sigma_1^2..\sigma_d^2$</td><td>$2d$</td><td>20</td></tr>
+<tr><td>Gaussian, full covariance</td><td>$\mu,\ \Sigma$ (symmetric)</td><td>$d+\tfrac{d(d+1)}{2}$</td><td>65</td></tr>
+<tr><td>Mixture of K full Gaussians</td><td>$K$ means, $K$ covariances, $K-1$ weights</td><td>$K\big(d+\tfrac{d(d+1)}2\big)+K-1$</td><td>K = 3: 197</td></tr>
+</table></div>
+<p class="small muted">A full covariance grows like $d^2$, so in high dimensions the "compressed" model can need a lot of data. This is the same parameter counting that powers BIC in L18.</p>
+
+<h3>8.6 An estimator is itself random</h3>
+<p>Run the same experiment again and you get different data, so a different $\hat p$. The estimator has its own distribution, called its <b>sampling distribution</b>. For the fraction of heads, the mean and standard deviation of $\hat p$ are</p>
+$$\mathbb E[\hat p]=p\quad(\text{unbiased}),\qquad \operatorname{sd}(\hat p)=\sqrt{\frac{p(1-p)}{n}} .$$
+<p>So the uncertainty shrinks like $1/\sqrt n$: four times the data halves the error. In $d$ dimensions the same holds coordinate by coordinate: $\operatorname{Cov}(\hat\mu)=\Sigma/n$.</p>
+<div class="card">
+  <div class="row">
+    <label>True p = <b id="spP">0.70</b> <input type="range" id="spPs" min="0.05" max="0.95" step="0.05" value="0.7" aria-label="True p"></label>
+    <label>Tosses per experiment n = <b id="spN">12</b> <input type="range" id="spNs" min="0" max="6" step="1" value="1" aria-label="Number of tosses"></label>
+  </div>
+  <canvas id="spCanvas" height="230" aria-label="Histogram of the estimate over 4000 repeated experiments"></canvas>
+  <p class="small" id="spTxt"></p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="check">Key takeaways</h2>
+<ol>
+<li><b>Estimation adds a story.</b> Assume a probabilistic mechanism generated the data. Part of it, the parameter, is unknown.</li>
+<li><b>The goal:</b> use the data to estimate the unknown parameter. The parameter acts as a compressed summary of the data.</li>
+<li><b>Everything is relative to the assumed model</b>, which may or may not match reality.</li>
+<li><b>An estimate is a guess.</b> For 9 heads in 12, every $p\in(0,1)$ could have produced the data; only $p = 0$ and $p = 1$ are ruled out.</li>
+<li><b>i.i.d. is the usual hidden assumption:</b> independent tosses, all from the same coin.</li>
+<li><b>Open question:</b> how do we choose between guesses in a principled way? <span class="muted">(Preview: maximum likelihood gives $\hat p = h/n$ and, in ℝᵈ, the sample mean and covariance.)</span></li>
+</ol>
+
+<h2>Self-check</h2>
+<details><summary>1. Why is p = 0.0001 still a possible explanation for 9 heads in 12 tosses, but p = 0 is not?</summary>
+<p>Under $p=0.0001$ the data has probability $p^{9}(1-p)^{3}\approx10^{-36}$. That's tiny, but not zero. Under $p=0$ any sequence containing a head has probability exactly 0, so it's impossible.</p></details>
+<details><summary>2. A box swaps between two coins at random before each press. Are the tosses independent? Identically distributed?</summary>
+<p>Both, as long as each press picks its coin afresh with the same probabilities. Every toss then follows the same overall law, and no toss affects another, so the box behaves like one coin whose bias is the weighted average of the two. Identical distribution breaks if the swap follows a <i>schedule</i> (as in Box B). Independence breaks if the choice depends on earlier outcomes.</p></details>
+<details><summary>3. Write the probability of the sequence 1, 1, 0, 1 under the Bernoulli model, assuming i.i.d.</summary>
+<p>$p\cdot p\cdot(1-p)\cdot p=p^{3}(1-p)$. Only the counts (3 ones, 1 zero) matter, not the order.</p></details>
+<details><summary>4. How many tosses does it take for the standard deviation of p̂ to drop below 0.01 when p ≈ 0.5?</summary>
+<p>$\sqrt{0.25/n}<0.01\Rightarrow n>2500$.</p></details>
+<details><summary>5. For 3-D data, how many numbers does a full-covariance Gaussian need, and why is that "compression" for n = 1,000 points?</summary>
+<p>$d+d(d+1)/2=3+6=9$ parameters, compared with $nd=3000$ raw numbers.</p></details>
+<details><summary>6. Where does PCA's covariance matrix come from in this lecture's framework?</summary>
+<p>It's the maximum-likelihood estimate $\hat\Sigma$ of the covariance of a Gaussian model fitted to the data (section 8.4).</p></details>
+
+<p class="small muted" style="margin-top:40px">For the exact wording of the lecture, open the video on YouTube and use "Show transcript".</p>
+</main>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const chip = (b, big) => `<span class="chip ${b ? 'h' : 't'}${big ? ' big' : ''}">${b}</span>`;
+function setupCanvas(cv){
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');   // cv.height below overwrites the attribute
+  const h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [ctx, r.width, h];
+}
+function axes(ctx, W, H, pad, xr, yr, xt, yt, xlab, ylab, xfmt, yfmt){
+  const grid = cssv('--grid'), muted = cssv('--muted');
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r);
+  const Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,-apple-system,sans-serif'; ctx.lineWidth = 1;
+  yt.forEach(v => { ctx.strokeStyle = grid; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke();
+    ctx.fillStyle = muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(yfmt(v), pad.l - 6, Y(v)); });
+  xt.forEach(v => { ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(xfmt(v), X(v), H - pad.b + 6); });
+  ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(xlab, (pad.l + W - pad.r) / 2, H - 2);
+  ctx.save(); ctx.translate(13, (pad.t + H - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(ylab, 0, 0); ctx.restore();
+  return [X, Y];
+}
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+/* ---------- 2 · black box ---------- */
+let bb = { p: 0, xs: [], revealed: false };
+function newBox(){ bb = { p: Math.round((0.05 + 0.9 * Math.random()) * 100) / 100, xs: [], revealed: false };
+  $('revealTxt').textContent = ''; $('coin').className = 'coin'; $('coin').textContent = '?'; renderBox(); }
+function pressN(k){ for (let i = 0; i < k; i++) bb.xs.push(Math.random() < bb.p ? 1 : 0);
+  const last = bb.xs[bb.xs.length - 1], c = $('coin');
+  c.className = 'coin'; void c.offsetWidth; c.className = 'coin flip ' + (last ? 'h' : 't'); c.textContent = last;
+  renderBox(); }
+function renderBox(){
+  const n = bb.xs.length, h = bb.xs.reduce((a, b) => a + b, 0);
+  $('bbN').textContent = n; $('bbH').textContent = h; $('bbP').textContent = n ? (h / n).toFixed(3) : '–';
+  const show = bb.xs.slice(-300);
+  $('tape').innerHTML = (n > 300 ? `<span class="small muted" style="width:100%">showing the last 300 of ${n}</span>` : '') + show.map(b => chip(b)).join('');
+  drawRun();
+}
+function drawRun(){
+  const cv = $('runCanvas'), [ctx, W, H] = setupCanvas(cv);
+  const n = bb.xs.length, N = Math.max(10, n);
+  const [X, Y] = axes(ctx, W, H, {l: 44, r: 14, t: 10, b: 36}, [0, N], [0, 1],
+    [0, Math.round(N / 2), N], [0, 0.25, 0.5, 0.75, 1], 'number of presses n', 'fraction of 1s', v => v, v => v.toFixed(2));
+  if (bb.revealed){ ctx.strokeStyle = cssv('--s2'); ctx.setLineDash([6, 4]); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(X(0), Y(bb.p)); ctx.lineTo(X(N), Y(bb.p)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('true p = ' + bb.p, X(N) - 4, Y(bb.p) - 4); }
+  if (!n) return;
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath(); let h = 0;
+  bb.xs.forEach((b, i) => { h += b; const x = X(i + 1), y = Y(h / (i + 1)); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+}
+$('press').onclick = () => pressN(1); $('press10').onclick = () => pressN(10); $('press100').onclick = () => pressN(100);
+$('newbox').onclick = newBox;
+$('reveal').onclick = () => { bb.revealed = true; const n = bb.xs.length, h = bb.xs.reduce((a, b) => a + b, 0);
+  $('revealTxt').innerHTML = `The hidden coin has <b>p = ${bb.p}</b>.` + (n ? ` Your estimate after ${n} presses is ${(h / n).toFixed(3)}, off by ${Math.abs(h / n - bb.p).toFixed(3)}.` : ' Press the button to collect some data.'); drawRun(); };
+
+/* ---------- 4 · lecture data + play God ---------- */
+const LECT = [1,0,0,1,1,0,1,1,1,1,1,1];
+$('lectureTape').innerHTML = LECT.map(b => chip(b, true)).join('');
+let godCounts = [];
+function godBatch(){ const xs = Array.from({length: 12}, () => Math.random() < 0.75 ? 1 : 0); godCounts.push(xs.reduce((a, b) => a + b, 0)); return xs; }
+function godRender(rows){
+  $('godOut').innerHTML = rows.map(xs => `<div class="tape" style="margin:4px 0">${xs.map(b => chip(b)).join('')}<span class="small muted" style="align-self:center;margin-left:8px">${xs.reduce((a, b) => a + b, 0)} heads</span></div>`).join('');
+  const tally = {}; godCounts.forEach(c => tally[c] = (tally[c] || 0) + 1);
+  $('godSummary').innerHTML = `Heads per batch so far (${godCounts.length} batches): ` + Object.keys(tally).sort((a, b) => a - b).map(k => `<b>${k}</b>×${tally[k]}`).join(' · ');
+}
+$('god').onclick = () => godRender([godBatch()]);
+$('god20').onclick = () => godRender(Array.from({length: 20}, godBatch).slice(-6));
+
+/* ---------- 5 · every p is possible ---------- */
+const H9 = 9, N12 = 12, C = 220;
+function sci(v){ if (v === 0) return '0'; if (v >= 1e-3) return v.toPrecision(3);
+  const [m, e] = v.toExponential(2).split('e');
+  return m + '×10' + e.replace('+', '').replace('-', '⁻').replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]); }
+function setP(p){
+  $('pSlider').value = p; $('pVal').textContent = p === 0.0001 ? '0.0001' : (+p).toFixed(3);
+  const s = Math.pow(p, H9) * Math.pow(1 - p, N12 - H9);
+  $('seqProb').textContent = sci(s); $('binProb').textContent = sci(C * s);
+  $('verdict').textContent = s === 0 ? 'impossible: ruled out' : (s < 1e-6 ? 'possible, but extremely unlikely' : 'possible');
+  drawLike(+p);
+}
+function drawLike(p){
+  const cv = $('likeCanvas'), [ctx, W, H] = setupCanvas(cv);
+  const ymax = 0.00125;
+  const [X, Y] = axes(ctx, W, H, {l: 62, r: 14, t: 12, b: 36}, [0, 1], [0, ymax],
+    [0, 0.25, 0.5, 0.75, 1], [0, 0.0004, 0.0008, 0.0012], 'candidate p', 'P(data | p)', v => v, v => v ? (v * 1000).toFixed(1) + 'e-3' : '0');
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath();
+  for (let i = 0; i <= 400; i++){ const q = i / 400, y = Math.pow(q, 9) * Math.pow(1 - q, 3); i ? ctx.lineTo(X(q), Y(y)) : ctx.moveTo(X(q), Y(y)); } ctx.stroke();
+  const y = Math.pow(p, 9) * Math.pow(1 - p, 3);
+  ctx.strokeStyle = cssv('--faint'); ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(p), Y(0)); ctx.lineTo(X(p), Y(y)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--s2'); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(p), Y(y), 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = cssv('--ink'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = p > 0.8 ? 'right' : 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText('p = ' + (p === 0.0001 ? '0.0001' : p.toFixed(3)), X(p) + (p > 0.8 ? -10 : 10), Y(y) - 6);
+}
+$('pSlider').oninput = e => setP(+e.target.value);
+document.querySelectorAll('button[data-p]').forEach(b => b.onclick = () => setP(+b.dataset.p));
+
+/* ---------- 6 · i.i.d. boxes ---------- */
+function iid(){
+  const A = Array.from({length: 60}, () => Math.random() < 0.5 ? 1 : 0);
+  const B = Array.from({length: 60}, (_, i) => Math.random() < (i < 30 ? 0.2 : 0.8) ? 1 : 0);
+  const Cc = [Math.random() < 0.5 ? 1 : 0]; for (let i = 1; i < 60; i++) Cc.push(Math.random() < 0.85 ? Cc[i - 1] : (Math.random() < 0.5 ? 1 : 0));
+  const frac = xs => (xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(2);
+  const runs = xs => { let r = 1, best = 1; for (let i = 1; i < xs.length; i++){ r = xs[i] === xs[i - 1] ? r + 1 : 1; best = Math.max(best, r); } return best; };
+  $('iidA').innerHTML = A.map(b => chip(b)).join(''); $('iidB').innerHTML = B.map(b => chip(b)).join(''); $('iidC').innerHTML = Cc.map(b => chip(b)).join('');
+  $('iidAtxt').textContent = `fraction of 1s: ${frac(A)} · longest run: ${runs(A)}`;
+  $('iidBtxt').textContent = `first half: ${frac(B.slice(0, 30))} · second half: ${frac(B.slice(30))} · overall: ${frac(B)}`;
+  $('iidCtxt').textContent = `fraction of 1s: ${frac(Cc)} · longest run: ${runs(Cc)} (box A's longest run is usually 4–8)`;
+}
+$('iidRegen').onclick = iid;
+
+/* ---------- 8.4 · 2-D Gaussian estimation ---------- */
+let G = {};
+function newGauss(){
+  const a = Math.random() * Math.PI, s1 = 0.6 + Math.random() * 1.2, s2 = 0.3 + Math.random() * 0.6;
+  const c = Math.cos(a), s = Math.sin(a);
+  const S = [[c * c * s1 * s1 + s * s * s2 * s2, c * s * (s1 * s1 - s2 * s2)], [0, s * s * s1 * s1 + c * c * s2 * s2]]; S[1][0] = S[0][1];
+  const L11 = Math.sqrt(S[0][0]), L21 = S[1][0] / L11, L22 = Math.sqrt(S[1][1] - L21 * L21);
+  G = { mu: [(Math.random() - 0.5) * 3, (Math.random() - 0.5) * 2], S, L: [L11, L21, L22], pts: [] }; drawG();
+}
+function addG(k){ for (let i = 0; i < k; i++){ const z1 = randn(), z2 = randn();
+  G.pts.push([G.mu[0] + G.L[0] * z1, G.mu[1] + G.L[1] * z1 + G.L[2] * z2]); } drawG(); }
+function fit(){ const n = G.pts.length; if (n < 3) return null;
+  const m = [0, 0]; G.pts.forEach(p => { m[0] += p[0] / n; m[1] += p[1] / n; });
+  const S = [[0, 0], [0, 0]]; G.pts.forEach(p => { const a = p[0] - m[0], b = p[1] - m[1]; S[0][0] += a * a / n; S[0][1] += a * b / n; S[1][1] += b * b / n; }); S[1][0] = S[0][1];
+  return { m, S }; }
+function ellipse(ctx, X, Y, m, S, k){
+  const a = S[0][0], b = S[0][1], c = S[1][1], t = (a + c) / 2, d = Math.sqrt(((a - c) / 2) ** 2 + b * b);
+  const l1 = t + d, l2 = Math.max(t - d, 1e-9), th = 0.5 * Math.atan2(2 * b, a - c);
+  ctx.beginPath(); for (let i = 0; i <= 120; i++){ const u = i / 120 * 2 * Math.PI;
+    const ex = k * Math.sqrt(l1) * Math.cos(u), ey = k * Math.sqrt(l2) * Math.sin(u);
+    const x = m[0] + ex * Math.cos(th) - ey * Math.sin(th), y = m[1] + ex * Math.sin(th) + ey * Math.cos(th);
+    i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); }
+function drawG(){
+  const cv = $('gCanvas'), [ctx, W, H] = setupCanvas(cv);
+  const span = 6, ar = W / H, xr = [-span * ar / 1.25, span * ar / 1.25], yr = [-span / 1.25, span / 1.25];
+  const ticks = r => { const out = []; for (let v = Math.ceil(r[0]); v <= Math.floor(r[1]); v++) if (v % 2 === 0) out.push(v); return out; };
+  const [X, Y] = axes(ctx, W, H, {l: 48, r: 10, t: 10, b: 32}, xr, yr, ticks(xr), ticks(yr), 'x₁', 'x₂', v => v, v => v);
+  ctx.fillStyle = cssv('--s2'); ctx.globalAlpha = 0.55;
+  G.pts.forEach(p => { ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 2.6, 0, 2 * Math.PI); ctx.fill(); }); ctx.globalAlpha = 1;
+  ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 2; ctx.setLineDash([7, 5]); ellipse(ctx, X, Y, G.mu, G.S, 2); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--faint'); ctx.fillRect(X(G.mu[0]) - 4, Y(G.mu[1]) - 4, 8, 8);
+  const f = fit();
+  if (f){ ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ellipse(ctx, X, Y, f.m, f.S, 2);
+    ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(X(f.m[0]), Y(f.m[1]), 5, 0, 2 * Math.PI); ctx.fill(); }
+  const r = v => v.toFixed(2), n = G.pts.length;
+  $('gTable').innerHTML = `<tr><th>n = ${n}</th><th>mean μ</th><th>covariance Σ  [Σ₁₁, Σ₁₂, Σ₂₂]</th></tr>
+    <tr><td>true (hidden)</td><td>(${r(G.mu[0])}, ${r(G.mu[1])})</td><td>[${r(G.S[0][0])}, ${r(G.S[0][1])}, ${r(G.S[1][1])}]</td></tr>
+    <tr><td><b>estimate</b> (μ̂, Σ̂)</td><td>${f ? `(${r(f.m[0])}, ${r(f.m[1])})` : 'need ≥ 3 points'}</td><td>${f ? `[${r(f.S[0][0])}, ${r(f.S[0][1])}, ${r(f.S[1][1])}]` : '–'}</td></tr>`;
+}
+let gTimer = null;
+$('g10').onclick = () => addG(10); $('g100').onclick = () => addG(100); $('gNew').onclick = () => { clearInterval(gTimer); gTimer = null; $('gPlay').textContent = '▶ Animate to 500'; newGauss(); };
+$('gPlay').onclick = () => {
+  if (gTimer){ clearInterval(gTimer); gTimer = null; $('gPlay').textContent = '▶ Animate to 500'; return; }
+  if (G.pts.length >= 500) G.pts = [];
+  $('gPlay').textContent = '⏸ Pause';
+  gTimer = setInterval(() => { addG(G.pts.length < 30 ? 1 : 5); if (G.pts.length >= 500){ clearInterval(gTimer); gTimer = null; $('gPlay').textContent = '▶ Animate to 500'; } }, 60);
+};
+
+/* ---------- 8.6 · sampling distribution ---------- */
+const NS = [4, 12, 30, 60, 120, 300, 1000];
+function drawSP(){
+  const p = +$('spPs').value, n = NS[+$('spNs').value]; $('spP').textContent = p.toFixed(2); $('spN').textContent = n;
+  const R = 4000, bins = 50, counts = new Array(bins).fill(0); let s = 0, s2 = 0;
+  for (let r = 0; r < R; r++){ let h = 0; for (let i = 0; i < n; i++) if (Math.random() < p) h++; const ph = h / n; s += ph; s2 += ph * ph; counts[Math.min(bins - 1, Math.floor(ph * bins))]++; }
+  const mean = s / R, sd = Math.sqrt(s2 / R - mean * mean), theo = Math.sqrt(p * (1 - p) / n);
+  const cv = $('spCanvas'), [ctx, W, H] = setupCanvas(cv), cmax = Math.max(...counts);
+  const top = Math.ceil(cmax / R * 100 / 5) * 5 || 5;
+  const [X, Y] = axes(ctx, W, H, {l: 58, r: 12, t: 10, b: 36}, [0, 1], [0, top],
+    [0, 0.25, 0.5, 0.75, 1], [0, top / 2, top], 'estimate p̂ = fraction of heads', '% of runs', v => v, v => v + '%');
+  const bw = (X(1) - X(0)) / bins;
+  ctx.fillStyle = cssv('--s1');
+  counts.forEach((c, i) => { if (!c) return; const y = Y(c / R * 100); ctx.fillRect(X(i / bins) + 1, y, Math.max(1, bw - 2), Y(0) - y); });
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(X(p), Y(0)); ctx.lineTo(X(p), Y(top)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--ink'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = p > 0.75 ? 'right' : 'left'; ctx.textBaseline = 'top';
+  ctx.fillText('true p', X(p) + (p > 0.75 ? -6 : 6), Y(top) + 2);
+  $('spTxt').innerHTML = `Over ${R.toLocaleString()} repeated experiments of n = ${n} tosses: the average of p̂ is <b>${mean.toFixed(3)}</b> (true p = ${p.toFixed(2)}), and its spread is <b>sd = ${sd.toFixed(3)}</b>. The formula √(p(1−p)/n) predicts ${theo.toFixed(3)}.`;
+}
+$('spPs').oninput = drawSP; $('spNs').oninput = drawSP;
+
+/* ---------- init + redraw on resize/theme ---------- */
+function redrawAll(){ drawRun(); drawLike(+$('pSlider').value); drawG(); drawSP(); }
+newBox(); setP(0.75); iid(); newGauss(); addG(20); drawSP();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+document.addEventListener('DOMContentLoaded', () => {});
+window.addEventListener('load', () => {
+  if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});
+  redrawAll();
+});
+</script>
+</body>
+</html>

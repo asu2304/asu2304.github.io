@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The EM Algorithm</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:900px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+h2{font-size:22px;margin:44px 0 8px;padding-top:20px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px}
+.lede{font-size:18px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:16px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:200px;accent-color:var(--s1)}
+label{font-size:14px}
+canvas{width:100%;display:block}
+.algo{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;line-height:1.8;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:14px 18px;margin:12px 0;overflow-x:auto}
+.algo b{font-family:system-ui,sans-serif}
+.stat{display:inline-block;min-width:130px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+table{border-collapse:collapse;font-size:14px;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.tablewrap{overflow-x:auto}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+details{border:1px solid var(--grid);border-radius:8px;padding:10px 14px;margin:8px 0;background:var(--card)}
+summary{cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 26 · Fitting a GMM, part 3 · end of unsupervised learning</div>
+<h1>The EM Algorithm</h1>
+<p class="lede">Alternate the two easy steps from L25 until the parameters stop changing. That's the <b>Expectation–Maximization (EM)</b> algorithm. It's a soft, probabilistic version of K-means, it climbs the log-likelihood to a <b>local</b> maximum, and in practice it's usually started from K-means.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=1jSonYih_sM">this lecture on YouTube</a> (≈17 min). Previous: <a href="L25-gmm-lower-bound.html">L25 · the lower bound and its two easy steps</a>.</p>
+
+<h2>1 · The algorithm</h2>
+<div class="algo">
+<b>Initialise</b> θ⁰ = (μ₁…μ_K, σ₁²…σ_K², π₁…π_K)<br>
+<b>repeat</b> until ‖θᵗ⁺¹ − θᵗ‖ ≤ ε &nbsp;<span class="muted">(ε is a small tolerance, e.g. 10⁻³)</span><br>
+&nbsp;&nbsp;<b>E-step:</b> λᵗ⁺¹ = argmax<sub>λ</sub> ℓ̃(θᵗ, λ) &nbsp;&nbsp;<span class="muted">→ λᵢₖ = πₖ𝒩(xᵢ; μₖ, σₖ²) / Σₗ πₗ𝒩(xᵢ; μₗ, σₗ²)</span><br>
+&nbsp;&nbsp;<b>M-step:</b> θᵗ⁺¹ = argmax<sub>θ</sub> ℓ̃(θ, λᵗ⁺¹) &nbsp;&nbsp;<span class="muted">→ weighted means, weighted variances, πₖ = average λ</span>
+</div>
+<ul>
+<li><b>E-step (Expectation):</b> with the parameters fixed, compute each point's soft membership λ. It's called "expectation" because the quantity being optimised can be written as an expected value; the course doesn't go into the general form.</li>
+<li><b>M-step (Maximization):</b> with the memberships fixed, refit every component's mean, variance and weight.</li>
+<li>Both steps are the closed-form formulas from <a href="L25-gmm-lower-bound.html">L25</a>. EM was named and set out in its general form by Dempster, Laird and Rubin in 1977.</li>
+</ul>
+
+<h2>2 · EM is "soft K-means"</h2>
+<div class="tablewrap"><table>
+<tr><th></th><th>Lloyd's / K-means (L14)</th><th>EM for a GMM</th></tr>
+<tr><td>Assignment step</td><td>each point goes <b>fully</b> to its nearest mean (hard: $z_i$)</td><td>E-step: each point gets a <b>probability</b> for every cluster (soft: $\lambda_{ik}$)</td></tr>
+<tr><td>Update step</td><td>recompute the <b>means</b></td><td>M-step: recompute the means <b>and variances and weights π</b></td></tr>
+<tr><td>Cluster shape</td><td>Voronoi regions, all treated alike</td><td>each cluster has its own spread, so the regions <b>need not be Voronoi</b></td></tr>
+<tr><td>Output</td><td>a partition</td><td>parameters plus soft memberships; take <b>argmax<sub>k</sub> λᵢₖ</b> for a hard clustering</td></tr>
+</table></div>
+<p>Because EM learns each cluster's <b>variance</b> (in higher dimensions, its covariance and so its orientation), it handles overlapping clusters of different spreads much better than K-means. The demo below shows this in 1-D: a wide cluster next to narrow ones.</p>
+
+<div class="card">
+  <div class="row">
+    <button class="primary" id="emStep">One EM iteration (E then M)</button>
+    <button id="emRun">▶ Run to convergence</button>
+    <button id="initK" class="on">Start from K-means</button><button id="initR">Start from a random guess</button>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="it">0</div><div class="l">iteration</div></div>
+    <div class="stat"><div class="v" id="ll">–</div><div class="l">log-likelihood</div></div>
+    <div class="stat"><div class="v" id="dth">–</div><div class="l">‖θᵗ⁺¹ − θᵗ‖ (last change)</div></div>
+  </div>
+  <canvas id="emCanvas" height="290" aria-label="Data with fitted Gaussian components and hard-assignment strips for EM and K-means"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>component 1</span><span><i style="background:var(--s2)"></i>component 2</span><span><i style="background:var(--s3)"></i>component 3</span></div>
+  <canvas id="llCanvas" height="130" aria-label="Log-likelihood by iteration" style="margin-top:8px"></canvas>
+  <p class="small" id="emTxt"></p>
+</div>
+
+<h2>3 · What EM is really doing: climbing with lower bounds</h2>
+<p>The GMM log-likelihood, as a function of θ, is a bumpy landscape with several peaks. EM never tackles it directly. At the current θᵗ:</p>
+<ol>
+<li><b>E-step:</b> choose λ so the lower bound ℓ̃ (always ≤ log L, by Jensen) <b>touches</b> log L at θᵗ.</li>
+<li><b>M-step:</b> the bound is easy to maximise, so jump to its peak, θᵗ⁺¹. Since the bound sits under log L and touched it at θᵗ, log L at θᵗ⁺¹ is <b>at least as high</b> as before.</li>
+<li>Repeat. log L never decreases, and EM converges, but only to a <b>local maximum</b>.</li>
+</ol>
+<div class="card">
+  <p class="small muted" style="margin-top:0">An illustration of the idea on a made-up bumpy function (not the actual GMM bound). The black curve is "log L"; each coloured curve is a lower bound that touches it at the current point. Change the starting point and see which peak EM climbs to.</p>
+  <div class="row">
+    <label>start θ⁰ = <b id="t0V"></b> <input type="range" id="t0S" min="2" max="98" value="12" aria-label="starting theta"></label>
+    <button class="primary" id="bStep">One EM step</button><button id="bReset">Reset</button>
+  </div>
+  <canvas id="bCanvas" height="250" aria-label="Bumpy function with touching lower bounds climbing to a local maximum"></canvas>
+  <p class="small" id="bTxt"></p>
+</div>
+
+<h2>4 · Initialisation matters, so start from K-means</h2>
+<p>Since EM only reaches a local maximum, where you <b>start</b> decides which peak you end up on. Standard practice:</p>
+<ol>
+<li>Run Lloyd's algorithm (K-means) to get a hard clustering.</li>
+<li>For each cluster, use its sample mean, its sample variance, and its fraction of the points as μ⁰ₖ, σ²⁰ₖ and π⁰ₖ.</li>
+<li>Run EM from there.</li>
+</ol>
+<p>Try both starts in the demo in section 2. The random guess puts two components on the same cluster, and EM converges to a clearly worse local maximum (log L ≈ −351 instead of ≈ −310).</p>
+
+<h2>5 · The bigger picture</h2>
+<ul>
+<li>EM isn't specific to Gaussians. It works for <b>any latent variable model</b> whose log-likelihood splits nicely once the hidden variables are accounted for.</li>
+<li>In practice it converges fast and gives good estimates.</li>
+<li>This finishes the course's <b>unsupervised learning</b> part: representation learning (PCA, kernel PCA), clustering (K-means), and estimation (ML, Bayesian, GMM + EM). Next up: <b>supervised learning</b>.</li>
+</ul>
+
+<h2>Key takeaways</h2>
+<ol>
+<li><b>EM</b> = initialise θ, then repeat the <b>E-step</b> (λ by Bayes) and the <b>M-step</b> (weighted μ, σ², π) until θ barely changes.</li>
+<li>It's <b>soft K-means</b>: probabilities instead of hard labels, plus variances and weights. Clusters needn't be Voronoi, and argmax λ gives a hard clustering.</li>
+<li>Each step pushes log L up (via the touching lower bound), but EM reaches only a <b>local maximum</b>.</li>
+<li>So <b>initialisation matters</b>. Starting from K-means is the standard choice.</li>
+</ol>
+<details><summary>Self-check: why can a GMM cluster be split into two separate pieces of the line, while a K-means cluster can't?</summary><p>A K-means cluster is a Voronoi cell, the set of points nearest one mean, which is always one interval in 1-D. In a GMM, a wide component's density falls off more slowly than a narrow one's, so far from both, the wide one wins again on <i>both</i> sides of the narrow one.</p></details>
+<details><summary>Self-check: what does EM guarantee, and what doesn't it guarantee?</summary><p>It guarantees that log-likelihood never decreases and that it converges, to a local maximum. It doesn't guarantee the global maximum, which is why the starting point matters.</p></details>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h];
+}
+const npdf = (x, m, s) => Math.exp(-((x - m) ** 2) / (2 * s * s)) / (Math.sqrt(2 * Math.PI) * s);
+let seed = 5; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+/* ---------- section 2: EM on 1-D data ---------- */
+const X = []; for (let i = 0; i < 50; i++) X.push(-4 + 0.4 * gauss()); for (let i = 0; i < 60; i++) X.push(0.5 + 2.2 * gauss()); for (let i = 0; i < 30; i++) X.push(5 + 0.35 * gauss());
+const n = X.length, K = 3, cols = () => [cssv('--s1'), cssv('--s2'), cssv('--s3')];
+let th, hist, iter, lastD, timer = null, initMode = 'kmeans', kmMeans = null;
+function kmeans(){ let m = [-6, 0, 6];
+  for (let t = 0; t < 100; t++){ const z = X.map(x => m.map(v => Math.abs(x - v)).reduce((b, d, k, a) => d < a[b] ? k : b, 0));
+    const nm = m.map((v, k) => { const p = X.filter((_, i) => z[i] === k); return p.length ? p.reduce((a, b) => a + b, 0) / p.length : v; });
+    if (nm.every((v, k) => Math.abs(v - m[k]) < 1e-9)) break; m = nm; }
+  const z = X.map(x => m.map(v => Math.abs(x - v)).reduce((b, d, k, a) => d < a[b] ? k : b, 0));
+  return {m, z}; }
+function initTheta(){
+  if (initMode === 'kmeans'){ const {m, z} = kmeans(); kmMeans = m;
+    th = {mu: [...m], sd: m.map((v, k) => { const p = X.filter((_, i) => z[i] === k); return Math.sqrt(p.reduce((a, b) => a + (b - v) ** 2, 0) / p.length) || 1; }), pi: m.map((_, k) => z.filter(v => v === k).length / n)};
+  } else { th = {mu: [4.8, 5.2, -1], sd: [0.5, 0.5, 1], pi: [1 / 3, 1 / 3, 1 / 3]}; if (!kmMeans) kmMeans = kmeans().m; }   // two components start on the same cluster
+  iter = 0; lastD = null; hist = [logL()]; draw();
+}
+const logL = () => X.reduce((s, x) => s + Math.log(th.mu.reduce((t, m, k) => t + th.pi[k] * npdf(x, m, th.sd[k]), 0)), 0);
+function emIter(){
+  const lam = X.map(x => { const a = th.mu.map((m, k) => th.pi[k] * npdf(x, m, th.sd[k])), s = a.reduce((p, q) => p + q, 0); return a.map(v => v / s); });
+  const old = [...th.mu, ...th.sd, ...th.pi];
+  for (let k = 0; k < K; k++){ const w = lam.reduce((s, l) => s + l[k], 0);
+    const mu = X.reduce((s, x, i) => s + lam[i][k] * x, 0) / w;
+    th.mu[k] = mu; th.sd[k] = Math.sqrt(Math.max(X.reduce((s, x, i) => s + lam[i][k] * (x - mu) ** 2, 0) / w, 1e-3)); th.pi[k] = w / n; }
+  const nw = [...th.mu, ...th.sd, ...th.pi]; lastD = Math.sqrt(nw.reduce((s, v, j) => s + (v - old[j]) ** 2, 0));
+  iter++; hist.push(logL()); draw();
+}
+function draw(){
+  const c = cols(), L = hist[hist.length - 1];
+  $('it').textContent = iter; $('ll').textContent = L.toFixed(2); $('dth').textContent = lastD === null ? '–' : lastD.toExponential(1);
+  let [ctx, W, H] = setupCanvas($('emCanvas')); const xr = [-9, 9], pad = {l: 12, r: 12, t: 10, b: 92};
+  const comp = k => x => th.pi[k] * npdf(x, th.mu[k], th.sd[k]);
+  let top = 0; for (let i = 0; i <= 400; i++){ const x = xr[0] + 18 * i / 400; for (let k = 0; k < K; k++) top = Math.max(top, comp(k)(x)); } top *= 1.15;
+  const PX = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), PY = v => H - pad.b - v / top * (H - pad.t - pad.b);
+  for (let k = 0; k < K; k++){ ctx.strokeStyle = c[k]; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let i = 0; i <= 400; i++){ const x = xr[0] + 18 * i / 400; i ? ctx.lineTo(PX(x), PY(comp(k)(x))) : ctx.moveTo(PX(x), PY(comp(k)(x))); } ctx.stroke(); }
+  ctx.globalAlpha = 0.6; X.forEach(x => { const a = th.mu.map((m, k) => comp(k)(x)), k = a.indexOf(Math.max(...a));
+    ctx.fillStyle = c[k]; ctx.beginPath(); ctx.arc(PX(x), PY(0) + 8, 3.2, 0, 2 * Math.PI); ctx.fill(); }); ctx.globalAlpha = 1;
+  // hard-assignment strips: EM (argmax λ) and K-means (nearest mean)
+  const strip = (y, owner, label) => { const N = 360; for (let i = 0; i < N; i++){ const x = xr[0] + 18 * (i + 0.5) / N;
+      ctx.fillStyle = c[owner(x)]; ctx.fillRect(PX(xr[0] + 18 * i / N), y, (W - pad.l - pad.r) / N + 0.6, 10); }
+    ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText(label, pad.l, y - 2); };
+  strip(H - 56, x => { const a = th.mu.map((m, k) => comp(k)(x)); return a.indexOf(Math.max(...a)); }, 'EM hard clustering (argmax λ) across the line');
+  strip(H - 18, x => { const d = kmMeans.map(v => Math.abs(x - v)); return d.indexOf(Math.min(...d)); }, 'K-means regions (nearest mean, always Voronoi)');
+  // log-likelihood history
+  [ctx, W, H] = setupCanvas($('llCanvas')); const p2 = {l: 52, r: 12, t: 10, b: 24};
+  const lo = Math.min(...hist), hi = Math.max(...hist), span = (hi - lo) || 1, N = Math.max(10, hist.length - 1);
+  const QX = i => p2.l + i / N * (W - p2.l - p2.r), QY = v => H - p2.b - (v - (lo - span * 0.1)) / (span * 1.2) * (H - p2.t - p2.b);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p2.l, H - p2.b); ctx.lineTo(W - p2.r, H - p2.b); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillText(hi.toFixed(0), p2.l - 6, QY(hi)); ctx.fillText(lo.toFixed(0), p2.l - 6, QY(lo));
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('iteration → (log-likelihood never goes down)', (p2.l + W) / 2, H - p2.b + 6);
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath(); hist.forEach((v, i) => i ? ctx.lineTo(QX(i), QY(v)) : ctx.moveTo(QX(i), QY(v))); ctx.stroke();
+  hist.forEach((v, i) => { ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(QX(i), QY(v), 2.5, 0, 2 * Math.PI); ctx.fill(); });
+  const conv = lastD !== null && lastD < 1e-3;
+  $('emTxt').innerHTML = `μ = (${th.mu.map(v => v.toFixed(2)).join(', ')}), σ = (${th.sd.map(v => v.toFixed(2)).join(', ')}), π = (${th.pi.map(v => v.toFixed(2)).join(', ')}). ` +
+    (conv ? `<b>Converged</b> after ${iter} iterations (change below 10⁻³), log L = ${L.toFixed(2)}. ` : 'Data: narrow clusters at −4 and 5, a wide one around 0.5. ') +
+    (initMode === 'random'
+      ? 'This random start puts two components on the right-hand cluster. EM gets stuck in a worse local maximum (log L ≈ −351 instead of ≈ −310 from the K-means start).'
+      : 'Compare the strips once converged: EM gives the wide middle component both outer tails as well as the middle, which a Voronoi split can never do.');
+}
+$('emStep').onclick = emIter;
+$('emRun').onclick = () => { if (timer) return; timer = setInterval(() => { emIter(); if ((lastD !== null && lastD < 1e-3) || iter > 300){ clearInterval(timer); timer = null; } }, 60); };
+$('initK').onclick = () => { clearInterval(timer); timer = null; initMode = 'kmeans'; $('initK').classList.add('on'); $('initR').classList.remove('on'); initTheta(); };
+$('initR').onclick = () => { clearInterval(timer); timer = null; initMode = 'random'; $('initR').classList.add('on'); $('initK').classList.remove('on'); initTheta(); };
+
+/* ---------- section 3: lower-bound climbing (illustration) ---------- */
+const f = t => 1.2 * Math.exp(-((t - 0.25) ** 2) / 0.006) + 2.0 * Math.exp(-((t - 0.7) ** 2) / 0.02) + 0.4 * Math.sin(9 * t) * 0.3;
+const fp = t => (f(t + 1e-5) - f(t - 1e-5)) / 2e-5;
+const C = 220;   // curvature of the bounds; large enough that each bound stays below f on [0,1]
+let bt, bHist;
+function bReset(){ bt = +$('t0S').value / 100; bHist = [bt]; drawB(); }
+function bStep(){ const t = bt + fp(bt) / (2 * C); bt = Math.min(1, Math.max(0, t)); bHist.push(bt); drawB(); }
+function drawB(){
+  $('t0V').textContent = (+$('t0S').value / 100).toFixed(2);
+  const [ctx, W, H] = setupCanvas($('bCanvas')), pad = {l: 14, r: 14, t: 14, b: 26};
+  const lo = -0.25, hi = 2.3, PX = t => pad.l + t * (W - pad.l - pad.r), PY = v => H - pad.b - (v - lo) / (hi - lo) * (H - pad.t - pad.b);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  const bCols = [cssv('--s2'), cssv('--s3'), cssv('--s1')];
+  bHist.slice(0, -1).forEach((t0, j) => { const g = t => f(t0) + fp(t0) * (t - t0) - C * (t - t0) ** 2;
+    ctx.strokeStyle = bCols[j % 3]; ctx.globalAlpha = j === bHist.length - 2 ? 1 : 0.35; ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i <= 300; i++){ const t = i / 300; i ? ctx.lineTo(PX(t), PY(g(t))) : ctx.moveTo(PX(t), PY(g(t))); } ctx.stroke(); });
+  ctx.globalAlpha = 1; ctx.restore();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 400; i++){ const t = i / 400; i ? ctx.lineTo(PX(t), PY(f(t))) : ctx.moveTo(PX(t), PY(f(t))); } ctx.stroke();
+  bHist.forEach((t, j) => { ctx.fillStyle = j === bHist.length - 1 ? cssv('--s2') : cssv('--faint'); ctx.beginPath(); ctx.arc(PX(t), PY(f(t)), j === bHist.length - 1 ? 6 : 3.5, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('θ (parameters)', W / 2, H - pad.b + 6);
+  const peak = Math.abs(fp(bt)) < 0.02 && bHist.length > 1;
+  $('bTxt').innerHTML = `Step ${bHist.length - 1}: θ = ${bt.toFixed(3)}, log L = ${f(bt).toFixed(3)}. ` +
+    (peak ? (bt < 0.45 ? '<b>Stuck on the lower peak</b>: a local maximum. Try starting further right.' : '<b>Reached the highest peak.</b> Try a start near 0.1 to see EM get stuck instead.') : 'Each step: draw a bound touching at θ, jump to its peak.');
+}
+$('bStep').onclick = bStep; $('bReset').onclick = bReset; $('t0S').oninput = bReset;
+
+function redrawAll(){ draw(); drawB(); }
+initTheta(); bReset();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => {
+  if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});
+  redrawAll();
+});
+</script>
+</body>
+</html>

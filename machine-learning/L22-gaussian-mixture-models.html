@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gaussian Mixture Models</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:900px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+h2{font-size:22px;margin:44px 0 8px;padding-top:20px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px}
+.lede{font-size:18px;color:var(--muted)}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:16px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.muted{color:var(--muted)} .small{font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:130px;accent-color:var(--s1)}
+label{font-size:14px}
+canvas{width:100%;display:block}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.die{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:10px;font-weight:800;font-size:20px;color:#fff;background:#55544e;transition:transform .3s}
+.die.roll{animation:roll .4s}
+@keyframes roll{50%{transform:rotate(180deg) scale(1.15)}}
+@media (prefers-reduced-motion:reduce){.die.roll{animation:none}}
+table{border-collapse:collapse;font-size:14px;width:100%}
+th,td{padding:7px 10px;border-bottom:1px solid var(--grid);text-align:left}
+th{color:var(--muted);font-weight:600}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+details{border:1px solid var(--grid);border-radius:8px;padding:10px 14px;margin:8px 0;background:var(--card)}
+summary{cursor:pointer;font-weight:600}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 22 · Estimation for clustered data</div>
+<h1>Gaussian Mixture Models</h1>
+<p class="lede">When data falls into several clumps, one Gaussian can't explain it. A <b>Gaussian mixture model (GMM)</b> explains it with a two-step story: first pick a clump at random, then draw a point from that clump's own Gaussian.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=dyRTVmtML-U">this lecture on YouTube</a> (≈21 min). Previous: <a href="L21-bayesian-estimation.html">L21 · Bayesian estimation</a>.</p>
+
+<h2>1 · Why one Gaussian isn't enough</h2>
+<p>Take 1-D data in three clumps. Fit one Gaussian by maximum likelihood: its mean is the sample mean, which lands in the middle. The fitted curve then says the outer clumps sit in <b>low-density</b> regions, yet that's exactly where lots of data was observed. Maximum likelihood isn't at fault: it found the best Gaussian. The <b>model</b> is too simple. A single Gaussian has only one peak, and this data needs three.</p>
+<div class="card">
+  <div class="row"><button id="fitOne" class="on">One Gaussian (ML fit)</button><button id="fitMix">Mixture of 3 Gaussians</button></div>
+  <canvas id="fitCanvas" height="230" aria-label="Clumped 1-D data with a single Gaussian or a 3-component mixture density"></canvas>
+  <p class="small" id="fitTxt"></p>
+</div>
+
+<h2>2 · The two-step generative story</h2>
+<p>To generate <b>one</b> data point $x_i$:</p>
+<div class="card">
+<p><b>Step 1: pick a mixture component.</b> Roll a $K$-faced die whose faces have probabilities $\pi_1,\dots,\pi_K$. The face it lands on is $z_i$, the component this point comes from:</p>
+$$P(z_i=k)=\pi_k,\qquad \pi_k\ge 0,\quad \sum_{k=1}^{K}\pi_k=1 .$$
+<p><b>Step 2: draw from that component's Gaussian.</b> Each component $k$ has its own mean and variance:</p>
+$$x_i\mid z_i=k\;\sim\;\mathcal N(\mu_k,\ \sigma_k^2).$$
+</div>
+<p>Repeat both steps, independently, for every data point. The $\pi_k$ are called <b>mixing proportions</b>: with $\pi=(0.5,0.25,0.25)$, about half the points come from component 1 and a quarter from each of the others. Try it:</p>
+
+<div class="card">
+  <div class="row">
+    <label>π₁ <input type="range" id="w1" min="0" max="10" step="1" value="5" aria-label="weight of component 1"></label>
+    <label>π₂ <input type="range" id="w2" min="0" max="10" step="1" value="3" aria-label="weight of component 2"></label>
+    <label>π₃ <input type="range" id="w3" min="0" max="10" step="1" value="2" aria-label="weight of component 3"></label>
+    <span class="small" id="piTxt"></span>
+  </div>
+  <div class="row">
+    <button class="primary" id="gen1">Generate 1 point</button><button id="gen50">Generate 50</button><button id="genClr">Clear</button>
+    <span class="die" id="die" aria-live="polite">?</span><span class="small" id="dieTxt">Step 1 rolls the die; step 2 samples from that component.</span>
+  </div>
+  <canvas id="genCanvas" height="250" aria-label="Generated points as a histogram, coloured by component, with the mixture density"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>component 1: μ = −4, σ = 0.8</span><span><i style="background:var(--s2)"></i>component 2: μ = 0, σ = 0.5</span><span><i style="background:var(--s3)"></i>component 3: μ = 4, σ = 1.0</span></div>
+  <p class="small muted" style="margin-bottom:0">Colours show which component generated each point. In real data you don't get the colours, only the positions. That's the next idea.</p>
+</div>
+
+<h2>3 · Latent variables</h2>
+<p>We observe only $x_1,\dots,x_n$. The die rolls $z_1,\dots,z_n$ that decided where each point came from are <b>never seen</b>. Unobserved quantities like these are called <b>latent variables</b>, and a GMM is a <b>latent variable model</b>: the data depends both on parameters and on hidden variables.</p>
+<div class="callout">$z_i$ plays the same role as the cluster indicator in K-means (L13). The difference: in K-means each point was <i>assigned</i> to a cluster, while here a <i>random</i> die roll chose its component.</div>
+
+<h2>4 · What has to be estimated</h2>
+<table>
+<tr><th>Parameter</th><th>Meaning</th><th>Count</th></tr>
+<tr><td>$\pi_1,\dots,\pi_K$</td><td>mixing proportions; they sum to 1, so the last is determined by the others</td><td>$K-1$</td></tr>
+<tr><td>$\mu_1,\dots,\mu_K$</td><td>component means</td><td>$K$</td></tr>
+<tr><td>$\sigma_1^2,\dots,\sigma_K^2$</td><td>component variances</td><td>$K$</td></tr>
+<tr><td colspan="2"><b>Total</b></td><td><b>$3K-1$</b> (about $3K$)</td></tr>
+</table>
+<p>Earlier models had one parameter (a coin's bias, or a Gaussian's mean). Now there are many, and just looking at the data doesn't tell you what they should be. But maximum likelihood works for <b>any</b> well-specified probabilistic model, so it's the tool to use next.</p>
+
+<div class="beyond"><b>Where this leads (a short preview, not in this video).</b> Since $z_i$ is hidden, the density of a single observation adds up all the ways it could have arisen, one for each die face:
+$$f(x;\pi,\mu,\sigma^2)=\sum_{k=1}^{K}\pi_k\,\mathcal N(x;\mu_k,\sigma_k^2).$$
+This weighted sum of bells is the three-peaked curve in section 1. The next lecture writes the likelihood of a GMM from it.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Clumped data has several peaks; one Gaussian has one, so it's the wrong model, however well it's fitted.</li>
+<li><b>GMM story:</b> roll a die with probabilities π to get $z_i$, then draw $x_i \sim \mathcal N(\mu_{z_i}, \sigma^2_{z_i})$.</li>
+<li>The $z_i$ are <b>latent</b> (hidden), so a GMM is a latent variable model. It's the probabilistic cousin of K-means.</li>
+<li>Parameters: π, μ and σ², which is $3K-1$ numbers, to be found by maximum likelihood.</li>
+</ol>
+
+<details><summary>Self-check: with π = (0.5, 0.25, 0.25) and n = 400, roughly how many points come from component 2?</summary><p>About 100, since each point independently has a 25% chance of coming from component 2.</p></details>
+<details><summary>Self-check: how many parameters does a GMM with K = 5 components have in 1-D?</summary><p>3 × 5 − 1 = 14: four free mixing proportions, five means and five variances.</p></details>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h];
+}
+function axes(ctx, W, H, pad, xr, yr, xt, yt, ylab){
+  const grid = cssv('--grid'), muted = cssv('--muted');
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r);
+  const Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.lineWidth = 1;
+  yt.forEach(v => { ctx.strokeStyle = grid; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke();
+    ctx.fillStyle = muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(+v.toFixed(2), pad.l - 6, Y(v)); });
+  xt.forEach(v => { ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); });
+  ctx.save(); ctx.translate(12, (pad.t + H - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = muted; ctx.fillText(ylab, 0, 0); ctx.restore();
+  return [X, Y];
+}
+function curve(ctx, X, Y, f, xr, color, w){ ctx.strokeStyle = color; ctx.lineWidth = w || 2.5; ctx.beginPath();
+  for (let i = 0; i <= 400; i++){ const x = xr[0] + (xr[1] - xr[0]) * i / 400; i ? ctx.lineTo(X(x), Y(f(x))) : ctx.moveTo(X(x), Y(f(x))); } ctx.stroke(); }
+const npdf = (x, m, s) => Math.exp(-((x - m) ** 2) / (2 * s * s)) / (Math.sqrt(2 * Math.PI) * s);
+// small seeded RNG so section 1's data is the same on every load
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const gauss = r => { let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+/* ---------- 1 · one Gaussian vs mixture ---------- */
+const DATA = []; [[-4, 12], [0, 12], [4, 12]].forEach(([m, k]) => { for (let i = 0; i < k; i++) DATA.push(m + 0.7 * gauss(rnd)); });
+const dMean = DATA.reduce((a, b) => a + b, 0) / DATA.length;
+let showMix = false;
+function drawFit(){
+  const [ctx, W, H] = setupCanvas($('fitCanvas')), xr = [-7, 7];
+  const [X, Y] = axes(ctx, W, H, {l: 46, r: 12, t: 10, b: 30}, xr, [0, 0.42], [-6, -4, -2, 0, 2, 4, 6], [0, 0.2, 0.4], 'density');
+  const one = x => npdf(x, dMean, 1), mix = x => (npdf(x, -4, 0.7) + npdf(x, 0, 0.7) + npdf(x, 4, 0.7)) / 3;
+  const f = showMix ? mix : one;
+  curve(ctx, X, Y, f, xr, showMix ? cssv('--s3') : cssv('--s1'));
+  DATA.forEach(x => { const d = f(x); ctx.fillStyle = d < 0.02 ? cssv('--s2') : cssv('--muted');
+    ctx.beginPath(); ctx.arc(X(x), Y(0) - 6, 4, 0, 2 * Math.PI); ctx.fill(); });
+  const low = DATA.filter(x => f(x) < 0.02).length;
+  $('fitTxt').innerHTML = showMix
+    ? `A mixture of three Gaussians puts a peak on each clump. <b>${low} of ${DATA.length}</b> points now sit in low-density regions.`
+    : `ML fit of one Gaussian (σ = 1 known): mean = sample mean = <b>${dMean.toFixed(2)}</b>. <b>${low} of ${DATA.length}</b> points (orange) sit where the density is below 0.02.`;
+}
+$('fitOne').onclick = () => { showMix = false; $('fitOne').classList.add('on'); $('fitMix').classList.remove('on'); drawFit(); };
+$('fitMix').onclick = () => { showMix = true; $('fitMix').classList.add('on'); $('fitOne').classList.remove('on'); drawFit(); };
+
+/* ---------- 2 · generative sampler ---------- */
+const MU = [-4, 0, 4], SD = [0.8, 0.5, 1.0];
+let pts = [];
+function pis(){ let w = [+$('w1').value, +$('w2').value, +$('w3').value]; const s = w.reduce((a, b) => a + b, 0) || 1; if (!w.some(Boolean)) w = [1, 1, 1]; return w.map(v => v / (w.reduce((a, b) => a + b, 0))); }
+function genOne(){ const p = pis(), u = Math.random(); const z = u < p[0] ? 0 : u < p[0] + p[1] ? 1 : 2;
+  const x = MU[z] + SD[z] * gauss(Math.random); pts.push([x, z]); return [x, z]; }
+function showDie(z, x){ const d = $('die'), cols = [cssv('--s1'), cssv('--s2'), cssv('--s3')];
+  d.className = 'die'; void d.offsetWidth; d.className = 'die roll'; d.textContent = z + 1; d.style.background = cols[z];
+  $('dieTxt').innerHTML = `Die landed on <b>${z + 1}</b>, so z = ${z + 1}. Drew x from 𝒩(${MU[z]}, ${SD[z]}²): <b>x = ${x.toFixed(2)}</b>.`; }
+function drawGen(){
+  const p = pis(); $('piTxt').innerHTML = `π = (${p.map(v => v.toFixed(2)).join(', ')})`;
+  const [ctx, W, H] = setupCanvas($('genCanvas')), xr = [-7, 7], bins = 56, bw = (xr[1] - xr[0]) / bins, n = pts.length;
+  const counts = [0, 1, 2].map(() => new Array(bins).fill(0));
+  pts.forEach(([x, z]) => { const b = Math.floor((x - xr[0]) / bw); if (b >= 0 && b < bins) counts[z][b]++; });
+  const dens = x => p.reduce((s, w, k) => s + w * npdf(x, MU[k], SD[k]), 0);
+  let top = 0; for (let i = 0; i <= 200; i++) top = Math.max(top, dens(xr[0] + 14 * i / 200));
+  for (let b = 0; b < bins; b++) top = Math.max(top, n ? (counts[0][b] + counts[1][b] + counts[2][b]) / (n * bw) : 0);
+  top *= 1.1;
+  const [X, Y] = axes(ctx, W, H, {l: 46, r: 12, t: 10, b: 30}, xr, [0, top], [-6, -4, -2, 0, 2, 4, 6], [0, top / 2, top].map(v => +v.toFixed(2)), 'density');
+  const cols = [cssv('--s1'), cssv('--s2'), cssv('--s3')];
+  if (n) for (let b = 0; b < bins; b++){ let y0 = 0; for (let k = 0; k < 3; k++){ const h = counts[k][b] / (n * bw); if (!h) continue;
+    ctx.fillStyle = cols[k]; ctx.globalAlpha = 0.75; ctx.fillRect(X(xr[0] + b * bw) + 1, Y(y0 + h), X(xr[0] + (b + 1) * bw) - X(xr[0] + b * bw) - 2, Y(y0) - Y(y0 + h)); y0 += h; } }
+  ctx.globalAlpha = 1;
+  curve(ctx, X, Y, dens, xr, cssv('--ink'), 2);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+  ctx.fillText(n ? `${n} points · black curve: the mixture density` : 'black curve: the mixture density', W - 14, 12);
+}
+['w1', 'w2', 'w3'].forEach(id => $(id).oninput = drawGen);
+$('gen1').onclick = () => { const [x, z] = genOne(); showDie(z, x); drawGen(); };
+$('gen50').onclick = () => { let last; for (let i = 0; i < 50; i++) last = genOne(); showDie(last[1], last[0]); drawGen(); };
+$('genClr').onclick = () => { pts = []; $('die').textContent = '?'; $('die').style.background = ''; drawGen(); };
+
+function redrawAll(){ drawFit(); drawGen(); }
+redrawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => {
+  if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});
+  redrawAll();
+});
+</script>
+</body>
+</html>

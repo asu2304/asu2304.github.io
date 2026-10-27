@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Linear Regression</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:150px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 28 · Regression</div>
+<h1>Linear Regression: Error, Overfitting and Structure</h1>
+<p class="lede">To learn a prediction rule we need a way to score candidates: the <b>squared error</b>. But if every possible function is allowed, you can get zero error just by memorising the training data, which is useless on new data. The fix is to search only <b>structured</b> functions. The simplest choice, linear functions, gives <b>linear regression</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=RkcCmmN0TY4">this lecture on YouTube</a> (≈18 min). Previous: <a href="L27-supervised-learning.html">L27</a> · Next: <a href="L29-optimizing-error.html">L29</a>.</p>
+
+<h2>1 · The goal</h2>
+<p>Training data: $x_1,\dots,x_n\in\mathbb R^d$ with real labels $y_1,\dots,y_n$. We want a function $h:\mathbb R^d\to\mathbb R$ that predicts the label of <b>new</b> points well. There are endless such functions, so we need to be able to say how good a given $h$ is on our data.</p>
+
+<h2>2 · Scoring a function: the squared error</h2>
+$$\text{error}(h)=\sum_{i=1}^{n}\big(h(x_i)-y_i\big)^2$$
+<ul>
+<li>For each point, compare the prediction $h(x_i)$ with the true $y_i$, square the difference, and add up.</li>
+<li><b>Why square it?</b> The error must never be negative. If we used the plain difference $h(x_i)-y_i$, a function that always predicts $-\infty$ would "win". Other non-negative errors are possible; squared error is the natural starting point, and later lectures justify it.</li>
+<li>The smallest possible value is 0, a sum of squares, reached only when $h(x_i)=y_i$ for every training point.</li>
+</ul>
+
+<h2>3 · The trap: zero error by memorising</h2>
+<p>If <b>any</b> function is allowed, getting 0 error is trivial: just make $h$ return $y_i$ whenever it sees $x_i$. That's a lookup table. It's perfect on the training data and tells you nothing reliable about new points.</p>
+<p>This is <b>overfitting</b>: matching the training data, noise included, at the cost of doing well on new (test) data. We never care about training error for its own sake. A rainfall predictor that's perfect on the last three years but wrong from tomorrow onwards is useless.</p>
+
+<div class="card">
+  <div class="row"><button id="mMem" class="on">Memoriser (any function allowed)</button><button id="mLin">Linear model h(x) = w·x</button><button id="mNew">New test data</button></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="trE">–</div><div class="l">training error (avg squared)</div></div>
+    <div class="stat"><div class="v" id="teE">–</div><div class="l">test error on new points</div></div>
+  </div>
+  <canvas id="fit" height="280" aria-label="Training and test points with either a memorising curve or a linear fit"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>training points</span><span><i style="background:var(--s2)"></i>new test points</span></div>
+  <p class="small" id="fitTxt"></p>
+</div>
+
+<h2>4 · The fix: restrict the search to structured functions</h2>
+<p>The squared error isn't the culprit. The problem is <b>searching all functions</b>. Assume the true input–output relationship has some structure and search only functions with that structure. The simplest is <b>linear</b>:</p>
+$$\mathcal H_{\text{linear}}=\big\{\,h_w(x)=w^{\top}x\;:\;w\in\mathbb R^d\,\big\}$$
+<p>(A shifted version, $w^\top x+b$, works the same way. The lecture drops $b$ to keep things simple.) The weights $w$ say how much each feature matters, and the prediction is a weighted combination of the features.</p>
+<div class="callout"><b>Linear regression:</b>
+$$\min_{w\in\mathbb R^d}\;\sum_{i=1}^{n}\big(w^{\top}x_i-y_i\big)^2$$
+</div>
+
+<h2>5 · What zero error means now</h2>
+<p>This error can still reach 0, but now that's <b>not</b> overfitting. It would mean $w^\top x_i=y_i$ exactly for every point: the labels follow the assumed linear structure with no noise at all. Overfitting happens when the search space is much bigger than the true structure, so the fit starts chasing the noise. Here, the "noise" is whatever the linear structure can't explain. A probabilistic view of noise comes in a later lecture.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Score a predictor with the squared error $\sum_i(h(x_i)-y_i)^2$.</li>
+<li>Allowing all functions leads to memorising: zero training error, bad on new data. That's overfitting.</li>
+<li>Restrict the search to structured functions. The linear class $w^\top x$ gives <b>linear regression</b>.</li>
+<li>Zero error with a linear model means noise-free data, not overfitting.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const truth = x => 0.8 * x, SD = 1.5;
+const make = m => Array.from({length: m}, () => { const x = 0.5 + 9.5 * Math.random(); return [x, truth(x) + SD * randn()]; }).sort((a, b) => a[0] - b[0]);
+let train = make(14), test = make(60), mode = 'mem';
+const wHat = () => train.reduce((s, [x, y]) => s + x * y, 0) / train.reduce((s, [x]) => s + x * x, 0);
+function memo(x){ // passes exactly through every training point (piecewise linear), flat outside
+  if (x <= train[0][0]) return train[0][1]; if (x >= train[train.length - 1][0]) return train[train.length - 1][1];
+  for (let i = 1; i < train.length; i++) if (x <= train[i][0]){ const [x0, y0] = train[i - 1], [x1, y1] = train[i]; return y0 + (y1 - y0) * (x - x0) / (x1 - x0); } }
+function draw(){
+  const w = wHat(), h = mode === 'mem' ? memo : (x => w * x);
+  const mse = D => D.reduce((s, [x, y]) => s + (h(x) - y) ** 2, 0) / D.length;
+  $('trE').textContent = mse(train).toFixed(2); $('teE').textContent = mse(test).toFixed(2);
+  const [ctx, W, H] = setupCanvas($('fit')), pad = {l: 36, r: 12, t: 10, b: 26}, xr = [0, 10.5], yr = [-4, 13];
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted');
+  [0, 4, 8, 12].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  [0, 2, 4, 6, 8, 10].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); });
+  const dot = (x, y, c, r) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(X(x), Y(y), r, 0, 2 * Math.PI); ctx.fill(); };
+  ctx.globalAlpha = 0.55; test.forEach(([x, y]) => dot(x, y, cssv('--s2'), 3)); ctx.globalAlpha = 1;
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 400; i++){ const x = xr[0] + (xr[1] - xr[0]) * i / 400; i ? ctx.lineTo(X(x), Y(h(x))) : ctx.moveTo(X(x), Y(h(x))); } ctx.stroke();
+  train.forEach(([x, y]) => dot(x, y, cssv('--s1'), 5));
+  $('fitTxt').innerHTML = mode === 'mem'
+    ? 'The memoriser goes through <b>every</b> training point, so its training error is 0. But it zig-zags with the noise, so its error on new points is much higher.'
+    : `The best line is h(x) = <b>${w.toFixed(2)}·x</b> (true slope 0.8). Its training error isn't 0, but its error on new points is lower than the memoriser's: it learned the structure, not the noise. (With only 14 training points, the exact numbers shift a lot. Click "New test data" a few times.)`;
+}
+$('mMem').onclick = () => { mode = 'mem'; $('mMem').classList.add('on'); $('mLin').classList.remove('on'); draw(); };
+$('mLin').onclick = () => { mode = 'lin'; $('mLin').classList.add('on'); $('mMem').classList.remove('on'); draw(); };
+$('mNew').onclick = () => { train = make(14); test = make(60); draw(); };
+draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>L18: Choosing K in K-means (Objective + Penalty, AIC/BIC) &amp; Clustering Wrap-up</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--grid:#e6e5e0;--tint:#eef4fc;--accent:#2a78d6;--code:#f3f2ee}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--tint:#1f2a38;--accent:#5598e7;--code:#2a2a28}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--grid:#34332f;--tint:#1f2a38;--accent:#5598e7;--code:#2a2a28}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2} h2{font-size:22px;margin-top:40px;padding-top:18px;border-top:1px solid var(--grid)} h3{font-size:17px}
+a{color:var(--accent)}
+table{border-collapse:collapse;font-size:14px;display:block;overflow-x:auto} th,td{padding:7px 10px;border-bottom:1px solid var(--grid);text-align:left} th{color:var(--muted)}
+blockquote{margin:14px 0;background:var(--tint);border-radius:10px;padding:10px 16px} blockquote p{margin:6px 0}
+code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:14px}
+pre{background:var(--code);padding:12px 14px;border-radius:10px;overflow-x:auto} pre code{background:none;padding:0}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+hr{border:none;border-top:1px solid var(--grid);margin:30px 0}
+</style></head>
+<body><main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<h1>L18: Choosing K in K-means (Objective + Penalty, AIC/BIC) &amp; Clustering Wrap-up</h1>
+<p>Source: https://www.youtube.com/watch?v=4-ycWgdMXD4 (≈17 min)
+Previous: <a href="L13-clustering-notes.html">L13</a> · <a href="L14-kmeans-lloyd-notes.html">L14</a> · <a href="L15-kmeans-convergence-notes.html">L15</a> · <a href="L16-kmeans-voronoi-notes.html">L16</a> · <a href="L17-kmeans-initialization-notes.html">L17</a></p>
+<h2>The big picture</h2>
+<p>So far K was always given. In practice it isn't: you get a pile of points and have to decide
+how many groups they really contain. This lecture argues that choosing K is a <strong>trade-off
+between fit and simplicity</strong>. It turns that trade-off into one rule, <em>minimise objective +
+penalty</em>, and names the two standard penalties (AIC and BIC). It then closes the clustering
+unit by tying together everything learned about Lloyd's algorithm.</p>
+<p>The ideas build on each other in four steps:</p>
+<ol>
+<li>The objective alone can't choose K, because it always prefers more clusters.</li>
+<li>So we must also charge for complexity: objective + penalty(K).</li>
+<li>AIC and BIC are principled penalties, but they need a likelihood view of the objective.</li>
+<li>Wrap-up: the four questions about Lloyd's algorithm are now all answered.</li>
+</ol>
+<hr />
+<h2>Concept 1: The objective alone always says &quot;more clusters&quot;</h2>
+<p>The K-means objective F = Σᵢ ‖xᵢ − μ_{zᵢ}‖² measures how tightly points sit around their
+cluster means. For any <strong>fixed</strong> K it is the right thing to minimise. But comparing F across
+<em>different</em> K is misleading:</p>
+<ul>
+<li>More clusters means smaller clusters, and smaller clusters mean points are closer to their
+means. So the best achievable F keeps falling as K grows.</li>
+<li>At the extreme K = n, every point is its own cluster and its own mean, so <strong>F = 0</strong>, the
+lowest possible value.</li>
+</ul>
+<p>If we picked K by minimising F, we would always get K = n. That isn't clustering at all.
+Clustering is meant to <strong>compress</strong> the data into a few representatives. So F still matters
+(within a given K, we want the best partition), but on its own it can't choose K.</p>
+<h2>Concept 2: Charge a price for each cluster (objective + penalty)</h2>
+<p>The fix is to make complexity cost something. Pick an increasing function Penalty(K) and choose</p>
+<p>$$
+K^\star=\arg\min_{K}\;\Big[\,F^\star(K)+\text{Penalty}(K)\,\Big],
+$$</p>
+<p>where F*(K) is the best objective found with K clusters.</p>
+<p><strong>The &quot;buying a cluster&quot; intuition.</strong> Going from K to K + 1 costs Penalty(K+1) − Penalty(K).
+The purchase is worth it only if F drops by more than that price.</p>
+<ul>
+<li><strong>Early on</strong>, it pays. Going from one big cluster to two or three cuts F dramatically,
+because real groups are being separated.</li>
+<li><strong>Later</strong>, it doesn't. Once the true groups are found, extra clusters just split real ones
+and F barely moves, while the penalty keeps rising.</li>
+</ul>
+<p>So F*(K) falls and the penalty rises. Their sum is <strong>U-shaped</strong>, and its lowest point is K*.</p>
+<p><strong>How you use it in practice:</strong></p>
+<ol>
+<li>For each candidate K, run Lloyd's algorithm with a good initialization (K-means++ or
+several random restarts) and keep the best F for that K.</li>
+<li>Add the penalty to each.</li>
+<li>Pick the K where the total is smallest.</li>
+</ol>
+<p>The open question is <em>which</em> penalty to use. That depends on how much you are willing to pay
+per cluster.</p>
+<h2>Concept 3: Principled penalties — AIC and BIC</h2>
+<p>Two standard criteria give the penalty a principled form. Both use a <strong>likelihood</strong> L, a
+measure of how probable the data is under the fitted model, in place of the raw objective:</p>
+<table>
+<thead>
+<tr>
+<th>Criterion</th>
+<th>Form given in the lecture</th>
+<th>How the penalty grows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AIC</strong> (Akaike information criterion)</td>
+<td>2K − 2 log L</td>
+<td>linearly in K</td>
+</tr>
+<tr>
+<td><strong>BIC</strong> (Bayesian information criterion)</td>
+<td>K log n − 2 log L</td>
+<td>K·log n, so it gets stricter as the dataset grows</td>
+</tr>
+</tbody>
+</table>
+<p>Key ideas:</p>
+<ul>
+<li>The −2 log L term plays the role of the objective (how well the model fits). The other term
+is the price paid for complexity.</li>
+<li>BIC charges more per cluster than AIC once n is larger than about 7, so it tends to choose
+<strong>fewer</strong> clusters.</li>
+<li>Each criterion is &quot;optimal&quot; under a particular assumption about <strong>how the data was
+generated</strong> (a probabilistic model). The course hasn't introduced probabilistic models or
+estimation yet, so the lecture only states these criteria and promises to come back to them.
+Section 6 of these notes does that derivation now.</li>
+<li>Other heuristics exist, notably the <strong>elbow method</strong> (look for the K where the F*(K) curve
+bends). They all follow the same idea: try several values of K and balance fit against
+complexity.</li>
+</ul>
+<blockquote>
+<p>One subtlety for later: in the standard AIC/BIC formulas, the multiplier is the <strong>number of
+free parameters</strong>, not the number of clusters. For K-means in ℝᵈ, each cluster brings about
+d + 1 parameters (§6.3).</p>
+</blockquote>
+<h2>Concept 4: Wrap-up — what we now know about Lloyd's algorithm</h2>
+<p>The clustering unit began with the K-means objective (L13) and Lloyd's algorithm (L14), and
+four questions about that algorithm. All four now have answers, and together they give a
+complete practical picture:</p>
+<table>
+<thead>
+<tr>
+<th>Question</th>
+<th>Answer</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Does it converge?</strong></td>
+<td>Yes. The objective strictly falls every time a point moves, and there are finitely many partitions. But it reaches a <em>local</em> optimum, not necessarily the best one.</td>
+<td>L15</td>
+</tr>
+<tr>
+<td><strong>What shape are the clusters?</strong></td>
+<td>Voronoi regions: convex cells bounded by perpendicular-bisector hyperplanes. Non-convex groups (like rings) need kernel K-means.</td>
+<td>L16</td>
+</tr>
+<tr>
+<td><strong>How should it be initialized?</strong></td>
+<td>Random restarts work in practice. K-means++ spreads the starting centres with D² sampling and has an expected O(log K) guarantee.</td>
+<td>L17</td>
+</tr>
+<tr>
+<td><strong>How should K be chosen?</strong></td>
+<td>Minimise objective + penalty(K), using AIC, BIC or the elbow.</td>
+<td>L18</td>
+</tr>
+</tbody>
+</table>
+<p><strong>What comes next:</strong> the course moves on to <strong>estimation</strong>: fitting the parameters of a
+probabilistic model to data. That will make the likelihood in AIC/BIC concrete, and it bridges
+unsupervised and supervised learning.</p>
+<hr />
+<h2>Going further (§6): d-dimensional derivations</h2>
+<p><em>This section goes beyond the video.</em></p>
+<h3>6.1 Proof that F*(K) is non-increasing, with F*(n) = 0</h3>
+<p><strong>Claim:</strong> F*(K+1) ≤ F*(K) for every K &lt; n.</p>
+<p><strong>Proof.</strong> Take an optimal K-partition with means μ₁, …, μ_K. As long as K &lt; n, some cluster C
+contains a point x' ≠ its mean μ_C. (If every point equalled its own cluster's mean, F would be 0
+already.) Make x' a cluster of its own, with mean x'. Every other point keeps its old centre, so
+the cost changes only by removing x''s term ‖x' − μ_C‖² &gt; 0. Then re-centring C∖{x'} can only
+lower the cost further (Fact 1, L15). So this valid (K+1)-partition costs less than F*(K), which
+means F*(K+1) &lt; F*(K). ∎</p>
+<p>At K = n, every point is its own mean, so F*(n) = 0.</p>
+<p><strong>This is why a penalty is unavoidable:</strong> with no penalty, the argmin is always K = n.</p>
+<h3>6.2 K-means <em>is</em> a likelihood: the spherical-Gaussian model</h3>
+<p>Suppose each cluster generates points from a Gaussian with a shared spherical covariance:</p>
+<p>$$
+x_i \mid z_i=k \;\sim\; \mathcal{N}(\mu_k,\;\sigma^2 I_d),\qquad P(z_i=k)=\pi_k .
+$$</p>
+<p>The density in ℝᵈ is</p>
+<p>$$
+p(x\mid\mu_k)=(2\pi\sigma^2)^{-d/2}\exp\!\Big(-\frac{\lVert x-\mu_k\rVert^2}{2\sigma^2}\Big).
+$$</p>
+<p>Treat the assignments z as <strong>parameters</strong>, as K-means does (a hard &quot;classification&quot; likelihood):</p>
+<p>$$
+\log L(z,\mu,\pi,\sigma^2)=\sum_{i=1}^n\Big[\log\pi_{z_i}-\frac d2\log(2\pi\sigma^2)-\frac{\lVert x_i-\mu_{z_i}\rVert^2}{2\sigma^2}\Big].
+$$</p>
+<p>$$
+\boxed{\;-2\log L=\frac{F(z,\mu)}{\sigma^2}+nd\log(2\pi\sigma^2)-2\sum_{k}n_k\log\pi_k\;}
+$$</p>
+<ul>
+<li>With σ and π fixed, <strong>maximising the likelihood is the same as minimising F</strong>. K-means is maximum
+likelihood for this model. That's the bridge to the estimation lectures.</li>
+<li><strong>The MLE for σ²:</strong> differentiate with respect to σ² and set to 0, giving σ̂² = F/(nd). This is the
+average squared deviation per coordinate.</li>
+<li><strong>The MLE for π:</strong> π̂ₖ = nₖ/n. Plugging in both gives</li>
+</ul>
+<p>$$
+-2\log\hat L = nd\,\log\!\Big(\frac{2\pi F}{nd}\Big) + nd - 2\sum_k n_k\log\frac{n_k}{n}.
+$$</p>
+<p>The last term is n times the entropy of the cluster sizes, and it <strong>grows</strong> as clusters are
+split. That turns out to matter (§6.8).</p>
+<h3>6.3 AIC and BIC with the correct parameter count</h3>
+<p>Count the free parameters p in this model:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K means in ℝᵈ</td>
+<td>K·d</td>
+</tr>
+<tr>
+<td>Shared variance σ²</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Mixing weights π (they sum to 1)</td>
+<td>K − 1</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>p = Kd + K</strong></td>
+</tr>
+</tbody>
+</table>
+<p>$$
+\text{AIC}(K)=-2\log\hat L+2p,\qquad \text{BIC}(K)=-2\log\hat L+p\,\log n .
+$$</p>
+<ul>
+<li><strong>The d-dimensional point:</strong> each new cluster costs <strong>d + 1</strong> parameters, not 1. In high
+dimensions, adding a cluster is expensive. The lecture's &quot;2K&quot; and &quot;K log n&quot; are the 1-parameter-per-cluster
+picture.</li>
+<li><strong>σ known</strong> (e.g. σ = 1): −2 log L = F/σ² + const, so BIC ≈ F/σ² + Kd·log n. That's literally
+&quot;objective + penalty&quot;, with penalty slope d·log n per cluster.</li>
+<li><strong>AIC vs BIC:</strong>
+<ul>
+<li><strong>AIC</strong> estimates out-of-sample prediction error (an approximation to KL divergence). It
+tends to <strong>over-estimate K</strong>.</li>
+<li><strong>BIC</strong> approximates the log of the Bayesian <em>marginal</em> likelihood (via a Laplace
+approximation). It is <strong>consistent</strong>: if the model is right, it picks the true K as n → ∞.
+It is more conservative because log n &gt; 2 once n &gt; 7.</li>
+</ul>
+</li>
+</ul>
+<h3>6.4 How fast does F*(K) fall? The K^(−2/d) law</h3>
+<p>For data spread <em>uniformly</em> (no real clusters) over a region of ℝᵈ, quantisation theory
+(Zador's theorem) gives</p>
+<p>$$
+F^\star(K)\;\propto\;n\,K^{-2/d}\quad\text{for large }K .
+$$</p>
+<p><strong>Intuition:</strong> K cells share a volume V, so each cell has volume V/K and radius ∝ (V/K)^(1/d).
+The squared radius is ∝ K^(−2/d).</p>
+<p><strong>Consequences:</strong></p>
+<ul>
+<li><strong>d = 1:</strong> F ∝ K⁻², a steep drop even when the data has no clusters.</li>
+<li><strong>Large d:</strong> the exponent −2/d is close to 0, so F*(K) falls <em>very slowly</em> without real
+structure. A sharp drop in high dimensions is therefore strong evidence of real clusters.</li>
+<li>This is why &quot;how much did F drop?&quot; must be compared with what you'd expect from <strong>structureless
+data</strong>. That's exactly what the gap statistic (§6.7) does.</li>
+</ul>
+<h3>6.5 The elbow method, made precise</h3>
+<p>Plot F*(K) against K. The <strong>elbow</strong> is where the marginal gain ΔF(K) = F*(K−1) − F*(K) suddenly
+collapses. Two simple ways to formalise it:</p>
+<ul>
+<li><strong>Largest second difference:</strong> K* = argmax_K [ΔF(K) − ΔF(K+1)].</li>
+<li><strong>Ratio test:</strong> pick the first K where ΔF(K+1)/ΔF(K) drops below some threshold (e.g. 0.2).</li>
+</ul>
+<p><strong>Weakness:</strong> with real data the bend is often gradual, so the elbow is subjective. It's best used
+as a quick visual check.</p>
+<h3>6.6 Silhouette score (any d, any distance)</h3>
+<p>For point i in cluster A:</p>
+<ul>
+<li>a(i) is the mean distance from i to the <em>other</em> points in A. This measures cohesion.</li>
+<li>b(i) = min over B ≠ A of the mean distance from i to the points in B. This measures separation
+from the nearest other cluster.</li>
+</ul>
+<p>$$
+s(i)=\frac{b(i)-a(i)}{\max\{a(i),\,b(i)\}}\in[-1,1],\qquad \bar s(K)=\frac1n\sum_i s(i).
+$$</p>
+<ul>
+<li>s ≈ 1: the point is well inside its cluster.</li>
+<li>s ≈ 0: the point sits on a boundary.</li>
+<li>s &lt; 0: the point is probably in the wrong cluster.</li>
+</ul>
+<p>Choose K = argmax s̄(K). It needs no penalty, but it's <strong>undefined for K = 1</strong> and costs O(n²d).</p>
+<h3>6.7 Gap statistic (Tibshirani, Walther &amp; Hastie, 2001)</h3>
+<p>Compare log F*(K) on your data with its expected value on <strong>reference data with no clusters</strong>,
+e.g. points drawn uniformly over the bounding box, B times:</p>
+<p>$$
+\text{Gap}(K)=\frac1B\sum_{b=1}^{B}\log F_b^{\star}(K)\;-\;\log F^\star(K).
+$$</p>
+<p>Choose the smallest K with Gap(K) ≥ Gap(K+1) − s_{K+1}, where s is the standard error over the B
+reference sets. This automatically accounts for the K^(−2/d) baseline drop from §6.4, and it can
+also conclude <strong>K = 1</strong>, which silhouette can't.</p>
+<h3>6.8 Tested comparison: true K = 4, d = 10, n = 400</h3>
+<pre><code class="language-python">import numpy as np
+
+def kmeanspp(X, K, rng):
+    n = len(X); M = [X[rng.integers(n)]]; D2 = ((X - M[0])**2).sum(1)
+    for _ in range(1, K):
+        M.append(X[rng.choice(n, p=D2 / D2.sum())]); D2 = np.minimum(D2, ((X - M[-1])**2).sum(1))
+    return np.array(M)
+
+def best_kmeans(X, K, restarts=10):
+    best = (np.inf, None)
+    for s in range(restarts):
+        M = kmeanspp(X, K, np.random.default_rng(s))
+        for _ in range(200):
+            z = ((X[:, None] - M[None])**2).sum(-1).argmin(1)
+            M_new = np.stack([X[z == k].mean(0) if np.any(z == k) else M[k] for k in range(K)])
+            if np.allclose(M_new, M): break
+            M = M_new
+        F = ((X - M[z])**2).sum()
+        if F &lt; best[0]: best = (F, z)
+    return best
+
+def silhouette(X, z):
+    D = np.sqrt(((X[:, None] - X[None])**2).sum(-1)); s = np.zeros(len(X))
+    for i in range(len(X)):
+        same = (z == z[i]); same[i] = False
+        if not same.any(): continue
+        a = D[i, same].mean()
+        b = min(D[i, z == k].mean() for k in set(z) if k != z[i])
+        s[i] = (b - a) / max(a, b)
+    return s.mean()
+
+rng = np.random.default_rng(0)
+true_K, d, n_per = 4, 10, 100
+X = np.vstack([rng.normal(c, 1.0, (n_per, d)) for c in rng.uniform(-6, 6, (true_K, d))])
+n = len(X)
+
+print(&quot; K        F*(K)   drop      AIC      BIC     sil&quot;)
+prev = None
+for K in range(1, 9):
+    F, z = best_kmeans(X, K)
+    nk = np.bincount(z, minlength=K); nk = nk[nk &gt; 0]
+    neg2LL = n*d*np.log(2*np.pi*F/(n*d)) + n*d - 2*(nk*np.log(nk/n)).sum()  # incl. mixing weights
+    p = K*d + 1 + (K - 1)                            # means + shared σ² + weights
+    bic = neg2LL + p*np.log(n)
+    aic = neg2LL + 2*p
+    sil = silhouette(X, z) if K &gt; 1 else float('nan')
+    drop = &quot;&quot; if prev is None else f&quot;{prev-F:7.0f}&quot;
+    print(f&quot;{K:2d} {F:12.0f} {drop:&gt;7s} {aic:8.0f} {bic:8.0f} {sil:7.3f}&quot;)
+    prev = F
+</code></pre>
+<p>Output when I ran it:</p>
+<table>
+<thead>
+<tr>
+<th>K</th>
+<th>F*(K)</th>
+<th>drop</th>
+<th>AIC</th>
+<th>BIC</th>
+<th>silhouette</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>39,392</td>
+<td>—</td>
+<td>20,523</td>
+<td>20,566</td>
+<td>—</td>
+</tr>
+<tr>
+<td>2</td>
+<td>25,556</td>
+<td>13,836</td>
+<td>19,368</td>
+<td>19,456</td>
+<td>0.394</td>
+</tr>
+<tr>
+<td>3</td>
+<td>12,820</td>
+<td>12,735</td>
+<td>16,908</td>
+<td>17,040</td>
+<td>0.565</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>3,966</strong></td>
+<td>8,855</td>
+<td><strong>12,514</strong></td>
+<td><strong>12,690</strong></td>
+<td><strong>0.701</strong></td>
+</tr>
+<tr>
+<td>5</td>
+<td>3,848</td>
+<td><strong>118</strong></td>
+<td>12,541</td>
+<td>12,760</td>
+<td>0.549</td>
+</tr>
+<tr>
+<td>6</td>
+<td>3,744</td>
+<td>104</td>
+<td>12,603</td>
+<td>12,866</td>
+<td>0.400</td>
+</tr>
+<tr>
+<td>7</td>
+<td>3,641</td>
+<td>103</td>
+<td>12,649</td>
+<td>12,956</td>
+<td>0.243</td>
+</tr>
+<tr>
+<td>8</td>
+<td>3,528</td>
+<td>113</td>
+<td>12,667</td>
+<td>13,018</td>
+<td>0.101</td>
+</tr>
+</tbody>
+</table>
+<p><strong>All four methods agree on K = 4:</strong></p>
+<ul>
+<li><strong>Elbow:</strong> the drop collapses from 8,855 to 118 after K = 4.</li>
+<li><strong>AIC</strong> and <strong>BIC</strong> both reach their minimum at K = 4.</li>
+<li><strong>Silhouette</strong> peaks at 0.701 at K = 4.</li>
+<li>Note F*(4)/(nd) = 3966/4000 ≈ 0.99, which is close to the true σ² = 1. The MLE σ̂² = F/(nd)
+recovers the noise level once K is right.</li>
+</ul>
+<p><strong>What went wrong first (a real pitfall):</strong> my first version of BIC used only
+nd·log(F/(nd)) + Kd·log n. It <strong>dropped the mixing-weight term</strong> −2Σnₖ log(nₖ/n) and counted only
+the means. That version kept <em>decreasing</em> past K = 4 (9209 → 7538 → 4839 → 205 → 144 → 95 → 43 →
+−23) and would have picked K = 8. Two reasons:</p>
+<ul>
+<li>For hard assignments, splitting a true Gaussian cluster always lowers F somewhat. Here the drop
+was about 118, which is nd·log(3966/3848) ≈ 121 in −2 log L.</li>
+<li>That gain beats a penalty of only d·log n ≈ 70 per cluster.</li>
+</ul>
+<p>The missing <strong>cluster-size entropy term</strong> (the −2Σnₖ log(nₖ/n) part of −2 log L̂) is what charges
+for splitting. <strong>Lesson:</strong> &quot;objective + penalty&quot; only works if the objective is the <em>full</em>
+likelihood of a well-specified model and p counts <em>all</em> the parameters.</p>
+<h3>6.9 Where this leads: GMMs and EM</h3>
+<p>Replace the hard assignment zᵢ with <em>soft</em> probabilities, and allow a separate covariance Σₖ for
+each cluster. That gives the <strong>Gaussian mixture model</strong>, fitted with <strong>EM</strong> (the soft version of
+Lloyd's algorithm). BIC on GMMs is the standard principled way to choose K, and it's exactly where
+the course's &quot;estimation&quot; part is heading.</p>
+<hr />
+<h2>Key takeaways</h2>
+<ol>
+<li>F*(K) is non-increasing and reaches 0 at K = n, so <strong>minimising F alone always picks K = n</strong>.</li>
+<li>Choose K* = argmin [F*(K) + Penalty(K)]. Add a cluster only if F drops by more than the
+extra penalty.</li>
+<li><strong>K-means is maximum likelihood</strong> for spherical Gaussians with shared variance:
+−2 log L = F/σ² + nd·log(2πσ²) − 2Σnₖ log πₖ.</li>
+<li>In ℝᵈ, each cluster adds <strong>d + 1 parameters</strong>. So AIC = −2 log L̂ + 2(Kd + K) and
+BIC = −2 log L̂ + (Kd + K)·log n. BIC is the more conservative of the two.</li>
+<li>Without real structure, F*(K) falls like <strong>K^(−2/d)</strong>, very slowly in high dimensions. The gap
+statistic uses this as its baseline.</li>
+<li>On test data with 4 true clusters, the elbow, AIC, BIC and silhouette all picked K = 4. The
+naive BIC, missing the cluster-size term, did not.</li>
+</ol>
+<h2>Self-check questions</h2>
+<ol>
+<li>Prove F*(K+1) ≤ F*(K) without assuming the optimal (K+1)-partition is related to the K one.</li>
+<li>Derive σ̂² = F/(nd) by differentiating −2 log L with respect to σ².</li>
+<li>For d = 50, n = 10,000, how much must F/σ² drop for BIC to accept one more cluster?
+<em>(More than (d+1)·ln n ≈ 51 × 9.21 ≈ 470, ignoring the entropy term.)</em></li>
+<li>Why does uniform data in d = 2 still show F*(K) falling quickly, and why does that fool the
+elbow method?</li>
+<li>Why can silhouette never choose K = 1, while the gap statistic can?</li>
+<li>Explain in one sentence why the cluster-size entropy term stops BIC from over-splitting.</li>
+</ol>
+
+</main>
+<script>window.addEventListener('load',()=>{if(window.renderMathInElement)renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}],throwOnError:false});});</script>
+</body></html>

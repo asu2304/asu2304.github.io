@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maximum Likelihood Estimation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{
+  --surface:#fcfcfb; --card:#ffffff; --ink:#1f1e1d; --muted:#6b6a64; --faint:#9a998f; --grid:#e6e5e0;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --tint:#eef4fc; --warn-bg:#fdf3e7; --accent:#2a78d6;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface:#1a1a19; --card:#222220; --ink:#f0efec; --muted:#c3c2b7; --faint:#8d8c84; --grid:#34332f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --tint:#1f2a38; --warn-bg:#2e2519; --accent:#5598e7;}}
+:root[data-theme="dark"]{
+  --surface:#1a1a19; --card:#222220; --ink:#f0efec; --muted:#c3c2b7; --faint:#8d8c84; --grid:#34332f;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --tint:#1f2a38; --warn-bg:#2e2519; --accent:#5598e7;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:960px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+h2{font-size:23px;margin:56px 0 10px;padding-top:24px;border-top:1px solid var(--grid)}
+h3{font-size:17px;margin:24px 0 6px}
+p{margin:10px 0}
+a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;letter-spacing:.02em;margin-bottom:6px}
+.lede{font-size:18px;color:var(--muted);max-width:760px}
+nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 4px}
+nav.toc a{font-size:13px;text-decoration:none;color:var(--ink);background:var(--card);border:1px solid var(--grid);border-radius:999px;padding:4px 12px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:18px;margin:18px 0}
+.card h3{margin-top:0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:16px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:16px 0;font-size:14px}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button.primary{background:var(--s1);border-color:var(--s1);color:#fff}
+button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:220px;accent-color:var(--s1)}
+.stat{display:inline-block;min-width:120px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+.tape{display:flex;flex-wrap:wrap;gap:4px;min-height:30px;margin:8px 0}
+.chip{width:32px;height:32px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;border:none;padding:0;cursor:pointer}
+.chip.h{background:var(--s1)} .chip.t{background:var(--s2)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+canvas{width:100%;display:block;border-radius:8px}
+table{border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums;width:100%}
+th,td{padding:7px 10px;border-bottom:1px solid var(--grid);text-align:left}
+th{color:var(--muted);font-weight:600}
+.tablewrap{overflow-x:auto}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+details{border:1px solid var(--grid);border-radius:8px;padding:10px 14px;margin:10px 0;background:var(--card)}
+summary{cursor:pointer;font-weight:600}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+
+<div class="kicker">Lecture 20 · Estimation, continued</div>
+<h1>Maximum Likelihood Estimation</h1>
+<p class="lede">L19 ended with a question: when many parameter values could have produced the data, is there a <b>principled</b> way to pick one? This lecture's answer is Fisher's <b>principle of maximum likelihood</b>: choose the parameter value under which the observed data was <b>most likely</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=9dQSEn0ooTc">this lecture on YouTube</a> (≈27 min). Previous: <a href="L19-estimation.html">L19 · Introduction to estimation</a>. Sections marked <span style="background:var(--warn-bg);padding:1px 6px;border-radius:4px">Going further</span> go beyond the video.</p>
+
+<nav class="toc">
+  <a href="#curve">1 · The likelihood curve</a>
+  <a href="#principle">2 · Fisher's principle</a>
+  <a href="#log">3 · Why take the log</a>
+  <a href="#coin">4 · Solving for the coin</a>
+  <a href="#continuous">5 · Continuous data breaks it</a>
+  <a href="#density">6 · Fix: use the density</a>
+  <a href="#gauss">7 · Gaussian mean</a>
+  <a href="#model">8 · The model decides</a>
+  <a href="#recipe">9 · The general recipe</a>
+  <a href="#further">10 · Going further in ℝᵈ</a>
+  <a href="#check">Self-check</a>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="curve">1 · The likelihood curve</h2>
+<p>Take the coin model from L19 and a small dataset, <b>1, 0, 1, 1</b>. For every candidate $p$ between 0 and 1, ask: <i>if the true bias were $p$, what's the chance of seeing exactly this data?</i> Plot that chance against $p$ and you get the <b>likelihood curve</b>.</p>
+<ul>
+<li>At $p = 0$ and $p = 1$ the curve is 0, because each extreme makes one of the observed outcomes impossible.</li>
+<li>Somewhere in between it peaks. That peak is the value of $p$ that makes the data <b>most likely</b>.</li>
+</ul>
+<p>Click any outcome below to flip it, or add and remove tosses, and watch the peak move.</p>
+
+<div class="card">
+  <div class="tape" id="coinTape" aria-label="Observed coin outcomes; click to flip"></div>
+  <div class="row">
+    <button id="add1">+ add a 1</button><button id="add0">+ add a 0</button><button id="pop">− remove last</button><button id="resetCoin">Reset to 1, 0, 1, 1</button>
+    <button id="logToggle">Show log-likelihood</button>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="cN">4</div><div class="l">tosses n</div></div>
+    <div class="stat"><div class="v" id="cH">3</div><div class="l">heads h</div></div>
+    <div class="stat"><div class="v" id="cPeak">0.750</div><div class="l">peak at p̂ = h/n</div></div>
+    <div class="stat" style="min-width:200px"><div class="v" id="cFormula" style="font-size:17px">p³(1−p)¹</div><div class="l">likelihood L(p)</div></div>
+  </div>
+  <canvas id="coinCanvas" height="250" aria-label="Likelihood of the coin data as a function of p"></canvas>
+  <p class="small muted" style="margin-bottom:0">Add many tosses and the curve gets narrower: more data pins down $p$ more tightly. Flip the view to the log-likelihood and the <b>peak stays in the same place</b> (section 3).</p>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="principle">2 · Fisher's principle of maximum likelihood</h2>
+<p>Proposed by R. A. Fisher, the idea is simple: among all the parameter values that could have produced the data, <b>bet on the one that makes the data most probable</b>.</p>
+<p>The <b>likelihood function</b> is the probability of the observed data, viewed as a function of the parameter:</p>
+$$L(p;\,x_1,\dots,x_n)=P(x_1,\dots,x_n;\,p).$$
+<p>This is a joint probability: all $n$ outcomes happening together. The two L19 assumptions now do the heavy lifting:</p>
+$$P(x_1,\dots,x_n;p)\;\overset{\text{independent}}{=}\;\prod_{i=1}^{n}P(x_i;p)\;\overset{\text{identical}}{=}\;\prod_{i=1}^{n}p^{x_i}(1-p)^{1-x_i}.$$
+<p>The compact factor $p^{x_i}(1-p)^{1-x_i}$ is just $p$ when $x_i=1$ and $1-p$ when $x_i=0$. For 1, 0, 1, 1 that gives $p\cdot(1-p)\cdot p\cdot p=p^{3}(1-p)$, the curve above.</p>
+<p>The <b>maximum likelihood (ML) estimator</b> is the maximiser. The hat says "this is a guess":</p>
+$$\hat p_{\text{ML}}=\arg\max_{p\in[0,1]}\;\prod_{i=1}^{n}p^{x_i}(1-p)^{1-x_i}.$$
+
+<!-- ============================================================ -->
+<h2 id="log">3 · Why take the logarithm?</h2>
+<p>Products are awkward to differentiate; sums are easy. The logarithm turns one into the other: $\log(ab)=\log a+\log b$.</p>
+<p>And it's safe, because <b>log is strictly increasing</b>. If $L(\hat p)>L(p)$ for every other $p$, then $\log L(\hat p)>\log L(p)$ too. The curve's height changes, but the location of the peak doesn't:</p>
+$$\arg\max_p L(p)=\arg\max_p \log L(p).$$
+<p>Applied to the coin:</p>
+$$\log L(p)=\sum_{i=1}^{n}\Big[x_i\log p+(1-x_i)\log(1-p)\Big].$$
+<div class="beyond"><b>Going further: a practical reason too.</b> With 1,000 tosses, the likelihood at its peak is roughly $10^{-300}$, close to the smallest number a computer can store. A few more tosses and it rounds to exactly 0, so you can't find any peak. The log-likelihood is about −690, which is a perfectly ordinary number. Every real ML implementation works with log-likelihoods for this reason.</div>
+
+<!-- ============================================================ -->
+<h2 id="coin">4 · Solving for the coin: the fraction of heads</h2>
+<p>The lecturer leaves this as an exercise. Here it is step by step. Write $h=\sum_i x_i$ for the number of heads.</p>
+<ol class="steps">
+<li>Collect the terms: $\displaystyle\log L(p)=h\log p+(n-h)\log(1-p).$</li>
+<li>Differentiate: $\displaystyle\frac{d}{dp}\log L(p)=\frac{h}{p}-\frac{n-h}{1-p}.$</li>
+<li>Set it to zero and solve: $h(1-p)=(n-h)p\;\Rightarrow\;h=np\;\Rightarrow\;\boxed{\hat p_{\text{ML}}=\frac{h}{n}=\frac1n\sum_{i=1}^{n}x_i}.$</li>
+<li>Check it's a maximum: $\displaystyle\frac{d^2}{dp^2}\log L=-\frac{h}{p^2}-\frac{n-h}{(1-p)^2}<0$. The log-likelihood is <b>concave</b>, so this single stationary point is the global maximum.</li>
+</ol>
+<p>The answer is the average of the data. Since each $x_i$ is 0 or 1, the sum just counts the 1s, so the average is the <b>fraction of heads</b>. That's exactly the intuitive guess from L19, now backed by a principle. Remember it still rests on the i.i.d. assumption.</p>
+
+<!-- ============================================================ -->
+<h2 id="continuous">5 · Continuous data breaks the recipe</h2>
+<p>Now suppose the data is the <b>heights of people</b>: real numbers like 162.53 cm, not 0s and 1s. A coin box can't produce these, so we need a different model. The simplest choice is a <b>Gaussian</b>, $x_i\sim\mathcal N(\mu,\sigma^2)$. To keep things simple, assume $\sigma^2$ is known and only the mean $\mu$ is unknown.</p>
+<p>Try the same recipe: "the probability of seeing these exact heights". For a continuous distribution, probability is the <b>area under the density curve</b> over an interval. A single exact value is an interval of width zero, so its probability is <b>always zero</b>, whatever $\mu$ is.</p>
+<p>That kills the recipe. The product of the probabilities is 0 for <i>every</i> $\mu$, so it can't tell a good $\mu$ from a terrible one. There's nothing to maximise.</p>
+
+<div class="card">
+  <h3>Shrink the interval around one observation</h3>
+  <p class="small muted">The shaded area is $P(x-\tfrac w2<X<x+\tfrac w2)$ for the observation $x = 162.53$, under a Gaussian with the mean you choose and σ = 6. As the width $w$ shrinks, the area goes to 0. But area ÷ width settles on a fixed number: the <b>density</b> at $x$.</p>
+  <div class="row">
+    <label>interval width w = <b id="wVal">10.0</b> <input type="range" id="wS" min="0" max="100" step="1" value="70" aria-label="Interval width"></label>
+    <label>mean μ = <b id="m5Val">150</b> <input type="range" id="m5S" min="140" max="180" step="0.5" value="150" aria-label="Mean"></label>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="area">–</div><div class="l">probability (area)</div></div>
+    <div class="stat"><div class="v" id="ratio">–</div><div class="l">area ÷ width</div></div>
+    <div class="stat"><div class="v" id="dens">–</div><div class="l">density f(162.53)</div></div>
+  </div>
+  <canvas id="areaCanvas" height="230" aria-label="Gaussian density with a shaded interval around 162.53"></canvas>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="density">6 · Fisher's fix: replace probabilities with densities</h2>
+<p>Fisher's proposal: instead of the probability of each observation, use the <b>value of the density (PDF)</b> at that observation. The probability of a single point is 0, but the height of the curve there isn't. It's a sensible stand-in, since a taller curve means data near that point is more probable.</p>
+$$L(\mu,\sigma^2;\,x_1,\dots,x_n)=f(x_1,\dots,x_n;\,\mu,\sigma^2)\overset{\text{indep.}}{=}\prod_{i=1}^{n}f(x_i;\,\mu,\sigma^2),\qquad
+f(x;\mu,\sigma^2)=\frac{1}{\sqrt{2\pi}\,\sigma}\,e^{-\frac{(x-\mu)^2}{2\sigma^2}} .$$
+<ul>
+<li>Densities factorise under independence, just like probabilities do.</li>
+<li>A density value is <b>not a probability</b>. It can even be bigger than 1: a Gaussian with σ = 0.1 has a peak height of about 3.99.</li>
+<li>That's why it's called a <b>likelihood</b> and not a probability. It's the likelihood of the data under a parameter, not the chance of it.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="gauss">7 · The Gaussian mean: maximum likelihood gives the sample mean</h2>
+<p>Take the log of the Gaussian likelihood:</p>
+$$\log L(\mu)=\sum_{i=1}^{n}\Big[\log\frac{1}{\sqrt{2\pi}\,\sigma}-\frac{(x_i-\mu)^2}{2\sigma^2}\Big].$$
+<p>The first term doesn't involve $\mu$, and the positive constant $2\sigma^2$ doesn't move the peak, so</p>
+$$\hat\mu_{\text{ML}}=\arg\max_\mu\Big[-\sum_{i=1}^{n}(x_i-\mu)^2\Big]=\arg\min_\mu\sum_{i=1}^{n}(x_i-\mu)^2 .$$
+<p>Differentiate: $\;2\sum_i(x_i-\mu)=0\;\Rightarrow\;\boxed{\hat\mu_{\text{ML}}=\frac1n\sum_{i=1}^{n}x_i}$, the <b>sample mean</b>. Note the middle form: it's the same "minimise the sum of squared distances" problem as Fact 1 in L15.</p>
+
+<div class="card">
+  <h3>Slide μ and watch the likelihood</h3>
+  <p class="small muted">Eight heights (cm), with σ = 6 known. Each vertical line is the density at one data point under the current μ; the likelihood is their product. The lower chart shows the log-likelihood for every μ. It peaks at the sample mean.</p>
+  <div class="row">
+    <label>μ = <b id="muVal">155.0</b> <input type="range" id="muS" min="145" max="185" step="0.1" value="155" aria-label="Mean mu"></label>
+    <button id="toMean">Jump to the sample mean</button>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="gLL">–</div><div class="l">log-likelihood at μ</div></div>
+    <div class="stat"><div class="v" id="gMean">–</div><div class="l">sample mean x̄</div></div>
+  </div>
+  <canvas id="bellCanvas" height="220" aria-label="Gaussian density with the data points marked"></canvas>
+  <canvas id="llCanvas" height="200" aria-label="Log-likelihood as a function of mu" style="margin-top:10px"></canvas>
+</div>
+
+<!-- ============================================================ -->
+<h2 id="model">8 · The estimator depends on the model you assume</h2>
+<p>The sample mean is the ML answer <b>because we assumed a Gaussian</b>. Change the assumption and the answer changes. Suppose domain knowledge suggests a <b>Laplace distribution</b> instead. It looks like a bell, but with a sharp peak and heavier tails:</p>
+$$f(x;\mu,b)=\frac{1}{2b}\,e^{-|x-\mu|/b}.$$
+<p>Its log-likelihood is $-n\log 2b-\tfrac1b\sum_i|x_i-\mu|$, so maximising it means <b>minimising the sum of absolute distances</b>, $\sum_i|x_i-\mu|$. The minimiser is the <b>sample median</b>.</p>
+<details><summary>Why the median? (a one-paragraph proof)</summary>
+<p>The slope of $\sum_i|x_i-\mu|$ with respect to $\mu$ is (number of points below $\mu$) − (number of points above $\mu$). Moving $\mu$ up helps while more points are above it than below, and hurts once more are below. The slope crosses zero when half the points are on each side, which is the median. With an even count, any value between the two middle points works.</p></details>
+
+<div class="card">
+  <h3>Same data, two models</h3>
+  <p class="small muted">Both curves are the log-likelihood as a function of μ, shifted so each peak sits at 0, which makes the shapes comparable. Add one typing error (a 230 cm "height") and see which estimate it drags.</p>
+  <div class="row"><button id="outlier">Add an outlier (230 cm)</button></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="mMean">–</div><div class="l">Gaussian ML = mean</div></div>
+    <div class="stat"><div class="v" id="mMed">–</div><div class="l">Laplace ML = median</div></div>
+  </div>
+  <canvas id="modelCanvas" height="240" aria-label="Gaussian and Laplace log-likelihoods for the height data"></canvas>
+  <div class="legend" style="margin-top:6px"><span><i style="background:var(--s1)"></i>Gaussian model (peak = mean)</span><span><i style="background:var(--s2)"></i>Laplace model (peak = median)</span></div>
+</div>
+<p>The lecture's point: <b>the estimator is tied to the model</b>. Maximum likelihood adapts to whatever model you assume, because it works directly with that model's density. The sample mean isn't automatically "the" right answer.</p>
+
+<!-- ============================================================ -->
+<h2 id="recipe">9 · The general recipe, and what's next</h2>
+<ol class="steps">
+<li><b>Assume a model:</b> a family of distributions with unknown parameter θ.</li>
+<li><b>Write the likelihood:</b> the product of the PMF (discrete data) or PDF (continuous data) over the observations, using i.i.d.</li>
+<li><b>Take the log</b> to turn the product into a sum.</li>
+<li><b>Maximise over θ:</b> set the derivative to zero, or use a numerical optimiser when there's no closed form.</li>
+</ol>
+<p>Its power is <b>generality</b>. Once you've written down a model, you automatically have a way to estimate its parameters, even when you have no intuition about what a good guess would be. When you <i>do</i> have intuition (the fraction of heads, the average height), it agrees with it. That's why maximum likelihood is so widely used in statistics and machine learning.</p>
+<p>A statistics course would go on to prove <i>why</i> it's a good estimator, and that in certain well-defined senses nothing can beat it. This course takes that as given.</p>
+<div class="callout"><b>The lecture's closing question:</b> maximum likelihood uses only the data. In practice, is there <i>something else</i> we often know before seeing any data, and could using it give better estimates? That's the setup for <b>Bayesian estimation</b>, with priors and posteriors, in the next lecture.</div>
+
+<!-- ============================================================ -->
+<h2 id="further">10 · Going further: maximum likelihood in ℝᵈ</h2>
+<div class="beyond">Everything in this section goes beyond the video.</div>
+
+<h3>10.1 Maximising likelihood = minimising a loss</h3>
+<p>Writing $\hat\theta=\arg\min_\theta\big[-\log L(\theta)\big]$ shows that every model defines a <b>loss function</b>, its <b>negative log-likelihood</b>:</p>
+<div class="tablewrap"><table>
+<tr><th>Model for each $x_i\in\mathbb R^d$</th><th>−log L (up to constants)</th><th>ML estimate of the centre</th></tr>
+<tr><td>Gaussian $\mathcal N(\mu,\sigma^2 I)$</td><td>$\frac{1}{2\sigma^2}\sum_i\lVert x_i-\mu\rVert_2^2$</td><td>sample mean (coordinate-wise)</td></tr>
+<tr><td>Independent Laplace per coordinate</td><td>$\frac1b\sum_i\lVert x_i-\mu\rVert_1$</td><td>coordinate-wise median</td></tr>
+<tr><td>Isotropic "Laplace-like", $\propto e^{-\lVert x-\mu\rVert_2/b}$</td><td>$\frac1b\sum_i\lVert x_i-\mu\rVert_2$</td><td>geometric median (no closed form; Weiszfeld's algorithm)</td></tr>
+</table></div>
+<p>This is how K-means connects too: its squared-distance cost is the Gaussian row, and K-medians is the Laplace row (L15). It's also exactly how loss functions in regression will arise later: squared loss ⇔ Gaussian noise, absolute loss ⇔ Laplace noise.</p>
+
+<h3>10.2 Both parameters unknown: the variance estimate is biased</h3>
+<p>In 1-D with both $\mu$ and $\sigma^2$ unknown, set the derivative with respect to $\sigma^2$ to zero as well:</p>
+$$\frac{\partial\log L}{\partial\sigma^2}=-\frac{n}{2\sigma^2}+\frac{1}{2\sigma^4}\sum_i(x_i-\mu)^2=0\;\Rightarrow\;\hat\sigma^2_{\text{ML}}=\frac1n\sum_{i=1}^{n}(x_i-\hat\mu)^2 .$$
+<p>On average this comes out a little too small: $\mathbb E[\hat\sigma^2_{\text{ML}}]=\frac{n-1}{n}\sigma^2$. That's because $\hat\mu$ was fitted to the same data, which pulls the points closer to it than they are to the true μ. Dividing by $n-1$ instead gives the unbiased estimate. In $\mathbb R^d$ the same holds for $\hat\Sigma=\frac1n\sum_i(x_i-\hat\mu)(x_i-\hat\mu)^\top$, derived on the <a href="L19-estimation.html#further">L19 page</a>.</p>
+
+<h3>10.3 A die with m faces (categorical), using a Lagrange multiplier</h3>
+<p>Let face $j$ have probability $\pi_j$ and appear $n_j$ times. The log-likelihood is $\sum_j n_j\log\pi_j$, subject to $\sum_j\pi_j=1$. Add the constraint with a multiplier $\lambda$:</p>
+$$\frac{\partial}{\partial\pi_j}\Big[\sum_k n_k\log\pi_k-\lambda\big(\textstyle\sum_k\pi_k-1\big)\Big]=\frac{n_j}{\pi_j}-\lambda=0\;\Rightarrow\;\pi_j=\frac{n_j}{\lambda}\;\Rightarrow\;\hat\pi_j=\frac{n_j}{n}.$$
+<p>It's the fraction of times each face came up: the coin result generalised. This gave the $\hat\pi_k=n_k/n$ mixing weights used in BIC in L18.</p>
+
+<h3>10.4 How accurate is the ML estimate? Fisher information</h3>
+<p>For large $n$, the ML estimate is approximately Gaussian around the truth, with variance set by how sharply the log-likelihood curves at its peak:</p>
+$$\hat\theta_{\text{ML}}\;\approx\;\mathcal N\!\Big(\theta,\;\frac{1}{n\,I(\theta)}\Big),\qquad I(\theta)=-\,\mathbb E\Big[\frac{\partial^2}{\partial\theta^2}\log f(x;\theta)\Big].$$
+<p>For the coin: $\frac{\partial^2}{\partial p^2}\big[x\log p+(1-x)\log(1-p)\big]=-\frac{x}{p^2}-\frac{1-x}{(1-p)^2}$. Taking the expectation gives $I(p)=\frac1p+\frac1{1-p}=\frac{1}{p(1-p)}$. So the variance is $\frac{p(1-p)}{n}$, which matches the spread you saw in the L19 sampling-distribution chart. A sharply curved log-likelihood (the narrow curve in section 1 as you add tosses) means high information and a precise estimate. In $\mathbb R^k$, $I(\theta)$ becomes a $k\times k$ matrix and the covariance of $\hat\theta$ is approximately $\big(nI(\theta)\big)^{-1}$. No unbiased estimator can beat this; that's the Cramér–Rao bound, one of the "it's the best you can get" results the lecture alludes to.</p>
+
+<h3>10.5 Invariance: estimate once, transform freely</h3>
+<p>If $\hat\theta$ is the ML estimate of $\theta$, then $g(\hat\theta)$ is the ML estimate of $g(\theta)$. For example, the ML estimate of a coin's odds $p/(1-p)$ is $\hat p/(1-\hat p)$, and the ML estimate of σ is $\sqrt{\hat\sigma^2_{\text{ML}}}$.</p>
+
+<!-- ============================================================ -->
+<h2 id="check">Key takeaways</h2>
+<ol>
+<li><b>The likelihood</b> is the probability (or density) of the observed data, viewed as a function of the parameter.</li>
+<li><b>Maximum likelihood:</b> estimate the parameter as the value that makes the data most likely.</li>
+<li><b>i.i.d.</b> turns the likelihood into a product; the <b>log</b> turns it into a sum without moving the peak.</li>
+<li><b>Coin:</b> $\hat p_{\text{ML}}$ = fraction of heads. <b>Gaussian mean:</b> $\hat\mu_{\text{ML}}$ = sample mean.</li>
+<li><b>For continuous data</b>, every exact value has probability 0, so the likelihood uses the <b>density</b> instead.</li>
+<li><b>The estimator depends on the model:</b> a Laplace model gives the median, not the mean.</li>
+<li><b>Next:</b> using knowledge we have <i>before</i> seeing the data, which leads to Bayesian estimation.</li>
+</ol>
+
+<h2>Self-check</h2>
+<details><summary>1. Write the likelihood for the data 0, 0, 1, 0, 1 under the coin model and find p̂.</summary><p>$L(p)=p^{2}(1-p)^{3}$, so $\hat p=2/5$.</p></details>
+<details><summary>2. Why is it fine to maximise log L instead of L?</summary><p>Log is strictly increasing, so it preserves the ordering of values. Whichever $p$ gives the largest $L$ also gives the largest $\log L$.</p></details>
+<details><summary>3. Why can't we use the probability of the exact observed heights under a Gaussian?</summary><p>For a continuous distribution, any single exact value has probability 0. The product is 0 for every μ, so it can't distinguish between parameter values.</p></details>
+<details><summary>4. A Gaussian density value at a point is 2.5. Is something wrong?</summary><p>No. Densities aren't probabilities and can exceed 1 when σ is small. Only the area under the curve must equal 1.</p></details>
+<details><summary>5. Data: 3, 4, 5, 6, 100. What are the Gaussian and Laplace ML estimates of the centre?</summary><p>Gaussian: the mean, 23.6. Laplace: the median, 5. The Laplace answer ignores how far away the outlier is.</p></details>
+<details><summary>6. For d-dimensional data with model N(μ, σ²I), what is μ̂? What about a per-coordinate Laplace model?</summary><p>The coordinate-wise sample mean for the Gaussian, and the coordinate-wise median for the Laplace model (section 10.1).</p></details>
+
+<p class="small muted" style="margin-top:40px">For the exact wording of the lecture, open the video on YouTube and use "Show transcript".</p>
+</main>
+
+<script>
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){
+  if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');   // cv.height below overwrites the attribute
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return [ctx, r.width, h];
+}
+function axes(ctx, W, H, pad, xr, yr, xt, yt, xlab, ylab, xfmt, yfmt){
+  const grid = cssv('--grid'), muted = cssv('--muted');
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r);
+  const Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,-apple-system,sans-serif'; ctx.lineWidth = 1;
+  yt.forEach(v => { ctx.strokeStyle = grid; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke();
+    ctx.fillStyle = muted; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(yfmt(v), pad.l - 6, Y(v)); });
+  xt.forEach(v => { ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(xfmt(v), X(v), H - pad.b + 6); });
+  ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(xlab, (pad.l + W - pad.r) / 2, H - 2);
+  if (ylab){ ctx.save(); ctx.translate(12, (pad.t + H - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(ylab, 0, 0); ctx.restore(); }
+  return [X, Y];
+}
+function line(ctx, pts, color, width, dash){ ctx.strokeStyle = color; ctx.lineWidth = width || 2; ctx.setLineDash(dash || []);
+  ctx.beginPath(); pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); ctx.setLineDash([]); }
+function dot(ctx, x, y, color, r){ ctx.fillStyle = color; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r || 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); }
+function label(ctx, t, x, y, align, base, color){ ctx.fillStyle = color || cssv('--ink'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = align || 'left'; ctx.textBaseline = base || 'bottom'; ctx.fillText(t, x, y); }
+const sup = n => String(n).replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]);
+// error function (Abramowitz & Stegun 7.1.26, |error| < 1.5e-7)
+function erf(x){ const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
+const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2));
+const npdf = (x, m, s) => Math.exp(-((x - m) ** 2) / (2 * s * s)) / (Math.sqrt(2 * Math.PI) * s);
+
+/* ---------- 1 · coin likelihood ---------- */
+let coin = [1, 0, 1, 1], showLog = false;
+function renderCoin(){
+  $('coinTape').innerHTML = coin.map((b, i) => `<button class="chip ${b ? 'h' : 't'}" data-i="${i}" aria-label="Toss ${i + 1}: ${b}. Click to flip">${b}</button>`).join('');
+  $('coinTape').querySelectorAll('button').forEach(b => b.onclick = () => { coin[+b.dataset.i] ^= 1; renderCoin(); });
+  const n = coin.length, h = coin.reduce((a, b) => a + b, 0);
+  $('cN').textContent = n; $('cH').textContent = h; $('cPeak').textContent = n ? (h / n).toFixed(3) : '–';
+  $('cFormula').textContent = n ? `p${sup(h)}(1−p)${sup(n - h)}` : '1';
+  drawCoin();
+}
+function drawCoin(){
+  const cv = $('coinCanvas'), [ctx, W, H] = setupCanvas(cv);
+  const n = coin.length, h = coin.reduce((a, b) => a + b, 0);
+  const ll = p => (h ? h * Math.log(p) : 0) + (n - h ? (n - h) * Math.log(1 - p) : 0);
+  const pk = n ? h / n : 0.5, P = []; for (let i = 1; i < 400; i++) P.push(i / 400);
+  if (!showLog){
+    const peak = Math.exp(ll(Math.min(Math.max(pk, 1e-9), 1 - 1e-9)));
+    const top = peak * 1.15, yt = [0, peak / 2, peak];
+    const [X, Y] = axes(ctx, W, H, {l: 70, r: 14, t: 14, b: 36}, [0, 1], [0, top], [0, 0.25, 0.5, 0.75, 1], yt,
+      'candidate p', 'L(p)', v => v, v => v === 0 ? '0' : v.toPrecision(2));
+    line(ctx, [[X(0), Y(h === 0 ? 1 : 0)], ...P.map(p => [X(p), Y(Math.exp(ll(p)))]), [X(1), Y(h === n ? 1 : 0)]], cssv('--s1'), 2.5);
+    dot(ctx, X(pk), Y(peak), cssv('--s2')); label(ctx, `peak: p̂ = ${h}/${n} = ${pk.toFixed(3)}`, X(pk) + (pk > 0.7 ? -10 : 10), Y(peak) - 6, pk > 0.7 ? 'right' : 'left');
+  } else {
+    const vals = P.map(p => ll(p)), mx = Math.max(...vals), lo = mx - 12;
+    const [X, Y] = axes(ctx, W, H, {l: 70, r: 14, t: 14, b: 36}, [0, 1], [lo, mx + 1], [0, 0.25, 0.5, 0.75, 1],
+      [Math.ceil(lo), Math.round((lo + mx) / 2), Math.floor(mx)], 'candidate p', 'log L(p)', v => v, v => v.toFixed(0));
+    ctx.save(); ctx.beginPath(); ctx.rect(70, 14, W - 84, H - 50); ctx.clip();
+    line(ctx, P.map((p, i) => [X(p), Y(vals[i])]), cssv('--s3'), 2.5); ctx.restore();
+    dot(ctx, X(pk), Y(ll(Math.min(Math.max(pk, 1e-9), 1 - 1e-9))), cssv('--s2'));
+    label(ctx, `same peak: p̂ = ${pk.toFixed(3)}`, X(pk) + (pk > 0.7 ? -10 : 10), Y(mx) - 6, pk > 0.7 ? 'right' : 'left');
+  }
+}
+$('add1').onclick = () => { coin.push(1); renderCoin(); }; $('add0').onclick = () => { coin.push(0); renderCoin(); };
+$('pop').onclick = () => { if (coin.length > 1) coin.pop(); renderCoin(); };
+$('resetCoin').onclick = () => { coin = [1, 0, 1, 1]; renderCoin(); };
+$('logToggle').onclick = () => { showLog = !showLog; $('logToggle').textContent = showLog ? 'Show likelihood' : 'Show log-likelihood'; $('logToggle').classList.toggle('on', showLog); drawCoin(); };
+
+/* ---------- 5 · interval area ---------- */
+const X0 = 162.53, S5 = 6;
+function drawArea(){
+  const w = Math.max(0.01, +Math.pow(10, -2 + 3 * (+$('wS').value / 100)).toPrecision(3)), mu = +$('m5S').value;
+  $('wVal').textContent = w >= 1 ? w.toFixed(1) : w.toPrecision(2); $('m5Val').textContent = mu;
+  const area = Phi((X0 + w / 2 - mu) / S5) - Phi((X0 - w / 2 - mu) / S5), d = npdf(X0, mu, S5);
+  $('area').textContent = area.toPrecision(3); $('ratio').textContent = (area / w).toFixed(5); $('dens').textContent = d.toFixed(5);
+  const cv = $('areaCanvas'), [ctx, W, H] = setupCanvas(cv), top = 0.075;
+  const [X, Y] = axes(ctx, W, H, {l: 54, r: 14, t: 12, b: 36}, [125, 200], [0, top], [130, 145, 160, 175, 190], [0, 0.03, 0.06],
+    'height x (cm)', 'density', v => v, v => v.toFixed(2));
+  const a = X0 - w / 2, b = X0 + w / 2; ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.moveTo(X(a), Y(0));
+  for (let i = 0; i <= 60; i++){ const x = a + (b - a) * i / 60; ctx.lineTo(X(x), Y(npdf(x, mu, S5))); } ctx.lineTo(X(b), Y(0)); ctx.fill(); ctx.globalAlpha = 1;
+  const pts = []; for (let i = 0; i <= 300; i++){ const x = 125 + 75 * i / 300; pts.push([X(x), Y(npdf(x, mu, S5))]); } line(ctx, pts, cssv('--s1'), 2.5);
+  line(ctx, [[X(X0), Y(0)], [X(X0), Y(d)]], cssv('--s2'), 2); dot(ctx, X(X0), Y(d), cssv('--s2'), 5);
+  label(ctx, 'x = 162.53', X(X0) + 8, Y(d) - 4);
+}
+$('wS').oninput = drawArea; $('m5S').oninput = drawArea;
+
+/* ---------- 7 · Gaussian mean ---------- */
+const HEIGHTS = [162.5, 158.1, 171.3, 165.0, 168.7, 160.2, 174.9, 163.4], SG = 6;
+const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+const median = a => { const s = [...a].sort((p, q) => p - q), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const gLL = (mu, xs) => xs.reduce((s, x) => s + Math.log(npdf(x, mu, SG)), 0);
+function drawGauss(){
+  const mu = +$('muS').value, xbar = mean(HEIGHTS); $('muVal').textContent = mu.toFixed(1);
+  $('gLL').textContent = gLL(mu, HEIGHTS).toFixed(2); $('gMean').textContent = xbar.toFixed(2);
+  let [ctx, W, H] = setupCanvas($('bellCanvas'));
+  let [X, Y] = axes(ctx, W, H, {l: 54, r: 14, t: 12, b: 36}, [140, 190], [0, 0.075], [145, 155, 165, 175, 185], [0, 0.03, 0.06],
+    'height x (cm)', 'density', v => v, v => v.toFixed(2));
+  const pts = []; for (let i = 0; i <= 300; i++){ const x = 140 + 50 * i / 300; pts.push([X(x), Y(npdf(x, mu, SG))]); } line(ctx, pts, cssv('--s1'), 2.5);
+  HEIGHTS.forEach(x => { const d = npdf(x, mu, SG); line(ctx, [[X(x), Y(0)], [X(x), Y(d)]], cssv('--s2'), 2); dot(ctx, X(x), Y(d), cssv('--s2'), 4); });
+  label(ctx, `μ = ${mu.toFixed(1)}`, X(mu), Y(npdf(mu, mu, SG)) - 4, 'center');
+  [ctx, W, H] = setupCanvas($('llCanvas'));
+  const M = []; for (let i = 0; i <= 300; i++) M.push(145 + 40 * i / 300);
+  const vals = M.map(m => gLL(m, HEIGHTS)), mx = Math.max(...vals), lo = Math.min(...vals);
+  [X, Y] = axes(ctx, W, H, {l: 54, r: 14, t: 16, b: 36}, [145, 185], [lo, mx + (mx - lo) * 0.08], [145, 155, 165, 175, 185],
+    [Math.ceil(lo / 20) * 20, Math.round((lo + mx) / 40) * 20, Math.floor(mx / 20) * 20].filter((v, i, a) => a.indexOf(v) === i),
+    'candidate μ', 'log L(μ)', v => v, v => v.toFixed(0));
+  line(ctx, M.map((m, i) => [X(m), Y(vals[i])]), cssv('--s3'), 2.5);
+  line(ctx, [[X(xbar), Y(lo)], [X(xbar), Y(mx)]], cssv('--faint'), 1, [4, 4]);
+  label(ctx, `peak at x̄ = ${xbar.toFixed(2)}`, X(xbar) + 8, Y(mx) + 2, 'left', 'top', cssv('--muted'));
+  dot(ctx, X(mu), Y(gLL(mu, HEIGHTS)), cssv('--s2'));
+}
+$('muS').oninput = drawGauss; $('toMean').onclick = () => { $('muS').value = mean(HEIGHTS).toFixed(1); drawGauss(); };
+
+/* ---------- 8 · Gaussian vs Laplace ---------- */
+let withOut = false;
+function drawModel(){
+  const xs = withOut ? [...HEIGHTS, 230] : HEIGHTS, m = mean(xs), md = median(xs), B = SG / Math.SQRT2;   // Laplace scale with the same variance
+  $('mMean').textContent = m.toFixed(2); $('mMed').textContent = md.toFixed(2);
+  const lap = mu => xs.reduce((s, x) => s - Math.log(2 * B) - Math.abs(x - mu) / B, 0);
+  const lo = 150, hi = 185, M = []; for (let i = 0; i <= 400; i++) M.push(lo + (hi - lo) * i / 400);
+  const g = M.map(u => gLL(u, xs)), l = M.map(lap), gm = Math.max(...g), lm = Math.max(...l);
+  const [ctx, W, H] = setupCanvas($('modelCanvas'));
+  const [X, Y] = axes(ctx, W, H, {l: 54, r: 14, t: 16, b: 36}, [lo, hi], [-30, 2], [150, 160, 170, 180], [-30, -20, -10, 0],
+    'candidate μ', 'log L − max', v => v, v => v.toFixed(0));
+  ctx.save(); ctx.beginPath(); ctx.rect(54, 16, W - 68, H - 52); ctx.clip();
+  line(ctx, M.map((u, i) => [X(u), Y(g[i] - gm)]), cssv('--s1'), 2.5);
+  line(ctx, M.map((u, i) => [X(u), Y(l[i] - lm)]), cssv('--s2'), 2.5); ctx.restore();
+  dot(ctx, X(m), Y(0), cssv('--s1')); dot(ctx, X(md), Y(0), cssv('--s2'));
+  label(ctx, `mean ${m.toFixed(1)}`, X(m) + 8, Y(0) - 8, 'left'); label(ctx, `median ${md.toFixed(1)}`, X(md) - 8, Y(0) - 8, 'right');
+}
+$('outlier').onclick = () => { withOut = !withOut; $('outlier').textContent = withOut ? 'Remove the outlier' : 'Add an outlier (230 cm)'; $('outlier').classList.toggle('on', withOut); drawModel(); };
+
+/* ---------- init + redraw ---------- */
+function redrawAll(){ drawCoin(); drawArea(); drawGauss(); drawModel(); }
+renderCoin(); drawArea(); drawGauss(); drawModel();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => {
+  if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});
+  redrawAll();
+});
+</script>
+</body>
+</html>

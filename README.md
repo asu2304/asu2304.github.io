@@ -4,6 +4,8 @@
 
 Personal notes blog of Ashutosh Patidar, served by GitHub Pages.
 
+Revision notes for Probability & Statistics, Linear Algebra, Machine Learning and Deep Learning. Revision notes on hot industry topics such as RAG and AI agents are coming soon.
+
 ## Revision
 
 - **[Probability and Statistics Revision](https://asu2304.github.io/probability-statistics/)**: coming soon.

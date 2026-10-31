@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css?v=5">
+<link rel="stylesheet" href="sql.css?v=6">
 <style>
 .sac { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
 .sac .stage { border: 1px solid var(--rule); border-radius: 10px; padding: 8px; background: var(--bg); min-height: 120px; opacity: .35; transition: opacity .3s; }
@@ -164,6 +164,11 @@ HAVING COUNT(*) > 2;</code></pre>
 <div class="callout sql"><span class="t">Writing order</span>
 <p style="font-family:var(--mono);font-size:15px;margin:0"><b>SELECT</b> → <b>FROM</b> → <b>JOIN</b> → <b>WHERE</b> → <b>GROUP BY</b> → <b>HAVING</b> → <b>ORDER BY</b> → <b>LIMIT</b></p></div>
 <p>Writing them in any other order is a syntax error (e.g. <code>WHERE</code> after <code>ORDER BY</code>). The logical <em>execution</em> order is different (FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT; see <a href="08-dml-queries.html#order">Chapter 8</a>).</p>
+<div class="oc">
+  <div class="col"><h5>✍️ Writing order: how you type it</h5><div class="ln" data-s="6,7"><span><span class="kw">SELECT DISTINCT</span> column</span><span class="step">6 · 7</span></div><div class="ln" data-s="1"><span><span class="kw">FROM</span> table</span><span class="step">1</span></div><div class="ln" data-s="2"><span><span class="kw">JOIN</span> another_table ON condition</span><span class="step">2</span></div><div class="ln" data-s="3"><span><span class="kw">WHERE</span> condition</span><span class="step">3</span></div><div class="ln" data-s="4"><span><span class="kw">GROUP BY</span> column</span><span class="step">4</span></div><div class="ln" data-s="5"><span><span class="kw">HAVING</span> condition</span><span class="step">5</span></div><div class="ln" data-s="8"><span><span class="kw">ORDER BY</span> column</span><span class="step">8</span></div><div class="ln" data-s="9"><span><span class="kw">LIMIT</span> n;</span><span class="step">9</span></div></div>
+  <div class="col"><h5>⚙️ Execution order: how it runs</h5><div class="ln" data-s="1"><span><span class="kw">FROM</span></span><span class="step">1</span></div><div class="ln" data-s="2"><span><span class="kw">JOIN</span></span><span class="step">2</span></div><div class="ln" data-s="3"><span><span class="kw">WHERE</span></span><span class="step">3</span></div><div class="ln" data-s="4"><span><span class="kw">GROUP BY</span></span><span class="step">4</span></div><div class="ln" data-s="5"><span><span class="kw">HAVING</span></span><span class="step">5</span></div><div class="ln" data-s="6"><span><span class="kw">SELECT</span></span><span class="step">6</span></div><div class="ln" data-s="7"><span><span class="kw">DISTINCT</span></span><span class="step">7</span></div><div class="ln" data-s="8"><span><span class="kw">ORDER BY</span></span><span class="step">8</span></div><div class="ln" data-s="9"><span><span class="kw">LIMIT</span></span><span class="step">9</span></div></div>
+</div>
+<p class="oc-hint">The orange number on each written clause is its <b>execution step</b>. Hover (or tap) a clause to see where it sits in the other list. SELECT is written first but runs 6th, which is why <code>WHERE</code> can't use a SELECT alias but <code>ORDER BY</code> can.</p>
 <div class="mnemonic"><span class="t">Memory trick: execution order</span>
 <div class="phrase"><b>F</b>rank <b>J</b>ohn's <b>W</b>icked <b>G</b>rave <b>H</b>aunts <b>S</b>everal <b>D</b>ull <b>O</b>wls</div>
 <div class="map"><span><b>F</b>ROM</span><span><b>J</b>OIN</span><span><b>W</b>HERE</span><span><b>G</b>ROUP BY</span><span><b>H</b>AVING</span><span><b>S</b>ELECT</span><span><b>D</b>ISTINCT</span><span><b>O</b>RDER BY</span></div>
@@ -254,7 +259,7 @@ ORDER BY pclass;</textarea>
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js?v=5"></script>
+<script src="notes.js?v=6"></script>
 <script>
 (function () {
   var rows = [["Salman Khan", "Sultan", 524], ["Aamir Khan", "Dangal", 1954], ["Ranbir Kapoor", "Sanju", 486], ["Salman Khan", "Tiger Zinda Hai", 355],

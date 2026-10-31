@@ -241,3 +241,14 @@
 .mnemonic .map span { font: 600 13px var(--mono); background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 4px 9px; }
 .mnemonic .map span b { color: var(--sql); }
 .mnemonic small { display: block; margin-top: 10px; color: var(--muted); font-size: 13.5px; }
+
+/* writing order vs execution order, side by side */
+.oc { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; margin: 18px 0 8px; font-family: var(--sans); }
+.oc h5 { margin: 0 0 8px; font: 700 12px var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.oc .col { border: 1px solid var(--rule); border-radius: 12px; background: var(--surface); padding: 12px 14px; }
+.oc .ln { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 4px 8px; border-radius: 6px; font: 14px/1.5 var(--mono); cursor: default; transition: background .15s; }
+.oc .ln .kw { color: var(--tk-kw); font-weight: 700; }
+.oc .ln .step { flex: none; font: 700 11px var(--sans); color: var(--sql); background: var(--sql-soft); border: 1px solid var(--sql); border-radius: 999px; min-width: 22px; text-align: center; padding: 1px 6px; }
+.oc .ln.hl { background: var(--warn-soft); }
+.oc-hint { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+@media (max-width: 700px) { .oc { grid-template-columns: 1fr; } }

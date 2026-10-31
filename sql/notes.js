@@ -232,6 +232,18 @@
     });
   }
 
+  /* ---------- writing vs execution order: link matching clauses ---------- */
+  document.querySelectorAll(".oc").forEach(function (box) {
+    var lines = box.querySelectorAll(".ln[data-s]");
+    function mark(steps) { lines.forEach(function (l) { var mine = l.getAttribute("data-s").split(","); l.classList.toggle("hl", !!steps && mine.some(function (m) { return steps.indexOf(m) >= 0; })); }); }
+    lines.forEach(function (l) {
+      var steps = l.getAttribute("data-s").split(",");
+      l.addEventListener("mouseenter", function () { mark(steps); });
+      l.addEventListener("click", function () { mark(steps); });
+    });
+    box.addEventListener("mouseleave", function () { mark(null); });
+  });
+
   /* ---------- quizzes ---------- */
   var quizzes = document.querySelectorAll(".quiz");
   var score = { right: 0, total: 0 };

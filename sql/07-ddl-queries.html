@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7 · DDL SQL Queries · SQL for Data Science</title>
+<meta name="description" content="Chapter 7 notes: CREATE, DROP, TRUNCATE and ALTER for databases and tables, plus constraints: NOT NULL, UNIQUE, PRIMARY KEY, AUTO_INCREMENT, CHECK, DEFAULT and FOREIGN KEY with referential actions.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css">
+</head>
+<body class="sql-page" data-chapter="7">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 7</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 7</p>
+<h1>DDL queries: creating and shaping databases and tables</h1>
+<div class="chips"><span class="chip">2:18:20 → 3:00:00</span><span class="chip">CREATE · DROP · TRUNCATE · ALTER</span><span class="chip">7 constraints</span><span class="chip">Live SQL lab</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<p class="lede">So far we created databases and tables by clicking around in phpMyAdmin. Not every company uses phpMyAdmin, so you must know the <strong>SQL commands</strong> behind those clicks. These are <strong>DDL</strong> (Data Definition Language) commands: they define <em>structure</em>, not data.</p>
+
+<div class="callout tip"><span class="t">Run everything on this page</span>
+<p>Every example is runnable in the <a href="#lab">SQL lab</a> further down: a real SQL engine in your browser. Nitish ran his in phpMyAdmin's <b>SQL</b> tab; that works the same way.</p></div>
+
+<h2 id="database">Databases: CREATE and DROP</h2>
+<pre><code class="lang-sql">CREATE DATABASE mydb;
+
+-- safer: no error if it already exists
+CREATE DATABASE IF NOT EXISTS mydb;</code></pre>
+<p><code>IF NOT EXISTS</code> uses the <code>EXISTS</code> operator we met in <a href="05-types-of-sql-commands.html#operators">Chapter 5</a>. Without it, creating a database that already exists throws an error.</p>
+<pre><code class="lang-sql">DROP DATABASE mydb;
+
+-- no error if it doesn't exist
+DROP DATABASE IF EXISTS mydb;</code></pre>
+<div class="callout warn"><span class="t">From the class Q&amp;A</span>
+<p>A student asked: can one command drop several databases at once? Not with a plain <code>DROP DATABASE a, b</code>; you write one <code>DROP DATABASE</code> statement per database (you can put them one after another and run them together). Some people online write their own procedures to do it, but that's beyond plain SQL.</p></div>
+<pre><code class="lang-sql">SHOW DATABASES;   -- list all databases
+USE mydb;         -- make mydb the current database for the following queries</code></pre>
+
+<div class="callout"><span class="t">Convention: write keywords in CAPITALS</span>
+<p>SQL keywords are <b>not case-sensitive</b>: <code>create database</code> works too. But it's conventional to write all keywords (<code>CREATE</code>, <code>TABLE</code>, <code>NOT NULL</code>…) in capitals and your own names in lowercase, for readability. It isn't mandatory; it's what everyone does.</p></div>
+
+<h2 id="table">Tables: CREATE, DROP, TRUNCATE</h2>
+<p>Two ways to create a table: the phpMyAdmin form (name, number of columns, then fill in each column's details and click Go), or one SQL command:</p>
+<pre><code class="lang-sql">CREATE TABLE users (
+    user_id  INTEGER,
+    name     VARCHAR(255),
+    email    VARCHAR(255),
+    password VARCHAR(255)
+);
+
+-- or, without an error if it already exists:
+CREATE TABLE IF NOT EXISTS users ( … );</code></pre>
+<p>Pattern: <code>column_name DATA_TYPE</code>, with a <strong>comma after every column definition except the last</strong>. Forgetting a comma is the most common error at this stage.</p>
+<pre><code class="lang-sql">DROP TABLE users;              -- delete the table: structure + data
+DROP TABLE IF EXISTS users;
+
+TRUNCATE TABLE users;          -- keep the table, remove ALL rows</code></pre>
+<p>In phpMyAdmin both live under the table's <b>Operations</b> tab: "Delete the table (DROP)" and "Empty the table (TRUNCATE)". After a truncate, Browse shows zero rows but the columns are still there.</p>
+
+<div class="figure">
+<svg viewBox="0 0 640 150" role="img" aria-label="Comparison of DELETE, TRUNCATE and DROP on a table">
+  <g><rect class="box" x="10" y="14" width="190" height="96" rx="10"/><text x="105" y="36" text-anchor="middle" class="b">DELETE … WHERE</text>
+  <rect class="box hi" x="30" y="48" width="150" height="14"/><rect class="box" x="30" y="66" width="150" height="14" style="opacity:.25"/><rect class="box hi" x="30" y="84" width="150" height="14"/>
+  <text x="105" y="132" text-anchor="middle" class="m">DML · removes chosen rows</text></g>
+  <g><rect class="box" x="225" y="14" width="190" height="96" rx="10"/><text x="320" y="36" text-anchor="middle" class="b">TRUNCATE</text>
+  <rect class="box hi" x="245" y="48" width="150" height="14"/><text x="320" y="84" text-anchor="middle" class="m">(no rows)</text>
+  <text x="320" y="132" text-anchor="middle" class="m">DDL · keeps columns, empties table</text></g>
+  <g><rect class="box" x="440" y="14" width="190" height="96" rx="10" style="stroke-dasharray:5 4"/><text x="535" y="36" text-anchor="middle" class="b">DROP</text>
+  <text x="535" y="72" text-anchor="middle" class="m">table no longer exists</text>
+  <text x="535" y="132" text-anchor="middle" class="m">DDL · removes structure + data</text></g>
+</svg>
+</div>
+
+<h2 id="constraints">Constraints: rules that protect integrity</h2>
+<p>In <a href="03-database-theory.html#integrity">Chapter 3</a> we said a database maintains integrity through <strong>constraints</strong>. Now we write them. Constraints are usually added <strong>when you create the table</strong> (you can also add or remove them later with <code>ALTER</code>). The course covers seven:</p>
+<div class="tiles">
+  <div class="tile"><h4>NOT NULL</h4><p>A value is required.</p></div>
+  <div class="tile"><h4>UNIQUE</h4><p>No two rows may share the value.</p></div>
+  <div class="tile"><h4>PRIMARY KEY</h4><p>UNIQUE + NOT NULL, one per table.</p></div>
+  <div class="tile"><h4>AUTO_INCREMENT</h4><p>The DB fills in 1, 2, 3, … for you.</p></div>
+  <div class="tile"><h4>CHECK</h4><p>Value must satisfy a condition.</p></div>
+  <div class="tile"><h4>DEFAULT</h4><p>Value used when none is given.</p></div>
+  <div class="tile"><h4>FOREIGN KEY</h4><p>Value must exist in another table.</p></div>
+</div>
+
+<h3 id="not-null">1 · NOT NULL</h3>
+<pre><code class="lang-sql">CREATE TABLE users (
+    id    INTEGER NOT NULL,
+    name  VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL
+);</code></pre>
+<p>Now any <code>INSERT</code> that leaves one of these empty fails. Use it for anything that must always be there (name, email…).</p>
+
+<h3 id="unique">2 · UNIQUE</h3>
+<p>The value must not repeat across rows; perfect for emails. Two ways to write it:</p>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Inline (column-level)">
+<pre><code class="lang-sql">CREATE TABLE users (
+    id    INTEGER NOT NULL,
+    name  VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+);</code></pre>
+  </div>
+  <div class="tab-panel" data-tab="Named (table-level)">
+<pre><code class="lang-sql">CREATE TABLE users (
+    id    INTEGER NOT NULL,
+    name  VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+
+    CONSTRAINT users_email_unique UNIQUE (email)
+);</code></pre>
+  </div>
+  <div class="tab-panel" data-tab="On a combination">
+<pre><code class="lang-sql">-- the PAIR (name, email) must be unique;
+-- the same name with a different email is fine
+CONSTRAINT users_name_email_unique UNIQUE (name, email)</code></pre>
+  </div>
+</div>
+<div class="callout sql"><span class="t">Why give a constraint a name?</span>
+<p>Writing <code>CONSTRAINT &lt;name&gt; …</code> takes a little longer, but it lets you <strong>refer to the constraint later</strong>, e.g. to drop it with <code>ALTER TABLE … DROP CONSTRAINT users_email_unique</code>. A common naming pattern is <code>table_column_type</code>. It also lets you apply one rule to <b>several columns together</b>.</p></div>
+
+<h3 id="pk">3 · PRIMARY KEY</h3>
+<p>The column(s) that uniquely identify each row: implicitly <b>unique and not null</b>. Again two ways:</p>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Inline">
+<pre><code class="lang-sql">CREATE TABLE students (
+    id   INTEGER PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);</code></pre>
+  </div>
+  <div class="tab-panel" data-tab="Named / composite">
+<pre><code class="lang-sql">CREATE TABLE students (
+    id   INTEGER NOT NULL,
+    name VARCHAR(255) NOT NULL,
+
+    CONSTRAINT students_pk PRIMARY KEY (id)
+    -- composite: PRIMARY KEY (id, name)
+);</code></pre>
+  </div>
+</div>
+<p>With the table-level form you can make a <strong>composite primary key</strong> by listing several columns: then the <em>combination</em> must be unique.</p>
+
+<h3 id="ai">4 · AUTO_INCREMENT</h3>
+<pre><code class="lang-sql">CREATE TABLE passengers (
+    id   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL
+);
+
+INSERT INTO passengers (name) VALUES ('Nitish');   -- id = 1
+INSERT INTO passengers (name) VALUES ('Ankit');    -- id = 2</code></pre>
+<p>You don't provide the id; the database looks at the last one and adds 1. This is how you make a <a href="04-database-keys.html#surrogate">surrogate key</a>.</p>
+
+<h3 id="check">5 · CHECK</h3>
+<p>Only accept values that satisfy a condition. Example: a school's students must be older than 6 and younger than 25.</p>
+<pre><code class="lang-sql">CREATE TABLE students (
+    id   INTEGER PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    age  INTEGER,
+
+    CONSTRAINT students_age_check CHECK (age > 6 AND age < 25)
+);
+
+INSERT INTO students VALUES (1, 'Rahul', 20);  -- ✓
+INSERT INTO students VALUES (2, 'Amit', 40);   -- ✗ Check constraint violated</code></pre>
+<div class="callout"><span class="t">Note</span><p>MySQL only enforces <code>CHECK</code> from version 8.0.16; older versions accepted the syntax but silently ignored it. XAMPP ships MariaDB, which enforces it.</p></div>
+
+<h3 id="default">6 · DEFAULT</h3>
+<p>If an insert doesn't provide a value for the column, use this one instead of NULL. A classic use is recording <em>when</em> a row was created:</p>
+<pre><code class="lang-sql">CREATE TABLE passengers (
+    id     INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name   VARCHAR(255) NOT NULL,
+    joined DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO passengers (name) VALUES ('Nitish');
+-- joined is filled with the current date and time automatically</code></pre>
+<p>Logical uses: a user's registration time, a default status like <code>'pending'</code>, a default country…</p>
+
+<h3 id="fk">7 · FOREIGN KEY</h3>
+<p>Links a column to the primary key of another table, enforcing <strong>referential integrity</strong>: you can't insert an order for a user who doesn't exist, and you can't simply delete a user who still has orders.</p>
+<pre><code class="lang-sql">CREATE TABLE customers (
+    cid   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name  VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE
+);
+
+CREATE TABLE orders (
+    order_id   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    cid        INTEGER NOT NULL,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT orders_fk FOREIGN KEY (cid) REFERENCES customers(cid)
+);</code></pre>
+<p>Notice <code>orders</code> has its own primary key (<code>order_id</code>), while <code>cid</code> is just an integer that must match a <code>customers.cid</code>. In class, trying to <b>drop the parent table</b> while orders still referenced it failed with a foreign-key error, which is exactly the protection we want.</p>
+
+<h3 id="actions">Referential actions: what happens on delete / update</h3>
+<p>You decide what the database does to child rows when the parent row is deleted or its key is updated:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Action</th><th>Effect on the child rows (orders)</th></tr></thead>
+<tbody>
+<tr><td><code>RESTRICT</code> / <code>NO ACTION</code></td><td>Default. Refuse to delete/update the parent while children exist.</td></tr>
+<tr><td><code>CASCADE</code></td><td>Delete/update the children too (delete a customer → their orders go).</td></tr>
+<tr><td><code>SET NULL</code></td><td>Keep the children but set their FK to NULL (column must allow NULL).</td></tr>
+<tr><td><code>SET DEFAULT</code></td><td>Set the FK to its default value (not supported by MySQL's InnoDB engine).</td></tr>
+</tbody></table></div>
+<pre><code class="lang-sql">CONSTRAINT orders_fk FOREIGN KEY (cid) REFERENCES customers(cid)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE</code></pre>
+<p>Remember the branch example from Chapter 3: renaming <code>CSE</code> → <code>CS</code> updates every student automatically with <code>ON UPDATE CASCADE</code>.</p>
+
+<h2 id="alter">ALTER TABLE: changing an existing table</h2>
+<p>Tables change over time. <code>ALTER TABLE</code> lets you add, delete and modify columns, and add or remove constraints, without recreating the table.</p>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Add column">
+<pre><code class="lang-sql">ALTER TABLE students ADD COLUMN college VARCHAR(255) NOT NULL;
+
+-- choose the position (MySQL)
+ALTER TABLE students ADD COLUMN college VARCHAR(255) NOT NULL AFTER name;
+
+-- several at once
+ALTER TABLE students
+    ADD COLUMN city VARCHAR(255) AFTER college,
+    ADD COLUMN cgpa DECIMAL(3,2) AFTER city;</code></pre>
+  </div>
+  <div class="tab-panel" data-tab="Drop column">
+<pre><code class="lang-sql">ALTER TABLE students DROP COLUMN cgpa;
+
+-- several at once
+ALTER TABLE students DROP COLUMN city, DROP COLUMN college;</code></pre>
+  </div>
+  <div class="tab-panel" data-tab="Modify column">
+<pre><code class="lang-sql">-- change a column's data type / definition (MySQL)
+ALTER TABLE students MODIFY COLUMN name INTEGER;
+
+-- rename a column
+ALTER TABLE students RENAME COLUMN name TO full_name;</code></pre>
+<p><code>MODIFY</code> replaces the whole definition, so restate anything you want to keep (e.g. <code>NOT NULL</code>).</p>
+  </div>
+  <div class="tab-panel" data-tab="Add constraint">
+<pre><code class="lang-sql">ALTER TABLE passengers
+    ADD CONSTRAINT passengers_email_unique UNIQUE (email);</code></pre>
+<p>This fails if the existing data already breaks the rule. In class the table already had two rows with the same email, so MySQL refused with a <em>duplicate entry</em> error. Fix the data first, then add the constraint.</p>
+  </div>
+  <div class="tab-panel" data-tab="Drop constraint">
+<pre><code class="lang-sql">ALTER TABLE passengers DROP CONSTRAINT passengers_email_unique;
+-- older MySQL: ALTER TABLE passengers DROP INDEX passengers_email_unique;</code></pre>
+<p>After dropping it, inserting a duplicate email works again. This is where <b>naming your constraints</b> pays off.</p>
+  </div>
+</div>
+<div class="callout warn"><span class="t">You can't edit a constraint in place</span>
+<p>To change a constraint (say, a different <code>CHECK</code> condition), <strong>drop it and add a new one</strong>.</p></div>
+
+<h2 id="lab">SQL lab: try it yourself</h2>
+<p>A real SQL engine (SQLite via WebAssembly) running in your browser, with a small translation layer so the MySQL syntax on this page works (<code>AUTO_INCREMENT</code>, <code>TRUNCATE</code>, <code>SHOW TABLES</code>, <code>DESCRIBE</code>). Pick an experiment, read it, run it, then break things on purpose. <b>Errors are the point</b>: each one is a constraint doing its job.</p>
+<div class="widget playground" data-mysql>
+  <div class="w-title">DDL lab</div>
+  <div class="pg-bar">
+    <select aria-label="Load an experiment">
+      <option value="lab-1">1 · CREATE, SHOW, DESCRIBE, DROP a table</option>
+      <option value="lab-2">2 · NOT NULL: insert without a name</option>
+      <option value="lab-3">3 · UNIQUE: duplicate email</option>
+      <option value="lab-4">4 · PRIMARY KEY + AUTO_INCREMENT</option>
+      <option value="lab-5">5 · CHECK: age between 6 and 25</option>
+      <option value="lab-6">6 · DEFAULT CURRENT_TIMESTAMP</option>
+      <option value="lab-7">7 · FOREIGN KEY: orders need a real customer</option>
+      <option value="lab-8">8 · ON DELETE CASCADE</option>
+      <option value="lab-9">9 · TRUNCATE vs DROP</option>
+      <option value="lab-10">10 · ALTER TABLE: add / rename / drop column</option>
+    </select>
+    <button class="btn small" data-reset-db>Reset database</button>
+  </div>
+  <textarea spellcheck="false"></textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button><span style="font-size:12.5px;color:var(--muted)">or <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Enter</span>. Each statement's result is shown in order.</span></div>
+  <div class="pg-out"></div>
+</div>
+<p style="font-size:14px;color:var(--muted)">Lab differences from MySQL: there's no <code>CREATE DATABASE</code> (the lab is already one database), <code>MODIFY COLUMN</code> and <code>ADD/DROP CONSTRAINT</code> aren't supported by SQLite, and SQLite is more relaxed about data types.</p>
+
+<script type="text/plain" id="lab-1">
+CREATE TABLE IF NOT EXISTS users (
+    user_id  INTEGER,
+    name     VARCHAR(255),
+    email    VARCHAR(255),
+    password VARCHAR(255)
+);
+SHOW TABLES;
+DESCRIBE users;
+DROP TABLE IF EXISTS users;
+SHOW TABLES;</script>
+<script type="text/plain" id="lab-2">
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+    id    INTEGER NOT NULL,
+    name  VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL
+);
+INSERT INTO users (id, name, email) VALUES (1, 'Nitish', 'nitish@gmail.com');
+INSERT INTO users (id, email) VALUES (2, 'ankit@gmail.com');   -- no name → error
+SELECT * FROM users;</script>
+<script type="text/plain" id="lab-3">
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
+    id    INTEGER NOT NULL,
+    name  VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    CONSTRAINT users_email_unique UNIQUE (email)
+);
+INSERT INTO users VALUES (1, 'Nitish', 'nitish@gmail.com');
+INSERT INTO users VALUES (2, 'Ankit',  'nitish@gmail.com');  -- duplicate email → error
+INSERT INTO users VALUES (3, 'Ankit',  'ankit@gmail.com');   -- fine
+SELECT * FROM users;</script>
+<script type="text/plain" id="lab-4">
+DROP TABLE IF EXISTS passengers;
+CREATE TABLE passengers (
+    id   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL
+);
+INSERT INTO passengers (name) VALUES ('Nitish');
+INSERT INTO passengers (name) VALUES ('Ankit');
+INSERT INTO passengers (name) VALUES ('Rahul');
+INSERT INTO passengers (id, name) VALUES (2, 'Duplicate id');  -- PK must be unique → error
+SELECT * FROM passengers;</script>
+<script type="text/plain" id="lab-5">
+DROP TABLE IF EXISTS students;
+CREATE TABLE students (
+    id   INTEGER PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    age  INTEGER,
+    CONSTRAINT students_age_check CHECK (age > 6 AND age < 25)
+);
+INSERT INTO students VALUES (1, 'Rahul', 20);
+INSERT INTO students VALUES (2, 'Amit', 40);   -- violates CHECK
+INSERT INTO students VALUES (3, 'Riya', 5);    -- violates CHECK
+SELECT * FROM students;</script>
+<script type="text/plain" id="lab-6">
+DROP TABLE IF EXISTS passengers;
+CREATE TABLE passengers (
+    id     INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name   VARCHAR(255) NOT NULL,
+    status VARCHAR(20) DEFAULT 'waiting',
+    joined DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+INSERT INTO passengers (name) VALUES ('Nitish');
+INSERT INTO passengers (name, status) VALUES ('Ankit', 'confirmed');
+SELECT * FROM passengers;</script>
+<script type="text/plain" id="lab-7">
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS customers;
+CREATE TABLE customers (
+    cid   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name  VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE
+);
+CREATE TABLE orders (
+    order_id   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    cid        INTEGER NOT NULL,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT orders_fk FOREIGN KEY (cid) REFERENCES customers(cid)
+);
+INSERT INTO customers (name, email) VALUES ('Nitish', 'nitish@gmail.com');
+INSERT INTO orders (cid) VALUES (1);    -- customer 1 exists → ok
+INSERT INTO orders (cid) VALUES (99);   -- no customer 99 → FK error
+DELETE FROM customers WHERE cid = 1;    -- still has orders → FK error
+DROP TABLE customers;                   -- referenced by orders → FK error
+SELECT * FROM orders;</script>
+<script type="text/plain" id="lab-8">
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS customers;
+CREATE TABLE customers (
+    cid  INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL
+);
+CREATE TABLE orders (
+    order_id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    cid      INTEGER NOT NULL,
+    CONSTRAINT orders_fk FOREIGN KEY (cid) REFERENCES customers(cid)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+INSERT INTO customers (name) VALUES ('Nitish'), ('Ankit');
+INSERT INTO orders (cid) VALUES (1), (1), (2);
+SELECT * FROM orders;
+DELETE FROM customers WHERE cid = 1;   -- cascades: Nitish's orders go too
+SELECT * FROM orders;
+UPDATE customers SET cid = 20 WHERE cid = 2;  -- cascades: order now points to 20
+SELECT * FROM orders;</script>
+<script type="text/plain" id="lab-9">
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (id INTEGER, name VARCHAR(255));
+INSERT INTO users VALUES (1, 'Nitish'), (2, 'Ankit');
+SELECT * FROM users;
+TRUNCATE TABLE users;     -- rows gone, table remains
+SELECT COUNT(*) AS rows_left FROM users;
+DESCRIBE users;
+DROP TABLE users;         -- now the table itself is gone
+SELECT * FROM users;      -- error: no such table</script>
+<script type="text/plain" id="lab-10">
+DROP TABLE IF EXISTS students;
+CREATE TABLE students (
+    id   INTEGER PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(255) NOT NULL
+);
+INSERT INTO students (name) VALUES ('Rahul');
+ALTER TABLE students ADD COLUMN college VARCHAR(255) NOT NULL DEFAULT 'IIT';
+ALTER TABLE students ADD COLUMN cgpa DECIMAL(3,2);
+DESCRIBE students;
+ALTER TABLE students RENAME COLUMN name TO full_name;
+ALTER TABLE students DROP COLUMN cgpa;
+DESCRIBE students;
+SELECT * FROM students;</script>
+
+<h2 id="cheatsheet">DDL cheat sheet</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Task</th><th>Command</th></tr></thead>
+<tbody>
+<tr><td>Create a database</td><td><code>CREATE DATABASE IF NOT EXISTS db;</code></td></tr>
+<tr><td>Delete a database</td><td><code>DROP DATABASE IF EXISTS db;</code></td></tr>
+<tr><td>Create a table</td><td><code>CREATE TABLE t (col TYPE constraints, …);</code></td></tr>
+<tr><td>Delete a table</td><td><code>DROP TABLE IF EXISTS t;</code></td></tr>
+<tr><td>Empty a table</td><td><code>TRUNCATE TABLE t;</code></td></tr>
+<tr><td>Add a column</td><td><code>ALTER TABLE t ADD COLUMN c TYPE [AFTER x];</code></td></tr>
+<tr><td>Delete a column</td><td><code>ALTER TABLE t DROP COLUMN c;</code></td></tr>
+<tr><td>Change a column</td><td><code>ALTER TABLE t MODIFY COLUMN c NEW_TYPE;</code></td></tr>
+<tr><td>Add a constraint</td><td><code>ALTER TABLE t ADD CONSTRAINT name UNIQUE (c);</code></td></tr>
+<tr><td>Remove a constraint</td><td><code>ALTER TABLE t DROP CONSTRAINT name;</code></td></tr>
+<tr><td>Foreign key</td><td><code>CONSTRAINT fk FOREIGN KEY (c) REFERENCES p(id) ON DELETE CASCADE</code></td></tr>
+</tbody></table></div>
+
+<h2 id="quiz">Check yourself</h2>
+<div class="quiz" data-answer="1">
+  <p class="q">You want to remove every row from <code>users</code> but keep the table and its columns. Which DDL command?</p>
+  <div class="opts"><button class="opt"><code>DROP TABLE users</code></button><button class="opt"><code>TRUNCATE TABLE users</code></button><button class="opt"><code>ALTER TABLE users DROP COLUMN *</code></button><button class="opt"><code>DROP DATABASE users</code></button></div>
+  <p class="why"><b>TRUNCATE</b> empties the table; DROP removes it entirely.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">What does <code>IF NOT EXISTS</code> in <code>CREATE TABLE IF NOT EXISTS users (…)</code> do?</p>
+  <div class="opts"><button class="opt">Deletes the old table first</button><button class="opt">Creates a copy with a new name</button><button class="opt">Checks whether the columns exist</button><button class="opt">Skips creation (no error) if a table with that name already exists</button></div>
+  <p class="why">It avoids the "table already exists" error and leaves the existing table untouched.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">Which constraint makes the database fill in the current time when you don't supply one?</p>
+  <div class="opts"><button class="opt"><code>AUTO_INCREMENT</code></button><button class="opt"><code>CHECK</code></button><button class="opt"><code>DEFAULT CURRENT_TIMESTAMP</code></button><button class="opt"><code>NOT NULL</code></button></div>
+  <p class="why"><b>DEFAULT</b> supplies a value when the insert omits the column.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q"><code>ALTER TABLE passengers ADD CONSTRAINT p_email_unique UNIQUE (email);</code> fails with "Duplicate entry". Why?</p>
+  <div class="opts"><button class="opt">Existing rows already contain the same email twice</button><button class="opt">Constraints can only be added in CREATE TABLE</button><button class="opt">The constraint name is too long</button><button class="opt">UNIQUE needs NOT NULL first</button></div>
+  <p class="why">The data must already satisfy a constraint before you can add it. Clean the duplicates first.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">A <code>customers</code> row is deleted and all of that customer's <code>orders</code> disappear automatically. Which referential action is on the foreign key?</p>
+  <div class="opts"><button class="opt"><code>ON DELETE RESTRICT</code></button><button class="opt"><code>ON DELETE CASCADE</code></button><button class="opt"><code>ON DELETE SET NULL</code></button><button class="opt">No foreign key at all</button></div>
+  <p class="why"><b>CASCADE</b> propagates the delete to child rows. RESTRICT would have refused the delete; SET NULL would keep the orders with <code>cid = NULL</code>.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">How do you change the condition of an existing named CHECK constraint?</p>
+  <div class="opts"><button class="opt"><code>ALTER TABLE t MODIFY CONSTRAINT …</code></button><button class="opt"><code>UPDATE CONSTRAINT …</code></button><button class="opt">You can't; recreate the whole table</button><button class="opt">Drop the constraint, then add a new one with the new condition</button></div>
+  <p class="why">Constraints can't be edited in place: <b>drop and re-add</b>, which is easy when you named it.</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+<div class="callout"><span class="t">Next up in the video</span>
+<p>The course continues with <strong>DML queries</strong> (<code>INSERT</code>, <code>SELECT</code>, <code>UPDATE</code>, <code>DELETE</code>) at <a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=10800s" target="_blank" rel="noopener">3:00:00</a>. Notes for it are coming soon.</p></div>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js"></script>
+<script>
+  (function () { var ta = document.querySelector(".playground textarea"); ta.value = document.getElementById("lab-1").textContent.replace(/^\n/, ""); })();
+</script>
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3 · Database Theory · SQL for Data Science</title>
+<meta name="description" content="Chapter 3 notes: data vs information, why databases beat files, DBMS and its functions, types of databases, relational terminology, and data integrity.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css">
+<style>
+.acct { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+.acct div { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; background: var(--bg); text-align: center; }
+.acct b { display: block; font-size: 24px; font-variant-numeric: tabular-nums; }
+.acct small { color: var(--muted); }
+.steps-log { font: 13px/1.6 var(--mono); background: var(--code-bg); border-radius: 8px; padding: 8px 12px; min-height: 64px; white-space: pre-wrap; }
+.term-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 700px) { .term-grid, .acct { grid-template-columns: 1fr; } }
+.term-list button { display: block; width: 100%; text-align: left; margin: 0 0 6px; }
+.term-list button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+</style>
+</head>
+<body class="sql-page" data-chapter="3">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 3</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 3</p>
+<h1>Database theory</h1>
+<div class="chips"><span class="chip">50:00 → 1:23:00</span><span class="chip">Data vs information</span><span class="chip">Files vs DBMS</span><span class="chip">Relational model</span><span class="chip">Integrity</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<h2 id="data-info">Data vs information</h2>
+<div class="tiles">
+  <div class="tile"><h4>Data</h4><p>Raw facts, usually numeric, collected through observations. On its own it doesn't tell you much.</p></div>
+  <div class="tile"><h4>Information</h4><p>Data that has been <b>processed</b> so it carries meaning and lets you make a decision.</p></div>
+</div>
+<p>Example: the marks of every student in a class are <strong>data</strong>. "Who topped?" or "What's the class average?" is <strong>information</strong> you create by processing that data. Data is the raw material; information is what you actually use.</p>
+
+<div class="widget" id="di-widget">
+  <div class="w-title">Turn data into information</div>
+  <div class="w-help">Here is raw data. Click a question to process it.</div>
+  <div class="table-wrap"><table class="mini-table" id="di-table">
+    <thead><tr><th>student</th><th>marks</th></tr></thead>
+    <tbody><tr><td>Amit</td><td>72</td></tr><tr><td>Ankita</td><td>91</td></tr><tr><td>Rahul</td><td>58</td></tr><tr><td>Sneha</td><td>84</td></tr><tr><td>Vikas</td><td>33</td></tr></tbody>
+  </table></div>
+  <div class="pill-row">
+    <span class="pill" data-q="top">Who topped?</span>
+    <span class="pill" data-q="avg">Class average?</span>
+    <span class="pill" data-q="fail">Who failed (&lt; 40)?</span>
+    <span class="pill" data-q="above">How many scored above average?</span>
+  </div>
+  <div class="verdict" id="di-out">Pick a question.</div>
+</div>
+
+<h2 id="properties">What storing data well requires</h2>
+<p>Data is important, so wherever you store it, that storage should guarantee five properties:</p>
+<div class="tiles">
+  <div class="tile"><h4>1 · Integrity</h4><p>The data stays <b>accurate and consistent</b>. What you stored is what you get back.</p></div>
+  <div class="tile"><h4>2 · Availability</h4><p>It is there whenever someone needs it. A social network can't show a profile "only after 1 a.m."</p></div>
+  <div class="tile"><h4>3 · Security</h4><p>Only the right people can read or change it.</p></div>
+  <div class="tile"><h4>4 · Independent of the application</h4><p>Facebook's Android app, iOS app and website all read the <b>same</b> data. Your name must not differ between platforms.</p></div>
+  <div class="tile"><h4>5 · Concurrency</h4><p>Many users must be able to access and change the data <b>at the same time</b> without breaking it.</p></div>
+</div>
+<p>Real databases are designed around requirements like these.</p>
+
+<div class="callout warn"><span class="t">Data is costly</span>
+<p>As a software developer, always remember that storing data, and especially <strong>reading and writing</strong> it, costs money. Whether you use AWS, Google Cloud, Azure or anything else, database bills in industry are significant. Nitish shared a story of a student who got a monthly bill of about ₹7 lakh after an app was shared with many people with every setting maxed out. Design with cost in mind.</p></div>
+
+<h2 id="files">Why not just store data in files?</h2>
+<p>If databases are costly, why not save data in a simple text file? Because files have serious limitations for an application's main data:</p>
+<div class="tabs">
+  <div class="tab-panel" data-tab="1 · Structure dependence">
+    <p><strong>The program depends on the physical structure of the data.</strong> Suppose you store users in a text file as <code>email,password</code> per line. Your code has to know that a comma separates the two. Change the format (add a column, change the separator) and you must rewrite every piece of code that reads the file.</p>
+  </div>
+  <div class="tab-panel" data-tab="2 · Hard to retrieve">
+    <p><strong>Retrieving data is a complex process.</strong> To find one user you open the file, read it line by line, split, compare… For every kind of question you write new code. A database answers with one query.</p>
+  </div>
+  <div class="tab-panel" data-tab="3 · Concurrency">
+    <p><strong>Concurrency problems.</strong> When many people use the same file at once, it misbehaves. A workaround is making multiple copies and splitting users between them, but then the copies go out of sync.</p>
+  </div>
+  <div class="tab-panel" data-tab="4 · Security">
+    <p><strong>All-or-nothing access.</strong> Whoever can open the file can see and change everything. You can't create <em>user-defined roles</em> (this person may only read, that one may only edit some records).</p>
+  </div>
+  <div class="tab-panel" data-tab="5 · Redundancy">
+    <p><strong>Data redundancy.</strong> The same data gets repeated in many places, which wastes space and leads to inconsistencies.</p>
+  </div>
+</div>
+
+<h3>…but files still have their uses</h3>
+<div class="tiles">
+  <div class="tile"><h4>Offline data</h4><p>Apps that must work without internet keep data on the device, e.g. WhatsApp stores chats locally so you can read them offline.</p></div>
+  <div class="tile"><h4>Fast-arriving, short-lived data</h4><p>Sensors across a city send readings every few minutes. Once a new reading arrives the old one is useless; writing every reading to a costly DB and deleting it again isn't worth it.</p></div>
+  <div class="tile"><h4>Low-importance data</h4><p><b>Log files</b>: when a server crashes it writes some text about what happened. You don't need a database for that.</p></div>
+</div>
+
+<h2 id="database">What is a database?</h2>
+<blockquote><p><strong>Database</strong>: a shared collection of logically related data, and a description of that data, designed to meet the information needs of an organisation.</p></blockquote>
+<p>In simple words: <strong>a database is a system used to store, organise and retrieve data.</strong></p>
+
+<h2 id="dbms">What is a DBMS?</h2>
+<blockquote><p><strong>DBMS (Database Management System)</strong>: software that enables users to <em>define, create, maintain</em> and <em>control access</em> to a database. Application programs interact with the database by sending requests to the DBMS.</p></blockquote>
+<p>Remember the layering below; it's always followed. The user never touches the database directly.</p>
+<div class="figure">
+<svg viewBox="0 0 640 150" role="img" aria-label="User talks to application, application to DBMS, DBMS to database, all running on an operating system on hardware">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker></defs>
+  <rect class="box" x="10" y="20" width="100" height="56" rx="10"/><text x="60" y="53" text-anchor="middle" class="b">User</text>
+  <rect class="box hi" x="150" y="20" width="120" height="56" rx="10"/><text x="210" y="46" text-anchor="middle" class="b">Application</text><text x="210" y="64" text-anchor="middle" class="m">Python app, website</text>
+  <rect class="box sq" x="310" y="20" width="140" height="56" rx="10"/><text x="380" y="46" text-anchor="middle" class="b">DBMS</text><text x="380" y="64" text-anchor="middle" class="m">MySQL, Oracle…</text>
+  <rect class="box ok" x="490" y="20" width="130" height="56" rx="10"/><text x="555" y="53" text-anchor="middle" class="b">Database</text>
+  <path class="ln" d="M110 48 H148" marker-end="url(#ar)" marker-start="url(#ar)"/>
+  <path class="ln" d="M270 48 H308" marker-end="url(#ar)" marker-start="url(#ar)"/>
+  <path class="ln" d="M450 48 H488" marker-end="url(#ar)" marker-start="url(#ar)"/>
+  <rect class="box" x="150" y="92" width="470" height="24" rx="6"/><text x="385" y="109" text-anchor="middle" class="m">Operating system</text>
+  <rect class="box" x="150" y="120" width="470" height="24" rx="6"/><text x="385" y="137" text-anchor="middle" class="m">Hardware</text>
+</svg>
+<figcaption>Hardware → OS → DBMS manages the database → applications talk to the DBMS → users use the application.</figcaption>
+</div>
+<p>In Chapter 2: our Python program was the <em>application</em>, MySQL was the <em>DBMS</em>, and the <code>users</code> table lived in the <em>database</em>.</p>
+
+<h2 id="functions">What a DBMS does for you</h2>
+<div class="cards">
+  <div class="flash"><div class="inner"><div class="face front"><b>Data management</b><small>tap to flip</small></div><div class="face back">Store, retrieve and modify data (the CRUD operations).</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Integrity</b><small>tap to flip</small></div><div class="face back">Keeps data accurate and consistent using rules (constraints), e.g. an INT column only accepts integers.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Concurrency</b><small>tap to flip</small></div><div class="face back">Many users can read and write at the same time safely.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Transactions</b><small>tap to flip</small></div><div class="face back">A group of changes either <b>fully</b> happens or doesn't happen <b>at all</b>, even if something fails midway.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Security</b><small>tap to flip</small></div><div class="face back">Users with passwords (like <code>root</code>) and permissions. phpMyAdmin → User accounts lets you add users.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Utilities</b><small>tap to flip</small></div><div class="face back">Import / export (e.g. to CSV), backups, logging.</div></div></div>
+</div>
+
+<div class="widget" id="txn">
+  <div class="w-title">Transactions: all or nothing</div>
+  <div class="w-help">Transfer ₹500 from A to B. That's two steps: subtract from A, add to B. Turn on "crash midway" to see why a transaction must be all-or-nothing.</div>
+  <div class="acct"><div><small>Account A</small><b id="bal-a">₹1000</b></div><div><small>Account B</small><b id="bal-b">₹1000</b></div></div>
+  <label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="crash"> Crash midway (power cut after step 1)</label>
+  <label style="display:flex;gap:8px;align-items:center;margin:8px 0"><input type="checkbox" id="use-txn" checked> Run it as a transaction</label>
+  <div class="pill-row"><button class="btn primary small" id="do-transfer">Transfer ₹500</button><button class="btn small" id="reset-acct">Reset</button></div>
+  <div class="steps-log" id="txn-log"></div>
+</div>
+<p>Nitish showed the same idea in phpMyAdmin: start an operation and cancel it halfway, and nothing is half-saved. We'll study transactions (TCL: <code>COMMIT</code>, <code>ROLLBACK</code>) later.</p>
+
+<h2 id="types">Types of databases</h2>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Relational (RDBMS)">
+    <p>Data is stored in <strong>tables</strong> (rows and columns) with a fixed structure, and tables are related to each other. Queried with <strong>SQL</strong>. This is what most companies use and what this course is about.</p>
+    <p><b>Examples:</b> MySQL (what we use), Oracle, Microsoft SQL Server, PostgreSQL, MariaDB, SQLite.</p>
+  </div>
+  <div class="tab-panel" data-tab="NoSQL">
+    <p>For data that doesn't fit neatly into fixed tables: <strong>unstructured or semi-structured</strong> data, where any record can have different fields. Think of a social networking site, where a post can be text, an image, a video, a poll…</p>
+    <p><b>Example:</b> MongoDB (stores JSON-like documents). You may well work with it at a company.</p>
+  </div>
+  <div class="tab-panel" data-tab="Others">
+    <p>There are many more kinds (key-value stores like Redis, column stores like Cassandra, graph databases like Neo4j…), but relational databases are by far the most common in data work.</p>
+  </div>
+</div>
+
+<h2 id="terms">Relational terminology</h2>
+<p>A relational database is a collection of <strong>tables</strong>. Each table has its own formal name. Click a term to highlight it in the table:</p>
+<div class="widget">
+  <div class="w-title">Explore the vocabulary</div>
+  <div class="term-grid">
+    <div class="table-wrap" style="margin:0"><table class="mini-table" id="term-table">
+      <thead><tr><th data-c="0">emp_id</th><th data-c="1">name</th><th data-c="2">salary</th><th data-c="3">dept</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Nitish</td><td>50000</td><td>CS</td></tr>
+        <tr><td>2</td><td>Ankit</td><td>42000</td><td>IT</td></tr>
+        <tr><td>3</td><td>Rahul</td><td>61000</td><td>CS</td></tr>
+        <tr><td>4</td><td>Sneha</td><td>55000</td><td>ECE</td></tr>
+      </tbody></table></div>
+    <div class="term-list">
+      <button class="btn small" data-t="relation">Relation</button>
+      <button class="btn small" data-t="tuple">Tuple</button>
+      <button class="btn small" data-t="attribute">Attribute</button>
+      <button class="btn small" data-t="cardinality">Cardinality</button>
+      <button class="btn small" data-t="degree">Degree</button>
+      <button class="btn small" data-t="domain">Domain</button>
+    </div>
+  </div>
+  <div class="verdict" id="term-out">Click a term.</div>
+</div>
+<div class="table-wrap"><table>
+<thead><tr><th>Formal term</th><th>Everyday term</th></tr></thead>
+<tbody>
+<tr><td>Relation</td><td>Table</td></tr>
+<tr><td>Tuple</td><td>Row / record</td></tr>
+<tr><td>Attribute</td><td>Column / field</td></tr>
+<tr><td>Cardinality</td><td>Number of rows</td></tr>
+<tr><td>Degree</td><td>Number of columns</td></tr>
+<tr><td>Domain</td><td>Set of allowed values for a column</td></tr>
+</tbody></table></div>
+
+<h2 id="mcq">MCQs from the class</h2>
+<div class="quiz" data-answer="2">
+  <p class="q">A DBMS acts as an interface between…</p>
+  <div class="opts"><button class="opt">Hardware and the operating system</button><button class="opt">The OS and the user</button><button class="opt">The database and its users / application programs</button><button class="opt">Two databases</button></div>
+  <p class="why">The DBMS sits between the <b>database</b> and the <b>applications / users</b> that need the data.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">Which of these is NOT a disadvantage of a file system?</p>
+  <div class="opts"><button class="opt">Data redundancy</button><button class="opt">Difficulty in accessing data</button><button class="opt">Data isolation</button><button class="opt">High cost</button></div>
+  <p class="why">Files are <b>cheap</b>. Their problems are redundancy, hard access, isolation, concurrency and security, not cost.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q">Which DBMS feature maintains the accuracy of data?</p>
+  <div class="opts"><button class="opt">Integrity</button><button class="opt">Utilities</button><button class="opt">Performance</button><button class="opt">Recovery</button></div>
+  <p class="why"><b>Integrity</b> means accuracy and consistency of the data.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">A relational database consists of a collection of…</p>
+  <div class="opts"><button class="opt">Keys</button><button class="opt">Tables</button><button class="opt">Records only</button><button class="opt">Files</button></div>
+  <p class="why">A relational database is a collection of <b>tables</b> (relations).</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">The employee table above has 4 rows and 4 columns. If we add 2 new employees and a new column <code>city</code>, what are its cardinality and degree?</p>
+  <div class="opts"><button class="opt">Cardinality 5, degree 6</button><button class="opt">Cardinality 4, degree 4</button><button class="opt">Cardinality 6, degree 5</button><button class="opt">Cardinality 6, degree 6</button></div>
+  <p class="why">Cardinality = rows = 4 + 2 = <b>6</b>. Degree = columns = 4 + 1 = <b>5</b>.</p>
+</div>
+
+<h2 id="integrity">Data integrity and constraints</h2>
+<p><strong>Data integrity</strong> means maintaining and assuring the <em>accuracy and consistency</em> of data over its entire life cycle: as long as the data is in the database, it should stay correct. Databases enforce it with <strong>constraints</strong> (rules), which we'll write ourselves in <a href="07-ddl-queries.html">Chapter 7</a>. There are three types:</p>
+
+<div class="tabs">
+  <div class="tab-panel" data-tab="Entity integrity">
+    <p><strong>Every table must have a primary key</strong>: a column (or set of columns) whose value is <b>unique</b> and <b>never null</b>, so every row can be identified. Like a roll number in college: two students can share a name, but never a roll number. In Chapter 2's <code>users</code> table, <code>user_id</code> played this role.</p>
+  </div>
+  <div class="tab-panel" data-tab="Domain integrity">
+    <p><strong>Every value in a column must come from that column's domain</strong> (its allowed set of values). When Nitish made a <code>products</code> table and chose <code>INT</code> for a column, only integers could go in; anything else is rejected. Data types and rules like <code>CHECK</code> enforce this.</p>
+  </div>
+  <div class="tab-panel" data-tab="Referential integrity">
+    <p><strong>Relationships between tables must stay valid.</strong> Example: a <code>branch</code> table (<code>branch_id</code>, <code>name</code>), e.g. <code>CSE</code> → Computer Science, and a <code>students</code> table where each student stores a <code>branch_id</code>.</p>
+    <p>If the branch code later changes from <code>CSE</code> to <code>CS</code>, every student's branch must change too; otherwise students point at a branch that no longer exists and the data is inconsistent. A <strong>foreign key</strong> enforces this relationship, which is the topic of the next chapter.</p>
+  </div>
+</div>
+
+<div class="widget" id="ri">
+  <div class="w-title">See referential integrity</div>
+  <div class="w-help">Rename the branch code and choose whether a foreign key with <code>ON UPDATE CASCADE</code> protects the link.</div>
+  <div class="term-grid">
+    <div><b style="font-size:13px">branch</b>
+      <div class="table-wrap" style="margin:4px 0"><table class="mini-table"><thead><tr><th>branch_id</th><th>name</th></tr></thead><tbody><tr><td id="ri-b">CSE</td><td>Computer Science</td></tr><tr><td>ECE</td><td>Electronics</td></tr></tbody></table></div></div>
+    <div><b style="font-size:13px">students</b>
+      <div class="table-wrap" style="margin:4px 0"><table class="mini-table"><thead><tr><th>id</th><th>name</th><th>branch_id</th></tr></thead><tbody id="ri-s"></tbody></table></div></div>
+  </div>
+  <label style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="ri-fk" checked> Foreign key with ON UPDATE CASCADE</label>
+  <div class="pill-row"><button class="btn primary small" id="ri-go">Rename CSE → CS</button><button class="btn small" id="ri-reset">Reset</button></div>
+  <div class="verdict" id="ri-out">Both tables agree.</div>
+</div>
+
+<p class="quiz-score" id="quiz-score"></p>
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js"></script>
+<script>
+(function () {
+  /* data vs information */
+  var marks = [["Amit", 72], ["Ankita", 91], ["Rahul", 58], ["Sneha", 84], ["Vikas", 33]];
+  var avg = marks.reduce(function (s, m) { return s + m[1]; }, 0) / marks.length;
+  var rows = document.querySelectorAll("#di-table tbody tr");
+  document.querySelectorAll("#di-widget .pill").forEach(function (p) {
+    p.addEventListener("click", function () {
+      document.querySelectorAll("#di-widget .pill").forEach(function (x) { x.classList.remove("on"); });
+      p.classList.add("on");
+      rows.forEach(function (r) { r.querySelectorAll("td").forEach(function (td) { td.classList.remove("hl"); }); });
+      var hl = function (i) { rows[i].querySelectorAll("td").forEach(function (td) { td.classList.add("hl"); }); };
+      var out = document.getElementById("di-out"), q = p.getAttribute("data-q");
+      if (q === "top") { var best = 0; marks.forEach(function (m, i) { if (m[1] > marks[best][1]) best = i; }); hl(best); out.innerHTML = '<span class="tag info">information</span> <b>' + marks[best][0] + "</b> topped with " + marks[best][1] + "."; }
+      if (q === "avg") { out.innerHTML = '<span class="tag info">information</span> The class average is <b>' + avg.toFixed(1) + "</b>."; }
+      if (q === "fail") { var f = []; marks.forEach(function (m, i) { if (m[1] < 40) { hl(i); f.push(m[0]); } }); out.innerHTML = '<span class="tag info">information</span> <b>' + f.join(", ") + "</b> needs help: a decision you can act on."; }
+      if (q === "above") { var n = 0; marks.forEach(function (m, i) { if (m[1] > avg) { hl(i); n++; } }); out.innerHTML = '<span class="tag info">information</span> <b>' + n + "</b> of " + marks.length + " students scored above the average of " + avg.toFixed(1) + "."; }
+    });
+  });
+
+  /* transaction demo */
+  var A = 1000, B = 1000, log = document.getElementById("txn-log");
+  function paint() { document.getElementById("bal-a").textContent = "₹" + A; document.getElementById("bal-b").textContent = "₹" + B; }
+  document.getElementById("do-transfer").addEventListener("click", function () {
+    var crash = document.getElementById("crash").checked, txn = document.getElementById("use-txn").checked;
+    var a0 = A, b0 = B, lines = [];
+    if (txn) lines.push("START TRANSACTION;");
+    A -= 500; lines.push("UPDATE accounts SET balance = balance - 500 WHERE id = 'A';   ✓");
+    if (crash) {
+      lines.push("💥 power cut!");
+      if (txn) { A = a0; B = b0; lines.push("→ transaction never committed → ROLLBACK. Nothing changed. Money is safe."); }
+      else { lines.push("→ no transaction: A lost ₹500 but B never received it. ₹500 vanished!"); }
+    } else {
+      B += 500; lines.push("UPDATE accounts SET balance = balance + 500 WHERE id = 'B';   ✓");
+      if (txn) lines.push("COMMIT;   → both changes saved together.");
+    }
+    lines.push("Total money in the bank: ₹" + (A + B));
+    log.textContent = lines.join("\n"); paint();
+  });
+  document.getElementById("reset-acct").addEventListener("click", function () { A = 1000; B = 1000; log.textContent = ""; paint(); });
+
+  /* terminology explorer */
+  var tt = document.getElementById("term-table"), tOut = document.getElementById("term-out");
+  var defs = {
+    relation: "<b>Relation</b> = the whole <b>table</b>.",
+    tuple: "<b>Tuple</b> = one <b>row</b> (record). Highlighted: the tuple for Rahul.",
+    attribute: "<b>Attribute</b> = one <b>column</b>. Highlighted: <code>salary</code>.",
+    cardinality: "<b>Cardinality</b> = number of rows = <b>4</b>.",
+    degree: "<b>Degree</b> = number of columns = <b>4</b>.",
+    domain: "<b>Domain</b> = the set of allowed values of a column. For <code>dept</code>: {CS, IT, ECE, …}; for <code>salary</code>: non-negative numbers."
+  };
+  document.querySelectorAll(".term-list button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".term-list button").forEach(function (x) { x.classList.remove("on"); });
+      b.classList.add("on");
+      tt.querySelectorAll("td,th").forEach(function (c) { c.classList.remove("hl"); });
+      var t = b.getAttribute("data-t"), trs = tt.querySelectorAll("tbody tr");
+      if (t === "relation" || t === "cardinality" || t === "degree") tt.querySelectorAll("td,th").forEach(function (c) { c.classList.add("hl"); });
+      if (t === "tuple") trs[2].querySelectorAll("td").forEach(function (c) { c.classList.add("hl"); });
+      if (t === "attribute") tt.querySelectorAll("tr").forEach(function (r) { r.children[2].classList.add("hl"); });
+      if (t === "domain") tt.querySelectorAll("tr").forEach(function (r) { r.children[3].classList.add("hl"); });
+      tOut.innerHTML = defs[t];
+    });
+  });
+
+  /* referential integrity demo */
+  var studs = [[1, "Nitish", "CSE"], [2, "Ankit", "ECE"], [3, "Rahul", "CSE"]];
+  function paintRI(bad) {
+    document.getElementById("ri-s").innerHTML = studs.map(function (s) {
+      return "<tr><td>" + s[0] + "</td><td>" + s[1] + '</td><td class="' + (bad && s[2] === "CSE" ? "dup" : "") + '">' + s[2] + "</td></tr>";
+    }).join("");
+  }
+  paintRI(false);
+  document.getElementById("ri-go").addEventListener("click", function () {
+    var fk = document.getElementById("ri-fk").checked, out = document.getElementById("ri-out");
+    if (document.getElementById("ri-b").textContent === "CS") return;
+    document.getElementById("ri-b").textContent = "CS";
+    if (fk) { studs.forEach(function (s) { if (s[2] === "CSE") s[2] = "CS"; }); paintRI(false); out.innerHTML = '<span class="tag yes">consistent</span> The change cascaded: every student who was in CSE now points to CS.'; }
+    else { paintRI(true); out.innerHTML = '<span class="tag no">broken</span> Students still point to <code>CSE</code>, which no longer exists. Integrity is lost.'; }
+  });
+  document.getElementById("ri-reset").addEventListener("click", function () {
+    studs = [[1, "Nitish", "CSE"], [2, "Ankit", "ECE"], [3, "Rahul", "CSE"]];
+    document.getElementById("ri-b").textContent = "CSE"; paintRI(false);
+    document.getElementById("ri-out").textContent = "Both tables agree.";
+  });
+})();
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 
 Personal notes blog of Ashutosh Patidar, served by GitHub Pages.
 
-Revision notes for Probability & Statistics, Linear Algebra, Machine Learning and Deep Learning. Revision notes on hot industry topics such as RAG and AI agents are coming soon.
+Revision notes for Probability & Statistics, Linear Algebra, Machine Learning, SQL and Deep Learning. Revision notes on hot industry topics such as RAG and AI agents are coming soon.
 
 ## Revision
 
@@ -17,4 +17,6 @@ Revision notes for Probability & Statistics, Linear Algebra, Machine Learning an
   - Clustering: [L13 Introduction to clustering](https://asu2304.github.io/machine-learning/L13-clustering-notes.html) to [L18 Choosing K](https://asu2304.github.io/machine-learning/L18-kmeans-choice-of-K-notes.html)
   - Estimation: [L19 Introduction to estimation](https://asu2304.github.io/machine-learning/L19-estimation.html) to [L26 The EM algorithm](https://asu2304.github.io/machine-learning/L26-em-algorithm.html)
   - Regression: [L27 Supervised learning](https://asu2304.github.io/machine-learning/L27-supervised-learning.html) to [L35 Cross-validation](https://asu2304.github.io/machine-learning/L35-cross-validation.html)
+- **[SQL for Data Science (source: Nitish Singh, CampusX)](https://asu2304.github.io/sql/)**: interactive notes on the [Complete SQL Course For Data Science](https://www.youtube.com/watch?v=nopIGY1zJE0) video, one page per chapter, with quizzes and an in-browser SQL lab.
+  - [1 Introduction](https://asu2304.github.io/sql/01-introduction.html) to [7 DDL SQL Queries](https://asu2304.github.io/sql/07-ddl-queries.html); DML, GROUP BY, CASE, joins and subqueries coming next
 - **[Deep Learning Revision (source: Mitesh Khapra, CS6910)](https://asu2304.github.io/deep-learning/)**: comprehensive revision notes from the lectures of [CS6910](https://www.cse.iitm.ac.in/~miteshk/CS6910.html). Coming soon.

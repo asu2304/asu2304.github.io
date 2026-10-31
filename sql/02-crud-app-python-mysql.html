@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2 · CRUD App with Python &amp; MySQL · SQL for Data Science</title>
+<meta name="description" content="Chapter 2 notes: build a register/login app with Python and MySQL, learn CRUD, mysql-connector-python, XAMPP and phpMyAdmin.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css">
+<style>
+.app-demo .forms { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.app-demo form { border: 1px solid var(--rule); border-radius: 10px; padding: 12px; background: var(--bg); }
+.app-demo form h5 { margin: 0 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.app-demo input { width: 100%; font: 14px var(--sans); padding: 7px 9px; margin: 0 0 8px; border: 1px solid var(--rule); border-radius: 7px; background: var(--surface); color: var(--text); }
+.app-demo .sql-echo { font: 13px/1.5 var(--mono); background: var(--code-bg); border-radius: 8px; padding: 8px 10px; margin: 10px 0 6px; white-space: pre-wrap; word-break: break-word; }
+@media (max-width: 640px) { .app-demo .forms { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body class="sql-page" data-chapter="2">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 2</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 2</p>
+<h1>A CRUD app with Python and MySQL</h1>
+<div class="chips"><span class="chip">3:00 → 50:00</span><span class="chip">XAMPP · phpMyAdmin</span><span class="chip">mysql-connector-python</span><span class="chip">Live demo on this page</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<p class="lede">Before any theory, Nitish builds a tiny <strong>register / login</strong> program in Python backed by a MySQL database. The aim is to show you what a database is <em>for</em>: every real application (Google, Facebook, any app you use) stores its data in one and talks to it from code.</p>
+
+<div class="callout"><span class="t">The mindset</span>
+<p>Don't treat databases as a boring subject. Once you work at a company you realise they are an interesting topic, and they are what lets you build real-world software.</p></div>
+
+<h2 id="setup">Setup: what you need</h2>
+<div class="tiles">
+  <div class="tile"><h4>1 · XAMPP</h4><p>Free software that runs a database server (MySQL / MariaDB) and Apache on your own machine, so you don't need a cloud database. Start <b>Apache</b> and <b>MySQL</b> from the XAMPP control panel.</p></div>
+  <div class="tile"><h4>2 · phpMyAdmin</h4><p>Comes with XAMPP. A web GUI for your local database at <code>localhost/phpmyadmin</code>: create databases and tables, insert, browse, edit, delete rows.</p></div>
+  <div class="tile"><h4>3 · An editor</h4><p>Nitish uses <b>PyCharm</b>; any Python IDE works.</p></div>
+  <div class="tile"><h4>4 · A connector library</h4><p><code>mysql-connector-python</code> lets Python code connect to MySQL and run SQL.</p></div>
+</div>
+<pre data-title="Terminal"><code class="lang-bash">pip install mysql-connector-python</code></pre>
+<p>The project has two files:</p>
+<ul>
+  <li><code>main.py</code>: the application (menus, user input, what to show).</li>
+  <li><code>dbhelper.py</code>: everything that talks to the database.</li>
+</ul>
+
+<h2 id="tables">Databases hold tables, tables hold rows</h2>
+<p>An important idea: you never store data <em>directly</em> "in a database". Inside a database you create <strong>tables</strong>, and data lives in a table's <strong>rows and columns</strong>.</p>
+<div class="figure">
+<svg viewBox="0 0 560 190" role="img" aria-label="A database server contains databases, which contain tables, which contain rows and columns">
+  <rect class="box" x="10" y="10" width="540" height="170" rx="12"/>
+  <text x="26" y="34" class="b">MySQL server (XAMPP)</text>
+  <rect class="box hi" x="26" y="46" width="300" height="122" rx="10"/>
+  <text x="40" y="68" class="b">Database: my_app_db</text>
+  <rect class="box sq" x="40" y="80" width="272" height="78" rx="8"/>
+  <text x="52" y="100" class="b">Table: users</text>
+  <text x="52" y="122" class="mono">user_id | name   | email          | …</text>
+  <text x="52" y="142" class="mono">1       | Nitish | nitish@gmail…  | …</text>
+  <rect class="box" x="344" y="46" width="190" height="56" rx="10"/>
+  <text x="358" y="70" class="b">Another database</text>
+  <text x="358" y="90" class="m">its own tables…</text>
+  <rect class="box" x="344" y="112" width="190" height="56" rx="10"/>
+  <text x="358" y="136" class="b">phpmyadmin, test…</text>
+  <text x="358" y="156" class="m">system / sample DBs</text>
+</svg>
+<figcaption>Server → databases → tables → rows &amp; columns.</figcaption>
+</div>
+
+<p>In phpMyAdmin he creates a new database and, inside it, a <code>users</code> table for registration with four columns:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Column</th><th>Type</th><th>Why</th></tr></thead>
+<tbody>
+<tr><td><code>user_id</code></td><td><code>INT</code>, <strong>A_I</strong> (auto-increment), <strong>primary key</strong></td><td>A unique number per user, like a <em>roll number</em> in college: names can repeat, roll numbers can't.</td></tr>
+<tr><td><code>name</code></td><td><code>VARCHAR(255)</code></td><td>Text, up to 255 characters.</td></tr>
+<tr><td><code>email</code></td><td><code>VARCHAR(255)</code></td><td>Used to log in.</td></tr>
+<tr><td><code>password</code></td><td><code>VARCHAR(255)</code></td><td>Used to log in.</td></tr>
+</tbody></table></div>
+<div class="callout tip"><span class="t">Auto-increment</span>
+<p>With <strong>A_I</strong> ticked you never supply the id yourself. You tell the database: "check what the last user's id was, add one, and fill it in for me." Primary keys are covered in detail in <a href="04-database-keys.html">Chapter 4</a>.</p></div>
+<p>The equivalent SQL (you will learn to write this yourself in <a href="07-ddl-queries.html">Chapter 7</a>):</p>
+<pre><code class="lang-sql">CREATE TABLE users (
+    user_id  INT PRIMARY KEY AUTO_INCREMENT,
+    name     VARCHAR(255),
+    email    VARCHAR(255),
+    password VARCHAR(255)
+);</code></pre>
+
+<h2 id="crud">CRUD: the only four things you ever do with data</h2>
+<p>Whatever project you build with a database, every interaction is one of four operations:</p>
+<div class="cards">
+  <div class="flash"><div class="inner"><div class="face front"><b>C</b>reate<small>tap to flip</small></div><div class="face back">Add new data. <br><br>e.g. you <b>send a WhatsApp message</b>, register a new account.<br><code>INSERT</code></div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>R</b>ead / Retrieve<small>tap to flip</small></div><div class="face back">Fetch existing data. <br><br>e.g. <b>logging in</b>: the app checks your email and password against stored rows.<br><code>SELECT</code></div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>U</b>pdate<small>tap to flip</small></div><div class="face back">Change existing data. <br><br>e.g. <b>editing a comment</b> you posted on a friend's photo.<br><code>UPDATE</code></div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>D</b>elete<small>tap to flip</small></div><div class="face back">Remove data. <br><br>e.g. <b>deleting a message</b> you sent.<br><code>DELETE</code></div></div></div>
+</div>
+<p>You use 50 apps a day; imagine any action in any of them and it is always one of these four. Thinking "divide and rule" this way makes working with databases much easier.</p>
+
+<div class="widget sorter" data-done="Every action in an app is one of the four CRUD operations.">
+  <div class="w-title">Mini-game · Which CRUD operation?</div>
+  <div class="w-help">Tap an action, then tap the operation it belongs to.</div>
+  <div class="bank">
+    <span class="item" data-bin="r">Logging in with email + password</span>
+    <span class="item" data-bin="c">Signing up for a new account</span>
+    <span class="item" data-bin="u">Editing a comment</span>
+    <span class="item" data-bin="d">Deleting a sent message</span>
+    <span class="item" data-bin="c">Posting a photo</span>
+    <span class="item" data-bin="r">Searching for a friend's profile</span>
+    <span class="item" data-bin="u">Changing your password</span>
+    <span class="item" data-bin="d">Removing an item from your cart</span>
+    <span class="item" data-bin="r">Scrolling your feed</span>
+    <span class="item" data-bin="c">Placing an order</span>
+  </div>
+  <div class="bins">
+    <div class="bin" data-bin="c"><h5>Create</h5></div>
+    <div class="bin" data-bin="r"><h5>Read</h5></div>
+    <div class="bin" data-bin="u"><h5>Update</h5></div>
+    <div class="bin" data-bin="d"><h5>Delete</h5></div>
+  </div>
+  <div class="verdict"></div>
+  <p style="margin:10px 0 0"><button class="btn small" data-reset>Shuffle again</button></p>
+</div>
+
+<p>In phpMyAdmin you can do all four by hand: <strong>Insert</strong> a row (leaving <code>user_id</code> blank, since auto-increment fills it), <strong>Browse</strong>/<strong>Search</strong> (read), <strong>Edit</strong> (update) and <strong>Delete</strong>. But real applications don't open phpMyAdmin; they do the same four operations <strong>through code</strong>, in Python or any other language. That's what we build next.</p>
+
+<h2 id="connect">Connecting Python to MySQL (<code>dbhelper.py</code>)</h2>
+<p>Create a <code>DBHelper</code> class. Its <strong>constructor</strong> connects to the database once; afterwards every method uses that connection.</p>
+<pre data-title="dbhelper.py"><code class="lang-python">import mysql.connector
+import sys
+
+class DBHelper:
+
+    def __init__(self):
+        # connect to the database once, when the object is created
+        try:
+            self.conn = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="",          # XAMPP's default root password is empty
+                database="my_app_db"
+            )
+            self.mycursor = self.conn.cursor()
+        except:
+            print("Some error occurred. Could not connect to database")
+            sys.exit(0)
+        else:
+            print("Connected to database")</code></pre>
+<ul>
+  <li><strong>Connection object</strong> (<code>self.conn</code>): your live link to the database.</li>
+  <li><strong>Cursor</strong> (<code>self.mycursor</code>): the object you use to <em>execute</em> SQL and fetch results.</li>
+  <li><strong><code>try / except</code></strong>: many things can go wrong (wrong host, wrong password, a database name that doesn't exist, MySQL not running). Nitish demonstrates several of these failures live; on any of them, print a message and exit with <code>sys.exit(0)</code> instead of crashing later.</li>
+</ul>
+<div class="callout"><span class="t">Coming later</span><p>You can also <em>create</em> the database itself from code (Python or plain SQL) instead of clicking in phpMyAdmin. That's covered in the DDL chapter.</p></div>
+
+<h2 id="register">Create: registration</h2>
+<p>In <code>main.py</code>, a menu-driven program asks the user what to do. Nitish builds the menu with plain <code>input()</code> (a GUI would need more setup):</p>
+<pre data-title="main.py"><code class="lang-python">import sys
+from dbhelper import DBHelper
+
+class Flipkart:
+
+    def __init__(self):
+        self.db = DBHelper()       # connect once
+        self.menu()
+
+    def menu(self):
+        user_input = input("""
+        1. Enter 1 to register
+        2. Enter 2 to login
+        3. Anything else to leave
+        """)
+        if user_input == "1":
+            self.register()
+        elif user_input == "2":
+            self.login()
+        else:
+            sys.exit(1000)
+
+    def register(self):
+        name = input("Enter the name: ")
+        email = input("Enter the email: ")
+        password = input("Enter the password: ")
+
+        response = self.db.register(name, email, password)
+        if response:
+            print("Registration successful")
+        else:
+            print("Registration failed")
+        self.menu()
+
+obj = Flipkart()</code></pre>
+<p>The database work lives in <code>DBHelper.register</code>. It builds an <code>INSERT</code> query, executes it, and <strong>commits</strong>:</p>
+<pre data-title="dbhelper.py (continued)"><code class="lang-python">    def register(self, name, email, password):
+        try:
+            self.mycursor.execute("""
+            INSERT INTO users (user_id, name, email, password)
+            VALUES (NULL, '{}', '{}', '{}')
+            """.format(name, email, password))
+            self.conn.commit()     # make the change permanent
+        except:
+            return -1
+        else:
+            return 1</code></pre>
+<ul>
+  <li><code>NULL</code> for <code>user_id</code>: auto-increment fills it in.</li>
+  <li><code>conn.commit()</code>: without it, the insert isn't saved. (Commit belongs to TCL, see <a href="05-types-of-sql-commands.html">Chapter 5</a>.)</li>
+  <li>Return <code>1</code> / <code>-1</code> so the caller can print success or failure.</li>
+</ul>
+
+<div class="callout sql"><span class="t">Design pattern: keep the layers separate</span>
+<p>Database code goes in one place, application logic in another, and the part the user sees (the GUI) in a third. This is the idea behind <strong>MVC (Model–View–Controller)</strong>, which you'll meet in software development. Here the "view" is just <code>input()</code>/<code>print()</code>, so there are two files instead of three.</p></div>
+
+<h2 id="login">Read: login</h2>
+<p>Login is a <strong>read</strong>: find a row whose email <em>and</em> password match. <code>fetchall()</code> returns a list of matching rows (each a tuple).</p>
+<pre data-title="dbhelper.py (continued)"><code class="lang-python">    def search(self, email, password):
+        self.mycursor.execute("""
+        SELECT * FROM users WHERE email LIKE '{}' AND password LIKE '{}'
+        """.format(email, password))
+        data = self.mycursor.fetchall()
+        return data</code></pre>
+<pre data-title="main.py (continued)"><code class="lang-python">    def login(self):
+        email = input("Enter the email: ")
+        password = input("Enter the password: ")
+
+        data = self.db.search(email, password)
+        if len(data) == 0:
+            print("Incorrect email/password")
+            self.login()
+        else:
+            print("Hello", data[0][1])   # row 0, column 1 = name
+            # next: a logged-in menu (view / edit profile, delete account…)</code></pre>
+<p>How do we decide whether the login worked? Simply by whether the query returned any rows. An empty list means no user has that email + password.</p>
+
+<h2 id="demo">Try it: the same app, running in your browser</h2>
+<p>This demo runs a real SQL engine in the page (SQLite compiled to WebAssembly, close enough to MySQL for these queries). Register a few users, log in, and watch the exact SQL each button generates.</p>
+<div class="widget app-demo" id="app-demo">
+  <div class="w-title">Live demo · register &amp; login</div>
+  <div class="forms">
+    <form id="f-reg"><h5>1 · Register (INSERT)</h5>
+      <input name="name" placeholder="name" value="Nitish" required>
+      <input name="email" placeholder="email" value="nitish@gmail.com" required>
+      <input name="password" placeholder="password" value="1234" required>
+      <button class="btn primary small" type="submit">Register</button></form>
+    <form id="f-login"><h5>2 · Login (SELECT)</h5>
+      <input name="email" placeholder="email" value="nitish@gmail.com" required>
+      <input name="password" placeholder="password" value="1234" required>
+      <button class="btn primary small" type="submit">Login</button></form>
+  </div>
+  <div class="sql-echo" id="app-sql">-- the generated SQL appears here</div>
+  <div id="app-msg"></div>
+  <p style="margin:10px 0 4px"><b>The <code>users</code> table right now:</b></p>
+  <div id="app-table"></div>
+</div>
+
+<div class="callout warn"><span class="t">My addition: don't ship this code as-is</span>
+<p>The course keeps things simple on purpose. In real code, two things change:</p>
+<ul>
+  <li><strong>Never build SQL with <code>.format()</code></strong> from user input. Someone can type <code>' OR '1'='1</code> as a password and log in as anyone (<em>SQL injection</em>). Use parameterised queries, where the driver escapes values for you:<br>
+  <code>cursor.execute("SELECT * FROM users WHERE email = %s AND password = %s", (email, password))</code></li>
+  <li><strong>Never store plain-text passwords.</strong> Store a salted hash (for example with <code>bcrypt</code>) and compare hashes.</li>
+</ul>
+<p>Use <code>=</code> rather than <code>LIKE</code> for exact matches too; <code>LIKE</code> treats <code>%</code> and <code>_</code> as wildcards.</p></div>
+
+<h2 id="update-delete">Update and delete: the logged-in menu</h2>
+<p>After a successful login, the app shows a second menu (for example: view profile, edit profile, delete account, log out). Each option is one more CRUD method on <code>DBHelper</code>:</p>
+<pre><code class="lang-sql">-- Update: edit profile
+UPDATE users SET name = 'Nitish Singh' WHERE user_id = 1;
+
+-- Delete: delete account
+DELETE FROM users WHERE user_id = 1;</code></pre>
+<p>In Python, the same pattern applies: <code>execute(...)</code> then <code>conn.commit()</code>. The full syntax of <code>INSERT</code>, <code>SELECT</code>, <code>UPDATE</code> and <code>DELETE</code> is the subject of the DML chapter.</p>
+<div class="callout"><span class="t">A note from the class: should data ever really be deleted?</span>
+<p>When data is related to other data (a user's orders, comments, payments), deleting it can break those relationships. That's why many real systems avoid hard deletes. This connects to <em>referential integrity</em> in <a href="03-database-theory.html">Chapter 3</a>.</p></div>
+
+<h2 id="recap">Recap</h2>
+<div class="cards">
+  <div class="flash"><div class="inner"><div class="face front"><b>conn</b><small>what is it?</small></div><div class="face back">The connection object from <code>mysql.connector.connect(host, user, password, database)</code>.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>cursor</b><small>what is it?</small></div><div class="face back">Runs SQL with <code>execute()</code> and returns rows with <code>fetchall()</code>.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>commit()</b><small>when?</small></div><div class="face back">After any change (INSERT / UPDATE / DELETE), so it's saved permanently.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>A_I</b><small>what does it do?</small></div><div class="face back">Auto-increment: the DB assigns the next id itself. Pass <code>NULL</code> (or skip the column).</div></div></div>
+</div>
+
+<div class="quiz" data-answer="2">
+  <p class="q">A user types their email and password and clicks "Log in". Which CRUD operation is that?</p>
+  <div class="opts"><button class="opt">Create</button><button class="opt">Update</button><button class="opt">Read</button><button class="opt">Delete</button></div>
+  <p class="why"><b>Read.</b> Nothing changes in the database; the app only looks up whether a matching row exists.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Your INSERT runs with no error but the row never shows up in phpMyAdmin. What did you most likely forget?</p>
+  <div class="opts"><button class="opt"><code>cursor.fetchall()</code></button><button class="opt"><code>conn.commit()</code></button><button class="opt"><code>sys.exit()</code></button><button class="opt">The primary key value</button></div>
+  <p class="why"><b><code>conn.commit()</code></b>. Changes made through the connector stay uncommitted until you commit them.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">Why does <code>DBHelper</code> wrap <code>mysql.connector.connect(...)</code> in <code>try/except</code>?</p>
+  <div class="opts"><button class="opt">To speed up the connection</button><button class="opt">Because MySQL requires it</button><button class="opt">To encrypt the password</button><button class="opt">Connecting can fail (wrong password, missing database, server off), and we want a clear message instead of a crash</button></div>
+  <p class="why">The class demonstrated several such failures live: a misspelled database name, a wrong password, and so on.</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js"></script>
+<script>
+(function () {
+  var N = window.SQLNotes, db = null;
+  var sqlBox = document.getElementById("app-sql"), msg = document.getElementById("app-msg"), tbl = document.getElementById("app-table");
+  function q(s) { return String(s).replace(/'/g, "''"); }
+  function ready() {
+    return N.loadSqlJs().then(function (SQL) {
+      if (!db) {
+        db = new SQL.Database();
+        db.run("CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, name VARCHAR(255), email VARCHAR(255), password VARCHAR(255));");
+      }
+      return db;
+    });
+  }
+  function show(sql, html) {
+    sqlBox.innerHTML = N.highlight(sql, "sql");
+    msg.innerHTML = html;
+    var res = db.exec("SELECT * FROM users");
+    tbl.innerHTML = res.length ? N.renderResult(res) : '<div class="pg-msg info">(empty: register someone)</div>';
+  }
+  tbl.innerHTML = '<div class="pg-msg info">(empty: register someone)</div>';
+  document.getElementById("f-reg").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    ready().then(function () {
+      var sql = "INSERT INTO users (user_id, name, email, password)\nVALUES (NULL, '" + q(f.name.value) + "', '" + q(f.email.value) + "', '" + q(f.password.value) + "');";
+      db.run(sql);
+      show(sql, '<div class="pg-msg ok">Registration successful. user_id was filled in automatically.</div>');
+    }, function (err) { msg.innerHTML = '<div class="pg-msg err">' + err.message + "</div>"; });
+  });
+  document.getElementById("f-login").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var f = e.target;
+    ready().then(function () {
+      var sql = "SELECT * FROM users\nWHERE email = '" + q(f.email.value) + "' AND password = '" + q(f.password.value) + "';";
+      var res = db.exec(sql);
+      var rows = res.length ? res[0].values : [];
+      show(sql, rows.length
+        ? '<div class="pg-msg ok">fetchall() returned ' + rows.length + " row(s) → Hello " + N.esc(String(rows[0][1])) + "!</div>"
+        : '<div class="pg-msg err">fetchall() returned [] → Incorrect email/password</div>');
+    }, function (err) { msg.innerHTML = '<div class="pg-msg err">' + err.message + "</div>"; });
+  });
+})();
+</script>
+</body>
+</html>

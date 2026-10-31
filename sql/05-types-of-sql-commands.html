@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5 · Types of SQL Commands · SQL for Data Science</title>
+<meta name="description" content="Chapter 5 notes: DDL, DML, TCL and DCL commands, MySQL data types, SQL operators and comments.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css">
+<style>
+.cmd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0 24px; }
+.cmd { border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; background: var(--surface); font-family: var(--sans); }
+.cmd .abbr { font: 700 22px var(--sans); }
+.cmd .full { color: var(--muted); font-size: 13.5px; margin-bottom: 8px; }
+.cmd .words { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.cmd .words code { font-size: 13px; font-weight: 600; }
+.cmd p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.45; }
+.cmd.ddl { border-top: 4px solid var(--accent); } .cmd.ddl .abbr { color: var(--accent); }
+.cmd.dml { border-top: 4px solid var(--ok); } .cmd.dml .abbr { color: var(--ok); }
+.cmd.tcl { border-top: 4px solid var(--sql); } .cmd.tcl .abbr { color: var(--sql); }
+.cmd.dcl { border-top: 4px solid var(--purple); } .cmd.dcl .abbr { color: var(--purple); }
+@media (max-width: 640px) { .cmd-grid { grid-template-columns: 1fr; } }
+.dt-q { font-weight: 600; margin: 4px 0 8px; }
+</style>
+</head>
+<body class="sql-page" data-chapter="5">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 5</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 5</p>
+<h1>Types of SQL commands</h1>
+<div class="chips"><span class="chip">1:51:00 → 1:57:30</span><span class="chip">DDL · DML · TCL · DCL</span><span class="chip">Data types</span><span class="chip">Operators &amp; comments</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<h2 id="four">The four families of SQL commands</h2>
+<p>Keep this chart in your head whenever you work with a database: every SQL command belongs to one of four groups. The names sound confusing at first, but each one says what it does.</p>
+<div class="cmd-grid">
+  <div class="cmd ddl"><div class="abbr">DDL</div><div class="full">Data <b>Definition</b> Language</div>
+    <div class="words"><code>CREATE</code><code>ALTER</code><code>DROP</code><code>TRUNCATE</code></div>
+    <p>Defines the <b>structure</b>: databases, tables, columns, constraints. CREATE makes things, ALTER modifies them, DROP deletes them, TRUNCATE empties them.</p></div>
+  <div class="cmd dml"><div class="abbr">DML</div><div class="full">Data <b>Manipulation</b> Language</div>
+    <div class="words"><code>INSERT</code><code>UPDATE</code><code>DELETE</code><code>SELECT</code></div>
+    <p>Works on the <b>data inside</b> tables, and is the most frequently used group. INSERT adds rows, UPDATE changes them, DELETE removes them, SELECT fetches them (CRUD!).</p></div>
+  <div class="cmd tcl"><div class="abbr">TCL</div><div class="full">Transaction <b>Control</b> Language</div>
+    <div class="words"><code>COMMIT</code><code>ROLLBACK</code></div>
+    <p>Controls <b>transactions</b>. COMMIT saves changes permanently (like <code>conn.commit()</code> in Chapter 2); ROLLBACK undoes them if something goes wrong. A transaction either completes fully or not at all.</p></div>
+  <div class="cmd dcl"><div class="abbr">DCL</div><div class="full">Data <b>Control</b> Language</div>
+    <div class="words"><code>GRANT</code><code>REVOKE</code></div>
+    <p>Controls <b>permissions</b>. GRANT gives a user access; REVOKE takes it back.</p></div>
+</div>
+
+<div class="callout"><span class="t">Good to know</span>
+<p>Some books put <code>SELECT</code> in its own group, <strong>DQL</strong> (Data Query Language), and add <code>SAVEPOINT</code> to TCL. The course follows the four-group version above.</p></div>
+
+<div class="widget sorter" data-done="DDL = structure, DML = data, TCL = transactions, DCL = permissions.">
+  <div class="w-title">Mini-game · sort the commands</div>
+  <div class="w-help">Tap a command, then tap its family.</div>
+  <div class="bank">
+    <span class="item" data-bin="ddl"><code>CREATE</code></span><span class="item" data-bin="ddl"><code>ALTER</code></span><span class="item" data-bin="ddl"><code>DROP</code></span><span class="item" data-bin="ddl"><code>TRUNCATE</code></span>
+    <span class="item" data-bin="dml"><code>INSERT</code></span><span class="item" data-bin="dml"><code>UPDATE</code></span><span class="item" data-bin="dml"><code>DELETE</code></span><span class="item" data-bin="dml"><code>SELECT</code></span>
+    <span class="item" data-bin="tcl"><code>COMMIT</code></span><span class="item" data-bin="tcl"><code>ROLLBACK</code></span>
+    <span class="item" data-bin="dcl"><code>GRANT</code></span><span class="item" data-bin="dcl"><code>REVOKE</code></span>
+  </div>
+  <div class="bins">
+    <div class="bin" data-bin="ddl"><h5>DDL</h5></div>
+    <div class="bin" data-bin="dml"><h5>DML</h5></div>
+    <div class="bin" data-bin="tcl"><h5>TCL</h5></div>
+    <div class="bin" data-bin="dcl"><h5>DCL</h5></div>
+  </div>
+  <div class="verdict"></div>
+  <p style="margin:10px 0 0"><button class="btn small" data-reset>Shuffle again</button></p>
+</div>
+
+<div class="callout warn"><span class="t">Classic confusion: DROP vs TRUNCATE vs DELETE</span>
+<ul>
+  <li><code>DROP TABLE t</code> (DDL): the table itself is gone, structure and data.</li>
+  <li><code>TRUNCATE TABLE t</code> (DDL): the table stays but <b>all</b> rows are removed.</li>
+  <li><code>DELETE FROM t WHERE …</code> (DML): removes the <b>chosen</b> rows only.</li>
+</ul></div>
+
+<h2 id="dialects">SQL is a standard; each DBMS has a dialect</h2>
+<p>SQL is the standard language all relational DBMSs use. But Oracle, MySQL, PostgreSQL and SQL Server each have <strong>their own implementation</strong> of it, so a data type or function in one may not exist in another. Since we use MySQL, look up MySQL's flavour when unsure. A handy reference is <a href="https://www.w3schools.com/sql/sql_datatypes.asp" target="_blank" rel="noopener">w3schools: SQL data types for MySQL, SQL Server and MS Access</a>.</p>
+
+<h2 id="datatypes">Data types (MySQL)</h2>
+<p>Like every programming language, SQL has data types; you pick one per column. You don't need to memorise them all: you'll pick them up by using them. Nitish's advice: skim the list once during free time, and in interviews you're rarely asked their exact ranges.</p>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Numeric">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Type</th><th>Use it for</th></tr></thead><tbody>
+      <tr><td><code>TINYINT</code>, <code>SMALLINT</code>, <code>INT</code>, <code>BIGINT</code></td><td>Whole numbers of increasing size (<code>INT</code> ≈ ±2.1 billion).</td></tr>
+      <tr><td><code>BOOL</code> / <code>BOOLEAN</code></td><td>True/false (stored as <code>TINYINT(1)</code>: 0 or 1).</td></tr>
+      <tr><td><code>DECIMAL(p, s)</code></td><td>Exact numbers with a fixed number of decimals: <b>money</b>, ratings like <code>DECIMAL(2,1)</code> → 4.2.</td></tr>
+      <tr><td><code>FLOAT</code>, <code>DOUBLE</code></td><td>Approximate decimals (scientific values).</td></tr>
+    </tbody></table></div>
+  </div>
+  <div class="tab-panel" data-tab="String">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Type</th><th>Use it for</th></tr></thead><tbody>
+      <tr><td><code>CHAR(n)</code></td><td>Fixed length text, e.g. <code>CHAR(2)</code> state codes.</td></tr>
+      <tr><td><code>VARCHAR(n)</code></td><td>Variable length text up to <i>n</i> characters: names, emails (<code>VARCHAR(255)</code>).</td></tr>
+      <tr><td><code>TEXT</code></td><td>Long text: reviews, descriptions.</td></tr>
+      <tr><td><code>BLOB</code></td><td><b>B</b>inary <b>L</b>arge <b>OB</b>ject: raw bytes such as files/images.</td></tr>
+      <tr><td><code>ENUM('a','b',…)</code></td><td>One value from a fixed list, e.g. <code>ENUM('veg','non-veg')</code>.</td></tr>
+    </tbody></table></div>
+  </div>
+  <div class="tab-panel" data-tab="Date &amp; time">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Type</th><th>Format / use</th></tr></thead><tbody>
+      <tr><td><code>DATE</code></td><td><code>YYYY-MM-DD</code>: date of birth.</td></tr>
+      <tr><td><code>TIME</code></td><td><code>hh:mm:ss</code></td></tr>
+      <tr><td><code>DATETIME</code></td><td><code>YYYY-MM-DD hh:mm:ss</code>: order time.</td></tr>
+      <tr><td><code>TIMESTAMP</code></td><td>Like DATETIME, often used with <code>DEFAULT CURRENT_TIMESTAMP</code>.</td></tr>
+      <tr><td><code>YEAR</code></td><td>A 4-digit year.</td></tr>
+    </tbody></table></div>
+  </div>
+</div>
+
+<div class="widget" id="dt-game">
+  <div class="w-title">Pick the best data type</div>
+  <div class="w-help">For each column, choose the type you'd use. (These mirror choices made in the course's ER-diagram example.)</div>
+  <div id="dt-box"></div>
+  <div class="verdict" id="dt-out" style="display:none"></div>
+  <p style="margin:10px 0 0"><button class="btn small" id="dt-next">Next column →</button></p>
+</div>
+
+<h2 id="operators">Operators</h2>
+<p>SQL has operators just like other languages. You'll learn them by using them in queries, so there's no need to sit and memorise them; skim once.</p>
+<div class="tiles">
+  <div class="tile"><h4>Arithmetic</h4><p><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>%</code></p></div>
+  <div class="tile"><h4>Comparison</h4><p><code>=</code> <code>&gt;</code> <code>&lt;</code> <code>&gt;=</code> <code>&lt;=</code> <code>&lt;&gt;</code><br>Note: equality is a single <code>=</code>, and "not equal" is <code>&lt;&gt;</code> (MySQL also accepts <code>!=</code>).</p></div>
+  <div class="tile"><h4>Logical</h4><p><code>AND</code> <code>OR</code> <code>NOT</code> <code>IN</code> <code>BETWEEN</code> <code>LIKE</code> <code>EXISTS</code> <code>ALL</code> <code>ANY</code></p></div>
+</div>
+<p>Try them in a real SQL engine (runs in your browser):</p>
+<div class="widget playground">
+  <div class="w-title">Playground · operators</div>
+  <div class="pg-bar">
+    <select aria-label="Load an example">
+      <option value="pg-ops-1">Arithmetic</option>
+      <option value="pg-ops-2">Comparison (1 = true, 0 = false)</option>
+      <option value="pg-ops-3">Logical: AND, OR, NOT, IN, BETWEEN, LIKE</option>
+    </select>
+  </div>
+  <textarea spellcheck="false">SELECT 10 + 5 AS add_, 10 - 5 AS sub, 10 * 5 AS mul, 10 / 4.0 AS div_, 10 % 3 AS modulo;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button><span style="font-size:12.5px;color:var(--muted)">or <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Enter</span></span></div>
+  <div class="pg-out"></div>
+</div>
+<script type="text/plain" id="pg-ops-1">
+SELECT 10 + 5 AS add_, 10 - 5 AS sub, 10 * 5 AS mul, 10 / 4.0 AS div_, 10 % 3 AS modulo;</script>
+<script type="text/plain" id="pg-ops-2">
+SELECT 5 = 5 AS eq, 5 <> 3 AS not_eq, 5 > 3 AS gt, 5 <= 3 AS lte;</script>
+<script type="text/plain" id="pg-ops-3">
+SELECT (5 > 3 AND 2 > 1) AS and_,
+       (5 > 3 OR 2 > 9)  AS or_,
+       NOT (5 > 3)        AS not_,
+       'CS' IN ('CS', 'IT', 'ECE') AS in_,
+       7 BETWEEN 1 AND 10 AS between_,
+       'nitish@gmail.com' LIKE '%@gmail.com' AS like_;</script>
+
+<h2 id="comments">Comments</h2>
+<p>Writing comments in SQL is simple:</p>
+<pre><code class="lang-sql">-- a single-line comment (note the space after --)
+
+/* a multi-line
+   comment */
+
+SELECT * FROM users; -- comments can also follow code
+# MySQL also accepts a hash for single-line comments</code></pre>
+
+<h2 id="check">Check yourself</h2>
+<div class="quiz" data-answer="0">
+  <p class="q"><code>TRUNCATE</code> belongs to which family?</p>
+  <div class="opts"><button class="opt">DDL</button><button class="opt">DML</button><button class="opt">TCL</button><button class="opt">DCL</button></div>
+  <p class="why"><b>DDL.</b> It empties the table at the structure level (unlike row-by-row <code>DELETE</code>, which is DML).</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">An admin wants to remove a user's permission to update a table. Which command?</p>
+  <div class="opts"><button class="opt"><code>DELETE</code></button><button class="opt"><code>ROLLBACK</code></button><button class="opt"><code>DROP</code></button><button class="opt"><code>REVOKE</code></button></div>
+  <p class="why"><b>REVOKE</b> (DCL) takes back a permission that <code>GRANT</code> gave.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Which data type is best for a restaurant rating like 4.2?</p>
+  <div class="opts"><button class="opt"><code>INT</code></button><button class="opt"><code>DECIMAL(2,1)</code></button><button class="opt"><code>VARCHAR(255)</code></button><button class="opt"><code>DATE</code></button></div>
+  <p class="why"><b>DECIMAL(2,1)</b>: 2 digits in total, 1 after the decimal point.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">In SQL, how do you write "not equal to"?</p>
+  <div class="opts"><button class="opt"><code>=!</code></button><button class="opt"><code>==</code></button><button class="opt"><code>&lt;&gt;</code></button><button class="opt"><code>NOT=</code></button></div>
+  <p class="why"><b>&lt;&gt;</b> is the standard; MySQL also accepts <code>!=</code>.</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js"></script>
+<script>
+(function () {
+  var Q = [
+    { col: "customer phone number (10 digits)", opts: ["INT", "VARCHAR(10)", "DECIMAL(10,0)", "DATE"], a: 1, why: "You never do maths on a phone number, it can start with 0 or +, and 10-digit numbers overflow INT. Store it as text: VARCHAR(10). (The course made the same call.)" },
+    { col: "customer name", opts: ["CHAR(2)", "TEXT", "VARCHAR(255)", "INT"], a: 2, why: "Names vary in length but are short: VARCHAR(255)." },
+    { col: "restaurant rating like 3.5 or 4.2", opts: ["INT", "DECIMAL(2,1)", "VARCHAR(3)", "BOOLEAN"], a: 1, why: "Exact number with one decimal: DECIMAL(2,1)." },
+    { col: "food type: veg or non-veg", opts: ["ENUM('veg','non-veg')", "INT", "DATETIME", "BLOB"], a: 0, why: "A value from a fixed list: ENUM (VARCHAR also works)." },
+    { col: "price of a dish in rupees (whole rupees)", opts: ["INT", "TEXT", "DATE", "CHAR(1)"], a: 0, why: "Whole rupees: INT. (If you need paise, use DECIMAL(10,2).)" },
+    { col: "time the order was placed", opts: ["DATE", "YEAR", "DATETIME", "VARCHAR(20)"], a: 2, why: "You need both date and time: DATETIME (or TIMESTAMP)." },
+    { col: "user_id that auto-increments", opts: ["INT", "VARCHAR(255)", "DECIMAL(5,2)", "TEXT"], a: 0, why: "An auto-incrementing integer: INT." }
+  ];
+  var i = 0, box = document.getElementById("dt-box"), out = document.getElementById("dt-out");
+  function show() {
+    var q = Q[i];
+    out.style.display = "none";
+    box.innerHTML = '<p class="dt-q">' + (i + 1) + " / " + Q.length + " · Column: " + q.col + '</p><div class="pill-row">' +
+      q.opts.map(function (o, k) { return '<span class="pill" data-k="' + k + '">' + o + "</span>"; }).join("") + "</div>";
+    box.querySelectorAll(".pill").forEach(function (p) {
+      p.addEventListener("click", function () {
+        var k = +p.getAttribute("data-k");
+        box.querySelectorAll(".pill").forEach(function (x) { x.style.pointerEvents = "none"; });
+        p.classList.add("on");
+        out.style.display = "block";
+        out.innerHTML = (k === q.a ? '<span class="tag yes">correct</span> ' : '<span class="tag no">best is ' + q.opts[q.a] + "</span> ") + q.why;
+      });
+    });
+  }
+  document.getElementById("dt-next").addEventListener("click", function () { i = (i + 1) % Q.length; show(); });
+  show();
+})();
+</script>
+</body>
+</html>

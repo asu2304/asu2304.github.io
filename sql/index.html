@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL for Data Science (Notes) · Ashutosh Patidar</title>
+<meta name="description" content="Interactive chapter-by-chapter notes on CampusX's Complete SQL Course For Data Science by Nitish Singh: databases, keys, ER diagrams and SQL queries in MySQL.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css">
+</head>
+<body class="sql-page" data-chapter="0">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout">
+<main class="content">
+<div id="credit"></div>
+<h1>SQL for Data Science (Notes)</h1>
+<p class="lede">Chapter-by-chapter notes on a six-hour MySQL course: why databases exist, how they're designed (keys, integrity, ER diagrams), and how to write SQL. Every page has quizzes, flip cards, and most have a live SQL engine you can run in the browser.</p>
+<p class="legend"><strong>Source:</strong> <a href="https://www.youtube.com/watch?v=nopIGY1zJE0" target="_blank" rel="noopener">Complete SQL Course For Data Science | SQL For Data Science in 6 Hrs</a> by <strong>Nitish Singh</strong>, <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. These are my personal, unofficial study notes; the teaching is his, so watch the video for the definitive treatment. I'm adding chapters as I go through the course.</p>
+
+<h2 class="section-title">Chapters</h2>
+<ul class="timeline" id="timeline"></ul>
+
+<h2 class="section-title">How to use these notes</h2>
+<div class="tiles">
+  <div class="tile"><h4>Watch, then read</h4><p>Each chapter links to its exact timestamp in the video.</p></div>
+  <div class="tile"><h4>Do the quizzes</h4><p>Most MCQs are the ones solved in class.</p></div>
+  <div class="tile"><h4>Run the SQL</h4><p>Chapters 2, 5 and 7 include a live SQL engine (SQLite in your browser).</p></div>
+  <div class="tile"><h4>Track progress</h4><p>Tick "mark as done" at the end of a chapter; it's saved in your browser.</p></div>
+</div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js"></script>
+<script>
+(function () {
+  var blurbs = {
+    1: "What the course covers, how it's organised, and how to study it.",
+    2: "Build a register/login app with Python + MySQL; CRUD, connector, cursor, commit. Live demo.",
+    3: "Data vs information, files vs databases, DBMS, types of databases, relational terms, integrity.",
+    4: "Super, candidate, primary, alternate, foreign, composite, compound and surrogate keys; 1:1, 1:N, M:N.",
+    5: "DDL, DML, TCL, DCL; MySQL data types, operators and comments.",
+    6: "Entity–relationship diagrams with crow's foot notation; designing a Swiggy database in Lucidchart.",
+    7: "CREATE / DROP / TRUNCATE / ALTER and the seven constraints, with a live SQL lab."
+  };
+  var done = {};
+  try { done = JSON.parse(localStorage.getItem("sql-notes-done")) || {}; } catch (e) {}
+  var html = "";
+  window.SQL_CHAPTERS.forEach(function (c) {
+    var link = "https://www.youtube.com/watch?v=nopIGY1zJE0&t=" + c.t + "s";
+    var cls = c.file ? (done[c.n] ? "done" : "") : "soon";
+    var inner = '<span class="ts">' + c.ts + "</span><b>" + c.n + ". " + c.title + "</b><p>" + (blurbs[c.n] || "Notes coming soon. Opens the video at this chapter.") + "</p>";
+    html += '<li class="' + cls + '">' + (c.file ? '<a class="row" href="' + c.file + '">' + inner + "</a>" : '<a class="row" href="' + link + '" target="_blank" rel="noopener">' + inner + "</a>") + "</li>";
+  });
+  document.getElementById("timeline").innerHTML = html;
+})();
+</script>
+</body>
+</html>

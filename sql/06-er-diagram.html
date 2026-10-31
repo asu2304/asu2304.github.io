@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6 · ER Diagram · SQL for Data Science</title>
+<meta name="description" content="Chapter 6 notes: entity-relationship diagrams, crow's foot notation, and designing a Swiggy-style food delivery database in Lucidchart.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css">
+<style>
+#er svg .ent { cursor: pointer; }
+#er svg .ent .frame { fill: var(--surface); stroke: var(--rule); stroke-width: 1.5; }
+#er svg .ent .head { fill: var(--accent-soft); }
+#er svg .ent.junction .frame { stroke-dasharray: 5 4; }
+#er svg .ent.on .frame { stroke: var(--accent); stroke-width: 2.5; }
+#er svg .rel { cursor: pointer; }
+#er svg .rel .hit { stroke: transparent; stroke-width: 16; fill: none; }
+#er svg .rel .vis { stroke: var(--muted); stroke-width: 1.6; fill: none; }
+#er svg .rel circle { fill: var(--surface); stroke: var(--muted); stroke-width: 1.6; }
+#er svg .rel.on .vis, #er svg .rel:hover .vis { stroke: var(--sql); stroke-width: 2.4; }
+#er svg .rel.on circle, #er svg .rel:hover circle { stroke: var(--sql); }
+#er svg text.col { font: 11.5px var(--mono); fill: var(--text); }
+#er svg text.typ { font: 11px var(--mono); fill: var(--muted); }
+#er svg text.k { font: 700 10px var(--sans); }
+#er svg text.k.pk { fill: var(--ok); } #er svg text.k.fk { fill: var(--sql); }
+#er svg text.tn { font: 700 13px var(--sans); fill: var(--accent); }
+.legend-cf { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin: 12px 0 20px; font-family: var(--sans); font-size: 14px; }
+.legend-cf div { border: 1px solid var(--rule); border-radius: 10px; padding: 8px 10px; background: var(--surface); display: flex; gap: 10px; align-items: center; }
+.legend-cf svg .vis { stroke: var(--text); stroke-width: 1.6; fill: none; } .legend-cf svg circle { fill: var(--surface); stroke: var(--text); stroke-width: 1.6; }
+</style>
+</head>
+<body class="sql-page" data-chapter="6">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 6</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 6</p>
+<h1>ER diagrams: designing a database before you build it</h1>
+<div class="chips"><span class="chip">1:57:30 → 2:18:20</span><span class="chip">Lucidchart</span><span class="chip">Crow's foot notation</span><span class="chip">Swiggy example</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<h2 id="why">Why ER diagrams?</h2>
+<p>An <strong>ER (Entity–Relationship) diagram</strong> is a picture of a database: which tables exist, what columns they have, and how they are related.</p>
+<ul>
+  <li><strong>To explain the design to non-technical people.</strong> Suppose a senior person in your company isn't technical and you need to explain how the database is organised. You can't open phpMyAdmin and say "look, these are my tables". An ER diagram shows what's going on behind the scenes in a way anyone can follow.</li>
+  <li><strong>As a blueprint.</strong> You design the ER diagram first, discuss it with your team and seniors, and only then create the database. Changing a drawing is cheap; changing a live database isn't.</li>
+</ul>
+<div class="callout sql"><span class="t">Schema design is a valued skill</span>
+<p>Designing a database from requirements is called <strong>schema design</strong>, and it's very important in industry. People who are good at it have a better chance of becoming <strong>software architects</strong>.</p></div>
+
+<h2 id="tool">The tool: Lucidchart</h2>
+<p>Many tools can draw ER diagrams, and some must be installed. Nitish uses <a href="https://www.lucidchart.com" target="_blank" rel="noopener">Lucidchart</a> because it's online and needs no setup:</p>
+<ol>
+  <li>Sign up (the free plan is enough; it limits how many documents you can have at once). Logging in with Google works.</li>
+  <li>Click <b>New</b> → <b>Start with a template</b>.</li>
+  <li>Search for <b>"ER diagram"</b> and pick the <b>Database ER diagram (crow's foot)</b> template.</li>
+  <li>Delete the sample content, rename the document (e.g. <i>Swiggy database</i>) and start drawing.</li>
+</ol>
+
+<h2 id="steps">How to build one: the Swiggy example</h2>
+<p>Nitish designs the database behind a food delivery app like Swiggy. Think about how you order food and which "things" are involved.</p>
+
+<h3>Step 1 · Find the entities</h3>
+<p>An <strong>entity</strong> is a real-world thing you can make a table about. For Swiggy: the <b>customer</b> who places the order, the <b>restaurant</b>, the <b>food</b> items, and the <b>order</b> itself. You could add more (delivery partner, payments, reviews…), but four are enough to learn the idea.</p>
+
+<h3>Step 2 · Give each entity its attributes and types</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Entity</th><th>Attributes (type)</th></tr></thead>
+<tbody>
+<tr><td><b>customers</b></td><td><code>cid</code> INT (PK) · <code>name</code> VARCHAR(255) · <code>email</code> VARCHAR(255) · <code>phone</code> VARCHAR(10)</td></tr>
+<tr><td><b>restaurants</b></td><td><code>rid</code> INT (PK) · <code>name</code> VARCHAR(255) · <code>cuisine</code> VARCHAR(255) · <code>rating</code> DECIMAL(2,1) · <code>address</code> VARCHAR(255)</td></tr>
+<tr><td><b>food</b></td><td><code>fid</code> INT (PK) · <code>name</code> VARCHAR(255) · <code>type</code> VARCHAR(10) (veg / non-veg) · <code>price</code> INT</td></tr>
+<tr><td><b>orders</b></td><td><code>oid</code> INT (PK) · <code>cid</code> INT (FK) · <code>rid</code> INT (FK) · <code>order_time</code> DATETIME</td></tr>
+</tbody></table></div>
+<div class="callout"><span class="t">Choices discussed in class</span>
+<ul>
+  <li><b>Phone as VARCHAR(10), not INT.</b> A student asked why. You never do maths on a phone number, so store it as text.</li>
+  <li><b>Rating as DECIMAL.</b> Values like 4.2 or 3.5.</li>
+  <li><b>Price as INT.</b> Prices like ₹125; no paise needed here.</li>
+  <li><b>Address as a long VARCHAR.</b> Addresses can be long.</li>
+  <li>In <code>orders</code>, <code>cid</code> and <code>rid</code> are <b>foreign keys</b>: they reuse the primary keys of <code>customers</code> and <code>restaurants</code>, and unlike a primary key they can repeat.</li>
+</ul></div>
+
+<h3>Step 3 · Connect entities with relationships</h3>
+<p>For every pair of related entities, just ask: <em>what's the cardinality between these two, 1:1, 1:N or M:N?</em> Then draw the line with the right crow's foot ends.</p>
+
+<div class="legend-cf" id="cf-legend"></div>
+
+<div class="widget" id="er">
+  <div class="w-title">Interactive ER diagram · Swiggy</div>
+  <div class="w-help">Click a table or a relationship line to see what it means.</div>
+  <div class="figure" style="margin:0;padding:6px"><svg id="er-svg" viewBox="0 0 790 400" role="img" aria-label="ER diagram of customers, orders, restaurants, food and order_items"></svg></div>
+  <div class="verdict" id="er-out">Click something in the diagram.</div>
+</div>
+
+<div class="tabs">
+  <div class="tab-panel" data-tab="customers → orders">
+    <p><strong>One-to-many.</strong> One customer can place many orders, but every order belongs to exactly one customer. On the order side it's "zero or many" (some customers never order); on the customer side it's "one and only one".</p>
+  </div>
+  <div class="tab-panel" data-tab="restaurants → orders">
+    <p><strong>One-to-many.</strong> A restaurant receives many orders, but each order is placed with exactly one restaurant (you can't order from multiple restaurants in one order).</p>
+  </div>
+  <div class="tab-panel" data-tab="orders ↔ food">
+    <p><strong>Many-to-many.</strong> An order contains one or more food items, and a food item can appear in zero, one or many orders.</p>
+    <p>As we learned in <a href="04-database-keys.html#cardinality">Chapter 4</a>, M:N needs a third table. The dashed <code>order_items(oid, fid, quantity)</code> table in the diagram is that junction table. <em>(I've added it explicitly; the class drew the M:N link directly between orders and food.)</em></p>
+  </div>
+</div>
+
+<div class="callout warn"><span class="t">Real-world caveat</span>
+<p>This diagram was made quickly while talking in class, so it isn't perfectly accurate. In industry you'd build it after a proper discussion with your team and seniors. The ER diagram is the database's blueprint, which is why the step matters so much.</p></div>
+
+<h2 id="export">Step 4 · Export to SQL and create the database</h2>
+<p>Once the diagram is done, Lucidchart can <strong>export it as SQL</strong> (choose MySQL). Nitish then:</p>
+<ol>
+  <li>created a new empty database in phpMyAdmin,</li>
+  <li>opened its <b>SQL</b> tab, pasted the exported code and clicked <b>Go</b>,</li>
+  <li>fixed a typo the export had picked up from the diagram (a misspelled <code>DECIMAL</code>), and ran it again.</li>
+</ol>
+<p>All four tables appeared, empty but with the full structure and relationships. Making a database from a diagram is that easy. The exported SQL looks roughly like this (you'll learn every line in <a href="07-ddl-queries.html">Chapter 7</a>):</p>
+<pre><code class="lang-sql">CREATE TABLE customers (
+  cid   INT PRIMARY KEY AUTO_INCREMENT,
+  name  VARCHAR(255),
+  email VARCHAR(255),
+  phone VARCHAR(10)
+);
+
+CREATE TABLE restaurants (
+  rid     INT PRIMARY KEY AUTO_INCREMENT,
+  name    VARCHAR(255),
+  cuisine VARCHAR(255),
+  rating  DECIMAL(2,1),
+  address VARCHAR(255)
+);
+
+CREATE TABLE food (
+  fid   INT PRIMARY KEY AUTO_INCREMENT,
+  name  VARCHAR(255),
+  type  VARCHAR(10),
+  price INT
+);
+
+CREATE TABLE orders (
+  oid        INT PRIMARY KEY AUTO_INCREMENT,
+  cid        INT,
+  rid        INT,
+  order_time DATETIME,
+  FOREIGN KEY (cid) REFERENCES customers(cid),
+  FOREIGN KEY (rid) REFERENCES restaurants(rid)
+);
+
+-- junction table for the M:N between orders and food
+CREATE TABLE order_items (
+  oid      INT,
+  fid      INT,
+  quantity INT,
+  PRIMARY KEY (oid, fid),
+  FOREIGN KEY (oid) REFERENCES orders(oid),
+  FOREIGN KEY (fid) REFERENCES food(fid)
+);</code></pre>
+
+<h2 id="practice">Practice idea</h2>
+<p>Nitish's suggestion: take apps you use every day (WhatsApp, Instagram, Uber…) and try drawing their ER diagram. When you study computer science you'll build such applications yourself, and thinking about how their database could look is excellent practice for schema design.</p>
+
+<div class="quiz" data-answer="2">
+  <p class="q">In an ER diagram, what is an "entity"?</p>
+  <div class="opts"><button class="opt">A single row of data</button><button class="opt">A SQL command</button><button class="opt">A real-world thing you can make a table about</button><button class="opt">A primary key</button></div>
+  <p class="why">Entities (customer, restaurant, order…) become <b>tables</b>; their attributes become columns.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">A customer can place many orders; each order belongs to exactly one customer. Which crow's-foot ends go on the line?</p>
+  <div class="opts"><button class="opt">Crow's foot on both ends</button><button class="opt">"One and only one" at customers, crow's foot (many) at orders</button><button class="opt">Crow's foot at customers, "one" at orders</button><button class="opt">"One" at both ends</button></div>
+  <p class="why">The "many" symbol always sits next to the entity that can appear many times, here <b>orders</b>.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">Why store a phone number as <code>VARCHAR(10)</code> rather than <code>INT</code>?</p>
+  <div class="opts"><button class="opt">VARCHAR is faster</button><button class="opt">INT can't store digits</button><button class="opt">Lucidchart requires it</button><button class="opt">You never do arithmetic on it, and it can have leading 0s or a + sign (and 10 digits can overflow INT)</button></div>
+  <p class="why">Phone numbers are identifiers, not quantities.</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js"></script>
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+  function mk(tag, attrs, parent) { var e = document.createElementNS(NS, tag); for (var k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+  var W = 210, HH = 28, RH = 22;
+  var ents = [
+    { id: "customers", x: 10, y: 20, cols: [["cid", "INT", "PK"], ["name", "VARCHAR(255)"], ["email", "VARCHAR(255)"], ["phone", "VARCHAR(10)"]],
+      info: "<b>customers</b>: the people who place orders. <code>cid</code> is the primary key." },
+    { id: "orders", x: 290, y: 20, cols: [["oid", "INT", "PK"], ["cid", "INT", "FK"], ["rid", "INT", "FK"], ["order_time", "DATETIME"]],
+      info: "<b>orders</b>: one row per order. <code>cid</code> and <code>rid</code> are foreign keys pointing to the customer and the restaurant." },
+    { id: "restaurants", x: 570, y: 20, cols: [["rid", "INT", "PK"], ["name", "VARCHAR(255)"], ["cuisine", "VARCHAR(255)"], ["rating", "DECIMAL(2,1)"], ["address", "VARCHAR(255)"]],
+      info: "<b>restaurants</b>: name, cuisine, a decimal rating like 4.2, and address." },
+    { id: "order_items", x: 290, y: 250, junction: true, cols: [["oid", "INT", "PK, FK"], ["fid", "INT", "PK, FK"], ["quantity", "INT"]],
+      info: "<b>order_items</b> (my addition, dashed): the junction table that resolves the M:N between orders and food. Its primary key <code>(oid, fid)</code> is composite, and both parts are foreign keys, so it's a <b>compound key</b>." },
+    { id: "food", x: 570, y: 250, cols: [["fid", "INT", "PK"], ["name", "VARCHAR(255)"], ["type", "VARCHAR(10)"], ["price", "INT"]],
+      info: "<b>food</b>: dishes, with veg / non-veg type and an integer price." }
+  ];
+  var svg = document.getElementById("er-svg"), out = document.getElementById("er-out");
+  var relLayer = mk("g", {}, svg), entLayer = mk("g", {}, svg);
+  function clearOn() { svg.querySelectorAll(".on").forEach(function (e) { e.classList.remove("on"); }); }
+  ents.forEach(function (e) {
+    var h = HH + RH * e.cols.length; e.h = h;
+    var g = mk("g", { "class": "ent" + (e.junction ? " junction" : "") }, entLayer);
+    mk("rect", { "class": "frame", x: e.x, y: e.y, width: W, height: h, rx: 8 }, g);
+    mk("path", { "class": "head", d: "M" + (e.x + 1) + " " + (e.y + HH) + " V" + (e.y + 8) + " a7 7 0 0 1 7 -7 H" + (e.x + W - 8) + " a7 7 0 0 1 7 7 V" + (e.y + HH) + " Z" }, g);
+    var t = mk("text", { "class": "tn", x: e.x + 12, y: e.y + 19 }, g); t.textContent = e.id;
+    e.cols.forEach(function (c, i) {
+      var yy = e.y + HH + RH * i + 15;
+      mk("line", { x1: e.x, x2: e.x + W, y1: e.y + HH + RH * i, y2: e.y + HH + RH * i, stroke: "var(--rule)" }, g);
+      if (c[2]) { var k = mk("text", { "class": "k " + (c[2].indexOf("PK") >= 0 ? "pk" : "fk"), x: e.x + 8, y: yy }, g); k.textContent = c[2]; }
+      var n = mk("text", { "class": "col", x: e.x + 50, y: yy }, g); n.textContent = c[0];
+      var ty = mk("text", { "class": "typ", x: e.x + W - 8, y: yy, "text-anchor": "end" }, g); ty.textContent = c[1];
+    });
+    g.addEventListener("click", function () { clearOn(); g.classList.add("on"); out.innerHTML = e.info; });
+  });
+  function ends(g, P, u, kind) {
+    var px = -u[1], py = u[0];
+    function at(k) { return [P[0] - u[0] * k, P[1] - u[1] * k]; }
+    function bar(k) { var c = at(k); mk("line", { "class": "vis", x1: c[0] + px * 7, y1: c[1] + py * 7, x2: c[0] - px * 7, y2: c[1] - py * 7 }, g); }
+    function crow() { var c = at(16); [[px * 8, py * 8], [0, 0], [-px * 8, -py * 8]].forEach(function (o) { mk("line", { "class": "vis", x1: c[0], y1: c[1], x2: P[0] + o[0], y2: P[1] + o[1] }, g); }); }
+    if (kind === "one") { bar(7); bar(13); }
+    if (kind === "zmany") { crow(); var c = at(23); mk("circle", { cx: c[0], cy: c[1], r: 5 }, g); }
+    if (kind === "omany") { crow(); bar(21); }
+  }
+  var rels = [
+    { a: [220, 74], b: [290, 74], ka: "one", kb: "zmany", info: "<b>customers 1 — N orders.</b> Bars at customers: an order has <i>one and only one</i> customer. Circle + crow's foot at orders: a customer has <i>zero or many</i> orders." },
+    { a: [570, 74], b: [500, 74], ka: "one", kb: "zmany", info: "<b>restaurants 1 — N orders.</b> Each order goes to exactly one restaurant; a restaurant can have zero or many orders." },
+    { a: [395, 136], b: [395, 250], ka: "one", kb: "omany", info: "<b>orders 1 — N order_items.</b> Each order has <i>one or many</i> line items (an order needs at least one dish)." },
+    { a: [570, 300], b: [500, 300], ka: "one", kb: "zmany", info: "<b>food 1 — N order_items.</b> A dish can appear in zero or many orders. Together with the line above, this is the <b>M:N</b> between orders and food, split through the junction table." }
+  ];
+  rels.forEach(function (r) {
+    var g = mk("g", { "class": "rel" }, relLayer);
+    var d = "M" + r.a[0] + " " + r.a[1] + " L" + r.b[0] + " " + r.b[1];
+    mk("path", { "class": "hit", d: d }, g); mk("path", { "class": "vis", d: d }, g);
+    var dx = r.b[0] - r.a[0], dy = r.b[1] - r.a[1], L = Math.sqrt(dx * dx + dy * dy), u = [dx / L, dy / L];
+    ends(g, r.a, [-u[0], -u[1]], r.ka); ends(g, r.b, u, r.kb);
+    g.addEventListener("click", function () { clearOn(); g.classList.add("on"); out.innerHTML = r.info; });
+  });
+
+  /* crow's foot legend */
+  var L = [["one", "One and only one"], ["zmany", "Zero or many"], ["omany", "One or many"]];
+  var box = document.getElementById("cf-legend");
+  L.forEach(function (l) {
+    var d = document.createElement("div");
+    var s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", "0 0 70 24"); s.setAttribute("width", "70"); s.setAttribute("height", "24");
+    mk("line", { "class": "vis", x1: 4, y1: 12, x2: 66, y2: 12 }, s); ends(s, [66, 12], [1, 0], l[0]);
+    d.appendChild(s); d.appendChild(document.createTextNode(l[1])); box.appendChild(d);
+  });
+  var z = document.createElement("div"); z.innerHTML = '<span style="font-size:13px;color:var(--muted)">Zero or one = circle + bar (not used here)</span>'; box.appendChild(z);
+})();
+</script>
+</body>
+</html>

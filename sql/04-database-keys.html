@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4 · Database Keys · SQL for Data Science</title>
+<meta name="description" content="Chapter 4 notes: super, candidate, primary, alternate, foreign, composite, compound and surrogate keys, plus 1:1, 1:N and M:N relationships.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css">
+</head>
+<body class="sql-page" data-chapter="4">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 4</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 4</p>
+<h1>Database keys</h1>
+<div class="chips"><span class="chip">1:23:00 → 1:51:00</span><span class="chip">8 kinds of keys</span><span class="chip">Relationship cardinality</span><span class="chip">Interview favourite</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<h2 id="what">What is a key?</h2>
+<blockquote><p>A <strong>key</strong> is an attribute (column) or a set of attributes that helps you <strong>uniquely identify a row</strong> (tuple) in a relation (table).</p></blockquote>
+<p>Why we need keys:</p>
+<ul>
+  <li>To <strong>tell any two rows apart</strong>, even when other values repeat.</li>
+  <li>To enforce <strong>integrity</strong> (entity integrity needs a primary key).</li>
+  <li>To build <strong>relationships</strong> between tables (foreign keys).</li>
+</ul>
+<p>We'll learn eight kinds, in this order: <b>super → candidate → primary → alternate → foreign → composite → compound → surrogate</b>. All the examples use this employee table:</p>
+
+<div class="widget" id="keyfinder">
+  <div class="w-title">Interactive key finder</div>
+  <div class="w-help">Select one or more columns. The checker tells you whether that set is a super key, a candidate key, and so on, and highlights any rows it fails to tell apart.</div>
+  <div class="table-wrap"><table class="mini-table" id="kf-table"></table></div>
+  <div class="pill-row" id="kf-pills"></div>
+  <div class="verdict" id="kf-out">Select columns above.</div>
+  <p style="margin:8px 0 0"><button class="btn small" id="kf-all">Show all super keys</button> <button class="btn small" id="kf-clear">Clear</button></p>
+  <div id="kf-list" style="margin-top:8px"></div>
+</div>
+
+<h2 id="super">Super key</h2>
+<p>A <strong>super key</strong> is <em>any</em> set of columns that uniquely identifies every row. A single column can do it, and so can any combination that contains such a column.</p>
+<ul>
+  <li><code>{emp_id}</code>, <code>{aadhar}</code>, <code>{email}</code>: each is unique on its own.</li>
+  <li><code>{emp_id, email}</code>, <code>{aadhar, email}</code>, <code>{emp_id, aadhar}</code>, <code>{emp_id, aadhar, email}</code>, <code>{emp_id, name}</code>…: still unique (anything containing a unique column is).</li>
+  <li><code>{name}</code>, <code>{dob}</code>, <code>{name, dob}</code>: <strong>not</strong> super keys here, because two employees share them.</li>
+</ul>
+<p>Sometimes no single column is unique and you need a combination. The whole collection of all such sets is the set of super keys.</p>
+
+<h2 id="candidate">Candidate key</h2>
+<p>A <strong>candidate key</strong> is a <em>minimal</em> super key: the <strong>minimum number of columns</strong> needed to uniquely identify rows. Remove any column and it stops being unique.</p>
+<ul>
+  <li><code>{emp_id}</code> ✓, <code>{aadhar}</code> ✓, <code>{email}</code> ✓</li>
+  <li><code>{aadhar, email}</code> ✗: not minimal, since <code>aadhar</code> alone already works.</li>
+</ul>
+<p>So the candidate keys are <b>emp_id, aadhar, email</b>. Every candidate key is a super key, but not every super key is a candidate key.</p>
+
+<h2 id="primary">Primary key</h2>
+<p>The <strong>primary key</strong> is the candidate key you finally <strong>choose</strong> to identify rows. Rules for choosing it:</p>
+<div class="tiles">
+  <div class="tile"><h4>Always unique</h4><p>No two rows may ever share it.</p></div>
+  <div class="tile"><h4>Never NULL</h4><p>Every row must have a value.</p></div>
+  <div class="tile"><h4>Rarely changes</h4><p>A stable value; changing it ripples everywhere it's referenced.</p></div>
+  <div class="tile"><h4>Simple / small</h4><p>Ideally a single, short column (often a number).</p></div>
+</div>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Why not aadhar?">
+    <p>Every Indian has a unique Aadhaar number, so it looks perfect. But at a company like Infosys, <strong>foreign employees don't have an Aadhaar</strong>, so their value would be <code>NULL</code>, and a primary key can never be NULL. ✗</p>
+  </div>
+  <div class="tab-panel" data-tab="Why not email?">
+    <p>Email is unique and usually present, but people <strong>change their email</strong>, and a primary key should rarely change. It's also a long string. Not ideal.</p>
+  </div>
+  <div class="tab-panel" data-tab="So: emp_id ✓">
+    <p><code>emp_id</code> is unique, never null, never changes and is a small integer. It becomes the <strong>primary key</strong>.</p>
+  </div>
+</div>
+
+<h2 id="alternate">Alternate key</h2>
+<p>The candidate keys that were <strong>not</strong> chosen as primary key are <strong>alternate keys</strong>:</p>
+<pre><code class="lang-sql">-- alternate keys = candidate keys − primary key
+-- {emp_id, aadhar, email} − {emp_id}  =  {aadhar, email}</code></pre>
+
+<div class="figure">
+<svg viewBox="0 0 520 260" role="img" aria-label="Nested sets: all super keys contain the candidate keys, which split into one primary key and the alternate keys">
+  <rect class="box" x="10" y="10" width="500" height="240" rx="18"/>
+  <text x="30" y="36" class="b">Super keys</text><text x="30" y="54" class="m">any unique set: {emp_id, name}, {aadhar, email}, …</text>
+  <rect class="box hi" x="40" y="70" width="440" height="160" rx="16"/>
+  <text x="60" y="96" class="b">Candidate keys (minimal)</text>
+  <rect class="box ok" x="64" y="112" width="170" height="96" rx="12"/>
+  <text x="149" y="148" text-anchor="middle" class="b">Primary key</text><text x="149" y="170" text-anchor="middle" class="mono">emp_id</text>
+  <rect class="box sq" x="256" y="112" width="200" height="96" rx="12"/>
+  <text x="356" y="148" text-anchor="middle" class="b">Alternate keys</text><text x="356" y="170" text-anchor="middle" class="mono">aadhar, email</text>
+</svg>
+<figcaption>Super ⊇ candidate = primary + alternate.</figcaption>
+</div>
+
+<h2 id="foreign">Foreign key</h2>
+<p>A <strong>foreign key</strong> is a column in one table that refers to the <strong>primary key of another table</strong>. It creates the relationship between the two tables and enforces <em>referential integrity</em>.</p>
+<div class="figure">
+<svg viewBox="0 0 560 170" role="img" aria-label="students.branch_id is a foreign key that references branch.branch_id">
+  <defs><marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker></defs>
+  <rect class="box hi" x="10" y="20" width="200" height="120" rx="10"/>
+  <text x="24" y="44" class="b">branch</text>
+  <text x="24" y="72" class="mono">branch_id  🔑 PK</text>
+  <text x="24" y="96" class="mono">name</text>
+  <rect class="box sq" x="330" y="20" width="220" height="120" rx="10"/>
+  <text x="344" y="44" class="b">students</text>
+  <text x="344" y="72" class="mono">student_id 🔑 PK</text>
+  <text x="344" y="96" class="mono">name</text>
+  <text x="344" y="120" class="mono">branch_id  🔗 FK</text>
+  <path class="ln" d="M330 116 C 270 116, 270 68, 212 68" marker-end="url(#ar4)"/>
+  <text x="270" y="160" text-anchor="middle" class="m">students.branch_id REFERENCES branch.branch_id</text>
+</svg>
+</div>
+<p>With the foreign key in place you can add rules such as "if a branch is renamed, update all its students" or "you can't delete a branch while students still belong to it". A table can have <strong>many</strong> foreign keys, and the foreign key column itself can repeat (many students share a branch).</p>
+
+<h2 id="composite">Composite key</h2>
+<p>A <strong>composite key</strong> is a key made of <strong>more than one column</strong>, e.g. <code>{emp_id, email}</code> or <code>{aadhar, email}</code>. You need one when no single column is unique on its own.</p>
+
+<h2 id="compound">Compound key</h2>
+<p>A <strong>compound key</strong> is a composite key in which <strong>at least one column is a foreign key</strong>.</p>
+<pre><code class="lang-sql">-- enrollments: which student took which course
+-- (student_id, course_id) together identify a row
+-- and BOTH are foreign keys → a compound key
+enrollments(student_id → students, course_id → courses, enrolled_on)</code></pre>
+
+<h2 id="surrogate">Surrogate key</h2>
+<p>Sometimes your data has <strong>no natural column (or small combination) that's unique</strong>. Then you create an artificial one yourself, usually an auto-incrementing <code>id</code>. That self-made key is a <strong>surrogate key</strong>. It has no real-world meaning; it exists only to identify rows. The <code>user_id</code> in Chapter 2 is exactly this.</p>
+
+<h3>All eight at a glance</h3>
+<div class="cards">
+  <div class="flash"><div class="inner"><div class="face front"><b>Super</b><small>tap to flip</small></div><div class="face back">Any set of columns that uniquely identifies rows.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Candidate</b><small>tap to flip</small></div><div class="face back">A <b>minimal</b> super key.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Primary</b><small>tap to flip</small></div><div class="face back">The candidate key you choose. Unique, not null, stable.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Alternate</b><small>tap to flip</small></div><div class="face back">Candidate keys not chosen as primary.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Foreign</b><small>tap to flip</small></div><div class="face back">Refers to another table's primary key; links tables.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Composite</b><small>tap to flip</small></div><div class="face back">A key with 2+ columns.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Compound</b><small>tap to flip</small></div><div class="face back">Composite key where at least one column is a foreign key.</div></div></div>
+  <div class="flash"><div class="inner"><div class="face front"><b>Surrogate</b><small>tap to flip</small></div><div class="face back">An artificial id you create when no natural key exists.</div></div></div>
+</div>
+
+<h2 id="mcq">MCQs from the class</h2>
+<div class="quiz" data-answer="3">
+  <p class="q">Which key is used to create the relationship between two tables?</p>
+  <div class="opts"><button class="opt">Super key</button><button class="opt">Candidate key</button><button class="opt">Surrogate key</button><button class="opt">Foreign key</button></div>
+  <p class="why">A <b>foreign key</b> in one table refers to the primary key of another.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">True or false: a table can have more than one primary key.</p>
+  <div class="opts"><button class="opt">True</button><button class="opt">False</button></div>
+  <p class="why"><b>False.</b> A table has exactly one primary key (which may span several columns). It can have many candidate, alternate and foreign keys.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">A <code>recharge_plans</code> table has columns <code>operator</code>, <code>plan_type</code>, <code>price</code>, <code>validity</code>. Each operator offers one plan of each type (e.g. Jio-Regular, Jio-Premium, Airtel-Regular…). Which is a candidate key?</p>
+  <div class="opts"><button class="opt"><code>{operator}</code></button><button class="opt"><code>{plan_type}</code></button><button class="opt"><code>{operator, plan_type}</code></button><button class="opt"><code>{price}</code></button></div>
+  <p class="why">One operator has many plans and one plan type exists for many operators, so neither is unique alone. Together, <b>operator + plan_type</b> is unique and minimal: a candidate key (and a composite one).</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q">You have a table of sensor readings: <code>temperature</code>, <code>humidity</code>, <code>reading_time</code>, and none of these is reliably unique. What should you add?</p>
+  <div class="opts"><button class="opt">A surrogate key (auto-increment id)</button><button class="opt">A foreign key</button><button class="opt">An alternate key</button><button class="opt">Nothing; tables don't need keys</button></div>
+  <p class="why">With no natural key, create an artificial one: a <b>surrogate key</b>.</p>
+</div>
+
+<h2 id="cardinality">Cardinality of relationships</h2>
+<p>When two tables (entities) are related, the <strong>cardinality of the relationship</strong> is the number of instances of one entity that can be associated with instances of the other. There are three kinds (or there's no relationship at all, e.g. students and the college's admin staff):</p>
+<div class="tabs">
+  <div class="tab-panel" data-tab="One-to-one (1:1)">
+    <p>One row on each side matches at most one row on the other. Example: in a lab, each student has <strong>one project partner</strong> and that partner has exactly one partner back. Or: a person and their Aadhaar number; a country and its capital.</p>
+  </div>
+  <div class="tab-panel" data-tab="One-to-many (1:N)">
+    <p>One row on one side matches many on the other, but not the reverse. Example: <strong>one branch has many students</strong>, but each student belongs to one branch. One customer places many orders; each order has one customer.</p>
+    <p>Implemented by putting a <strong>foreign key on the "many" side</strong> (<code>students.branch_id</code>).</p>
+  </div>
+  <div class="tab-panel" data-tab="Many-to-many (M:N)">
+    <p>Many rows on each side match many on the other. Example: <strong>a student enrols in many courses</strong> and a course has many students. Also: teachers ↔ students, students ↔ exams.</p>
+    <p>You can't store this with a foreign key in either table. Instead you <strong>always create a third, junction table</strong> (e.g. <code>enrollments(student_id, course_id)</code>) that holds pairs. So an M:N relationship needs <b>3 tables</b>.</p>
+  </div>
+</div>
+
+<div class="widget sorter" data-done="Remember: M:N always needs a junction table.">
+  <div class="w-title">Mini-game · classify the relationship</div>
+  <div class="w-help">Tap a pair, then tap its cardinality.</div>
+  <div class="bank">
+    <span class="item" data-bin="11">Person ↔ Aadhaar number</span>
+    <span class="item" data-bin="11">Country ↔ Capital city</span>
+    <span class="item" data-bin="11">Lab student ↔ Project partner</span>
+    <span class="item" data-bin="1n">Branch ↔ Students</span>
+    <span class="item" data-bin="1n">Customer ↔ Orders</span>
+    <span class="item" data-bin="1n">Restaurant ↔ Orders</span>
+    <span class="item" data-bin="mn">Students ↔ Courses</span>
+    <span class="item" data-bin="mn">Actors ↔ Movies</span>
+    <span class="item" data-bin="mn">Orders ↔ Food items</span>
+  </div>
+  <div class="bins">
+    <div class="bin" data-bin="11"><h5>1 : 1</h5></div>
+    <div class="bin" data-bin="1n"><h5>1 : N</h5></div>
+    <div class="bin" data-bin="mn"><h5>M : N</h5></div>
+  </div>
+  <div class="verdict"></div>
+  <p style="margin:10px 0 0"><button class="btn small" data-reset>Shuffle again</button></p>
+</div>
+
+<div class="quiz" data-answer="1">
+  <p class="q">To store "a student enrols in a course" (many students, many courses), how many tables do you need at minimum?</p>
+  <div class="opts"><button class="opt">2</button><button class="opt">3</button><button class="opt">4</button><button class="opt">5</button></div>
+  <p class="why"><b>3</b>: <code>students</code>, <code>courses</code>, and a junction table <code>enrollments(student_id, course_id)</code>. Any M:N relationship always needs one extra table.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">In a 1:N relationship between <code>branch</code> (1) and <code>students</code> (N), where does the foreign key go?</p>
+  <div class="opts"><button class="opt">In <code>branch</code>, pointing to students</button><button class="opt">In a new junction table</button><button class="opt">In <code>students</code>, pointing to branch</button><button class="opt">In both tables</button></div>
+  <p class="why">The FK goes on the <b>many</b> side: each student row stores its single <code>branch_id</code>.</p>
+</div>
+
+<p class="quiz-score" id="quiz-score"></p>
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js"></script>
+<script>
+(function () {
+  var cols = ["emp_id", "aadhar", "email", "name", "dob", "salary"];
+  var rows = [
+    [101, "4521 8890 1123", "nitish@corp.in", "Nitish", "1990-04-12", 90000],
+    [102, "7765 2210 9981", "rahul.s@corp.in", "Rahul", "1995-08-01", 60000],
+    [103, "1209 5567 3344", "ankita@corp.in", "Ankita", "1993-01-25", 75000],
+    [104, "8832 1104 7765", "rahul.k@corp.in", "Rahul", "1995-08-01", 60000],
+    [105, "3321 9087 6612", "sneha@corp.in", "Sneha", "1993-01-25", 82000]
+  ];
+  var PK = ["emp_id"];
+  var table = document.getElementById("kf-table");
+  table.innerHTML = "<thead><tr>" + cols.map(function (c, i) { return '<th data-c="' + i + '">' + c + "</th>"; }).join("") + "</tr></thead><tbody>" +
+    rows.map(function (r) { return "<tr>" + r.map(function (v) { return "<td>" + v + "</td>"; }).join("") + "</tr>"; }).join("") + "</tbody>";
+  var sel = [];
+  var pills = document.getElementById("kf-pills");
+  cols.forEach(function (c, i) {
+    var p = document.createElement("span"); p.className = "pill"; p.textContent = c;
+    p.addEventListener("click", function () {
+      var k = sel.indexOf(i); if (k >= 0) sel.splice(k, 1); else sel.push(i);
+      sel.sort(); p.classList.toggle("on"); check();
+    });
+    pills.appendChild(p);
+  });
+  function unique(set) {
+    var seen = {}, dups = [];
+    rows.forEach(function (r, ri) {
+      var key = set.map(function (i) { return r[i]; }).join("|");
+      if (seen[key] !== undefined) dups.push(seen[key], ri); else seen[key] = ri;
+    });
+    return { ok: dups.length === 0, dups: dups };
+  }
+  function isCandidate(set) {
+    if (!unique(set).ok) return false;
+    for (var i = 0; i < set.length; i++) { var sub = set.filter(function (_, j) { return j !== i; }); if (sub.length && unique(sub).ok) return false; }
+    return true;
+  }
+  function names(set) { return "{" + set.map(function (i) { return cols[i]; }).join(", ") + "}"; }
+  function check() {
+    var trs = table.querySelectorAll("tbody tr");
+    table.querySelectorAll("td,th").forEach(function (c) { c.classList.remove("hl", "dup"); });
+    var out = document.getElementById("kf-out");
+    if (!sel.length) { out.textContent = "Select columns above."; return; }
+    trs.forEach(function (tr) { sel.forEach(function (i) { tr.children[i].classList.add("hl"); }); });
+    sel.forEach(function (i) { table.querySelector('th[data-c="' + i + '"]').classList.add("hl"); });
+    var u = unique(sel), html = "<b>" + names(sel) + "</b><br>";
+    if (!u.ok) {
+      u.dups.forEach(function (ri) { sel.forEach(function (i) { trs[ri].children[i].classList.add("dup"); }); });
+      html += '<span class="tag no">not a super key</span> The highlighted rows share the same values, so this set can\'t tell them apart.';
+    } else {
+      html += '<span class="tag yes">super key</span>';
+      var cand = isCandidate(sel);
+      html += cand ? '<span class="tag yes">candidate key</span>' : '<span class="tag no">not minimal → not a candidate key</span>';
+      if (sel.length > 1) html += '<span class="tag info">composite</span>';
+      if (cand && sel.length === 1 && cols[sel[0]] === "emp_id") html += '<span class="tag yes">primary key (chosen)</span>';
+      if (cand && sel.length === 1 && cols[sel[0]] !== "emp_id") html += '<span class="tag info">alternate key</span>';
+      if (cols[sel[0]] === "aadhar" && sel.length === 1) html += "<br>Unique here, but a foreign employee would have NULL Aadhaar, which is why it isn't chosen as the primary key.";
+      if (!cand) html += "<br>Drop a column and it's still unique, so it's a super key but not a candidate key.";
+    }
+    out.innerHTML = html;
+  }
+  document.getElementById("kf-clear").addEventListener("click", function () { sel = []; pills.querySelectorAll(".pill").forEach(function (p) { p.classList.remove("on"); }); check(); document.getElementById("kf-list").innerHTML = ""; });
+  document.getElementById("kf-all").addEventListener("click", function () {
+    var all = [], n = cols.length;
+    for (var m = 1; m < (1 << n); m++) { var s = []; for (var i = 0; i < n; i++) if (m & (1 << i)) s.push(i); if (unique(s).ok) all.push(s); }
+    all.sort(function (a, b) { return a.length - b.length; });
+    var cands = all.filter(isCandidate);
+    document.getElementById("kf-list").innerHTML = '<div class="verdict"><b>' + all.length + " super keys</b> exist for this table (out of " + ((1 << n) - 1) + " possible column sets). The <b>" + cands.length + " candidate keys</b>: " +
+      cands.map(names).join(", ") + ". The smallest few super keys: " + all.slice(0, 8).map(names).join(", ") + ", …</div>";
+  });
+})();
+</script>
+</body>
+</html>

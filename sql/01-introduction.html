@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1 · Introduction · SQL for Data Science</title>
+<meta name="description" content="Chapter 1 notes: what the CampusX SQL for Data Science course covers, how it is organised, and how to study it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css">
+</head>
+<body class="sql-page" data-chapter="1">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 1</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 1</p>
+<h1>Introduction: what this course is and how to use it</h1>
+<div class="chips"><span class="chip">≈ 3 min of video</span><span class="chip">Database: MySQL</span><span class="chip">Hands-on + theory</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<h2 id="about">Where this course comes from</h2>
+<p>In an earlier video Nitish shared a complete <strong>SQL roadmap</strong> and a list of resources, and promised an end-to-end SQL course. This video keeps that promise: about six hours of SQL taught specifically <strong>for data science</strong>.</p>
+<ul>
+  <li>It is a <strong>recording of a live course</strong> he taught at a college earlier that year, so you will hear students asking questions and see him answering them. The tone is interactive.</li>
+  <li>He works through <strong>many MCQs</strong> during the class, and uses <strong>real-world datasets</strong>, such as a movies dataset and the Titanic dataset, so you can relate to what you are querying.</li>
+  <li>The whole course uses <strong>MySQL</strong> as the database.</li>
+</ul>
+
+<h2 id="covers">What it covers</h2>
+<p>The course is more than SQL syntax. It also teaches <strong>database fundamentals</strong>: why we use databases at all, the important concepts (keys, integrity, ER diagrams), and what a DBMS does for you.</p>
+<div class="tiles">
+  <div class="tile"><h4>Python + MySQL</h4><p>Build a small CRUD app (register / login) to see a database in action.</p></div>
+  <div class="tile"><h4>Database theory</h4><p>Data vs information, files vs databases, DBMS, relational model, integrity.</p></div>
+  <div class="tile"><h4>Keys</h4><p>Super, candidate, primary, alternate, foreign, composite, compound, surrogate.</p></div>
+  <div class="tile"><h4>SQL command types</h4><p>DDL, DML, TCL, DCL, plus data types, operators and comments.</p></div>
+  <div class="tile"><h4>ER diagrams</h4><p>Design a database (Swiggy example) before you build it.</p></div>
+  <div class="tile"><h4>Queries</h4><p>DDL, DML, GROUP BY, CASE, joins and subqueries.</p></div>
+</div>
+
+<h2 id="how">How to study it</h2>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Interview in a few days">
+    <p><strong>Short on time?</strong> Focus only on the <strong>SQL query</strong> parts: <a href="07-ddl-queries.html">DDL</a>, then DML, GROUP BY, CASE, joins and subqueries.</p>
+  </div>
+  <div class="tab-panel" data-tab="Learning properly (recommended)">
+    <p>Watch the <strong>whole thing end to end</strong>. The theory (keys, integrity, ER diagrams) is what makes your queries and table designs correct, and it is asked in interviews too.</p>
+  </div>
+</div>
+
+<div class="callout tip"><span class="t">Will six hours be enough?</span>
+<p>Nitish's answer: if you finish this course and then <strong>practise</strong> a lot of SQL problems, you should be ready for most data-science job interviews. Watch the video, then go and solve plenty of practice questions; that is what makes it stick.</p></div>
+
+<div class="callout"><span class="t">Why Python + database?</span>
+<p>The course also shows how to connect a database to Python and run SQL from code. Many courses skip this as unimportant, but Nitish feels every data scientist should know how an application actually talks to a database. That is the next chapter.</p></div>
+
+<h2 id="map">Course map with timestamps</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>#</th><th>Chapter</th><th>Starts at</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Introduction</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=0s" target="_blank" rel="noopener">0:00</a></td><td>This page</td></tr>
+<tr><td>2</td><td>CRUD App using Python and MySQL</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=180s" target="_blank" rel="noopener">3:00</a></td><td><a href="02-crud-app-python-mysql.html">Notes</a></td></tr>
+<tr><td>3</td><td>Database Theory</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=3000s" target="_blank" rel="noopener">50:00</a></td><td><a href="03-database-theory.html">Notes</a></td></tr>
+<tr><td>4</td><td>Database Keys</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=4980s" target="_blank" rel="noopener">1:23:00</a></td><td><a href="04-database-keys.html">Notes</a></td></tr>
+<tr><td>5</td><td>Types of SQL commands</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=6660s" target="_blank" rel="noopener">1:51:00</a></td><td><a href="05-types-of-sql-commands.html">Notes</a></td></tr>
+<tr><td>6</td><td>ER Diagram</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=7050s" target="_blank" rel="noopener">1:57:30</a></td><td><a href="06-er-diagram.html">Notes</a></td></tr>
+<tr><td>7</td><td>DDL SQL Queries</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=8300s" target="_blank" rel="noopener">2:18:20</a></td><td><a href="07-ddl-queries.html">Notes</a></td></tr>
+<tr><td>8</td><td>DML SQL Queries</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=10800s" target="_blank" rel="noopener">3:00:00</a></td><td>Coming soon</td></tr>
+<tr><td>9</td><td>GROUP BY Query</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=14880s" target="_blank" rel="noopener">4:08:00</a></td><td>Coming soon</td></tr>
+<tr><td>10</td><td>CASE Statement</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=16920s" target="_blank" rel="noopener">4:42:00</a></td><td>Coming soon</td></tr>
+<tr><td>11</td><td>SQL Joins</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=17280s" target="_blank" rel="noopener">4:48:00</a></td><td>Coming soon</td></tr>
+<tr><td>12</td><td>Subquery</td><td><a href="https://www.youtube.com/watch?v=nopIGY1zJE0&t=19535s" target="_blank" rel="noopener">5:25:35</a></td><td>Coming soon</td></tr>
+</tbody></table></div>
+<p>The dataset used in the course is linked in the video description.</p>
+
+<div class="quiz" data-answer="1">
+  <p class="q">Which database system does this whole course use?</p>
+  <div class="opts"><button class="opt">PostgreSQL</button><button class="opt">MySQL</button><button class="opt">SQLite</button><button class="opt">MongoDB</button></div>
+  <p class="why"><b>MySQL.</b> Every query in the course is written for MySQL (run through XAMPP and phpMyAdmin).</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js"></script>
+</body>
+</html>

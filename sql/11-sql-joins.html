@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11 · SQL Joins · SQL for Data Science</title>
+<meta name="description" content="Chapter 11 notes: cross join, inner, left, right and full outer joins, UNION vs UNION ALL, joining three tables, and self joins, with an interactive Venn diagram and a step-by-step join animation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css?v=4">
+<style>
+#venn svg .reg { fill: transparent; transition: fill .25s; }
+#venn svg .reg.on { fill: var(--accent); fill-opacity: .35; }
+#venn svg circle.outline { fill: none; stroke: var(--text); stroke-width: 1.6; }
+.stepper { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1.4fr); gap: 10px; }
+.stepper table { font-size: 12.5px; }
+.stepper td.cur, .stepper tr.cur td { background: var(--warn-soft) !important; }
+.stepper tr.hit td { background: var(--ok-soft) !important; }
+.stepper tr.miss td { background: var(--bad-soft) !important; }
+.stepper h5 { margin: 0 0 4px; font: 700 12px var(--sans); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+@media (max-width: 760px) { .stepper { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body class="sql-page" data-chapter="11">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 11</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 11</p>
+<h1>SQL joins: combining tables</h1>
+<div class="chips"><span class="chip">4:48:00 → 5:25:35</span><span class="chip">CROSS · INNER · LEFT · RIGHT · FULL</span><span class="chip">UNION · SELF JOIN</span><span class="chip">Interview essential</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<p class="lede">In a well-designed database, the data you want is usually <strong>spread across several tables</strong> (that's the whole point of keys and relationships from <a href="04-database-keys.html">Chapter 4</a>). A <strong>join</strong> brings those rows back together. Joins are considered a little difficult, so take this chapter slowly.</p>
+
+<h2 id="data">The example: a WhatsApp-style database</h2>
+<p>Users and groups have a <b>many-to-many</b> relationship (a user joins many groups, a group has many users), so, as we learned, there are <b>three tables</b>:</p>
+<div class="tiles">
+  <div class="tile"><h4>users</h4><p><code>user_id</code>, <code>name</code>, <code>age</code>, <code>emergency_contact</code> (another user_id)</p></div>
+  <div class="tile"><h4>groups</h4><p><code>group_id</code>, <code>group_name</code></p></div>
+  <div class="tile"><h4>membership</h4><p><code>membership_id</code>, <code>user_id</code>, <code>group_id</code>: who is in which group</p></div>
+</div>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT * FROM users;
+SELECT * FROM `groups`;
+SELECT * FROM membership;</code></pre>
+<div class="callout"><span class="t">Two deliberate imperfections</span>
+<p>Membership rows for <b>user_id 5 and 6</b> point to users who no longer exist (accounts deleted), and users <b>Abhinav (8) and Rahul (11)</b> belong to no group. These mismatches are exactly what makes the join types behave differently.</p></div>
+
+<h2 id="cross">Cartesian product (CROSS JOIN)</h2>
+<p>The simplest join pairs <b>every row of one table with every row of the other</b>. 7 users × 4 groups = 28 rows.</p>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT * FROM users CROSS JOIN `groups`;</code></pre>
+<p>On its own it's rarely useful; most of those pairs are meaningless. It helps when you genuinely need all combinations (e.g. every employee × every shift to build a roster). Its real value is conceptual: <b>every other join is a cross product filtered by a condition</b>.</p>
+
+<h2 id="types">The four main joins</h2>
+<p>Think of the two tables as two overlapping circles: the overlap is rows that match on the join condition.</p>
+<div class="widget" id="venn">
+  <div class="w-title">Pick a join</div>
+  <div class="pill-row">
+    <span class="pill on" data-j="inner">INNER</span><span class="pill" data-j="left">LEFT</span><span class="pill" data-j="right">RIGHT</span><span class="pill" data-j="full">FULL OUTER</span>
+  </div>
+  <div class="figure" style="margin:8px 0"><svg viewBox="0 0 420 170" role="img" aria-label="Venn diagram of membership (left) and users (right)">
+    <defs>
+      <clipPath id="cl"><circle cx="160" cy="85" r="70"/></clipPath>
+      <clipPath id="cr"><circle cx="260" cy="85" r="70"/></clipPath>
+      <mask id="notR"><rect width="420" height="170" fill="#fff"/><circle cx="260" cy="85" r="70" fill="#000"/></mask>
+      <mask id="notL"><rect width="420" height="170" fill="#fff"/><circle cx="160" cy="85" r="70" fill="#000"/></mask>
+    </defs>
+    <circle class="reg" id="rL" cx="160" cy="85" r="70" mask="url(#notR)"/>
+    <circle class="reg" id="rR" cx="260" cy="85" r="70" mask="url(#notL)"/>
+    <g clip-path="url(#cl)"><circle class="reg" id="rM" cx="260" cy="85" r="70"/></g>
+    <circle class="outline" cx="160" cy="85" r="70"/><circle class="outline" cx="260" cy="85" r="70"/>
+    <text x="120" y="88" text-anchor="middle" class="b">membership</text>
+    <text x="300" y="88" text-anchor="middle" class="b">users</text>
+    <text x="120" y="106" text-anchor="middle" class="m">(left)</text>
+    <text x="300" y="106" text-anchor="middle" class="m">(right)</text>
+  </svg></div>
+  <div class="verdict" id="venn-say"></div>
+  <div class="code"><div class="code-head"><span>SQL</span></div><pre><code id="venn-sql"></code></pre></div>
+  <div class="playground"><div class="pg-out" id="venn-out"></div></div>
+</div>
+
+<h3 id="inner">INNER JOIN</h3>
+<p>Keeps only rows that have a match in <b>both</b> tables. Membership rows for users 5 and 6 vanish (no such users), and so do Abhinav and Rahul (no membership).</p>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT *
+FROM membership m
+INNER JOIN users u
+  ON m.user_id = u.user_id;</code></pre>
+<ul>
+  <li><code>ON</code> gives the join condition, almost always "the common column is equal".</li>
+  <li><code>m</code> and <code>u</code> are short <b>aliases</b>. With them you can say which table a column comes from (<code>m.user_id</code> vs <code>u.user_id</code>).</li>
+  <li>In MySQL, plain <code>JOIN</code> means <code>INNER JOIN</code>. Nitish recommends writing <code>INNER</code> anyway for clarity.</li>
+</ul>
+
+<h3 id="left">LEFT (OUTER) JOIN</h3>
+<p><b>All rows of the left table</b> (the one written first), plus matching data from the right; where there's no match, the right side's columns are <code>NULL</code>.</p>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT *
+FROM membership m
+LEFT JOIN users u
+  ON m.user_id = u.user_id;</code></pre>
+<p>The memberships of users 5 and 6 now appear, with NULL user details. That's how you'd spot <em>orphaned</em> rows.</p>
+
+<h3 id="right">RIGHT (OUTER) JOIN</h3>
+<p>The mirror image: <b>all rows of the right table</b>. Abhinav and Rahul appear, with NULL membership columns.</p>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT *
+FROM membership m
+RIGHT JOIN users u
+  ON m.user_id = u.user_id;</code></pre>
+
+<h3 id="how">How a join is computed (nested loops)</h3>
+<p>Nitish explained the algorithm with loops: <em>for each row of the left table, scan every row of the right table; whenever the condition is true, output the combined row.</em> For a LEFT join, if no right row matched, output the left row with NULLs. Step through it:</p>
+<div class="widget" id="stepper">
+  <div class="w-title">Step through a join</div>
+  <div class="pill-row"><span class="pill on" data-m="inner">INNER</span><span class="pill" data-m="left">LEFT</span>
+    <button class="btn primary small" id="st-next">Next left row →</button><button class="btn small" id="st-reset">Reset</button></div>
+  <div class="stepper">
+    <div><h5>membership (left)</h5><div class="table-wrap"><table class="mini-table" id="st-l"></table></div></div>
+    <div><h5>users (right)</h5><div class="table-wrap"><table class="mini-table" id="st-r"></table></div></div>
+    <div><h5>result</h5><div class="table-wrap"><table class="mini-table" id="st-o"></table></div></div>
+  </div>
+  <div class="verdict" id="st-say">Press "Next left row".</div>
+</div>
+
+<h3 id="full">FULL OUTER JOIN, UNION and UNION ALL</h3>
+<p>A full outer join keeps <b>everything from both sides</b>. MySQL <b>doesn't support</b> <code>FULL OUTER JOIN</code> (Nitish's attempt errored), so you build it from a left join <b>UNION</b> a right join:</p>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT * FROM membership m LEFT JOIN users u ON m.user_id = u.user_id
+UNION
+SELECT * FROM membership m RIGHT JOIN users u ON m.user_id = u.user_id;</code></pre>
+<p><code>UNION</code> stacks the results of two queries <em>vertically</em>:</p>
+<ul>
+  <li>Both queries must return the <b>same number of columns</b>, with compatible types.</li>
+  <li><code>UNION</code> removes duplicate rows; <code>UNION ALL</code> keeps them (and is faster).</li>
+</ul>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT user_id FROM users
+UNION
+SELECT user_id FROM membership;        -- each id once
+
+SELECT user_id FROM users
+UNION ALL
+SELECT user_id FROM membership;        -- repeats kept</code></pre>
+<div class="callout"><span class="t">Joins vs UNION</span><p>A join adds <b>columns</b> side by side (matching rows); a union adds <b>rows</b> one below the other.</p></div>
+
+<h2 id="three">Joining three tables</h2>
+<p><em>Print every user's name next to the name of each group they're in.</em> The name is in <code>users</code>, the group name in <code>groups</code>, and the link in <code>membership</code>, so join twice:</p>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT u.name, g.group_name
+FROM membership m
+JOIN users u    ON m.user_id  = u.user_id
+JOIN `groups` g ON m.group_id = g.group_id;</code></pre>
+<p>You can keep chaining <code>JOIN … ON</code> for 4, 5 or 10 tables. (Also <a href="practice-01-top-10-queries.html#q10">Practice 1, Q10</a>. <code>GROUPS</code> is a reserved word in MySQL 8, hence the backticks.)</p>
+
+<h2 id="self">Self join</h2>
+<p>Sometimes a table refers to <b>itself</b>. Each user's <code>emergency_contact</code> is another user's id. To print "user → emergency contact's name", join <code>users</code> with itself under two aliases:</p>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT u1.name AS user, u2.name AS emergency_contact
+FROM users u1
+JOIN users u2
+  ON u1.emergency_contact = u2.user_id;</code></pre>
+<p>The same trick finds every employee's manager:</p>
+<pre data-run="whatsapp"><code class="lang-sql">SELECT e.name AS employee, m.name AS manager
+FROM employees e
+LEFT JOIN employees m ON e.manager_id = m.emp_id;   -- LEFT keeps the boss (no manager)</code></pre>
+
+<h2 id="sql-lab">SQL lab</h2>
+<div class="widget playground" id="lab" data-setup-src="data/whatsapp.sql" data-mysql>
+  <div class="w-title">Joins lab · tables: users, groups, membership, employees</div>
+  <textarea spellcheck="false">-- How many members does each group have (including empty groups)?
+SELECT g.group_name, COUNT(u.user_id) AS members
+FROM `groups` g
+LEFT JOIN membership m ON g.group_id = m.group_id
+LEFT JOIN users u      ON m.user_id  = u.user_id
+GROUP BY g.group_name
+ORDER BY members DESC;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button><button class="btn small" data-reset-db>Reset data</button></div>
+  <div class="pg-out"></div>
+</div>
+<details style="border:1px solid var(--rule);border-radius:10px;padding:8px 14px;margin:10px 0 20px"><summary style="cursor:pointer;font-family:var(--sans);font-weight:600;color:var(--accent)">Exercise ideas</summary>
+<ol style="font-size:16px">
+  <li>Users who are in <b>no</b> group. <small>(LEFT JOIN users → membership, then <code>WHERE m.user_id IS NULL</code>)</small></li>
+  <li>Membership rows whose user no longer exists.</li>
+  <li>Names of everyone in the "Family" group.</li>
+  <li>For each user, how many people list them as their emergency contact? (self join + GROUP BY)</li>
+</ol></details>
+
+<h2 id="mcq">Check yourself</h2>
+<div class="quiz" data-answer="2">
+  <p class="q">Table A has 7 rows and table B has 4. How many rows does <code>A CROSS JOIN B</code> return?</p>
+  <div class="opts"><button class="opt">11</button><button class="opt">7</button><button class="opt">28</button><button class="opt">4</button></div>
+  <p class="why">Every row with every row: 7 × 4.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Which join keeps all rows of the <b>first</b> table even when there's no match?</p>
+  <div class="opts"><button class="opt">INNER JOIN</button><button class="opt">LEFT JOIN</button><button class="opt">RIGHT JOIN</button><button class="opt">CROSS JOIN</button></div>
+  <p class="why">LEFT = everything from the left (first-written) table.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">How do you get a FULL OUTER JOIN in MySQL?</p>
+  <div class="opts"><button class="opt"><code>FULL JOIN</code></button><button class="opt"><code>OUTER JOIN</code> alone</button><button class="opt">It's impossible</button><button class="opt">LEFT JOIN <code>UNION</code> RIGHT JOIN</button></div>
+  <p class="why">MySQL has no FULL OUTER JOIN keyword; combine the two outer joins with UNION.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q">What's the difference between UNION and UNION ALL?</p>
+  <div class="opts"><button class="opt">UNION removes duplicate rows; UNION ALL keeps them</button><button class="opt">UNION ALL removes duplicates</button><button class="opt">UNION joins columns side by side</button><button class="opt">No difference</button></div>
+  <p class="why">That's also why UNION ALL is faster: no de-duplication step.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">Which statement about UNION is required to be true?</p>
+  <div class="opts"><button class="opt">Both queries must read the same table</button><button class="opt">Both must have a WHERE clause</button><button class="opt">Both must return the same number of columns, with compatible types</button><button class="opt">Columns must have the same names</button></div>
+  <p class="why">The output takes its column names from the first query.</p>
+</div>
+
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="1">
+  <p class="q">You LEFT JOIN users to membership and add <code>WHERE m.group_id = 1</code>. Users with no group disappear. Why?</p>
+  <div class="opts"><button class="opt">LEFT JOIN is broken in MySQL</button><button class="opt">For unmatched users <code>m.group_id</code> is NULL, and the WHERE condition is never true for NULL, so it turns the left join back into an inner join</button><button class="opt">WHERE runs before the join</button><button class="opt">Because of aliases</button></div>
+  <p class="why">To keep unmatched rows, put the condition in the <code>ON</code> clause: <code>… ON u.user_id = m.user_id AND m.group_id = 1</code>.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">A join on a non-unique column (e.g. joining two tables on <code>city</code>) suddenly returns far more rows than either table. Why?</p>
+  <div class="opts"><button class="opt">A bug in the database</button><button class="opt">Joins always double rows</button><button class="opt">NULLs multiply</button><button class="opt">Every matching pair is output: 50 rows with city 'Delhi' on each side give 50 × 50 = 2,500 rows (a "join explosion")</button></div>
+  <p class="why">Know your keys: join on columns that are unique on at least one side.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q">Is <code>A LEFT JOIN B</code> the same as <code>B RIGHT JOIN A</code>?</p>
+  <div class="opts"><button class="opt">Yes, same rows (column order differs); that's why many people only ever write LEFT joins</button><button class="opt">No, completely different rows</button><button class="opt">Only if both tables have the same size</button><button class="opt">Only with UNION</button></div>
+  <p class="why">RIGHT JOIN is just LEFT JOIN with the tables swapped.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">Why did the many-to-many users ↔ groups query need <b>two</b> joins?</p>
+  <div class="opts"><button class="opt">MySQL limits each join to two columns</button><button class="opt">Because of the backticks</button><button class="opt">The link between a user and a group lives only in the junction table, so you go users → membership → groups</button><button class="opt">Self joins need two</button></div>
+  <p class="why">M:N relationships always route through the junction table.</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js?v=4"></script>
+<script>
+(function () {
+  var N = window.SQLNotes;
+  /* ---- Venn explorer ---- */
+  var J = {
+    inner: { r: ["rM"], say: "<b>INNER</b>: only rows that match in both tables (6 rows).", sql: "SELECT m.membership_id, m.user_id, u.name\nFROM membership m\nINNER JOIN users u ON m.user_id = u.user_id;" },
+    left: { r: ["rL", "rM"], say: "<b>LEFT</b>: every membership row; users 5 and 6 don't exist, so their user columns are NULL (8 rows).", sql: "SELECT m.membership_id, m.user_id, u.name\nFROM membership m\nLEFT JOIN users u ON m.user_id = u.user_id;" },
+    right: { r: ["rR", "rM"], say: "<b>RIGHT</b>: every user; Abhinav and Rahul have no membership, so those columns are NULL (8 rows).", sql: "SELECT m.membership_id, u.user_id, u.name\nFROM membership m\nRIGHT JOIN users u ON m.user_id = u.user_id;" },
+    full: { r: ["rL", "rM", "rR"], say: "<b>FULL OUTER</b>: everything from both sides (10 rows), built with UNION since MySQL lacks FULL OUTER JOIN.", sql: "SELECT m.membership_id, m.user_id, u.name\nFROM membership m LEFT JOIN users u ON m.user_id = u.user_id\nUNION\nSELECT m.membership_id, u.user_id, u.name\nFROM membership m RIGHT JOIN users u ON m.user_id = u.user_id;" }
+  };
+  var pills = document.querySelectorAll("#venn .pill");
+  function show(k) {
+    pills.forEach(function (p) { p.classList.toggle("on", p.getAttribute("data-j") === k); });
+    ["rL", "rM", "rR"].forEach(function (id) { document.getElementById(id).classList.toggle("on", J[k].r.indexOf(id) >= 0); });
+    document.getElementById("venn-say").innerHTML = J[k].say;
+    document.getElementById("venn-sql").innerHTML = N.highlight(J[k].sql, "sql");
+    var out = document.getElementById("venn-out");
+    out.innerHTML = '<div class="pg-msg info">Running…</div>';
+    N.sharedDb("whatsapp").then(function (db) { out.innerHTML = N.runStatements(db, J[k].sql); });
+  }
+  pills.forEach(function (p) { p.addEventListener("click", function () { show(p.getAttribute("data-j")); }); });
+  show("inner");
+
+  /* ---- nested-loop stepper ---- */
+  var L = [[1,1,1],[2,1,2],[3,2,1],[4,3,3],[5,4,1],[6,5,2],[7,6,4],[8,7,3]];   // membership_id, user_id, group_id
+  var R = [[1,"Nitish"],[2,"Ankit"],[3,"Neha"],[4,"Radhika"],[7,"Anant"],[8,"Abhinav"],[11,"Rahul"]];
+  var mode = "inner", i = 0, result = [];
+  var tl = document.getElementById("st-l"), tr = document.getElementById("st-r"), to = document.getElementById("st-o"), say = document.getElementById("st-say");
+  function paint(curL, hitR) {
+    tl.innerHTML = "<thead><tr><th>m_id</th><th>user_id</th></tr></thead><tbody>" + L.map(function (r, k) { return '<tr class="' + (k === curL ? "cur" : "") + '"><td>' + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") + "</tbody>";
+    tr.innerHTML = "<thead><tr><th>user_id</th><th>name</th></tr></thead><tbody>" + R.map(function (r, k) { return '<tr class="' + (hitR === k ? "hit" : (curL != null && hitR === -1 ? "" : "")) + '"><td>' + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") + "</tbody>";
+    to.innerHTML = "<thead><tr><th>m_id</th><th>user_id</th><th>name</th></tr></thead><tbody>" + result.map(function (r) { return '<tr class="' + (r[2] === null ? "miss" : "") + '"><td>' + r[0] + "</td><td>" + r[1] + "</td><td>" + (r[2] === null ? "<i>NULL</i>" : r[2]) + "</td></tr>"; }).join("") + "</tbody>";
+  }
+  function reset() { i = 0; result = []; paint(null, null); say.textContent = "Press \"Next left row\"."; }
+  document.getElementById("st-next").addEventListener("click", function () {
+    if (i >= L.length) { say.innerHTML = "Done: <b>" + result.length + " rows</b>. " + (mode === "inner" ? "Rows without a match were dropped." : "Unmatched left rows were kept with NULLs."); return; }
+    var l = L[i], hit = -1;
+    R.forEach(function (r, k) { if (r[0] === l[1]) hit = k; });
+    if (hit >= 0) { result.push([l[0], l[1], R[hit][1]]); say.innerHTML = "Left row m_id " + l[0] + " (user " + l[1] + "): scanned all users, <b>match</b> with " + R[hit][1] + " → output combined row."; }
+    else if (mode === "left") { result.push([l[0], l[1], null]); say.innerHTML = "Left row m_id " + l[0] + " (user " + l[1] + "): <b>no match</b> → LEFT JOIN keeps it with NULLs."; }
+    else say.innerHTML = "Left row m_id " + l[0] + " (user " + l[1] + "): <b>no match</b> → INNER JOIN outputs nothing.";
+    paint(i, hit); i++;
+  });
+  document.getElementById("st-reset").addEventListener("click", reset);
+  document.querySelectorAll("#stepper .pill").forEach(function (p) {
+    p.addEventListener("click", function () { mode = p.getAttribute("data-m"); document.querySelectorAll("#stepper .pill").forEach(function (x) { x.classList.toggle("on", x === p); }); reset(); });
+  });
+  reset();
+})();
+</script>
+</body>
+</html>

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css?v=2">
+<link rel="stylesheet" href="sql.css?v=4">
 </head>
 <body class="sql-page" data-chapter="0">
 <header class="site-header">
@@ -28,7 +28,7 @@
 <div id="credit"></div>
 <h1>SQL for Data Science (Notes)</h1>
 <p class="lede">Chapter-by-chapter notes on a six-hour MySQL course: why databases exist, how they're designed (keys, integrity, ER diagrams), and how to write SQL. Every chapter ends with factual and conceptual quizzes, and several have a live SQL engine you can run in the browser.</p>
-<p class="legend"><strong>Source:</strong> <a href="https://www.youtube.com/watch?v=nopIGY1zJE0" target="_blank" rel="noopener">Complete SQL Course For Data Science | SQL For Data Science in 6 Hrs</a> by <strong>Nitish Singh</strong>, <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. These are my personal, unofficial study notes; the teaching is his, so watch the video for the definitive treatment. I'm adding chapters as I go through the course.</p>
+<p class="legend"><strong>Source:</strong> <a href="https://www.youtube.com/watch?v=nopIGY1zJE0" target="_blank" rel="noopener">Complete SQL Course For Data Science | SQL For Data Science in 6 Hrs</a> by <strong>Nitish Singh</strong>, <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. These are my personal, unofficial study notes; the teaching is his, so watch the video for the definitive treatment. All 12 chapters are covered, plus interview practice sessions.</p>
 
 <h2 class="section-title">Chapters</h2>
 <ul class="timeline" id="timeline"></ul>
@@ -41,13 +41,13 @@
 <div class="tiles">
   <div class="tile"><h4>Watch, then read</h4><p>Each chapter links to its exact timestamp in the video.</p></div>
   <div class="tile"><h4>Do the quizzes</h4><p>Most MCQs are the ones solved in class.</p></div>
-  <div class="tile"><h4>Run the SQL</h4><p>Chapters 2, 5, 7 and the practice sessions include a live SQL engine (SQLite in your browser).</p></div>
+  <div class="tile"><h4>Run the SQL</h4><p>Most chapters have runnable code blocks and a SQL lab (a real SQL engine in your browser).</p></div>
   <div class="tile"><h4>Track progress</h4><p>Tick "mark as done" at the end of a chapter; it's saved in your browser.</p></div>
 </div>
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js?v=2"></script>
+<script src="notes.js?v=4"></script>
 <script>
 (function () {
   var blurbs = {
@@ -57,7 +57,12 @@
     4: "Super, candidate, primary, alternate, foreign, composite, compound and surrogate keys; 1:1, 1:N, M:N.",
     5: "DDL, DML, TCL, DCL; MySQL data types, operators and comments.",
     6: "Entity–relationship diagrams with crow's foot notation; designing a Swiggy database in Lucidchart.",
-    7: "CREATE / DROP / TRUNCATE / ALTER and the seven constraints, with a live SQL lab."
+    7: "CREATE / DROP / TRUNCATE / ALTER and the seven constraints, with a live SQL lab.",
+    8: "INSERT, SELECT, WHERE, DISTINCT, IN, LIKE, UPDATE, DELETE, built-in functions, ORDER BY and LIMIT. Every example runs.",
+    9: "GROUP BY with aggregates, grouping on several columns, HAVING vs WHERE, clause order.",
+    10: "CASE WHEN: box-office verdicts, conditional counting, custom sort orders.",
+    11: "Cross, inner, left, right and full outer joins; UNION; three-table and self joins. Venn explorer + join stepper.",
+    12: "Independent and correlated subqueries, IN, derived tables. The end of the course."
   };
   var done = {};
   try { done = JSON.parse(localStorage.getItem("sql-notes-done")) || {}; } catch (e) {}

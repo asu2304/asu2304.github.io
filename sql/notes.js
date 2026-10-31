@@ -12,11 +12,11 @@
     { n: 5, file: "05-types-of-sql-commands.html", title: "Types of SQL Commands", ts: "1:51:00", t: 6660 },
     { n: 6, file: "06-er-diagram.html", title: "ER Diagram", ts: "1:57:30", t: 7050 },
     { n: 7, file: "07-ddl-queries.html", title: "DDL SQL Queries", ts: "2:18:20", t: 8300 },
-    { n: 8, file: null, title: "DML SQL Queries", ts: "3:00:00", t: 10800 },
-    { n: 9, file: null, title: "GROUP BY Query", ts: "4:08:00", t: 14880 },
-    { n: 10, file: null, title: "CASE Statement", ts: "4:42:00", t: 16920 },
-    { n: 11, file: null, title: "SQL Joins", ts: "4:48:00", t: 17280 },
-    { n: 12, file: null, title: "Subquery", ts: "5:25:35", t: 19535 }
+    { n: 8, file: "08-dml-queries.html", title: "DML SQL Queries", ts: "3:00:00", t: 10800 },
+    { n: 9, file: "09-group-by.html", title: "GROUP BY Query", ts: "4:08:00", t: 14880 },
+    { n: 10, file: "10-case-statement.html", title: "CASE Statement", ts: "4:42:00", t: 16920 },
+    { n: 11, file: "11-sql-joins.html", title: "SQL Joins", ts: "4:48:00", t: 17280 },
+    { n: 12, file: "12-subqueries.html", title: "Subquery", ts: "5:25:35", t: 19535 }
   ];
   window.SQL_CHAPTERS = CHAPTERS;
   var PRACTICE = [
@@ -120,7 +120,7 @@
     pcb.addEventListener("change", function () { var d = doneSet(); d[prac.key] = pcb.checked; store.set(DONE_KEY, d); renderSidebar(); });
     pager.parentNode.insertBefore(ptoggle, pager);
     pager.className = "pager";
-    pager.innerHTML = '<a class="prev" href="index.html"><small>← Back</small>Course index</a><a class="next" href="07-ddl-queries.html"><small>Revise →</small>7. DDL SQL Queries</a>';
+    pager.innerHTML = '<a class="prev" href="12-subqueries.html"><small>← Last chapter</small>12. Subquery</a><a class="next" href="index.html"><small>Back to →</small>Course index</a>';
   }
   if (pager && chap) {
     var built2 = CHAPTERS.filter(function (c) { return c.file; });
@@ -137,7 +137,8 @@
     pager.innerHTML =
       (prev ? '<a class="prev" href="' + prev.file + '"><small>← Previous</small>' + prev.n + ". " + prev.title + "</a>" : '<a class="prev" href="index.html"><small>← Back</small>Course index</a>') +
       (next ? '<a class="next" href="' + next.file + '"><small>Next →</small>' + next.n + ". " + next.title + "</a>"
-            : nextSoon ? '<a class="next" href="' + VIDEO + "&t=" + nextSoon.t + 's" target="_blank" rel="noopener"><small>Up next in the video (notes coming soon) →</small>' + nextSoon.n + ". " + nextSoon.title + "</a>" : "<span></span>");
+            : nextSoon ? '<a class="next" href="' + VIDEO + "&t=" + nextSoon.t + 's" target="_blank" rel="noopener"><small>Up next in the video (notes coming soon) →</small>' + nextSoon.n + ". " + nextSoon.title + "</a>"
+            : '<a class="next" href="' + PRACTICE[0].file + '"><small>Course done! Now practise →</small>P1. ' + PRACTICE[0].title + "</a>");
   }
 
   /* ---------- syntax highlighting + copy ---------- */
@@ -166,15 +167,70 @@
     var pre = codeEl.parentNode;
     var wrap = el("div", { "class": "code" });
     var label = pre.getAttribute("data-title") || (lang === "python" ? "Python" : lang === "bash" ? "Terminal" : "SQL");
-    var head = el("div", { "class": "code-head" }, "<span>" + label + '</span><button class="copy-btn" type="button">Copy</button>');
+    var head = el("div", { "class": "code-head" }, "<span>" + label + '</span><button class="copy-btn do-copy" type="button">Copy</button>');
     pre.parentNode.insertBefore(wrap, pre);
     wrap.appendChild(head); wrap.appendChild(pre);
-    head.querySelector("button").addEventListener("click", function (ev) {
+    if (pre.hasAttribute("data-run")) addRunner(pre, wrap, head, raw);
+    head.querySelector(".do-copy").addEventListener("click", function (ev) {
       var b = ev.currentTarget;
       var done = function () { b.textContent = "Copied ✓"; setTimeout(function () { b.textContent = "Copy"; }, 1400); };
       if (navigator.clipboard) navigator.clipboard.writeText(raw).then(done, function () {});
     });
   });
+
+  /* ---------- "Run" buttons on code blocks: one shared DB per dataset list, per page ---------- */
+  var sharedDbs = {};
+  function sharedDb(key) {
+    if (!sharedDbs[key]) {
+      var files = key.split(/\s+/).filter(Boolean).map(function (f) { return "data/" + f + ".sql"; });
+      sharedDbs[key] = Promise.all([loadSqlJs()].concat(files.map(fetchText))).then(function (r) {
+        var db = new r[0].Database();
+        db.run("PRAGMA foreign_keys = ON;");
+        db.create_function("CEILING", function (x) { return x == null ? null : Math.ceil(x); });
+        db.exec(r.slice(1).join("\n"));
+        return db;
+      });
+    }
+    return sharedDbs[key];
+  }
+  function runStatements(db, sql) {
+    var html = "";
+    splitStatements(sql).forEach(function (st) {
+      st = mysqlShim(st);
+      try {
+        var res = db.exec(st);
+        var short = st.replace(/\s+/g, " ");
+        if (short.length > 70) short = short.slice(0, 67) + "…";
+        if (res.length) html += renderResult(res) + '<div class="pg-msg info">' + res[res.length - 1].values.length + " row(s)</div>";
+        else html += '<div class="pg-msg ok">✓ ' + esc(short) + (/^(insert|update|delete)/i.test(st) ? "  (" + db.getRowsModified() + " row(s) affected)" : "") + "</div>";
+      } catch (e) {
+        html += '<div class="pg-msg err">✗ ' + esc(String(e.message || e)) + "</div>";
+      }
+    });
+    return html;
+  }
+  function addRunner(pre, wrap, head, raw) {
+    var key = pre.getAttribute("data-run");
+    var btns = document.createElement("span");
+    btns.style.cssText = "display:flex;gap:6px";
+    btns.innerHTML = '<button class="copy-btn" type="button" style="color:var(--ok);border-color:var(--ok)">Run ▶</button>' +
+      (document.getElementById("lab") ? '<button class="copy-btn" type="button">Edit in lab</button>' : "");
+    head.insertBefore(btns, head.lastChild);
+    btns.appendChild(head.lastChild);
+    var outBox = el("div", { "class": "playground run-out" });
+    outBox.style.cssText = "padding:0 12px";
+    wrap.appendChild(outBox);
+    btns.children[0].addEventListener("click", function () {
+      outBox.innerHTML = '<div class="pg-msg info">Running…</div>';
+      sharedDb(key).then(function (db) { outBox.innerHTML = '<div class="pg-out">' + runStatements(db, raw) + "</div>"; },
+        function (e) { outBox.innerHTML = '<div class="pg-msg err">' + esc(e.message) + "</div>"; });
+    });
+    if (btns.children.length === 3) btns.children[1].addEventListener("click", function () {
+      var lab = document.getElementById("lab");
+      lab.querySelector("textarea").value = raw;
+      lab.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
 
   /* ---------- quizzes ---------- */
   var quizzes = document.querySelectorAll(".quiz");
@@ -320,19 +376,35 @@
       .replace(/^\s*SHOW\s+TABLES\s*$/i, "SELECT name AS tables FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
       .replace(/^\s*(?:DESCRIBE|DESC)\s+(\w+)\s*$/i, "SELECT name AS Field, type AS Type, CASE \"notnull\" WHEN 1 THEN 'NO' ELSE 'YES' END AS \"Null\", CASE pk WHEN 0 THEN '' ELSE 'PRI' END AS \"Key\", dflt_value AS \"Default\" FROM pragma_table_info('$1')");
   }
-  window.SQLNotes = { loadSqlJs: loadSqlJs, renderResult: renderResult, esc: esc, highlight: highlight };
+  var textCache = {};
+  function fetchText(url) {
+    if (!textCache[url]) textCache[url] = fetch(url).then(function (r) { if (!r.ok) throw new Error("Could not load " + url); return r.text(); });
+    return textCache[url];
+  }
+  window.SQLNotes = { loadSqlJs: loadSqlJs, renderResult: renderResult, esc: esc, highlight: highlight, sharedDb: sharedDb, runStatements: runStatements };
   document.querySelectorAll(".playground").forEach(function (pg) {
     var ta = pg.querySelector("textarea");
+    if (!ta) return;   // result-only boxes (code-block runners, widgets) share the styling but aren't editors
     var out = pg.querySelector(".pg-out");
     var presetSel = pg.querySelector("select");
     var setupId = pg.getAttribute("data-setup");
-    var setupSql = setupId ? document.getElementById(setupId).textContent : "";
+    var setupSrc = (pg.getAttribute("data-setup-src") || "").split(/\s+/).filter(Boolean);
     var db = null, shim = pg.hasAttribute("data-mysql");
-    function fresh(SQL) { db = new SQL.Database(); db.run("PRAGMA foreign_keys = ON;"); if (setupSql) db.exec(setupSql); }
+    function getSetup() {
+      var inline = setupId ? document.getElementById(setupId).textContent : "";
+      return Promise.all(setupSrc.map(fetchText)).then(function (parts) { return parts.concat([inline]).join("\n"); });
+    }
+    function fresh(SQL, setupSql) {
+      db = new SQL.Database();
+      db.run("PRAGMA foreign_keys = ON;");
+      // MySQL names SQLite lacks
+      db.create_function("CEILING", function (x) { return x == null ? null : Math.ceil(x); });
+      if (setupSql) db.exec(setupSql);
+    }
+    function ready() { return Promise.all([loadSqlJs(), getSetup()]).then(function (r) { if (!db) fresh(r[0], r[1]); return r; }); }
     function run() {
       out.innerHTML = '<div class="pg-msg info">Loading the SQL engine…</div>';
-      loadSqlJs().then(function (SQL) {
-        if (!db) fresh(SQL);
+      ready().then(function () {
         var html = "";
         splitStatements(ta.value).forEach(function (st) {
           if (shim) st = mysqlShim(st);
@@ -352,7 +424,7 @@
     ta.addEventListener("keydown", function (e) { if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); run(); } });
     var resetBtn = pg.querySelector("[data-reset-db]");
     if (resetBtn) resetBtn.addEventListener("click", function () {
-      loadSqlJs().then(function (SQL) { fresh(SQL); out.innerHTML = '<div class="pg-msg info">Database reset to its starting state.</div>'; });
+      Promise.all([loadSqlJs(), getSetup()]).then(function (r) { fresh(r[0], r[1]); out.innerHTML = '<div class="pg-msg info">Database reset to its starting state.</div>'; });
     });
     if (presetSel) presetSel.addEventListener("change", function () {
       var t = document.getElementById(presetSel.value);

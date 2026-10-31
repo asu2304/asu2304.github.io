@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 · CASE Statement · SQL for Data Science</title>
+<meta name="description" content="Chapter 10 notes: SQL's if/else with CASE WHEN, labelling Bollywood movies as flop, average, hit or superhit, with runnable examples.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css?v=4">
+<style>
+.ladder { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 14px 0 6px; border-radius: 10px; overflow: hidden; font: 600 13px var(--sans); text-align: center; }
+.ladder div { padding: 10px 4px; border-right: 1px solid var(--surface); opacity: .45; transition: opacity .2s, transform .2s; }
+.ladder div.on { opacity: 1; outline: 3px solid var(--text); outline-offset: -3px; }
+.l0 { background: var(--bad-soft); color: var(--bad); } .l1 { background: var(--warn-soft); color: var(--warn); }
+.l2 { background: var(--ok-soft); color: var(--ok); } .l3 { background: var(--accent-soft); color: var(--accent); }
+</style>
+</head>
+<body class="sql-page" data-chapter="10">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 10</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 10</p>
+<h1>CASE: if / else inside a query</h1>
+<div class="chips"><span class="chip">4:42:00 → 4:48:00</span><span class="chip">CASE WHEN … THEN … ELSE … END</span><span class="chip">Short but frequently used</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<p class="lede">Every programming language has if/else. In SQL it's the <strong>CASE statement</strong>: it lets a query produce different output values depending on conditions, which is perfect for turning numbers into <em>labels</em>.</p>
+
+<h2 id="verdict">The class example: box-office verdicts</h2>
+<p>Compute each Bollywood movie's profit (<code>worldwide − budget</code>, in ₹ crore) and label it:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Profit</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>below 0</td><td><b>Flop</b></td></tr>
+<tr><td>0 to 25 crore</td><td><b>Average</b></td></tr>
+<tr><td>25 to 100 crore</td><td><b>Hit</b></td></tr>
+<tr><td>above 100 crore</td><td><b>Superhit</b></td></tr>
+</tbody></table></div>
+
+<div class="widget" id="ladder-w">
+  <div class="w-title">Try the logic</div>
+  <div class="w-help">Drag the profit and watch which WHEN fires.</div>
+  <input type="range" id="pr" min="-150" max="400" value="40" style="width:100%">
+  <div class="ladder"><div class="l0">Flop<br>&lt; 0</div><div class="l1">Average<br>0–25</div><div class="l2">Hit<br>25–100</div><div class="l3">Superhit<br>&gt; 100</div></div>
+  <div class="verdict" id="pr-out"></div>
+</div>
+
+<pre data-run="bollywood"><code class="lang-sql">SELECT title,
+       worldwide - budget AS profit,
+       CASE
+           WHEN worldwide - budget > 100 THEN 'Superhit'
+           WHEN worldwide - budget > 25  AND worldwide - budget <= 100 THEN 'Hit'
+           WHEN worldwide - budget >= 0  AND worldwide - budget <= 25  THEN 'Average'
+           ELSE 'Flop'
+       END AS verdict
+FROM movies;</code></pre>
+
+<h2 id="anatomy">Anatomy of CASE</h2>
+<ul>
+  <li>Starts with <code>CASE</code>, ends with <code>END</code>; give the result a name with <code>AS</code>.</li>
+  <li>Each <code>WHEN condition THEN value</code> is an "if / else-if". They are checked <b>top to bottom</b>, and the <b>first</b> true one wins.</li>
+  <li><code>ELSE</code> catches everything else. Without it, unmatched rows get <code>NULL</code>.</li>
+  <li>The whole CASE is just an expression, so it sits in the SELECT list like any column.</li>
+</ul>
+<div class="callout tip"><span class="t">Shorter, thanks to top-to-bottom order</span>
+<p>Because earlier WHENs have already caught the bigger values, the lower bounds are redundant:</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT title,
+       CASE
+           WHEN worldwide - budget > 100 THEN 'Superhit'
+           WHEN worldwide - budget > 25  THEN 'Hit'
+           WHEN worldwide - budget >= 0  THEN 'Average'
+           ELSE 'Flop'
+       END AS verdict
+FROM movies;</code></pre></div>
+
+<h2 id="more">Going further (my additions)</h2>
+<div class="tabs">
+  <div class="tab-panel" data-tab="CASE + GROUP BY">
+    <p>How many movies fall in each verdict? Group by the CASE expression:</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT CASE
+           WHEN worldwide - budget > 100 THEN 'Superhit'
+           WHEN worldwide - budget > 25  THEN 'Hit'
+           WHEN worldwide - budget >= 0  THEN 'Average'
+           ELSE 'Flop'
+       END AS verdict,
+       COUNT(*) AS movies
+FROM movies
+GROUP BY verdict
+ORDER BY movies DESC;</code></pre>
+  </div>
+  <div class="tab-panel" data-tab="Conditional counting">
+    <p>Count different things in one pass by putting CASE <em>inside</em> an aggregate:</p>
+<pre data-run="titanic"><code class="lang-sql">SELECT pclass,
+       SUM(CASE WHEN sex = 'female' THEN 1 ELSE 0 END) AS women,
+       SUM(CASE WHEN sex = 'male'   THEN 1 ELSE 0 END) AS men
+FROM train
+GROUP BY pclass;</code></pre>
+  </div>
+  <div class="tab-panel" data-tab="Simple CASE">
+    <p>When you're only matching exact values of one column, there's a shorter form:</p>
+<pre data-run="titanic"><code class="lang-sql">SELECT name,
+       CASE embarked
+           WHEN 'S' THEN 'Southampton'
+           WHEN 'C' THEN 'Cherbourg'
+           WHEN 'Q' THEN 'Queenstown'
+           ELSE 'Unknown'
+       END AS port
+FROM train;</code></pre>
+  </div>
+  <div class="tab-panel" data-tab="Custom sort order">
+<pre data-run="bollywood"><code class="lang-sql">-- Drama first, then Action, then everything else
+SELECT title, genre FROM movies
+ORDER BY CASE genre WHEN 'Drama' THEN 1 WHEN 'Action' THEN 2 ELSE 3 END, title;</code></pre>
+  </div>
+</div>
+<p>You've also seen CASE in <a href="practice-01-top-10-queries.html#q7">Practice 1, Q7</a> (Titanic family size).</p>
+
+<h2 id="sql-lab">SQL lab</h2>
+<div class="widget playground" id="lab" data-setup-src="data/bollywood.sql data/titanic.sql" data-mysql>
+  <div class="w-title">CASE lab · tables: movies, train</div>
+  <textarea spellcheck="false">-- Label Titanic passengers: child (< 13), teen (13-19), adult (20-59), senior (60+), unknown
+SELECT name, age,
+       CASE
+           WHEN age IS NULL THEN 'unknown'
+           WHEN age < 13 THEN 'child'
+           WHEN age < 20 THEN 'teen'
+           WHEN age < 60 THEN 'adult'
+           ELSE 'senior'
+       END AS age_group
+FROM train;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button><button class="btn small" data-reset-db>Reset data</button></div>
+  <div class="pg-out"></div>
+</div>
+<p class="legend">Try next: survival rate per age group (wrap the CASE in a GROUP BY), or label movies by runtime as "short / standard / epic".</p>
+
+<h2 id="mcq">Check yourself</h2>
+<div class="quiz" data-answer="1">
+  <p class="q">A movie has profit 150. With the WHENs ordered "&gt; 25 → Hit" first and "&gt; 100 → Superhit" second, what label does it get?</p>
+  <div class="opts"><button class="opt">Superhit</button><button class="opt">Hit, because the first true WHEN wins</button><button class="opt">Both</button><button class="opt">An error</button></div>
+  <p class="why">Order matters: put the most specific (strictest) condition first.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">What does a CASE return for a row that matches no WHEN and has no ELSE?</p>
+  <div class="opts"><button class="opt">An empty string</button><button class="opt">0</button><button class="opt">NULL</button><button class="opt">The first THEN value</button></div>
+  <p class="why">Always add an ELSE if you don't want NULLs.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q">Which keyword closes a CASE expression?</p>
+  <div class="opts"><button class="opt"><code>END</code></button><button class="opt"><code>ENDCASE</code></button><button class="opt"><code>STOP</code></button><button class="opt"><code>)</code></button></div>
+  <p class="why"><code>CASE … END</code>, optionally followed by <code>AS name</code>.</p>
+</div>
+
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="3">
+  <p class="q">Why does <code>SUM(CASE WHEN sex = 'female' THEN 1 ELSE 0 END)</code> count women?</p>
+  <div class="opts"><button class="opt">SUM counts text values</button><button class="opt">CASE filters out the men</button><button class="opt">It's a special MySQL syntax</button><button class="opt">CASE turns each row into 1 (woman) or 0 (not), and summing the 1s counts them</button></div>
+  <p class="why">This "conditional aggregation" pattern builds pivot-style reports in one query.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Could you use <code>WHERE</code> instead of CASE to produce the four verdict labels in one result?</p>
+  <div class="opts"><button class="opt">Yes, WHERE can return labels</button><button class="opt">No; WHERE only keeps or drops rows, it can't create a new value per row</button><button class="opt">Only with HAVING</button><button class="opt">Only in MySQL 8</button></div>
+  <p class="why">WHERE filters; CASE computes. You'd need four separate queries with WHERE.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">In the verdict query, what label does a NULL profit (unknown budget) get?</p>
+  <div class="opts"><button class="opt">Average</button><button class="opt">Superhit</button><button class="opt">Flop, because every comparison with NULL is unknown, so all WHENs fail and ELSE fires</button><button class="opt">NULL</button></div>
+  <p class="why">That's misleading. Add <code>WHEN profit IS NULL THEN 'Unknown'</code> first.</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js?v=4"></script>
+<script>
+(function () {
+  var r = document.getElementById("pr"), out = document.getElementById("pr-out"), cells = document.querySelectorAll(".ladder div");
+  function paint() {
+    var p = +r.value, i = p > 100 ? 3 : p > 25 ? 2 : p >= 0 ? 1 : 0;
+    var lines = ["WHEN profit > 100", "WHEN profit > 25", "WHEN profit >= 0", "ELSE"];
+    cells.forEach(function (c, k) { c.classList.toggle("on", k === i); });
+    var checked = 3 - i; // number of WHENs tested before the match (top-down from Superhit)
+    var trail = lines.slice(0, checked + 1).map(function (l, k) { return k < checked ? "<s>" + l + "</s>" : "<b>" + l + "</b>"; }).join(" → ");
+    out.innerHTML = "profit = <b>" + p + " cr</b> → <b>" + ["Flop", "Average", "Hit", "Superhit"][i] + "</b><br><small>" + trail + "</small>";
+  }
+  r.addEventListener("input", paint); paint();
+})();
+</script>
+</body>
+</html>

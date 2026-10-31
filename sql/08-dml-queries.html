@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>8 · DML SQL Queries · SQL for Data Science</title>
+<meta name="description" content="Chapter 8 notes: INSERT, SELECT, WHERE, DISTINCT, IN, LIKE, UPDATE, DELETE, built-in functions, ORDER BY and LIMIT, with runnable examples on Titanic and Bollywood data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css?v=4">
+</head>
+<body class="sql-page" data-chapter="8">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 8</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 8</p>
+<h1>DML queries: working with the data inside tables</h1>
+<div class="chips"><span class="chip">3:00:00 → 4:08:00</span><span class="chip">INSERT · SELECT · UPDATE · DELETE</span><span class="chip">Functions · ORDER BY · LIMIT</span><span class="chip">Every example runs</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<p class="lede">DDL shaped the <em>structure</em>. <strong>DML</strong> (Data Manipulation Language) works on the <em>data</em>: <code>INSERT</code>, <code>SELECT</code>, <code>UPDATE</code>, <code>DELETE</code>. These are the CRUD operations from <a href="02-crud-app-python-mysql.html#crud">Chapter 2</a>, now written by hand. Of the four, <strong>SELECT (reading)</strong> is what you'll use most as a data scientist, so it gets most of the time.</p>
+
+<div class="callout tip"><span class="t">Every code block on this page runs</span>
+<p>Press <b>Run ▶</b> on any block to execute it against small sample datasets (a slice of Kaggle's Titanic data, and a Bollywood movies table with approximate figures in ₹ crore). <b>Edit in lab</b> copies it into the <a href="#lab">SQL lab</a> so you can change it. The class used the full datasets; they're linked in the video description.</p></div>
+
+<h2 id="insert">INSERT: adding rows</h2>
+<p>Continuing with the <code>students</code> table from the DDL chapter (<code>student_id</code> auto-increment, <code>name</code>, <code>college</code>, <code>email</code> unique):</p>
+<pre data-run="college"><code class="lang-sql">-- 1) values for ALL columns, in table order (NULL lets auto-increment fill the id)
+INSERT INTO students VALUES (NULL, 'Ankit', 'IIT Delhi', 'ankit@gmail.com');
+
+-- 2) name the columns you're filling; skip the auto-increment one
+INSERT INTO students (name, college, email) VALUES ('Neha', 'NIT Trichy', 'neha@gmail.com');
+
+-- 3) column order is up to you, as long as the values follow it
+INSERT INTO students (email, name, college) VALUES ('rahul@gmail.com', 'Rahul', 'BITS Pilani');
+
+SELECT * FROM students;</code></pre>
+<p>Several rows at once: one <code>VALUES</code>, many brackets (Q1 of <a href="practice-01-top-10-queries.html#q1">Practice 1</a>):</p>
+<pre data-run="college"><code class="lang-sql">INSERT INTO students (name, college, email) VALUES
+    ('Riya',  'IIT Bombay', 'riya@gmail.com'),
+    ('Kabir', 'IIT Kanpur', 'kabir@gmail.com'),
+    ('Sara',  'DTU',        'sara@gmail.com');
+
+SELECT * FROM students;</code></pre>
+<div class="callout warn"><span class="t">Constraints still apply</span>
+<p>Try inserting <code>'nitish@gmail.com'</code> again: the UNIQUE email constraint rejects it with a <em>duplicate entry</em> error. Without a column list you must supply a value for <em>every</em> column, in order.</p></div>
+<div class="callout"><span class="t">Q&amp;A from class: MODIFY vs constraints?</span>
+<p><code>ALTER TABLE … MODIFY COLUMN</code> changes a column's definition (its data type and inline rules). <code>ADD/DROP CONSTRAINT</code> adds or removes a named rule. Two different tools.</p></div>
+
+<h2 id="select">SELECT: reading data</h2>
+<p>For reading, Nitish imports the Titanic dataset as a table named <code>train</code>. Its columns: <code>passenger_id</code>, <code>survived</code> (1/0), <code>pclass</code> (1st, 2nd or 3rd class, like train coaches: 1st is the best), <code>name</code>, <code>sex</code>, <code>age</code>, <code>sibsp</code> (siblings + spouse aboard), <code>parch</code> (parents + children aboard), <code>fare</code> and <code>embarked</code> (port: <b>S</b>outhampton, <b>C</b>herbourg, <b>Q</b>ueenstown).</p>
+<pre data-run="titanic"><code class="lang-sql">-- everything: * means "all columns"
+SELECT * FROM train;</code></pre>
+<pre data-run="titanic"><code class="lang-sql">-- only some columns, in the order you list them
+SELECT name, sex, survived FROM train;</code></pre>
+
+<h3 id="alias">Renaming columns with AS</h3>
+<pre data-run="titanic"><code class="lang-sql">SELECT name AS passenger_name, sex AS gender, survived
+FROM train;</code></pre>
+
+<h3 id="expressions">Computed columns</h3>
+<p>You can create new columns on the fly with arithmetic. Family members aboard = siblings/spouse + parents/children:</p>
+<pre data-run="titanic"><code class="lang-sql">SELECT name, sibsp + parch AS family FROM train;</code></pre>
+<p>Nitish's playful examples: how old would each passenger be today? (The Titanic sank in 1912; he added 106 because the class was in 2018.) And a constant column, say a ₹1 lakh compensation for every passenger:</p>
+<pre data-run="titanic"><code class="lang-sql">SELECT name, age + 106 AS current_age FROM train;
+
+SELECT name, 100000 AS compensation FROM train;</code></pre>
+<p class="legend">In MySQL you could compute the year gap live with <code>YEAR(CURDATE()) - 1912</code>.</p>
+
+<h3 id="distinct">DISTINCT: unique values</h3>
+<pre data-run="titanic"><code class="lang-sql">SELECT DISTINCT sex FROM train;        -- 2 values
+SELECT DISTINCT pclass FROM train;     -- 3 values
+
+-- on several columns: every unique COMBINATION
+SELECT DISTINCT sex, pclass FROM train;</code></pre>
+
+<h2 id="where">WHERE: filtering rows</h2>
+<pre data-run="titanic"><code class="lang-sql">-- all 1st-class passengers
+SELECT * FROM train WHERE pclass = 1;
+
+-- combine conditions with AND / OR
+-- 1st-class passengers who died
+SELECT * FROM train WHERE pclass = 1 AND survived = 0;
+
+-- passengers aged 10 to 20 (BETWEEN includes both ends)
+SELECT name, age FROM train WHERE age BETWEEN 10 AND 20;</code></pre>
+<div class="callout warn"><span class="t">NULLs and comparisons</span>
+<p>Two passengers have no recorded age (NULL). They never satisfy <code>age BETWEEN …</code> or <code>age = …</code>. To find them use <code>WHERE age IS NULL</code>.</p></div>
+
+<h3 id="order">The order SQL actually runs a query</h3>
+<p>You <em>write</em> <code>SELECT … FROM … WHERE …</code>, but the database <em>executes</em> clauses in a different order. Knowing this explains many errors (for example, why a <code>WHERE</code> can't use an alias defined in <code>SELECT</code>).</p>
+<div class="figure">
+<svg viewBox="0 0 700 120" role="img" aria-label="Logical execution order: FROM and JOIN, WHERE, GROUP BY, HAVING, SELECT, DISTINCT, ORDER BY, LIMIT">
+  <defs><marker id="a8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker></defs>
+  <g font-size="12">
+  <rect class="box sq" x="5" y="20" width="72" height="40" rx="8"/><text x="41" y="45" text-anchor="middle" class="b">FROM/JOIN</text>
+  <rect class="box hi" x="92" y="20" width="72" height="40" rx="8"/><text x="128" y="45" text-anchor="middle" class="b">WHERE</text>
+  <rect class="box" x="179" y="20" width="80" height="40" rx="8"/><text x="219" y="45" text-anchor="middle" class="b">GROUP BY</text>
+  <rect class="box" x="274" y="20" width="72" height="40" rx="8"/><text x="310" y="45" text-anchor="middle" class="b">HAVING</text>
+  <rect class="box ok" x="361" y="20" width="72" height="40" rx="8"/><text x="397" y="45" text-anchor="middle" class="b">SELECT</text>
+  <rect class="box" x="448" y="20" width="76" height="40" rx="8"/><text x="486" y="45" text-anchor="middle" class="b">DISTINCT</text>
+  <rect class="box" x="539" y="20" width="80" height="40" rx="8"/><text x="579" y="45" text-anchor="middle" class="b">ORDER BY</text>
+  <rect class="box" x="634" y="20" width="62" height="40" rx="8"/><text x="665" y="45" text-anchor="middle" class="b">LIMIT</text>
+  </g>
+  <path class="ln" d="M77 40 H90" marker-end="url(#a8)"/><path class="ln" d="M164 40 H177" marker-end="url(#a8)"/><path class="ln" d="M259 40 H272" marker-end="url(#a8)"/>
+  <path class="ln" d="M346 40 H359" marker-end="url(#a8)"/><path class="ln" d="M433 40 H446" marker-end="url(#a8)"/><path class="ln" d="M524 40 H537" marker-end="url(#a8)"/><path class="ln" d="M619 40 H632" marker-end="url(#a8)"/>
+  <text x="350" y="92" text-anchor="middle" class="m">1. pick the table(s) → 2. keep matching rows → 3. form groups → 4. keep matching groups</text>
+  <text x="350" y="110" text-anchor="middle" class="m">5. compute the output columns → 6. drop duplicates → 7. sort → 8. cut to N rows</text>
+</svg>
+<figcaption>Logical execution order. GROUP BY and HAVING come in <a href="09-group-by.html">Chapter 9</a>.</figcaption>
+</div>
+
+<h2 id="in">IN and NOT IN</h2>
+<p>For the next topics Nitish switches to a <strong>Bollywood movies</strong> dataset: <code>title</code>, <code>actor</code>, <code>director</code>, <code>genre</code>, <code>budget</code>, <code>india_gross</code>, <code>worldwide</code>, <code>screens</code> (opening screens), <code>runtime</code> (minutes), <code>release_date</code>.</p>
+<p>Movies that are either Action, Horror or Drama? With <code>OR</code> you'd write the condition three times (and five times for five genres). <code>IN</code> is shorter and clearer:</p>
+<pre data-run="bollywood"><code class="lang-sql">-- the long way
+SELECT title, genre FROM movies
+WHERE genre = 'Action' OR genre = 'Horror' OR genre = 'Drama';
+
+-- the same with IN
+SELECT title, genre FROM movies
+WHERE genre IN ('Action', 'Horror', 'Drama');
+
+-- everything else
+SELECT title, genre FROM movies
+WHERE genre NOT IN ('Action', 'Horror', 'Drama');</code></pre>
+
+<h2 id="like">Wildcards with LIKE</h2>
+<div class="tiles">
+  <div class="tile"><h4><code>%</code></h4><p>Any number of characters (including none).</p></div>
+  <div class="tile"><h4><code>_</code></h4><p>Exactly one character.</p></div>
+</div>
+<pre data-run="bollywood"><code class="lang-sql">-- titles starting with 'A'
+SELECT title FROM movies WHERE title LIKE 'A%';
+
+-- 'Tiger' anywhere in the title
+SELECT title FROM movies WHERE title LIKE '%Tiger%';
+
+-- titles ending with 'a'
+SELECT title FROM movies WHERE title LIKE '%a';
+
+-- actor surname Khan OR Kapoor
+SELECT title, actor FROM movies
+WHERE actor LIKE '%Khan' OR actor LIKE '%Kapoor';
+
+-- titles of exactly 5 characters
+SELECT title FROM movies WHERE title LIKE '_____';</code></pre>
+<div class="callout"><span class="t">Spot the trap</span>
+<p>Look at the Khan/Kapoor result: <em>Aashiqui 2</em> is missing because its star is Aditya Roy <b>Kapur</b>, a different spelling. Wildcards match text exactly; they don't understand names. Also note that you must repeat <code>LIKE</code> for each pattern; <code>IN</code> doesn't do wildcards.</p></div>
+
+<h2 id="update">UPDATE: changing rows</h2>
+<p>For updates Nitish uses the small <code>passengers</code> table (<code>id</code>, <code>name</code>, <code>email</code>) so the real datasets stay untouched.</p>
+<pre data-run="college"><code class="lang-sql">SELECT * FROM passengers;
+
+-- WITHOUT a WHERE, every row changes (rarely what you want!)
+-- UPDATE passengers SET name = 'Rahul';
+
+-- only rows that match: Gmail users become 'Rohit'
+UPDATE passengers SET name = 'Rohit' WHERE email LIKE '%gmail%';
+
+-- several columns at once: Yahoo users get a new name and email
+UPDATE passengers
+SET name = 'Anant', email = 'anant@gmail.com'
+WHERE email LIKE '%yahoo%';
+
+SELECT * FROM passengers;</code></pre>
+<div class="callout warn"><span class="t">Always write the WHERE first</span>
+<p><code>UPDATE passengers SET name = 'Rahul'</code> with no <code>WHERE</code> renames <em>everyone</em> (Nitish ran it as the "most stupid" example). A good habit: run the <code>WHERE</code> as a <code>SELECT</code> first, check the rows, then turn it into an <code>UPDATE</code>.</p></div>
+
+<h2 id="delete">DELETE: removing rows</h2>
+<pre data-run="college"><code class="lang-sql">-- one row
+DELETE FROM passengers WHERE id = 1;
+
+-- rows matching several conditions
+DELETE FROM passengers WHERE id > 2 AND email LIKE '%yahoo%';
+
+SELECT * FROM passengers;
+
+-- every row (the table stays, now empty)
+-- DELETE FROM passengers;</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th><code>DELETE FROM t WHERE …</code></th><th><code>TRUNCATE TABLE t</code></th></tr></thead>
+<tbody>
+<tr><td>Family</td><td>DML</td><td>DDL</td></tr>
+<tr><td>Which rows</td><td>Your choice (with WHERE), or all</td><td>Always all</td></tr>
+<tr><td>Table structure</td><td>Stays</td><td>Stays</td></tr>
+</tbody></table></div>
+
+<h2 id="functions">Built-in functions</h2>
+<p>From here SQL gets more powerful: <b>functions</b>, <b>sorting</b> and (next chapter) <b>grouping</b>. Functions come in two kinds:</p>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Scalar (row by row)">
+    <p>Work on <b>each row's value</b> and return one value per row.</p>
+<pre data-run="bollywood"><code class="lang-sql">-- ABS: drop the minus sign (profit of a flop becomes positive)
+SELECT title, worldwide - budget AS profit, ABS(worldwide - budget) AS abs_profit
+FROM movies;
+
+-- ROUND: runtime in hours, rounded (optionally to N decimals)
+SELECT title, runtime / 60 AS hours,
+       ROUND(runtime / 60) AS rounded,
+       ROUND(runtime / 60, 1) AS one_decimal
+FROM movies;
+
+-- CEIL rounds up, FLOOR rounds down
+SELECT title, CEIL(runtime / 60) AS up, FLOOR(runtime / 60) AS down FROM movies;</code></pre>
+<pre data-run="bollywood"><code class="lang-sql">-- text functions
+SELECT UPPER(title), LOWER(title) FROM movies;
+
+SELECT CONCAT(title, ' - ', actor) AS movie_with_star FROM movies;
+
+SELECT title, LENGTH(title) AS chars FROM movies;
+
+-- SUBSTRING(text, start, how_many): positions start at 1, not 0!
+SELECT title, SUBSTRING(title, 1, 5) AS first5, SUBSTRING(title, 3, 5) AS from3 FROM movies;</code></pre>
+  </div>
+  <div class="tab-panel" data-tab="Aggregate (whole column)">
+    <p>Collapse <b>many rows into one value</b>.</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT MAX(budget) FROM movies;          -- costliest budget
+SELECT MIN(india_gross) FROM movies;     -- lowest India collection
+SELECT SUM(india_gross) FROM movies;     -- everything earned in India
+SELECT AVG(india_gross) FROM movies;     -- average per movie
+SELECT COUNT(*) FROM movies;             -- number of rows
+SELECT COUNT(DISTINCT actor) FROM movies;  -- number of different actors</code></pre>
+    <p><b>COUNT vs COUNT DISTINCT:</b> for the list 1, 2, 3, 4, 2, 1, <code>COUNT</code> = 6 but <code>COUNT(DISTINCT …)</code> = 4.</p>
+  </div>
+</div>
+<div class="callout warn"><span class="t">Why MAX(budget) can't tell you the movie's name</span>
+<p><code>SELECT title, MAX(budget) FROM movies</code> looks tempting, but an aggregate collapses the whole table into one row, so which <code>title</code> should appear? MySQL either errors or returns an arbitrary title. To get the <em>name</em> of the costliest movie you need a <b>subquery</b> (<a href="12-subqueries.html">Chapter 12</a>) or <code>ORDER BY … LIMIT 1</code>. Similarly, "how many movies did each actor do?" needs <b>GROUP BY</b> (<a href="09-group-by.html">next chapter</a>).</p></div>
+
+<h2 id="orderby">ORDER BY and LIMIT</h2>
+<p>Profit = worldwide − budget. Most profitable first:</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT title, worldwide - budget AS profit
+FROM movies
+ORDER BY profit DESC;       -- ASC is the default
+
+-- just the top 5
+SELECT title, worldwide - budget AS profit
+FROM movies
+ORDER BY profit DESC
+LIMIT 5;
+
+-- the 5 biggest flops
+SELECT title, worldwide - budget AS profit
+FROM movies
+ORDER BY profit
+LIMIT 5;</code></pre>
+<p>Sorting on <b>several columns</b>: the first column decides, ties are broken by the next.</p>
+<pre data-run="bollywood"><code class="lang-sql">-- genres A→Z, and inside each genre titles Z→A
+SELECT genre, title FROM movies
+ORDER BY genre, title DESC;</code></pre>
+<p class="legend">Notice that <code>ORDER BY profit</code> may use the alias from SELECT. That works because ORDER BY runs <em>after</em> SELECT (see the execution-order diagram). <code>WHERE profit &gt; 0</code> would not.</p>
+
+<h2 id="sql-lab">SQL lab</h2>
+<p>All four datasets are loaded: <code>train</code> (Titanic), <code>movies</code> (Bollywood), <code>students</code>, <code>passengers</code>. Write anything; <b>Reset</b> restores the original data.</p>
+<div class="widget playground" id="lab" data-setup-src="data/titanic.sql data/bollywood.sql data/college.sql" data-mysql>
+  <div class="w-title">DML lab</div>
+  <textarea spellcheck="false">-- Which 1st-class passengers survived? Show name and fare, highest fare first.
+SELECT name, fare FROM train
+WHERE pclass = 1 AND survived = 1
+ORDER BY fare DESC;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button><button class="btn small" data-reset-db>Reset data</button><span style="font-size:12.5px;color:var(--muted)"><span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Enter</span></span></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol" style="border:1px solid var(--rule);border-radius:10px;padding:8px 14px;margin:10px 0 20px"><summary style="cursor:pointer;font-family:var(--sans);font-weight:600;color:var(--accent)">Exercise ideas (try before peeking at the hints)</summary>
+<ol style="font-size:16px">
+  <li>How many passengers embarked at Southampton? <small>(<code>COUNT(*)</code> + <code>WHERE embarked = 'S'</code>)</small></li>
+  <li>Names of female passengers in 3rd class who survived.</li>
+  <li>Average fare paid in each class: do it three times with WHERE for now (GROUP BY makes it one query next chapter).</li>
+  <li>Movies released after 2015 with a budget above ₹100 crore. <small>(dates compare as text: <code>release_date &gt; '2015-12-31'</code>)</small></li>
+  <li>The three longest movies, with runtime in hours to one decimal.</li>
+</ol></details>
+
+<h2 id="mcq">Check yourself</h2>
+<div class="quiz" data-answer="2">
+  <p class="q">Which query returns every unique (sex, pclass) combination?</p>
+  <div class="opts"><button class="opt"><code>SELECT DISTINCT sex FROM train</code></button><button class="opt"><code>SELECT sex, DISTINCT pclass FROM train</code></button><button class="opt"><code>SELECT DISTINCT sex, pclass FROM train</code></button><button class="opt"><code>SELECT UNIQUE(sex, pclass) FROM train</code></button></div>
+  <p class="why"><code>DISTINCT</code> applies to the whole selected row, so it removes duplicate combinations.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q"><code>WHERE age BETWEEN 10 AND 20</code> includes passengers aged exactly 10 and 20?</p>
+  <div class="opts"><button class="opt">Yes, both ends are included</button><button class="opt">Only 10</button><button class="opt">Only 20</button><button class="opt">Neither</button></div>
+  <p class="why">BETWEEN is inclusive: <code>age &gt;= 10 AND age &lt;= 20</code>.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q"><code>SUBSTRING('Agneepath', 3, 4)</code> returns…</p>
+  <div class="opts"><button class="opt"><code>'neep'</code> from position 2</button><button class="opt"><code>'Agne'</code></button><button class="opt"><code>'path'</code></button><button class="opt"><code>'neep'</code></button></div>
+  <p class="why">Positions start at <b>1</b>: A(1) g(2) <b>n</b>(3)… so 4 characters from position 3 = "neep".</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">A column holds 5, 5, 8, NULL. What do <code>COUNT(*)</code>, <code>COUNT(col)</code> and <code>COUNT(DISTINCT col)</code> return?</p>
+  <div class="opts"><button class="opt">4, 4, 3</button><button class="opt">4, 3, 2</button><button class="opt">3, 3, 2</button><button class="opt">4, 3, 3</button></div>
+  <p class="why"><code>COUNT(*)</code> counts rows (4); <code>COUNT(col)</code> skips NULLs (3); DISTINCT also merges the two 5s (2).</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">Which statement removes only the Yahoo users from <code>passengers</code>?</p>
+  <div class="opts"><button class="opt"><code>TRUNCATE TABLE passengers WHERE email LIKE '%yahoo%'</code></button><button class="opt"><code>DROP FROM passengers WHERE email LIKE '%yahoo%'</code></button><button class="opt"><code>DELETE FROM passengers WHERE email LIKE '%yahoo%'</code></button><button class="opt"><code>DELETE email FROM passengers LIKE '%yahoo%'</code></button></div>
+  <p class="why">Only <code>DELETE</code> accepts a <code>WHERE</code>; TRUNCATE always empties the whole table.</p>
+</div>
+
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="1">
+  <p class="q">Why does <code>SELECT title, worldwide - budget AS profit FROM movies WHERE profit &gt; 0</code> fail, while <code>… ORDER BY profit</code> works?</p>
+  <div class="opts"><button class="opt">WHERE can't do arithmetic</button><button class="opt">WHERE runs before SELECT, so the alias <code>profit</code> doesn't exist yet; ORDER BY runs after SELECT</button><button class="opt">Aliases are only allowed with GROUP BY</button><button class="opt">ORDER BY ignores aliases</button></div>
+  <p class="why">Repeat the expression in WHERE (<code>WHERE worldwide - budget &gt; 0</code>) or use a subquery.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">Why is <code>SELECT *</code> discouraged in production code, even though it's handy for exploring?</p>
+  <div class="opts"><button class="opt">It's slower to type</button><button class="opt">It returns rows in random order</button><button class="opt">It can't be used with WHERE</button><button class="opt">It fetches columns you don't need (more data over the network) and breaks silently when columns are added or reordered</button></div>
+  <p class="why">Name the columns you need.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q">You want passengers whose age is NOT between 10 and 20, including those with unknown age. Which works?</p>
+  <div class="opts"><button class="opt"><code>WHERE age NOT BETWEEN 10 AND 20 OR age IS NULL</code></button><button class="opt"><code>WHERE age NOT BETWEEN 10 AND 20</code></button><button class="opt"><code>WHERE age != NULL</code></button><button class="opt"><code>WHERE NOT age</code></button></div>
+  <p class="why">Comparisons with NULL are "unknown", never true, so NULL rows must be added explicitly.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">Without an ORDER BY, is <code>SELECT title FROM movies LIMIT 5</code> guaranteed to return the same 5 rows every time?</p>
+  <div class="opts"><button class="opt">Yes, insertion order</button><button class="opt">Yes, alphabetical</button><button class="opt">No; without ORDER BY the row order is not guaranteed, so "first 5" is arbitrary</button><button class="opt">It's an error</button></div>
+  <p class="why">Tables are sets; only ORDER BY defines an order. Always pair LIMIT with ORDER BY when "top" matters.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Why doesn't <code>WHERE genre IN ('Act%', 'Dra%')</code> find Action and Drama movies?</p>
+  <div class="opts"><button class="opt">IN is case-sensitive</button><button class="opt">IN compares for exact equality; wildcards only work with LIKE</button><button class="opt">The list needs three values</button><button class="opt">% must be escaped</button></div>
+  <p class="why">Use <code>genre LIKE 'Act%' OR genre LIKE 'Dra%'</code>.</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js?v=4"></script>
+</body>
+</html>

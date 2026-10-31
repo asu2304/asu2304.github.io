@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>9 · GROUP BY · SQL for Data Science</title>
+<meta name="description" content="Chapter 9 notes: GROUP BY with aggregates, grouping on several columns, HAVING vs WHERE, clause order, and the class MCQs, with runnable Bollywood examples.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css?v=4">
+<style>
+.sac { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.sac .stage { border: 1px solid var(--rule); border-radius: 10px; padding: 8px; background: var(--bg); min-height: 120px; opacity: .35; transition: opacity .3s; }
+.sac .stage.on { opacity: 1; }
+.sac h5 { margin: 0 0 6px; font: 700 12px var(--sans); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.sac .row { font: 12.5px var(--mono); padding: 3px 6px; border-radius: 5px; margin: 2px 0; }
+.sac .grp { border-radius: 8px; padding: 4px; margin-bottom: 6px; }
+.g0 { background: var(--accent-soft); } .g1 { background: var(--ok-soft); } .g2 { background: var(--sql-soft); } .g3 { background: var(--purple-soft); }
+@media (max-width: 700px) { .sac { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body class="sql-page" data-chapter="9">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Chapter 9</p>
+<div id="credit"></div>
+<p class="kicker">Chapter 9</p>
+<h1>GROUP BY: answering "for each…" questions</h1>
+<div class="chips"><span class="chip">4:08:00 → 4:42:00</span><span class="chip">Split → apply → combine</span><span class="chip">HAVING</span><span class="chip">Very frequently asked</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<p class="lede">Grouping is where SQL becomes really powerful. Any question that says <strong>"for each actor…", "per genre…", "which director…"</strong> is a GROUP BY question. Nitish stresses it because a lot of interview questions are built on it.</p>
+
+<h2 id="idea">The idea: split, apply, combine</h2>
+<p>Question: <em>who are the top 5 actors by number of movies?</em> By hand you would:</p>
+<ol>
+  <li><b>Split</b> the table into one small table per actor (all of Akshay's rows, all of Aamir's rows…).</li>
+  <li><b>Apply</b> an aggregate to each small table: count its rows, i.e. how many movies.</li>
+  <li><b>Combine</b> the results into one row per actor, then sort descending and keep 5.</li>
+</ol>
+<p>That's exactly what <code>GROUP BY</code> does: it creates groups on the basis of a column, and aggregate functions then run <em>once per group</em>.</p>
+
+<div class="widget" id="sac">
+  <div class="w-title">Watch GROUP BY work</div>
+  <div class="w-help">Eight movies, grouped by <code>actor</code>, then <code>COUNT(*)</code> and <code>SUM(profit)</code> per group.</div>
+  <div class="pill-row"><button class="btn primary small" id="sac-next">Next step →</button><button class="btn small" id="sac-reset">Reset</button><span id="sac-label" style="font-size:13px;color:var(--muted);align-self:center"></span></div>
+  <div class="sac">
+    <div class="stage on" id="st0"><h5>1 · Table</h5></div>
+    <div class="stage" id="st1"><h5>2 · Split into groups</h5></div>
+    <div class="stage" id="st2"><h5>3 · Apply + combine</h5></div>
+  </div>
+</div>
+
+<h2 id="basic">Your first GROUP BY</h2>
+<pre data-run="bollywood"><code class="lang-sql">-- movies per actor
+SELECT actor, COUNT(*) AS num_movies
+FROM movies
+GROUP BY actor;</code></pre>
+<p>Now sort and keep the top 5. That's the full answer:</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT actor, COUNT(*) AS num_movies
+FROM movies
+GROUP BY actor
+ORDER BY num_movies DESC
+LIMIT 5;</code></pre>
+<p class="legend">In the class's full dataset the answer was Mithun Chakraborty, then Akshay Kumar, Amitabh Bachchan, Ajay Devgn and Sanjay Dutt.</p>
+
+<div class="callout warn"><span class="t">The golden rule of GROUP BY</span>
+<p>After grouping, every column in <code>SELECT</code> must be either a <b>grouping column</b> (here <code>actor</code>) or <b>inside an aggregate</b> (<code>COUNT</code>, <code>SUM</code>, <code>AVG</code>, <code>MIN</code>, <code>MAX</code>). <code>SELECT actor, title … GROUP BY actor</code> makes no sense: one actor has many titles, so which one should be shown? (Strict MySQL rejects it with <em>ONLY_FULL_GROUP_BY</em>.)</p></div>
+
+<h2 id="questions">The questions from class</h2>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Most profitable genre">
+    <p>A rich new producer wants to invest in Bollywood: <em>which genre earns the most total profit?</em></p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT genre, SUM(worldwide - budget) AS total_profit
+FROM movies
+GROUP BY genre
+ORDER BY total_profit DESC
+LIMIT 5;</code></pre>
+    <p>In class: Drama first, then Action, then Masala. Animation was at the bottom; it rarely does well in India.</p>
+  </div>
+  <div class="tab-panel" data-tab="Best director (average)">
+    <p><em>Whose movies make the most profit on average?</em> Use <code>AVG</code>, not <code>SUM</code>, so directors with many films don't win just by volume.</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT director, AVG(worldwide - budget) AS avg_profit
+FROM movies
+GROUP BY director
+ORDER BY avg_profit DESC
+LIMIT 5;</code></pre>
+    <p>Class result: S. S. Rajamouli, Nitesh Tiwari, Rajkumar Hirani, Ali Abbas Zafar…</p>
+  </div>
+  <div class="tab-panel" data-tab="Top 10 actors by profit">
+<pre data-run="bollywood"><code class="lang-sql">SELECT actor, SUM(worldwide - budget) AS total_profit
+FROM movies
+GROUP BY actor
+ORDER BY total_profit DESC
+LIMIT 10;</code></pre>
+    <p>Nitish's observation: Prabhas jumps into the top 10 with very few films (Baahubali). Older stars like Amitabh Bachchan rank lower because the numbers aren't adjusted for inflation.</p>
+  </div>
+  <div class="tab-panel" data-tab="Costliest movies (a trick)">
+    <p>A student asked how to get the <em>name</em> of the highest-budget movie. Nitish showed a roundabout trick: group by <code>title</code> (so every movie is its own group), then sort.</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT title, budget
+FROM movies
+GROUP BY title
+ORDER BY budget DESC
+LIMIT 5;</code></pre>
+    <p>It works, but the GROUP BY adds nothing here; plain <code>ORDER BY budget DESC LIMIT 5</code> gives the same answer. The proper "name of the max" tool is a <b>subquery</b> (<a href="12-subqueries.html">Chapter 12</a>).</p>
+  </div>
+</div>
+
+<h2 id="multi">Grouping by several columns</h2>
+<p><em>Which actor + director combination has made the most profit?</em> Now each group is one <b>combination</b> of the two columns:</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT actor, director, SUM(worldwide - budget) AS total_profit
+FROM movies
+GROUP BY actor, director
+ORDER BY total_profit DESC
+LIMIT 5;</code></pre>
+<p>Class result: Salman Khan + Ali Abbas Zafar (Sultan, Tiger Zinda Hai), Salman + Kabir Khan, Aamir + Rajkumar Hirani (3 Idiots, PK), Prabhas + Rajamouli, Aamir + Nitesh Tiwari. Swap <code>director</code> for <code>genre</code> to find which actor earns most in which genre:</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT actor, genre, SUM(worldwide - budget) AS total_profit
+FROM movies
+GROUP BY actor, genre
+ORDER BY total_profit DESC
+LIMIT 5;</code></pre>
+
+<h2 id="having">HAVING: filtering groups</h2>
+<p><code>WHERE</code> filters <b>rows</b> before grouping. To filter on an <b>aggregate</b> (after grouping) you need <code>HAVING</code>. Question: <em>which actors' movies open, on average, on more than 3,500 screens?</em> (More opening screens usually means a bigger star.) There's no "top N" here, so LIMIT won't help; it's a condition on the group's average.</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT actor, AVG(screens) AS avg_screens
+FROM movies
+GROUP BY actor
+HAVING avg_screens > 3500
+ORDER BY avg_screens DESC;</code></pre>
+<p class="legend">Writing each clause on its own line, as above, is just for readability. Many people prefer it.</p>
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>WHERE</th><th>HAVING</th></tr></thead>
+<tbody>
+<tr><td>Filters</td><td>individual rows</td><td>whole groups</td></tr>
+<tr><td>Runs</td><td>before GROUP BY</td><td>after GROUP BY</td></tr>
+<tr><td>Can use aggregates?</td><td>No</td><td>Yes (<code>HAVING COUNT(*) &gt; 2</code>)</td></tr>
+</tbody></table></div>
+<p>Both together: among movies released after 2012 (<code>WHERE</code>), which genres have more than 2 movies (<code>HAVING</code>)?</p>
+<pre data-run="bollywood"><code class="lang-sql">SELECT genre, COUNT(*) AS n
+FROM movies
+WHERE release_date > '2012-12-31'
+GROUP BY genre
+HAVING COUNT(*) > 2;</code></pre>
+<div class="callout"><span class="t">A student asked: can't I use CHECK for this?</span>
+<p>No. <code>CHECK</code> is a <em>constraint</em> applied when creating a table (<a href="07-ddl-queries.html#check">Chapter 7</a>); it's not a query clause. Filtering groups is HAVING's job.</p></div>
+
+<h2 id="order">Clause order: memorise this</h2>
+<div class="callout sql"><span class="t">Writing order</span>
+<p style="font-family:var(--mono);font-size:15px;margin:0"><b>SELECT</b> → <b>FROM</b> → <b>JOIN</b> → <b>WHERE</b> → <b>GROUP BY</b> → <b>HAVING</b> → <b>ORDER BY</b> → <b>LIMIT</b></p></div>
+<p>Writing them in any other order is a syntax error (e.g. <code>WHERE</code> after <code>ORDER BY</code>). The logical <em>execution</em> order is different (FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT; see <a href="08-dml-queries.html#order">Chapter 8</a>).</p>
+
+<h2 id="sql-lab">SQL lab</h2>
+<div class="widget playground" id="lab" data-setup-src="data/bollywood.sql data/titanic.sql" data-mysql>
+  <div class="w-title">GROUP BY lab · tables: movies, train</div>
+  <textarea spellcheck="false">-- Titanic: survival rate per class (survived is 1/0, so AVG = fraction that survived)
+SELECT pclass, COUNT(*) AS passengers, ROUND(AVG(survived), 2) AS survival_rate
+FROM train
+GROUP BY pclass
+ORDER BY pclass;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button><button class="btn small" data-reset-db>Reset data</button></div>
+  <div class="pg-out"></div>
+</div>
+<details style="border:1px solid var(--rule);border-radius:10px;padding:8px 14px;margin:10px 0 20px"><summary style="cursor:pointer;font-family:var(--sans);font-weight:600;color:var(--accent)">Exercise ideas</summary>
+<ol style="font-size:16px">
+  <li>Survival rate by <code>sex</code>, then by <code>sex, pclass</code> together.</li>
+  <li>Average fare per port of embarkation, highest first.</li>
+  <li>Directors who made more than one movie in the dataset (HAVING).</li>
+  <li>For each genre: number of movies, total budget, and average runtime in hours.</li>
+</ol></details>
+
+<h2 id="mcq">MCQs from the class</h2>
+<div class="quiz" data-answer="2">
+  <p class="q">Which aggregate functions can be applied to <b>both</b> numeric and character columns?</p>
+  <div class="opts"><button class="opt">AVG and SUM</button><button class="opt">Only COUNT</button><button class="opt">COUNT, MIN and MAX</button><button class="opt">All of them</button></div>
+  <p class="why"><code>MIN(title)</code> is the alphabetically first title, <code>MAX(title)</code> the last. AVG and SUM need numbers.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Which statement about ORDER BY is <b>true</b>?</p>
+  <div class="opts"><button class="opt">It only works on numeric columns</button><button class="opt">It works on date columns, and ascending is the default</button><button class="opt">WHERE can be written after ORDER BY</button><button class="opt">It requires GROUP BY</button></div>
+  <p class="why">ORDER BY sorts numbers, text and dates; ASC is the default; WHERE must come before it.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q"><code>SELECT supplier, item, COUNT(*) FROM orders GROUP BY supplier, item</code>. The table has rows (A, pen), (A, pen), (A, ink), (B, pen), (C, pad). How many rows come back?</p>
+  <div class="opts"><button class="opt">5</button><button class="opt">3</button><button class="opt">2</button><button class="opt">4</button></div>
+  <p class="why">One row per distinct <b>combination</b>: (A,pen), (A,ink), (B,pen), (C,pad) = 4.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q">Display each department with its average salary, highest average first.</p>
+  <div class="opts"><button class="opt"><code>SELECT dept, AVG(salary) FROM emp GROUP BY dept ORDER BY AVG(salary) DESC</code></button><button class="opt"><code>SELECT dept, AVG(salary) FROM emp ORDER BY AVG(salary) DESC</code></button><button class="opt"><code>SELECT dept, salary FROM emp GROUP BY dept ORDER BY salary DESC</code></button><button class="opt"><code>SELECT dept, AVG(salary) FROM emp GROUP BY salary ORDER BY dept</code></button></div>
+  <p class="why">Group by department, average the salaries, sort that average descending.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">Show each department's minimum and maximum salary, but only for departments whose <b>minimum salary is at least 5000</b> and maximum salary at most 15000. Which clause holds the condition?</p>
+  <div class="opts"><button class="opt">WHERE MIN(salary) &gt;= 5000</button><button class="opt">ORDER BY</button><button class="opt">HAVING MIN(salary) &gt;= 5000 AND MAX(salary) &lt;= 15000</button><button class="opt">LIMIT</button></div>
+  <p class="why">Conditions on aggregates of a group go in <b>HAVING</b>; WHERE can't see aggregates.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Which is the correct order of clauses?</p>
+  <div class="opts"><button class="opt">SELECT, WHERE, FROM, GROUP BY, HAVING</button><button class="opt">SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY</button><button class="opt">SELECT, FROM, GROUP BY, WHERE, ORDER BY</button><button class="opt">FROM, SELECT, HAVING, GROUP BY</button></div>
+  <p class="why">SELECT → FROM → (JOIN) → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT.</p>
+</div>
+
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="1">
+  <p class="q">Why can't you write <code>WHERE COUNT(*) &gt; 2</code>?</p>
+  <div class="opts"><button class="opt">COUNT needs a column name</button><button class="opt">WHERE runs on individual rows <em>before</em> groups exist, so there is nothing to count yet</button><button class="opt">COUNT only works in ORDER BY</button><button class="opt">It's allowed in MySQL 8</button></div>
+  <p class="why">Group-level conditions belong in HAVING.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">When both work, why is filtering with WHERE usually better than HAVING?</p>
+  <div class="opts"><button class="opt">HAVING is deprecated</button><button class="opt">WHERE supports aggregates</button><button class="opt">They're always identical in speed</button><button class="opt">WHERE removes rows <em>before</em> grouping, so less data gets grouped and aggregated</button></div>
+  <p class="why">E.g. <code>WHERE genre = 'Drama'</code> beats <code>HAVING genre = 'Drama'</code>.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q">Top directors by <b>average</b> profit can be misleading. Why, and what's a fix?</p>
+  <div class="opts"><button class="opt">A director with one lucky hit tops the list; require a minimum number of movies, e.g. <code>HAVING COUNT(*) &gt;= 3</code></button><button class="opt">AVG ignores profits above 100</button><button class="opt">AVG counts NULLs as zero</button><button class="opt">Nothing; average is always fair</button></div>
+  <p class="why">Small groups give noisy averages: a classic data-science pitfall.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q"><code>SELECT pclass, AVG(survived) FROM train GROUP BY pclass</code>. What does the average of a 0/1 column mean?</p>
+  <div class="opts"><button class="opt">The number of survivors</button><button class="opt">Nothing meaningful</button><button class="opt">The fraction (rate) of passengers who survived in each class</button><button class="opt">The median survival</button></div>
+  <p class="why">The mean of a binary indicator is a proportion, a handy trick in analytics.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">How do <code>COUNT(*)</code> and <code>COUNT(age)</code> differ inside a group?</p>
+  <div class="opts"><button class="opt">They never differ</button><button class="opt">COUNT(*) counts all rows; COUNT(age) skips rows where age is NULL</button><button class="opt">COUNT(age) counts distinct ages</button><button class="opt">COUNT(*) skips NULLs</button></div>
+  <p class="why">All aggregates except COUNT(*) ignore NULLs.</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
+<script src="notes.js?v=4"></script>
+<script>
+(function () {
+  var rows = [["Salman Khan", "Sultan", 524], ["Aamir Khan", "Dangal", 1954], ["Ranbir Kapoor", "Sanju", 486], ["Salman Khan", "Tiger Zinda Hai", 355],
+              ["Aamir Khan", "PK", 685], ["Ranbir Kapoor", "Bombay Velvet", -77], ["Salman Khan", "Ek Tha Tiger", 259], ["Ajay Devgn", "Singham", 101]];
+  var actors = []; rows.forEach(function (r) { if (actors.indexOf(r[0]) < 0) actors.push(r[0]); });
+  function g(a) { return "g" + actors.indexOf(a); }
+  var st = [document.getElementById("st0"), document.getElementById("st1"), document.getElementById("st2")];
+  var label = document.getElementById("sac-label"), step = 0;
+  st[0].innerHTML += rows.map(function (r) { return '<div class="row ' + g(r[0]) + '">' + r[0] + " · " + r[1] + " · " + r[2] + "</div>"; }).join("");
+  st[1].innerHTML += actors.map(function (a) {
+    return '<div class="grp ' + g(a) + '">' + rows.filter(function (r) { return r[0] === a; }).map(function (r) { return '<div class="row">' + r[1] + " · " + r[2] + "</div>"; }).join("") + "</div>";
+  }).join("");
+  st[2].innerHTML += '<div class="row" style="font-weight:700">actor · COUNT(*) · SUM(profit)</div>' + actors.map(function (a) {
+    var rs = rows.filter(function (r) { return r[0] === a; });
+    return '<div class="row ' + g(a) + '">' + a + " · " + rs.length + " · " + rs.reduce(function (s, r) { return s + r[2]; }, 0) + "</div>";
+  }).join("");
+  var labels = ["Rows are colour-coded by actor.", "GROUP BY actor: one small table per actor.", "COUNT(*) and SUM(profit) run once per group → one row per actor."];
+  function paint() { st.forEach(function (s, i) { s.classList.toggle("on", i <= step); }); label.textContent = labels[step]; }
+  document.getElementById("sac-next").addEventListener("click", function () { step = Math.min(2, step + 1); paint(); });
+  document.getElementById("sac-reset").addEventListener("click", function () { step = 0; paint(); });
+  paint();
+})();
+</script>
+</body>
+</html>

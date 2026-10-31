@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css">
+<link rel="stylesheet" href="sql.css?v=2">
 </head>
 <body class="sql-page" data-chapter="0">
 <header class="site-header">
@@ -27,23 +27,27 @@
 <main class="content">
 <div id="credit"></div>
 <h1>SQL for Data Science (Notes)</h1>
-<p class="lede">Chapter-by-chapter notes on a six-hour MySQL course: why databases exist, how they're designed (keys, integrity, ER diagrams), and how to write SQL. Every chapter has quizzes, and several have a live SQL engine you can run in the browser.</p>
+<p class="lede">Chapter-by-chapter notes on a six-hour MySQL course: why databases exist, how they're designed (keys, integrity, ER diagrams), and how to write SQL. Every chapter ends with factual and conceptual quizzes, and several have a live SQL engine you can run in the browser.</p>
 <p class="legend"><strong>Source:</strong> <a href="https://www.youtube.com/watch?v=nopIGY1zJE0" target="_blank" rel="noopener">Complete SQL Course For Data Science | SQL For Data Science in 6 Hrs</a> by <strong>Nitish Singh</strong>, <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. These are my personal, unofficial study notes; the teaching is his, so watch the video for the definitive treatment. I'm adding chapters as I go through the course.</p>
 
 <h2 class="section-title">Chapters</h2>
 <ul class="timeline" id="timeline"></ul>
 
+<h2 class="section-title">Practice sessions</h2>
+<p class="legend">Interview-style problems from CampusX's live classes, solved with runnable editors. Do these after the chapters.</p>
+<ul class="timeline" id="practice"></ul>
+
 <h2 class="section-title">How to use these notes</h2>
 <div class="tiles">
   <div class="tile"><h4>Watch, then read</h4><p>Each chapter links to its exact timestamp in the video.</p></div>
   <div class="tile"><h4>Do the quizzes</h4><p>Most MCQs are the ones solved in class.</p></div>
-  <div class="tile"><h4>Run the SQL</h4><p>Chapters 2, 5 and 7 include a live SQL engine (SQLite in your browser).</p></div>
+  <div class="tile"><h4>Run the SQL</h4><p>Chapters 2, 5, 7 and the practice sessions include a live SQL engine (SQLite in your browser).</p></div>
   <div class="tile"><h4>Track progress</h4><p>Tick "mark as done" at the end of a chapter; it's saved in your browser.</p></div>
 </div>
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js"></script>
+<script src="notes.js?v=2"></script>
 <script>
 (function () {
   var blurbs = {
@@ -65,6 +69,10 @@
     html += '<li class="' + cls + '">' + (c.file ? '<a class="row" href="' + c.file + '">' + inner + "</a>" : '<a class="row" href="' + link + '" target="_blank" rel="noopener">' + inner + "</a>") + "</li>";
   });
   document.getElementById("timeline").innerHTML = html;
+  var pblurbs = { 1: "Insert many rows, add/drop columns, 2nd highest, max without ORDER BY, self join, wildcards, CASE, top per category, duplicates, 3-table joins." };
+  document.getElementById("practice").innerHTML = window.SQL_PRACTICE.map(function (p) {
+    return '<li class="' + (done[p.key] ? "done" : "") + '"><a class="row" href="' + p.file + '"><span class="ts">Live ' + p.n + "</span><b>P" + p.n + ". " + p.title + "</b><p>" + pblurbs[p.n] + "</p></a></li>";
+  }).join("");
 })();
 </script>
 </body>

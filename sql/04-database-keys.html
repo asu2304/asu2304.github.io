@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css">
+<link rel="stylesheet" href="sql.css?v=2">
 </head>
 <body class="sql-page" data-chapter="4">
 <header class="site-header">
@@ -228,13 +228,40 @@ enrollments(student_id → students, course_id → courses, enrolled_on)</code><
   <p class="why">The FK goes on the <b>many</b> side: each student row stores its single <code>branch_id</code>.</p>
 </div>
 
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="1">
+  <p class="q">Is every candidate key a super key? Is every super key a candidate key?</p>
+  <div class="opts"><button class="opt">Yes; yes</button><button class="opt">Yes; no</button><button class="opt">No; yes</button><button class="opt">No; no</button></div>
+  <p class="why">Candidate keys are the <i>minimal</i> super keys, so they're a subset.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Why might a company choose an auto-increment <code>emp_id</code> over <code>email</code> as the primary key, even though email is unique?</p>
+  <div class="opts"><button class="opt">Emails can't be indexed</button><button class="opt">A primary key should be stable and compact; emails change and are long strings that get copied into every foreign key</button><button class="opt">Email can't be UNIQUE</button><button class="opt">MySQL forbids text primary keys</button></div>
+  <p class="why">Stable, short, meaningless ids make the best primary keys (surrogate keys).</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">A table has candidate keys {roll_no} and {aadhaar}. You pick roll_no as primary key. What is aadhaar now?</p>
+  <div class="opts"><button class="opt">A foreign key</button><button class="opt">A composite key</button><button class="opt">An alternate key</button><button class="opt">A super key only</button></div>
+  <p class="why">Candidate keys not chosen are alternate keys (and you'd usually still mark them UNIQUE).</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Can a foreign key column contain duplicate values?</p>
+  <div class="opts"><button class="opt">No, it must be unique like a primary key</button><button class="opt">Yes; many child rows can point to the same parent (e.g. many students in one branch)</button><button class="opt">Only if it is NULL</button><button class="opt">Only in a composite key</button></div>
+  <p class="why">Uniqueness is required on the referenced primary key, not on the foreign key.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">In a 1:1 relationship between <code>person</code> and <code>passport</code>, where should the foreign key go?</p>
+  <div class="opts"><button class="opt">It must go in a third junction table</button><button class="opt">In either table, usually the optional side (passport), with a UNIQUE constraint on it</button><button class="opt">In both tables</button><button class="opt">Nowhere; 1:1 needs no key</button></div>
+  <p class="why">Putting it on the optional side avoids NULLs; UNIQUE keeps it truly one-to-one.</p>
+</div>
 <p class="quiz-score" id="quiz-score"></p>
 </article>
 <div id="pager"></div>
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js"></script>
+<script src="notes.js?v=2"></script>
 <script>
 (function () {
   var cols = ["emp_id", "aadhar", "email", "name", "dob", "salary"];

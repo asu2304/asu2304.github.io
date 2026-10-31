@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css">
+<link rel="stylesheet" href="sql.css?v=2">
 <style>
 .cmd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0 24px; }
 .cmd { border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; background: var(--surface); font-family: var(--sans); }
@@ -205,6 +205,33 @@ SELECT * FROM users; -- comments can also follow code
   <div class="opts"><button class="opt"><code>=!</code></button><button class="opt"><code>==</code></button><button class="opt"><code>&lt;&gt;</code></button><button class="opt"><code>NOT=</code></button></div>
   <p class="why"><b>&lt;&gt;</b> is the standard; MySQL also accepts <code>!=</code>.</p>
 </div>
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="1">
+  <p class="q">You ran <code>DELETE FROM orders;</code> inside a transaction and haven't committed. Can you undo it?</p>
+  <div class="opts"><button class="opt">No, DELETE is permanent</button><button class="opt">Yes, with ROLLBACK</button><button class="opt">Only with REVOKE</button><button class="opt">Only by TRUNCATE</button></div>
+  <p class="why">DML changes inside an open transaction can be rolled back. (In MySQL, DDL like DROP/TRUNCATE auto-commits, so it can't be.)</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">Why is <code>DECIMAL</code> preferred over <code>FLOAT</code> for money?</p>
+  <div class="opts"><button class="opt">DECIMAL uses less space</button><button class="opt">FLOAT can't be negative</button><button class="opt">FLOAT is approximate binary, so 0.1 + 0.2 may not equal 0.3 exactly; DECIMAL stores exact digits</button><button class="opt">DECIMAL is faster for science</button></div>
+  <p class="why">Rounding errors are unacceptable in money.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">What does <code>WHERE dept = NULL</code> return?</p>
+  <div class="opts"><button class="opt">Rows whose dept is NULL</button><button class="opt">All rows</button><button class="opt">No rows, because comparing with NULL gives UNKNOWN; use <code>IS NULL</code></button><button class="opt">An error in every database</button></div>
+  <p class="why">NULL means "unknown", so <code>= NULL</code> is never true. Always use <code>IS NULL</code> / <code>IS NOT NULL</code>.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">A user should be able to read the <code>sales</code> table but not change it. Which command family handles that?</p>
+  <div class="opts"><button class="opt">DDL</button><button class="opt">DML</button><button class="opt">TCL</button><button class="opt">DCL</button></div>
+  <p class="why"><code>GRANT SELECT ON sales TO user;</code> is DCL.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q"><code>VARCHAR(255)</code> vs <code>CHAR(255)</code> for names: what's the practical difference?</p>
+  <div class="opts"><button class="opt">None</button><button class="opt">CHAR pads every value to 255 characters; VARCHAR stores only what's needed (plus a length byte)</button><button class="opt">VARCHAR can't hold spaces</button><button class="opt">CHAR is faster to type</button></div>
+  <p class="why">Use CHAR only for truly fixed-length codes.</p>
+</div>
 <p class="quiz-score" id="quiz-score"></p>
 
 </article>
@@ -212,7 +239,7 @@ SELECT * FROM users; -- comments can also follow code
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js"></script>
+<script src="notes.js?v=2"></script>
 <script>
 (function () {
   var Q = [

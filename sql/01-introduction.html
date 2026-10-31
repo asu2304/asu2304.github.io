@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css">
+<link rel="stylesheet" href="sql.css?v=2">
 </head>
 <body class="sql-page" data-chapter="1">
 <header class="site-header">
@@ -94,6 +94,18 @@
   <div class="opts"><button class="opt">PostgreSQL</button><button class="opt">MySQL</button><button class="opt">SQLite</button><button class="opt">MongoDB</button></div>
   <p class="why"><b>MySQL.</b> Every query in the course is written for MySQL (run through XAMPP and phpMyAdmin).</p>
 </div>
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="1">
+  <p class="q">Why does the course teach database theory (keys, ER diagrams, integrity) and not only SQL syntax?</p>
+  <div class="opts"><button class="opt">Theory is required to install MySQL</button><button class="opt">Good queries and good table designs depend on understanding how data should be structured; interviews ask it too</button><button class="opt">SQL syntax changes every year</button><button class="opt">Theory replaces the need to practise</button></div>
+  <p class="why">Syntax tells you <i>how</i> to ask; theory tells you <i>what</i> a correct design looks like. Both are tested.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">You know SELECT, joins and GROUP BY syntax well but have solved very few problems. According to the course's advice, what's the biggest gap?</p>
+  <div class="opts"><button class="opt">Learning a second database</button><button class="opt">Memorising every data type</button><button class="opt">Practice: solving many varied query problems</button><button class="opt">Reading the MySQL source code</button></div>
+  <p class="why">The course is the foundation; fluency comes from <b>practising</b> lots of problems afterwards.</p>
+</div>
 <p class="quiz-score" id="quiz-score"></p>
 
 </article>
@@ -101,6 +113,6 @@
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js"></script>
+<script src="notes.js?v=2"></script>
 </body>
 </html>

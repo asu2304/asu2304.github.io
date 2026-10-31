@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css">
+<link rel="stylesheet" href="sql.css?v=2">
 </head>
 <body class="sql-page" data-chapter="7">
 <header class="site-header">
@@ -478,6 +478,33 @@ SELECT * FROM students;</script>
   <div class="opts"><button class="opt"><code>ALTER TABLE t MODIFY CONSTRAINT …</code></button><button class="opt"><code>UPDATE CONSTRAINT …</code></button><button class="opt">You can't; recreate the whole table</button><button class="opt">Drop the constraint, then add a new one with the new condition</button></div>
   <p class="why">Constraints can't be edited in place: <b>drop and re-add</b>, which is easy when you named it.</p>
 </div>
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="1">
+  <p class="q">You need to remove all rows from a 50-million-row log table quickly and keep its structure. Which is the better choice and why?</p>
+  <div class="opts"><button class="opt">DELETE FROM logs, because it's DML</button><button class="opt">TRUNCATE TABLE logs, because it deallocates the data at once instead of deleting row by row (and resets AUTO_INCREMENT)</button><button class="opt">DROP TABLE logs</button><button class="opt">ALTER TABLE logs DROP COLUMN *</button></div>
+  <p class="why">TRUNCATE is fast but can't be filtered with WHERE, and in MySQL it can't be rolled back.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Is a column with a UNIQUE constraint allowed to hold several NULLs (in MySQL)?</p>
+  <div class="opts"><button class="opt">No, never</button><button class="opt">Yes; NULL means unknown, so NULLs are not considered equal to each other</button><button class="opt">Only one NULL</button><button class="opt">Only if it is also a primary key</button></div>
+  <p class="why">That's a key difference from a PRIMARY KEY, which forbids NULL entirely.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Which is the closest description of PRIMARY KEY?</p>
+  <div class="opts"><button class="opt">CHECK + DEFAULT</button><button class="opt">UNIQUE + NOT NULL (and only one per table)</button><button class="opt">FOREIGN KEY + UNIQUE</button><button class="opt">AUTO_INCREMENT + DEFAULT</button></div>
+  <p class="why">A table can have many UNIQUE columns but only one primary key.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q"><code>orders.cid</code> references <code>customers</code> with <code>ON DELETE SET NULL</code>, but <code>cid</code> is declared <code>NOT NULL</code>. What happens?</p>
+  <div class="opts"><button class="opt">It works fine</button><button class="opt">MySQL rejects the foreign-key definition (or the delete), because SET NULL can't put NULL in a NOT NULL column</button><button class="opt">Orders are deleted instead</button><button class="opt">cid becomes 0</button></div>
+  <p class="why">Referential actions must be compatible with the column's constraints.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Why should you name constraints (e.g. <code>CONSTRAINT users_email_unique UNIQUE (email)</code>)?</p>
+  <div class="opts"><button class="opt">Unnamed constraints aren't enforced</button><button class="opt">So you can refer to them later, to drop or replace them, and error messages tell you exactly which rule failed</button><button class="opt">It makes inserts faster</button><button class="opt">Names are required for CHECK</button></div>
+  <p class="why">Auto-generated names are hard to guess when you need to ALTER them.</p>
+</div>
 <p class="quiz-score" id="quiz-score"></p>
 
 <div class="callout"><span class="t">Next up in the video</span>
@@ -488,7 +515,7 @@ SELECT * FROM students;</script>
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js"></script>
+<script src="notes.js?v=2"></script>
 <script>
   (function () { var ta = document.querySelector(".playground textarea"); ta.value = document.getElementById("lab-1").textContent.replace(/^\n/, ""); })();
 </script>

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css">
+<link rel="stylesheet" href="sql.css?v=2">
 <style>
 .app-demo .forms { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .app-demo form { border: 1px solid var(--rule); border-radius: 10px; padding: 12px; background: var(--bg); }
@@ -312,6 +312,28 @@ DELETE FROM users WHERE user_id = 1;</code></pre>
   <div class="opts"><button class="opt">To speed up the connection</button><button class="opt">Because MySQL requires it</button><button class="opt">To encrypt the password</button><button class="opt">Connecting can fail (wrong password, missing database, server off), and we want a clear message instead of a crash</button></div>
   <p class="why">The class demonstrated several such failures live: a misspelled database name, a wrong password, and so on.</p>
 </div>
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="1">
+  <p class="q">Why does <code>DBHelper</code> connect once in its constructor instead of connecting inside every method?</p>
+  <div class="opts"><button class="opt">Python only allows one connection per program</button><button class="opt">Opening a connection is relatively expensive; reusing one is faster and simpler</button><button class="opt">MySQL forbids reconnecting</button><button class="opt">Methods can't call connect()</button></div>
+  <p class="why">Connecting involves network round trips and authentication. Create it once and reuse it (real apps use a <i>connection pool</i>).</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">What is the cursor's role, as opposed to the connection's?</p>
+  <div class="opts"><button class="opt">The cursor stores the password</button><button class="opt">The cursor is the session with the server; the connection runs queries</button><button class="opt">The connection is the link to the database; the cursor executes statements and walks through their results</button><button class="opt">They are the same object</button></div>
+  <p class="why">Connection = the pipe; cursor = what you send SQL through and read rows back from.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Why is keeping database code in <code>dbhelper.py</code>, separate from menu/UI code, a good idea?</p>
+  <div class="opts"><button class="opt">It makes Python run faster</button><button class="opt">You can change the database (or the UI) without rewriting the other part, and test each separately</button><button class="opt">MySQL requires two files</button><button class="opt">It hides the code from users</button></div>
+  <p class="why">Separation of concerns: the idea behind MVC.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">A user enters the password <code>' OR '1'='1</code> and gets logged in as someone else. Which part of the course's code made this possible?</p>
+  <div class="opts"><button class="opt">Using <code>fetchall()</code></button><button class="opt">Auto-increment ids</button><button class="opt">Building the SQL string with <code>.format()</code> from user input</button><button class="opt">Calling <code>commit()</code></button></div>
+  <p class="why">String-formatting user input into SQL allows <b>SQL injection</b>. Parameterised queries prevent it.</p>
+</div>
 <p class="quiz-score" id="quiz-score"></p>
 
 </article>
@@ -319,7 +341,7 @@ DELETE FROM users WHERE user_id = 1;</code></pre>
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js"></script>
+<script src="notes.js?v=2"></script>
 <script>
 (function () {
   var N = window.SQLNotes, db = null;

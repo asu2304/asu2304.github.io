@@ -19,4 +19,5 @@ Revision notes for Probability & Statistics, Linear Algebra, Machine Learning, S
   - Regression: [L27 Supervised learning](https://asu2304.github.io/machine-learning/L27-supervised-learning.html) to [L35 Cross-validation](https://asu2304.github.io/machine-learning/L35-cross-validation.html)
 - **[SQL for Data Science (source: Nitish Singh, CampusX)](https://asu2304.github.io/sql/)**: interactive notes on the [Complete SQL Course For Data Science](https://www.youtube.com/watch?v=nopIGY1zJE0) video, one page per chapter, with quizzes and an in-browser SQL lab.
   - [1 Introduction](https://asu2304.github.io/sql/01-introduction.html) to [7 DDL SQL Queries](https://asu2304.github.io/sql/07-ddl-queries.html); DML, GROUP BY, CASE, joins and subqueries coming next
+  - Practice: [P1 Top 10 most common SQL interview queries](https://asu2304.github.io/sql/practice-01-top-10-queries.html) (CampusX Live 1)
 - **[Deep Learning Revision (source: Mitesh Khapra, CS6910)](https://asu2304.github.io/deep-learning/)**: comprehensive revision notes from the lectures of [CS6910](https://www.cse.iitm.ac.in/~miteshk/CS6910.html). Coming soon.

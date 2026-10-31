@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css">
+<link rel="stylesheet" href="sql.css?v=2">
 <style>
 .acct { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
 .acct div { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; background: var(--bg); text-align: center; }
@@ -262,13 +262,40 @@
   <div class="verdict" id="ri-out">Both tables agree.</div>
 </div>
 
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="2">
+  <p class="q">Your Android app and website show different profile names for the same user. Which property of good data storage is violated?</p>
+  <div class="opts"><button class="opt">Concurrency</button><button class="opt">Security</button><button class="opt">Independence from the application (one shared, consistent source of data)</button><button class="opt">Availability</button></div>
+  <p class="why">All platforms should read the same data, so they never disagree.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Why is a database better than many copies of a text file when thousands of users write at once?</p>
+  <div class="opts"><button class="opt">Files can't store numbers</button><button class="opt">A DBMS manages concurrent access (locking, transactions) so writes don't clash; copies of a file drift out of sync</button><button class="opt">Databases never use disk</button><button class="opt">Text files are always encrypted</button></div>
+  <p class="why">Concurrency control is one of the core DBMS functions.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">A money transfer debits account A, then the server crashes before crediting B. Which DBMS property guarantees A gets its money back?</p>
+  <div class="opts"><button class="opt">Integrity constraints</button><button class="opt">Utilities (backup)</button><button class="opt">Transactions: all-or-nothing (atomicity), so the unfinished change is rolled back</button><button class="opt">Security</button></div>
+  <p class="why">This is exactly the transaction demo above.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">A <code>salary</code> column accepts the text 'ten thousand'. Which kind of integrity is missing?</p>
+  <div class="opts"><button class="opt">Entity integrity</button><button class="opt">Domain integrity</button><button class="opt">Referential integrity</button><button class="opt">Transaction integrity</button></div>
+  <p class="why">Each value must come from the column's domain (here, numbers), enforced by the data type or a CHECK.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">Which data is the best candidate to keep in plain files rather than a database?</p>
+  <div class="opts"><button class="opt">Bank balances</button><button class="opt">User accounts</button><button class="opt">Server log messages</button><button class="opt">Orders and payments</button></div>
+  <p class="why">Logs are low-importance, append-only text: a classic file use case from the chapter.</p>
+</div>
 <p class="quiz-score" id="quiz-score"></p>
 </article>
 <div id="pager"></div>
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js"></script>
+<script src="notes.js?v=2"></script>
 <script>
 (function () {
   /* data vs information */

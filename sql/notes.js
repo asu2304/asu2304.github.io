@@ -19,6 +19,12 @@
     { n: 12, file: null, title: "Subquery", ts: "5:25:35", t: 19535 }
   ];
   window.SQL_CHAPTERS = CHAPTERS;
+  var PRACTICE = [
+    { n: 1, key: "P1", file: "practice-01-top-10-queries.html", title: "Top 10 most common SQL queries",
+      video: "https://www.youtube.com/watch?v=yBKkSm2v3gg",
+      vtitle: "Top 10 most common SQL queries | SQL Interview Questions For Data Science | CampusX Live 1" }
+  ];
+  window.SQL_PRACTICE = PRACTICE;
 
   var store = {
     get: function (k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
@@ -29,6 +35,8 @@
 
   var current = parseInt(document.body.getAttribute("data-chapter") || "0", 10);
   var chap = CHAPTERS.filter(function (c) { return c.n === current; })[0];
+  var practiceN = parseInt(document.body.getAttribute("data-practice") || "0", 10);
+  var prac = PRACTICE.filter(function (p) { return p.n === practiceN; })[0];
 
   function el(tag, attrs, html) {
     var e = document.createElement(tag);
@@ -60,6 +68,11 @@
       html += '<li class="' + cls.trim() + '"><a href="' + href + '"' + (c.file ? "" : ' target="_blank" rel="noopener" title="Notes coming soon; opens the video"') +
         '><span class="n"><span>' + c.n + '</span></span><span>' + c.title + (c.file ? "" : " <small>(soon)</small>") + '</span></a></li>';
     });
+    html += '</ol><p class="course-title" style="margin-top:14px">Practice sessions</p><ol>';
+    PRACTICE.forEach(function (p) {
+      var cls = (prac === p ? "current " : "") + (done[p.key] ? "done" : "");
+      html += '<li class="' + cls.trim() + '"><a href="' + p.file + '"><span class="n"><span>P' + p.n + '</span></span><span>' + p.title + "</span></a></li>";
+    });
     html += '</ol><div class="bar"><i style="width:' + (100 * nDone / built.length) + '%"></i></div><p class="bar-label">' + nDone + " of " + built.length + " chapters marked done</p></details>";
     side.innerHTML = html;
   }
@@ -67,7 +80,13 @@
 
   /* ---------- credit banner ---------- */
   var credit = document.getElementById("credit");
-  if (credit) {
+  if (credit && prac) {
+    credit.className = "credit";
+    credit.innerHTML = '<span class="yt" aria-hidden="true"></span><div><strong>Credit:</strong> this practice session follows ' +
+      '<a href="' + prac.video + '" target="_blank" rel="noopener"><strong>' + prac.vtitle + "</strong></a>, a live class by " +
+      '<strong>Nitish Singh</strong> (<a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>).' +
+      '<div class="sub">Questions are his; the sample tables here are small stand-ins for the datasets linked in the video description, so you can run every query in the browser.</div></div>';
+  } else if (credit) {
     var link = VIDEO + (chap ? "&t=" + chap.t + "s" : "");
     credit.className = "credit";
     credit.innerHTML = '<span class="yt" aria-hidden="true"></span><div><strong>Credit:</strong> these notes follow ' +
@@ -85,14 +104,24 @@
     var items = "";
     h2s.forEach(function (h, i) {
       if (!h.id) h.id = "s" + (i + 1);
-      h.insertAdjacentHTML("afterbegin", '<span class="h-num">' + (i + 1) + ".</span>");
+      if (!prac) h.insertAdjacentHTML("afterbegin", '<span class="h-num">' + (i + 1) + ".</span>");
       items += '<li><a href="#' + h.id + '">' + h.textContent.replace(/^\d+\./, "") + "</a></li>";
     });
-    if (tocBox && h2s.length) { tocBox.className = "page-toc"; tocBox.innerHTML = "<b>On this page</b><ol>" + items + "</ol>"; }
+    if (tocBox && h2s.length) { tocBox.className = "page-toc"; tocBox.innerHTML = "<b>On this page</b>" + (prac ? '<ol style="list-style:none;padding-left:0">' : "<ol>") + items + "</ol>"; }
   }
 
   /* ---------- pager + done toggle ---------- */
   var pager = document.getElementById("pager");
+  if (pager && prac) {
+    var ptoggle = el("label", { "class": "done-toggle" });
+    ptoggle.innerHTML = '<input type="checkbox"> <span>Mark <b>Practice ' + prac.n + "</b> as done (saved in this browser)</span>";
+    var pcb = ptoggle.querySelector("input");
+    pcb.checked = !!doneSet()[prac.key];
+    pcb.addEventListener("change", function () { var d = doneSet(); d[prac.key] = pcb.checked; store.set(DONE_KEY, d); renderSidebar(); });
+    pager.parentNode.insertBefore(ptoggle, pager);
+    pager.className = "pager";
+    pager.innerHTML = '<a class="prev" href="index.html"><small>← Back</small>Course index</a><a class="next" href="07-ddl-queries.html"><small>Revise →</small>7. DDL SQL Queries</a>';
+  }
   if (pager && chap) {
     var built2 = CHAPTERS.filter(function (c) { return c.file; });
     var idx = built2.indexOf(chap);
@@ -112,7 +141,7 @@
   }
 
   /* ---------- syntax highlighting + copy ---------- */
-  var SQL_KW = "SELECT|FROM|WHERE|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|DATABASE|DATABASES|TABLE|TABLES|DROP|ALTER|TRUNCATE|ADD|COLUMN|MODIFY|CHANGE|RENAME|TO|AFTER|FIRST|CONSTRAINT|PRIMARY|KEY|FOREIGN|REFERENCES|UNIQUE|NOT|NULL|DEFAULT|CHECK|AUTO_INCREMENT|AUTOINCREMENT|IF|EXISTS|AND|OR|IN|LIKE|BETWEEN|IS|ON|CASCADE|RESTRICT|NO|ACTION|SHOW|USE|DESCRIBE|DESC|GRANT|REVOKE|COMMIT|ROLLBACK|SAVEPOINT|INT|INTEGER|VARCHAR|CHAR|TEXT|DECIMAL|FLOAT|DOUBLE|DATE|DATETIME|TIMESTAMP|BOOLEAN|BLOB|ENUM|TINYINT|BIGINT|AS|INDEX|ORDER|BY|GROUP|LIMIT|ALL|ANY|PRAGMA|CURRENT_TIMESTAMP|ENGINE|BEGIN|TRANSACTION|PRIMARY";
+  var SQL_KW = "SELECT|FROM|WHERE|INSERT|INTO|VALUES|UPDATE|SET|DELETE|CREATE|DATABASE|DATABASES|TABLE|TABLES|DROP|ALTER|TRUNCATE|ADD|COLUMN|MODIFY|CHANGE|RENAME|TO|AFTER|FIRST|CONSTRAINT|PRIMARY|KEY|FOREIGN|REFERENCES|UNIQUE|NOT|NULL|DEFAULT|CHECK|AUTO_INCREMENT|AUTOINCREMENT|IF|EXISTS|AND|OR|IN|LIKE|BETWEEN|IS|ON|CASCADE|RESTRICT|NO|ACTION|SHOW|USE|DESCRIBE|DESC|GRANT|REVOKE|COMMIT|ROLLBACK|SAVEPOINT|INT|INTEGER|VARCHAR|CHAR|TEXT|DECIMAL|FLOAT|DOUBLE|DATE|DATETIME|TIMESTAMP|BOOLEAN|BLOB|ENUM|TINYINT|BIGINT|AS|INDEX|ORDER|BY|GROUP|LIMIT|ALL|ANY|PRAGMA|CURRENT_TIMESTAMP|ENGINE|BEGIN|TRANSACTION|CASE|WHEN|THEN|ELSE|END|JOIN|INNER|LEFT|RIGHT|OUTER|HAVING|DISTINCT|ASC|OFFSET|UNSIGNED|SIGNED|CAST";
   var PY_KW = "import|from|class|def|return|try|except|else|if|elif|for|in|while|print|self|True|False|None|and|or|not|pass|as|with|is|lambda|break|continue";
   function highlight(code, lang) {
     var out = "", re;
@@ -274,6 +303,16 @@
   }
   /* translate the few MySQL-only bits used in these notes into SQLite */
   function mysqlShim(st) {
+    var alt = st.match(/^\s*ALTER\s+TABLE\s+(\w+)\s+([\s\S]*)$/i);
+    if (alt) {
+      if (/^MODIFY\b/i.test(alt[2].trim())) return "SELECT 'MODIFY COLUMN skipped: SQLite has no MODIFY, and its columns are flexibly typed anyway' AS note";
+      var parts = alt[2].split(/,\s*(?=(?:ADD|DROP)\b)/i);
+      return parts.map(function (part) {
+        // MySQL gives a new NOT NULL column an implicit default ('' / 0); SQLite needs it spelled out
+        if (/^\s*ADD\b/i.test(part) && /NOT\s+NULL/i.test(part) && !/DEFAULT/i.test(part)) part = part.replace(/NOT\s+NULL/i, "NOT NULL DEFAULT ''");
+        return "ALTER TABLE " + alt[1] + " " + part.trim();
+      }).join(";\n");
+    }
     return st
       .replace(/\bINT(?:EGER)?\s+PRIMARY\s+KEY\s+AUTO_INCREMENT\b/gi, "INTEGER PRIMARY KEY AUTOINCREMENT")
       .replace(/\bAUTO_INCREMENT\b/gi, "")

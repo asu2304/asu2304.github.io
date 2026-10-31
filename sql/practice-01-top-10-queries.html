@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Practice 1 · Top 10 SQL Queries · SQL for Data Science</title>
+<meta name="description" content="Practice session: the 10 most common SQL interview queries from CampusX Live 1, each with a runnable in-browser editor, a solution and the reasoning behind it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="sql.css?v=2">
+<style>
+.qmeta { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 14px; font-family: var(--sans); }
+.diff { font: 700 11.5px var(--sans); padding: 3px 10px; border-radius: 999px; border: 1px solid; }
+.diff.easy { color: var(--ok); border-color: var(--ok); background: var(--ok-soft); }
+.diff.med { color: var(--warn); border-color: var(--warn); background: var(--warn-soft); }
+.diff.hard { color: var(--bad); border-color: var(--bad); background: var(--bad-soft); }
+.task { border: 1px solid var(--rule); border-left: 4px solid var(--purple); background: var(--purple-soft); border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 0 0 16px; font-size: 17px; }
+.task b.t { display: block; font: 700 12px var(--sans); text-transform: uppercase; letter-spacing: .06em; color: var(--purple); margin-bottom: 2px; }
+details.sol { border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); margin: 12px 0 18px; }
+details.sol > summary { cursor: pointer; padding: 10px 14px; font: 600 14.5px var(--sans); color: var(--accent); list-style: none; }
+details.sol > summary::-webkit-details-marker { display: none; }
+details.sol > summary::before { content: "▸ "; }
+details.sol[open] > summary::before { content: "▾ "; }
+details.sol .sol-body { padding: 0 16px 6px; }
+.schema { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin: 12px 0 22px; }
+.schema div { border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; background: var(--surface); font: 13px/1.55 var(--mono); }
+.schema b { font-family: var(--sans); color: var(--accent); font-size: 14px; display: block; margin-bottom: 2px; }
+.schema small { font-family: var(--sans); color: var(--muted); }
+</style>
+</head>
+<body class="sql-page" data-practice="1">
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="index.html">SQL</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout has-sidebar">
+<aside class="sidebar" id="sidebar"></aside>
+<main class="content">
+<p class="crumbs"><a href="index.html">SQL for Data Science</a> › Practice 1</p>
+<div id="credit"></div>
+<p class="kicker">Practice session 1 · interview questions</p>
+<h1>The 10 most common SQL interview queries</h1>
+<div class="chips"><span class="chip">CampusX Live 1 · 1 h 26 min</span><span class="chip">Easy → medium</span><span class="chip">10 runnable editors</span></div>
+<div id="page-toc"></div>
+
+<article class="post">
+
+<p class="lede">Nitish picked these ten from his own experience of giving and taking SQL interviews. His claim: if you sit for an interview, especially at fresher or junior level (0–2 years), <strong>at least three or four of these will be asked</strong>, often as small variations. They are arranged from easiest to hardest.</p>
+
+<div class="callout tip"><span class="t">How to practise with this page</span>
+<ol style="margin:0;padding-left:1.3em">
+  <li>Read the task and try writing the query yourself in the editor. Every editor starts with the sample tables already loaded.</li>
+  <li>Run it (<span class="kbd">Ctrl</span>/<span class="kbd">⌘</span> + <span class="kbd">Enter</span>). Errors are fine; that's practice.</li>
+  <li>Only then open <b>Show solution</b>, compare, and read <i>why</i> it works.</li>
+</ol>
+<p style="margin-top:8px">Each question links to where it's solved in the live video.</p></div>
+
+<h2 id="setup">Setup and the sample tables</h2>
+<p>In the live class Nitish used <strong>XAMPP + phpMyAdmin</strong> (as in <a href="02-crud-app-python-mysql.html#setup">Chapter 2</a>): start Apache and MySQL, open <code>localhost/phpmyadmin</code>, create a database and import the data files linked in the video description. To let you practise right here, every editor on this page runs on <b>small stand-in versions</b> of the same tables (values approximate):</p>
+<div class="schema">
+  <div><b>movies</b>name, genre, year, score, director, star, budget, gross, runtime <br><small>26 films; score = IMDb rating</small></div>
+  <div><b>employees</b>emp_id, first_name, last_name, manager_id <br><small>manager_id → emp_id</small></div>
+  <div><b>titanic</b>passenger_id, name, survived, pclass, sex, age, sibsp, parch, fare <br><small>12 real passengers</small></div>
+  <div><b>contacts</b>id, first_name, last_name, email <br><small>contains duplicates</small></div>
+  <div><b>users</b>user_id, name, age, emergency_contact</div>
+  <div><b>groups</b>group_id, group_name <br><b style="margin-top:6px">membership</b>membership_id, user_id, group_id</div>
+</div>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Explore the data</div>
+  <div class="pg-bar"><select aria-label="Peek at a table">
+    <option value="peek-movies">movies</option><option value="peek-emp">employees</option><option value="peek-titanic">titanic</option>
+    <option value="peek-contacts">contacts</option><option value="peek-users">users, groups, membership</option></select>
+    <button class="btn small" data-reset-db>Reset data</button></div>
+  <textarea spellcheck="false">SELECT * FROM movies;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button></div>
+  <div class="pg-out"></div>
+</div>
+
+<!-- ============ Q1 ============ -->
+<h2 id="q1">Q1 · Insert multiple rows in one query</h2>
+<div class="qmeta"><span class="diff easy">Easy</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=720s" target="_blank" rel="noopener">▶ 12:00</a></span><span class="chip">INSERT</span></div>
+<div class="task"><b class="t">Task</b>Add three new users to the <code>users</code> table <em>in a single query</em>.</div>
+<p>Nitish was asked this in his own college placement (how would you insert many rows at once?) and couldn't answer then. He knew <code>INSERT</code>, but not that one statement can carry many rows.</p>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">-- insert three users at once, then check the table
+SELECT * FROM users;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button><button class="btn small" data-reset-db>Reset data</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q1"></div></details>
+<script type="text/plain" id="sol-q1">
+INSERT INTO users (user_id, name, age, emergency_contact)
+VALUES
+    (NULL, 'Akash',   32, 1),
+    (NULL, 'Vikas',   28, 2),
+    (NULL, 'Aditya',  25, 1);
+
+SELECT * FROM users;</script>
+<ul>
+  <li>One <code>VALUES</code> keyword, then <b>one bracket per row</b>, separated by commas. You can add 3 rows or 3,000 this way.</li>
+  <li><code>user_id</code> is <code>AUTO_INCREMENT</code>, so passing <code>NULL</code> lets MySQL fill it.</li>
+  <li>Writing each row on its own line is just for readability.</li>
+</ul>
+
+<!-- ============ Q2 ============ -->
+<h2 id="q2">Q2 · Add / delete multiple columns</h2>
+<div class="qmeta"><span class="diff easy">Easy</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=990s" target="_blank" rel="noopener">▶ 16:30</a></span><span class="chip">ALTER TABLE (DDL)</span></div>
+<div class="task"><b class="t">Task</b>Add two columns, <code>email</code> and <code>password</code>, to <code>users</code> in one query. Then drop both in one query.</div>
+<p>Modifying an existing table is a DDL job, so you need <code>ALTER TABLE</code> (revise <a href="07-ddl-queries.html#alter">Chapter 7</a>).</p>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">-- add email + password, look at the table, then drop them
+DESCRIBE users;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button><button class="btn small" data-reset-db>Reset data</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q2"></div></details>
+<script type="text/plain" id="sol-q2">
+-- add several columns: one ADD per column, separated by commas
+ALTER TABLE users
+    ADD COLUMN email    VARCHAR(255) NOT NULL,
+    ADD COLUMN password VARCHAR(255) NOT NULL;
+
+DESCRIBE users;
+
+-- drop several columns: one DROP COLUMN per column
+ALTER TABLE users
+    DROP COLUMN email,
+    DROP COLUMN password;
+
+DESCRIBE users;</script>
+<div class="callout warn"><span class="t">The error from the live class</span>
+<p>Nitish first wrote <code>email VARCHAR(255) NOT NULL UNIQUE</code> and it failed. Why? The table already had rows. A new <code>NOT NULL</code> column gets the same empty value for every existing row, so a <code>UNIQUE</code> rule is broken immediately. He removed <code>UNIQUE</code> to proceed. To make email unique, first fill in real emails, then <code>ADD CONSTRAINT … UNIQUE</code>.</p></div>
+
+<!-- ============ Q3 ============ -->
+<h2 id="q3">Q3 · Find the 2nd highest value</h2>
+<div class="qmeta"><span class="diff easy">Easy</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=1250s" target="_blank" rel="noopener">▶ 20:50</a></span><span class="chip">ORDER BY · LIMIT</span><span class="chip">Very frequently asked</span></div>
+<div class="task"><b class="t">Task</b>Which movie has the <b>second-highest</b> IMDb score? <br><small>Follow-up from the class: find the <b>second-lowest</b>.</small></div>
+<p>"Sit for three interviews and one of them will ask this," says Nitish. Variations ask for the 3rd, 4th or Nth.</p>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">SELECT name, score FROM movies;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q3"></div></details>
+<script type="text/plain" id="sol-q3">
+-- sort best first, skip 1 row, take 1 row
+SELECT * FROM movies
+ORDER BY score DESC
+LIMIT 1, 1;
+
+-- second-lowest: flip the order
+SELECT * FROM movies
+ORDER BY score ASC
+LIMIT 1, 1;</script>
+<ul>
+  <li><code>ORDER BY score DESC</code> puts the highest score on top.</li>
+  <li><code>LIMIT 5</code> keeps the top 5 rows. With two numbers, <code>LIMIT offset, count</code>: <b>skip</b> <i>offset</i> rows, then <b>show</b> <i>count</i>. <code>LIMIT 0, 5</code> = top five; <code>LIMIT 1, 1</code> = only the 2nd; <code>LIMIT 2, 1</code> = only the 3rd. In general, the Nth is <code>LIMIT N-1, 1</code>.</li>
+  <li>Same thing in standard syntax: <code>LIMIT 1 OFFSET 1</code>.</li>
+</ul>
+<div class="callout interview"><span class="t">Interview follow-up: ties</span>
+<p>If two movies share the top score, <code>LIMIT 1, 1</code> returns the second of the tied pair, not the second-highest <em>score</em>. For the second-highest distinct value use <code>SELECT MAX(score) FROM movies WHERE score &lt; (SELECT MAX(score) FROM movies)</code> or <code>ORDER BY</code> over <code>SELECT DISTINCT score</code>. Mention this and you'll stand out.</p></div>
+
+<!-- ============ Q4 ============ -->
+<h2 id="q4">Q4 · Find the max value without ORDER BY</h2>
+<div class="qmeta"><span class="diff med">Medium</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=1740s" target="_blank" rel="noopener">▶ 29:00</a></span><span class="chip">MAX · subquery</span></div>
+<div class="task"><b class="t">Task</b>Find the name and budget of the movie with the <b>highest budget</b>, <em>without using ORDER BY</em>.</div>
+<div class="callout"><span class="t">Why would an interviewer forbid ORDER BY?</span>
+<p>Sorting is expensive. Good comparison sorts take <b>O(n log n)</b> time (simple ones O(n²)). On 10 million rows that's a lot of work just to find one value, while finding a <b>maximum needs only one pass, O(n)</b>. The rule of thumb Nitish gives: in SQL, <b>sorting should be your last option</b>.</p></div>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">SELECT name, budget FROM movies;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q4"></div></details>
+<script type="text/plain" id="sol-q4">
+-- in the class data, budget was stored as text, so fix the type first:
+ALTER TABLE movies MODIFY COLUMN budget BIGINT;
+
+-- the inner query runs first and becomes one number: the max budget
+SELECT name, budget
+FROM movies
+WHERE budget = (SELECT MAX(budget) FROM movies);</script>
+<ul>
+  <li>This is a <b>nested query (subquery)</b>: the inner query runs first, returns one number, and the outer query uses it in its <code>WHERE</code>.</li>
+  <li>The answer is <b>Titanic</b>, the costliest film in the class dataset too.</li>
+</ul>
+<div class="callout warn"><span class="t">The data-type trap from the class</span>
+<p>In the downloaded data, <code>budget</code> was a <b>text</b> column. <code>MAX</code> on text compares alphabetically, so <code>'95000000'</code> beats <code>'200000000'</code> (because '9' &gt; '2') and you get the wrong movie. Nitish first converted the column with <code>ALTER TABLE … MODIFY COLUMN budget BIGINT</code> (BIGINT because budgets can exceed INT's ~2.1 billion). Here the sample <code>budget</code> is already numeric, so the lab just skips the MODIFY.</p></div>
+
+<!-- ============ Q5 ============ -->
+<h2 id="q5">Q5 · Find the managers of all employees</h2>
+<div class="qmeta"><span class="diff med">Medium</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=2200s" target="_blank" rel="noopener">▶ 36:40</a></span><span class="chip">SELF JOIN</span></div>
+<div class="task"><b class="t">Task</b>Print two columns, <code>employee_name</code> and <code>manager_name</code>, for every employee. The <code>employees</code> table has <code>emp_id</code>, <code>first_name</code>, <code>last_name</code> and <code>manager_id</code>, where <code>manager_id</code> is itself an <code>emp_id</code>.</div>
+<p>Hard if you don't spot the trick, easy once you do. Managers are employees too, so their names live in the <em>same table</em>.</p>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">SELECT * FROM employees;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q5"></div></details>
+<script type="text/plain" id="sol-q5">
+SELECT e1.first_name AS employee_name,
+       e2.first_name AS manager_name
+FROM employees e1
+JOIN employees e2
+  ON e1.manager_id = e2.emp_id;</script>
+<ul>
+  <li>A <b>self join</b> joins a table with <em>itself</em>. Give the two copies different aliases (<code>e1</code> = the employee, <code>e2</code> = their manager) so SQL, and you, aren't confused.</li>
+  <li>Join condition: the employee's <code>manager_id</code> equals the manager's <code>emp_id</code>.</li>
+  <li>Because both copies have <code>first_name</code>, you must say which one: <code>e1.first_name</code> vs <code>e2.first_name</code>.</li>
+</ul>
+<div class="callout interview"><span class="t">Follow-up</span>
+<p>The CEO has no manager (<code>manager_id</code> is NULL), so an inner join drops them. To list every employee, use <code>LEFT JOIN</code>: the CEO then appears with a NULL manager.</p></div>
+
+<!-- ============ Q6 ============ -->
+<h2 id="q6">Q6 · Use of wildcards</h2>
+<div class="qmeta"><span class="diff easy">Easy</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=2570s" target="_blank" rel="noopener">▶ 42:50</a></span><span class="chip">LIKE · % · _</span></div>
+<div class="task"><b class="t">Task A</b>Find all movies whose name has exactly <b>5 characters</b> and <b>starts with "A"</b>. <br><b class="t" style="margin-top:8px">Task B</b>Find all movies whose name <b>ends with "man"</b> (Spider-Man, Superman, Batman…).</div>
+<div class="tiles">
+  <div class="tile"><h4><code>%</code> percent</h4><p>Any number of characters (zero or more).</p></div>
+  <div class="tile"><h4><code>_</code> underscore</h4><p>Exactly one character.</p></div>
+</div>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">SELECT name FROM movies WHERE name LIKE '%';</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q6"></div></details>
+<script type="text/plain" id="sol-q6">
+-- A: 'A' followed by exactly four more characters
+SELECT * FROM movies WHERE name LIKE 'A____';
+
+-- B: anything, then 'man' at the very end
+SELECT * FROM movies WHERE name LIKE '%man';</script>
+<ul>
+  <li><code>'A____'</code>: one A, then four underscores = exactly 5 characters.</li>
+  <li><code>'%man'</code>: the name must <em>end</em> in "man". <code>'%man%'</code> would match "man" anywhere (e.g. "Mandalay").</li>
+  <li><code>LIKE</code> is case-insensitive under MySQL's default collation, which is why "Spider-<b>M</b>an" matches.</li>
+</ul>
+
+<!-- ============ Q7 ============ -->
+<h2 id="q7">Q7 · If-else questions (CASE)</h2>
+<div class="qmeta"><span class="diff med">Medium</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=2880s" target="_blank" rel="noopener">▶ 48:00</a></span><span class="chip">CASE WHEN · derived columns</span></div>
+<div class="task"><b class="t">Task</b>From the Titanic data, print each passenger's <code>name</code>, their <code>family_size</code>, and a <code>family_type</code> column: <b>small</b> if size ≤ 2, <b>medium</b> if 3–5, <b>large</b> if more than 5.</div>
+<p>Family size isn't stored directly. Titanic has <code>sibsp</code> (siblings/spouses aboard) and <code>parch</code> (parents/children aboard), so family size = <code>sibsp + parch</code>.</p>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">SELECT name, sibsp, parch FROM titanic;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q7"></div></details>
+<script type="text/plain" id="sol-q7">
+SELECT name,
+       (sibsp + parch) AS family_size,
+       CASE
+           WHEN (sibsp + parch) <= 2 THEN 'small'
+           WHEN (sibsp + parch) > 2 AND (sibsp + parch) <= 5 THEN 'medium'
+           ELSE 'large'
+       END AS family_type
+FROM titanic;</script>
+<ul>
+  <li><code>CASE … WHEN … THEN … ELSE … END</code> is SQL's <b>if / else-if / else</b>. Conditions are checked top to bottom and the first true one wins.</li>
+  <li>You can do arithmetic on columns and name the result with <code>AS</code>.</li>
+  <li><code>WHEN (sibsp + parch) BETWEEN 3 AND 5</code> also works. In class <code>BETWEEN</code> seemed not to work; the real bug turned out to be a <b>missing comma</b> between two selected columns. Watch your commas!</li>
+</ul>
+
+<!-- ============ Q8 ============ -->
+<h2 id="q8">Q8 · Find the top value in each category</h2>
+<div class="qmeta"><span class="diff hard">Medium-hard</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=3260s" target="_blank" rel="noopener">▶ 54:20</a></span><span class="chip">Correlated subquery</span><span class="chip">Very frequently asked</span></div>
+<div class="task"><b class="t">Task</b>For <b>every genre</b>, show the top-rated movie: <code>genre</code>, <code>name</code>, <code>score</code>.</div>
+<p>The same pattern appears everywhere: top-paid employee per department, best-selling product per category, top dish per restaurant. First, how many genres are there? <code>SELECT DISTINCT genre FROM movies</code> gives the unique values.</p>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">SELECT DISTINCT genre FROM movies;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q8"></div></details>
+<script type="text/plain" id="sol-q8">
+SELECT genre, name, score
+FROM movies m1
+WHERE score = (SELECT MAX(score)
+               FROM movies m2
+               WHERE m2.genre = m1.genre);</script>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Independent vs correlated">
+    <p>In <b>Q4</b> the inner query was <b>independent</b>: it ran once, produced one number, done.</p>
+    <p>Here the inner query uses <code>m1.genre</code>, a value from the <em>outer</em> row. It's a <b>correlated subquery</b>: it is conceptually re-evaluated <b>for every outer row</b>.</p>
+  </div>
+  <div class="tab-panel" data-tab="Walk through one row">
+    <ol>
+      <li>The outer query picks a movie, say <i>Forrest Gump</i> (genre Drama, 8.8).</li>
+      <li>The inner query computes the max score <b>among Drama movies</b>: 9.3.</li>
+      <li>8.8 ≠ 9.3, so Forrest Gump isn't the top Drama movie: skip.</li>
+      <li>Later the outer query reaches <i>The Shawshank Redemption</i> (Drama, 9.3). 9.3 = 9.3: print it.</li>
+    </ol>
+  </div>
+  <div class="tab-panel" data-tab="Ties">
+    <p>In class there were 17 genres but 18 rows came back. Two Thriller movies shared the top score, so both matched. In the sample data here, <b>Alien</b> and <b>The Shining</b> tie in Horror. Ask the interviewer whether ties should all be shown (this query) or broken by another column.</p>
+  </div>
+</div>
+
+<!-- ============ Q9 ============ -->
+<h2 id="q9">Q9 · Find and delete duplicate rows</h2>
+<div class="qmeta"><span class="diff hard">Medium-hard</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=3850s" target="_blank" rel="noopener">▶ 1:04:10</a></span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=4480s" target="_blank" rel="noopener">▶ fixed at 1:14:40</a></span><span class="chip">GROUP BY · NOT IN</span></div>
+<div class="task"><b class="t">Task</b>The <code>contacts</code> table has some people entered more than once (same first name, last name and email, different <code>id</code>). <b>(a)</b> List the duplicate rows. <b>(b)</b> Delete them, keeping one copy of each person.</div>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">SELECT * FROM contacts ORDER BY first_name;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button><button class="btn small" data-reset-db>Reset data</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q9"></div></details>
+<script type="text/plain" id="sol-q9">
+-- (a) the extra copies: every row whose id is NOT the smallest id of its group
+SELECT * FROM contacts
+WHERE id NOT IN (SELECT MIN(id)
+                 FROM contacts
+                 GROUP BY first_name, last_name, email);
+
+-- (b) delete them: same condition, DELETE instead of SELECT
+DELETE FROM contacts
+WHERE id NOT IN (SELECT MIN(id)
+                 FROM contacts
+                 GROUP BY first_name, last_name, email);
+
+SELECT * FROM contacts;</script>
+<ul>
+  <li><code>GROUP BY first_name, last_name, email</code> puts every copy of the same person in one group.</li>
+  <li><code>MIN(id)</code> picks <b>one survivor</b> per group, the first one entered.</li>
+  <li>Every row whose id is <b>not in</b> that survivor list is an extra copy. Swap <code>SELECT *</code> for <code>DELETE</code> and they're gone (14 rows → 10).</li>
+  <li>To just <b>count</b> duplicates: <code>SELECT first_name, last_name, email, COUNT(*) FROM contacts GROUP BY first_name, last_name, email HAVING COUNT(*) &gt; 1</code>.</li>
+</ul>
+<div class="callout warn"><span class="t">Two gotchas</span>
+<ul>
+  <li><b>IN vs NOT IN.</b> In the live class the first attempt used <code>IN</code>, which returns the survivors, not the duplicates, so the result looked wrong. <code>NOT IN</code> fixed it.</li>
+  <li><b>MySQL error 1093.</b> Real MySQL refuses to <code>DELETE</code> from a table while a subquery reads the same table ("You can't specify target table … for update in FROM clause"). XAMPP's MariaDB allows it. On MySQL, wrap the subquery in a derived table: <code>… NOT IN (SELECT id FROM (SELECT MIN(id) AS id FROM contacts GROUP BY …) AS keep)</code>.</li>
+</ul></div>
+
+<!-- ============ Q10 ============ -->
+<h2 id="q10">Q10 · Joining tables</h2>
+<div class="qmeta"><span class="diff med">Medium</span><span class="chip"><a href="https://www.youtube.com/watch?v=yBKkSm2v3gg&t=4140s" target="_blank" rel="noopener">▶ 1:09:00</a></span><span class="chip">JOIN across 3 tables</span></div>
+<div class="task"><b class="t">Task</b>Print each user's <code>name</code>, <code>age</code> and the <code>group_name</code> of every group they belong to.</div>
+<p>The answer is spread across three tables: the name and age are in <code>users</code>, the group name is in <code>groups</code>, and <em>which user is in which group</em> is in <code>membership</code>. This is a many-to-many relationship with a junction table, exactly as in <a href="04-database-keys.html#cardinality">Chapter 4</a>.</p>
+<div class="widget playground" data-setup="seed" data-mysql>
+  <div class="w-title">Your turn</div>
+  <textarea spellcheck="false">SELECT * FROM membership;</textarea>
+  <div class="pg-bar"><button class="btn primary small" data-run>Run ▶</button></div>
+  <div class="pg-out"></div>
+</div>
+<details class="sol"><summary>Show solution</summary><div class="sol-body" data-sol="sol-q10"></div></details>
+<script type="text/plain" id="sol-q10">
+-- step 1: users + membership gives each user's group_id
+SELECT u.name, u.age, m.group_id
+FROM users u
+JOIN membership m ON u.user_id = m.user_id;
+
+-- step 2: join groups too, to turn group_id into group_name
+SELECT u.name, u.age, g.group_name
+FROM users u
+JOIN membership m ON u.user_id = m.user_id
+JOIN `groups` g   ON m.group_id = g.group_id;</script>
+<ul>
+  <li>Join two tables on their common column, then chain another <code>JOIN … ON</code>. The same approach scales to 4 or 10 tables.</li>
+  <li>Build it <b>step by step</b> like Nitish did: first get <code>group_id</code>, check the output, then add the next join.</li>
+  <li><code>GROUPS</code> is a reserved word in MySQL 8, so the table name needs backticks there: <code>`groups`</code>.</li>
+</ul>
+
+<h2 id="summary">Revision: one line per question</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>#</th><th>Question</th><th>Key idea</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Insert multiple rows</td><td><code>INSERT … VALUES (…), (…), (…)</code></td></tr>
+<tr><td>2</td><td>Add / drop multiple columns</td><td><code>ALTER TABLE t ADD COLUMN a …, ADD COLUMN b …</code></td></tr>
+<tr><td>3</td><td>2nd highest</td><td><code>ORDER BY x DESC LIMIT 1, 1</code></td></tr>
+<tr><td>4</td><td>Max without ORDER BY</td><td><code>WHERE x = (SELECT MAX(x) …)</code>; mind the column type</td></tr>
+<tr><td>5</td><td>Employee → manager</td><td>Self join with aliases</td></tr>
+<tr><td>6</td><td>Wildcards</td><td><code>%</code> = any length, <code>_</code> = one character</td></tr>
+<tr><td>7</td><td>If-else</td><td><code>CASE WHEN … THEN … ELSE … END AS col</code></td></tr>
+<tr><td>8</td><td>Top per category</td><td>Correlated subquery on the category</td></tr>
+<tr><td>9</td><td>Duplicates</td><td><code>id NOT IN (SELECT MIN(id) … GROUP BY all columns)</code></td></tr>
+<tr><td>10</td><td>Joins</td><td>Chain <code>JOIN … ON</code> through the junction table</td></tr>
+</tbody></table></div>
+
+<h2 id="mcq">Check yourself</h2>
+<div class="quiz" data-answer="2">
+  <p class="q">What does <code>LIMIT 3, 2</code> return?</p>
+  <div class="opts"><button class="opt">Rows 3 and 2</button><button class="opt">The first 3 rows, then 2 more</button><button class="opt">Skips 3 rows, then returns the next 2 (rows 4 and 5)</button><button class="opt">Rows 1 to 3, twice</button></div>
+  <p class="why">MySQL's two-number form is <b>LIMIT offset, count</b>.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Why is <code>WHERE budget = (SELECT MAX(budget) FROM movies)</code> preferred over <code>ORDER BY budget DESC LIMIT 1</code> on huge tables?</p>
+  <div class="opts"><button class="opt">It returns more columns</button><button class="opt">Finding a max is one O(n) pass; sorting is at least O(n log n)</button><button class="opt">ORDER BY doesn't work on numbers</button><button class="opt">Subqueries are cached forever</button></div>
+  <p class="why">Avoid sorting when you only need an extreme value. (With an index on <code>budget</code>, both can be fast, which is a good follow-up point.)</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">Which pattern matches names of <b>exactly 4 characters</b> ending in "x"?</p>
+  <div class="opts"><button class="opt"><code>'%x'</code></button><button class="opt"><code>'____x'</code></button><button class="opt"><code>'x___'</code></button><button class="opt"><code>'___x'</code></button></div>
+  <p class="why">Three underscores (3 characters) plus "x" = 4 characters.</p>
+</div>
+<div class="quiz" data-answer="0">
+  <p class="q">What makes the subquery in Q8 "correlated"?</p>
+  <div class="opts"><button class="opt">It refers to a column of the outer query (<code>m1.genre</code>), so its result depends on the current outer row</button><button class="opt">It uses MAX</button><button class="opt">It is inside WHERE</button><button class="opt">It uses two aliases of the same table</button></div>
+  <p class="why">Correlated = depends on the outer row. Q4's subquery didn't, so it was independent.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">In the self join for Q5, why does the CEO not appear in the result?</p>
+  <div class="opts"><button class="opt">Self joins skip the first row</button><button class="opt">The CEO's emp_id is NULL</button><button class="opt">The CEO's manager_id is NULL, which matches no emp_id, and an inner join drops rows without a match</button><button class="opt">Because of the aliases</button></div>
+  <p class="why">Use a <b>LEFT JOIN</b> to keep employees with no manager.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">In Q9, what would <code>id IN (SELECT MIN(id) … GROUP BY …)</code> (IN instead of NOT IN) return?</p>
+  <div class="opts"><button class="opt">Only the duplicates</button><button class="opt">One row per person: the de-duplicated table</button><button class="opt">Nothing</button><button class="opt">An error</button></div>
+  <p class="why">That's the "keep" list. Handy for <code>SELECT</code>-ing a clean copy, but not for finding duplicates.</p>
+</div>
+<div class="quiz" data-answer="3">
+  <p class="q">Users and groups have a many-to-many relationship. What's the minimum number of tables you must join to print user names next to group names?</p>
+  <div class="opts"><button class="opt">1</button><button class="opt">2</button><button class="opt">4</button><button class="opt">3: users, the membership junction table, and groups</button></div>
+  <p class="why">M:N relationships always go through a junction table.</p>
+</div>
+<p class="quiz-score" id="quiz-score"></p>
+
+<h2 id="next">What's next in this interview series</h2>
+<p>This was part 1 of a 3-part live series. The question sheet Nitish shared also lists what the next sessions cover, so it's worth previewing:</p>
+<div class="tabs">
+  <div class="tab-panel" data-tab="Theory questions">
+    <ol>
+      <li>SQL vs NoSQL databases</li><li>Tables required for a many-to-many relationship</li><li>Draw a schema design for Swiggy</li>
+      <li>Types of joins; UNION vs UNION ALL</li><li>OLAP vs OLTP (normalised vs denormalised data)</li><li>Database keys</li>
+      <li>Types of normalisation</li><li>Indexes and their types</li><li>Transactions and ACID properties</li><li>Views and stored procedures</li>
+    </ol>
+    <p>Several are already covered in these notes: <a href="04-database-keys.html">keys</a>, <a href="04-database-keys.html#cardinality">M:N tables</a>, <a href="06-er-diagram.html">Swiggy schema</a>, <a href="03-database-theory.html#types">SQL vs NoSQL</a>, <a href="03-database-theory.html#functions">transactions</a>.</p>
+  </div>
+  <div class="tab-panel" data-tab="Case studies">
+    <p><b>Tinder-like app:</b> model users and right-swipes as tables; list everyone a user has sent requests to; find the user with the 2nd most requests sent; find matches for a user.</p>
+    <p><b>Swiggy:</b> customers who never ordered; average price per dish; top restaurant by orders in a month; monthly sales above X; a customer's favourite food; restaurant with most repeat customers; month-over-month revenue growth; most paired products.</p>
+  </div>
+</div>
+
+</article>
+<div id="pager"></div>
+</main>
+</div>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Practice notes on "Top 10 most common SQL queries" (CampusX Live 1) by Nitish Singh. All teaching credit to the original author.</div></footer>
+
+<script type="text/plain" id="seed">
+CREATE TABLE movies (name TEXT, genre TEXT, year INTEGER, score REAL, director TEXT, star TEXT, budget INTEGER, gross INTEGER, runtime INTEGER);
+INSERT INTO movies VALUES
+('The Shawshank Redemption','Drama',1994,9.3,'Frank Darabont','Tim Robbins',25000000,28800000,142),
+('The Dark Knight','Action',2008,9.0,'Christopher Nolan','Christian Bale',185000000,1005000000,152),
+('Pulp Fiction','Crime',1994,8.9,'Quentin Tarantino','John Travolta',8000000,213900000,154),
+('Forrest Gump','Drama',1994,8.8,'Robert Zemeckis','Tom Hanks',55000000,678200000,142),
+('Inception','Action',2010,8.8,'Christopher Nolan','Leonardo DiCaprio',160000000,836800000,148),
+('The Silence of the Lambs','Crime',1991,8.6,'Jonathan Demme','Jodie Foster',19000000,272700000,118),
+('Spirited Away','Animation',2001,8.6,'Hayao Miyazaki','Daveigh Chase',19000000,355000000,125),
+('The Lion King','Animation',1994,8.5,'Roger Allers','Matthew Broderick',45000000,968500000,88),
+('Back to the Future','Adventure',1985,8.5,'Robert Zemeckis','Michael J. Fox',19000000,381100000,116),
+('Alien','Horror',1979,8.4,'Ridley Scott','Sigourney Weaver',11000000,106300000,117),
+('The Shining','Horror',1980,8.4,'Stanley Kubrick','Jack Nicholson',19000000,47000000,146),
+('Amelie','Comedy',2001,8.3,'Jean-Pierre Jeunet','Audrey Tautou',10000000,174200000,122),
+('Before Sunrise','Romance',1995,8.1,'Richard Linklater','Ethan Hawke',2500000,5500000,101),
+('Rain Man','Drama',1988,8.0,'Barry Levinson','Dustin Hoffman',25000000,354800000,133),
+('Annie Hall','Comedy',1977,8.0,'Woody Allen','Woody Allen',4000000,38300000,93),
+('Akira','Animation',1988,8.0,'Katsuhiro Otomo','Mitsuo Iwata',9000000,553000,124),
+('Iron Man','Action',2008,7.9,'Jon Favreau','Robert Downey Jr.',140000000,585800000,126),
+('Titanic','Drama',1997,7.8,'James Cameron','Leonardo DiCaprio',200000000,2201600000,194),
+('Airplane!','Comedy',1980,7.7,'Jim Abrahams','Robert Hays',3500000,83400000,88),
+('Batman','Action',1989,7.5,'Tim Burton','Michael Keaton',35000000,411300000,126),
+('Superman','Action',1978,7.4,'Richard Donner','Christopher Reeve',55000000,300200000,143),
+('Spider-Man','Action',2002,7.3,'Sam Raimi','Tobey Maguire',139000000,825000000,121),
+('Mandalay','Drama',1934,6.4,'Michael Curtiz','Kay Francis',300000,900000,65),
+('Gigli','Romance',2003,2.6,'Martin Brest','Ben Affleck',75600000,7300000,121),
+('Battlefield Earth','Action',2000,2.5,'Roger Christian','John Travolta',44000000,29700000,118),
+('Disaster Movie','Comedy',2008,1.9,'Jason Friedberg','Matt Lanter',20000000,34800000,87);
+
+CREATE TABLE employees (emp_id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, manager_id INTEGER);
+INSERT INTO employees VALUES
+(1,'Ankit','Sharma',NULL),(2,'Martina','Lopez',1),(3,'Rahul','Verma',2),(4,'Sneha','Iyer',2),
+(5,'Vikas','Rao',1),(6,'John','Smith',5),(7,'Priya','Nair',5),(8,'Max','Weber',3);
+
+CREATE TABLE titanic (passenger_id INTEGER, name TEXT, survived INTEGER, pclass INTEGER, sex TEXT, age REAL, sibsp INTEGER, parch INTEGER, fare REAL);
+INSERT INTO titanic VALUES
+(1,'Braund, Mr. Owen Harris',0,3,'male',22,1,0,7.25),
+(2,'Cumings, Mrs. John Bradley (Florence Briggs Thayer)',1,1,'female',38,1,0,71.28),
+(3,'Heikkinen, Miss. Laina',1,3,'female',26,0,0,7.93),
+(4,'Futrelle, Mrs. Jacques Heath (Lily May Peel)',1,1,'female',35,1,0,53.10),
+(8,'Palsson, Master. Gosta Leonard',0,3,'male',2,3,1,21.08),
+(9,'Johnson, Mrs. Oscar W (Elisabeth Vilhelmina Berg)',1,3,'female',27,0,2,11.13),
+(11,'Sandstrom, Miss. Marguerite Rut',1,3,'female',4,1,1,16.70),
+(12,'Bonnell, Miss. Elizabeth',1,1,'female',58,0,0,26.55),
+(14,'Andersson, Mr. Anders Johan',0,3,'male',39,1,5,31.28),
+(17,'Rice, Master. Eugene',0,3,'male',2,4,1,29.13),
+(60,'Goodwin, Master. William Frederick',0,3,'male',11,5,2,46.90),
+(160,'Sage, Master. Thomas Henry',0,3,'male',NULL,8,2,69.55);
+
+CREATE TABLE contacts (id INTEGER PRIMARY KEY, first_name TEXT, last_name TEXT, email TEXT);
+INSERT INTO contacts VALUES
+(1,'Carine','Schmitt','carine.s@mail.com'),(2,'Jean','King','jean.king@mail.com'),(3,'Peter','Ferguson','peter.f@mail.com'),
+(4,'Janine','Labrune','janine.l@mail.com'),(5,'Jonas','Bergulfsen','jonas.b@mail.com'),(6,'Janine','Labrune','janine.l@mail.com'),
+(7,'Susan','Nelson','susan.n@mail.com'),(8,'Zbyszek','Piestrzeniewicz','zbyszek.p@mail.com'),(9,'Roland','Keitel','roland.k@mail.com'),
+(10,'Julie','Murphy','julie.m@mail.com'),(11,'Kwai','Lee','kwai.lee@mail.com'),(12,'Jean','King','jean.king@mail.com'),
+(13,'Janine','Labrune','janine.l@mail.com'),(14,'Roland','Keitel','roland.k@mail.com');
+
+CREATE TABLE users (user_id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, age INTEGER, emergency_contact INTEGER);
+INSERT INTO users (name, age, emergency_contact) VALUES ('Nitish',34,NULL),('Ankit',32,1),('Rahul',29,1),('Ankita',27,2),('Neha',30,3);
+CREATE TABLE groups (group_id INTEGER PRIMARY KEY, group_name TEXT);
+INSERT INTO groups VALUES (1,'Data Science'),(2,'Web Dev'),(3,'Cricket'),(4,'Photography');
+CREATE TABLE membership (membership_id INTEGER PRIMARY KEY, user_id INTEGER, group_id INTEGER);
+INSERT INTO membership (user_id, group_id) VALUES (1,1),(1,3),(2,1),(3,2),(4,1),(4,4),(5,3);
+</script>
+<script type="text/plain" id="peek-movies">SELECT * FROM movies;</script>
+<script type="text/plain" id="peek-emp">SELECT * FROM employees;</script>
+<script type="text/plain" id="peek-titanic">SELECT * FROM titanic;</script>
+<script type="text/plain" id="peek-contacts">SELECT * FROM contacts ORDER BY first_name;</script>
+<script type="text/plain" id="peek-users">SELECT * FROM users;
+SELECT * FROM `groups`;
+SELECT * FROM membership;</script>
+<script>
+/* render each solution as a code block plus a "load into editor" button (runs before notes.js highlights code) */
+document.querySelectorAll("[data-sol]").forEach(function (box) {
+  var src = document.getElementById(box.getAttribute("data-sol")).textContent.replace(/^\n/, "");
+  var pre = document.createElement("pre"), code = document.createElement("code");
+  code.className = "lang-sql"; code.textContent = src; pre.appendChild(code); box.appendChild(pre);
+  var btn = document.createElement("button");
+  btn.className = "btn small"; btn.type = "button"; btn.textContent = "Load this into the editor above ↑";
+  btn.style.margin = "0 0 12px";
+  btn.addEventListener("click", function () {
+    var pg = box.closest("details").previousElementSibling;
+    while (pg && !pg.classList.contains("playground")) pg = pg.previousElementSibling;
+    if (!pg) return;
+    pg.querySelector("textarea").value = src;
+    pg.scrollIntoView({ behavior: "smooth", block: "center" });
+    pg.querySelector("[data-run]").click();
+  });
+  box.appendChild(btn);
+});
+</script>
+<script src="notes.js?v=2"></script>
+</body>
+</html>

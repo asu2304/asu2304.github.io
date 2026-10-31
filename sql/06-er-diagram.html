@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css">
+<link rel="stylesheet" href="sql.css?v=2">
 <style>
 #er svg .ent { cursor: pointer; }
 #er svg .ent .frame { fill: var(--surface); stroke: var(--rule); stroke-width: 1.5; }
@@ -193,6 +193,28 @@ CREATE TABLE order_items (
   <div class="opts"><button class="opt">VARCHAR is faster</button><button class="opt">INT can't store digits</button><button class="opt">Lucidchart requires it</button><button class="opt">You never do arithmetic on it, and it can have leading 0s or a + sign (and 10 digits can overflow INT)</button></div>
   <p class="why">Phone numbers are identifiers, not quantities.</p>
 </div>
+<h2 id="concepts">Conceptual questions</h2>
+<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<div class="quiz" data-answer="1">
+  <p class="q">Why design the ER diagram <em>before</em> writing CREATE TABLE statements?</p>
+  <div class="opts"><button class="opt">Lucidchart requires it</button><button class="opt">Changing a drawing after discussion with the team is cheap; changing a live database with data in it is expensive</button><button class="opt">SQL can't create tables without one</button><button class="opt">It makes queries run faster</button></div>
+  <p class="why">The ER diagram is the blueprint.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">In the Swiggy design, why is <code>cid</code> stored in <code>orders</code> rather than a list of order ids stored in <code>customers</code>?</p>
+  <div class="opts"><button class="opt">Customers have no primary key</button><button class="opt">A relational column holds one value; in 1:N the foreign key goes on the many side, so each order stores its single customer</button><button class="opt">Orders are created first</button><button class="opt">It saves one column</button></div>
+  <p class="why">A list inside a column breaks first normal form and can't be indexed or joined properly.</p>
+</div>
+<div class="quiz" data-answer="1">
+  <p class="q">Why did the design need an <code>order_items</code> table?</p>
+  <div class="opts"><button class="opt">To store prices twice</button><button class="opt">Orders and food are many-to-many; a junction table holds each (order, food) pair plus extra data like quantity</button><button class="opt">Because food has no primary key</button><button class="opt">To speed up the customers table</button></div>
+  <p class="why">M:N always becomes two 1:N relationships through a junction table.</p>
+</div>
+<div class="quiz" data-answer="2">
+  <p class="q">Where would a <code>quantity</code> attribute (how many of a dish in an order) belong?</p>
+  <div class="opts"><button class="opt">food</button><button class="opt">orders</button><button class="opt">order_items</button><button class="opt">customers</button></div>
+  <p class="why">It describes the <i>pair</i> (this order, this dish), so it lives in the junction table.</p>
+</div>
 <p class="quiz-score" id="quiz-score"></p>
 
 </article>
@@ -200,7 +222,7 @@ CREATE TABLE order_items (
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js"></script>
+<script src="notes.js?v=2"></script>
 <script>
 (function () {
   var NS = "http://www.w3.org/2000/svg";

@@ -184,29 +184,8 @@ SELECT (5 > 3 AND 2 > 1) AS and_,
 SELECT * FROM users; -- comments can also follow code
 # MySQL also accepts a hash for single-line comments</code></pre>
 
-<h2 id="check">Check yourself</h2>
-<div class="quiz" data-answer="0">
-  <p class="q"><code>TRUNCATE</code> belongs to which family?</p>
-  <div class="opts"><button class="opt">DDL</button><button class="opt">DML</button><button class="opt">TCL</button><button class="opt">DCL</button></div>
-  <p class="why"><b>DDL.</b> It empties the table at the structure level (unlike row-by-row <code>DELETE</code>, which is DML).</p>
-</div>
-<div class="quiz" data-answer="3">
-  <p class="q">An admin wants to remove a user's permission to update a table. Which command?</p>
-  <div class="opts"><button class="opt"><code>DELETE</code></button><button class="opt"><code>ROLLBACK</code></button><button class="opt"><code>DROP</code></button><button class="opt"><code>REVOKE</code></button></div>
-  <p class="why"><b>REVOKE</b> (DCL) takes back a permission that <code>GRANT</code> gave.</p>
-</div>
-<div class="quiz" data-answer="1">
-  <p class="q">Which data type is best for a restaurant rating like 4.2?</p>
-  <div class="opts"><button class="opt"><code>INT</code></button><button class="opt"><code>DECIMAL(2,1)</code></button><button class="opt"><code>VARCHAR(255)</code></button><button class="opt"><code>DATE</code></button></div>
-  <p class="why"><b>DECIMAL(2,1)</b>: 2 digits in total, 1 after the decimal point.</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">In SQL, how do you write "not equal to"?</p>
-  <div class="opts"><button class="opt"><code>=!</code></button><button class="opt"><code>==</code></button><button class="opt"><code>&lt;&gt;</code></button><button class="opt"><code>NOT=</code></button></div>
-  <p class="why"><b>&lt;&gt;</b> is the standard; MySQL also accepts <code>!=</code>.</p>
-</div>
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="1">
   <p class="q">You ran <code>DELETE FROM orders;</code> inside a transaction and haven't committed. Can you undo it?</p>
   <div class="opts"><button class="opt">No, DELETE is permanent</button><button class="opt">Yes, with ROLLBACK</button><button class="opt">Only with REVOKE</button><button class="opt">Only by TRUNCATE</button></div>

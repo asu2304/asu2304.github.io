@@ -205,33 +205,6 @@
 <tr><td>Domain</td><td>Set of allowed values for a column</td></tr>
 </tbody></table></div>
 
-<h2 id="mcq">MCQs from the class</h2>
-<div class="quiz" data-answer="2">
-  <p class="q">A DBMS acts as an interface between…</p>
-  <div class="opts"><button class="opt">Hardware and the operating system</button><button class="opt">The OS and the user</button><button class="opt">The database and its users / application programs</button><button class="opt">Two databases</button></div>
-  <p class="why">The DBMS sits between the <b>database</b> and the <b>applications / users</b> that need the data.</p>
-</div>
-<div class="quiz" data-answer="3">
-  <p class="q">Which of these is NOT a disadvantage of a file system?</p>
-  <div class="opts"><button class="opt">Data redundancy</button><button class="opt">Difficulty in accessing data</button><button class="opt">Data isolation</button><button class="opt">High cost</button></div>
-  <p class="why">Files are <b>cheap</b>. Their problems are redundancy, hard access, isolation, concurrency and security, not cost.</p>
-</div>
-<div class="quiz" data-answer="0">
-  <p class="q">Which DBMS feature maintains the accuracy of data?</p>
-  <div class="opts"><button class="opt">Integrity</button><button class="opt">Utilities</button><button class="opt">Performance</button><button class="opt">Recovery</button></div>
-  <p class="why"><b>Integrity</b> means accuracy and consistency of the data.</p>
-</div>
-<div class="quiz" data-answer="1">
-  <p class="q">A relational database consists of a collection of…</p>
-  <div class="opts"><button class="opt">Keys</button><button class="opt">Tables</button><button class="opt">Records only</button><button class="opt">Files</button></div>
-  <p class="why">A relational database is a collection of <b>tables</b> (relations).</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">The employee table above has 4 rows and 4 columns. If we add 2 new employees and a new column <code>city</code>, what are its cardinality and degree?</p>
-  <div class="opts"><button class="opt">Cardinality 5, degree 6</button><button class="opt">Cardinality 4, degree 4</button><button class="opt">Cardinality 6, degree 5</button><button class="opt">Cardinality 6, degree 6</button></div>
-  <p class="why">Cardinality = rows = 4 + 2 = <b>6</b>. Degree = columns = 4 + 1 = <b>5</b>.</p>
-</div>
-
 <h2 id="integrity">Data integrity and constraints</h2>
 <p><strong>Data integrity</strong> means maintaining and assuring the <em>accuracy and consistency</em> of data over its entire life cycle: as long as the data is in the database, it should stay correct. Databases enforce it with <strong>constraints</strong> (rules), which we'll write ourselves in <a href="07-ddl-queries.html">Chapter 7</a>. There are three types:</p>
 
@@ -263,7 +236,7 @@
 </div>
 
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="2">
   <p class="q">Your Android app and website show different profile names for the same user. Which property of good data storage is violated?</p>
   <div class="opts"><button class="opt">Concurrency</button><button class="opt">Security</button><button class="opt">Independence from the application (one shared, consistent source of data)</button><button class="opt">Availability</button></div>

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>9 · GROUP BY · SQL for Data Science</title>
-<meta name="description" content="Chapter 9 notes: GROUP BY with aggregates, grouping on several columns, HAVING vs WHERE, clause order, and the class MCQs, with runnable Bollywood examples.">
+<meta name="description" content="Chapter 9 notes: GROUP BY with aggregates, grouping on several columns, HAVING vs WHERE, clause order and conceptual questions, with runnable Bollywood examples.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
@@ -193,40 +193,8 @@ ORDER BY pclass;</textarea>
   <li>For each genre: number of movies, total budget, and average runtime in hours.</li>
 </ol></details>
 
-<h2 id="mcq">MCQs from the class</h2>
-<div class="quiz" data-answer="2">
-  <p class="q">Which aggregate functions can be applied to <b>both</b> numeric and character columns?</p>
-  <div class="opts"><button class="opt">AVG and SUM</button><button class="opt">Only COUNT</button><button class="opt">COUNT, MIN and MAX</button><button class="opt">All of them</button></div>
-  <p class="why"><code>MIN(title)</code> is the alphabetically first title, <code>MAX(title)</code> the last. AVG and SUM need numbers.</p>
-</div>
-<div class="quiz" data-answer="1">
-  <p class="q">Which statement about ORDER BY is <b>true</b>?</p>
-  <div class="opts"><button class="opt">It only works on numeric columns</button><button class="opt">It works on date columns, and ascending is the default</button><button class="opt">WHERE can be written after ORDER BY</button><button class="opt">It requires GROUP BY</button></div>
-  <p class="why">ORDER BY sorts numbers, text and dates; ASC is the default; WHERE must come before it.</p>
-</div>
-<div class="quiz" data-answer="3">
-  <p class="q"><code>SELECT supplier, item, COUNT(*) FROM orders GROUP BY supplier, item</code>. The table has rows (A, pen), (A, pen), (A, ink), (B, pen), (C, pad). How many rows come back?</p>
-  <div class="opts"><button class="opt">5</button><button class="opt">3</button><button class="opt">2</button><button class="opt">4</button></div>
-  <p class="why">One row per distinct <b>combination</b>: (A,pen), (A,ink), (B,pen), (C,pad) = 4.</p>
-</div>
-<div class="quiz" data-answer="0">
-  <p class="q">Display each department with its average salary, highest average first.</p>
-  <div class="opts"><button class="opt"><code>SELECT dept, AVG(salary) FROM emp GROUP BY dept ORDER BY AVG(salary) DESC</code></button><button class="opt"><code>SELECT dept, AVG(salary) FROM emp ORDER BY AVG(salary) DESC</code></button><button class="opt"><code>SELECT dept, salary FROM emp GROUP BY dept ORDER BY salary DESC</code></button><button class="opt"><code>SELECT dept, AVG(salary) FROM emp GROUP BY salary ORDER BY dept</code></button></div>
-  <p class="why">Group by department, average the salaries, sort that average descending.</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">Show each department's minimum and maximum salary, but only for departments whose <b>minimum salary is at least 5000</b> and maximum salary at most 15000. Which clause holds the condition?</p>
-  <div class="opts"><button class="opt">WHERE MIN(salary) &gt;= 5000</button><button class="opt">ORDER BY</button><button class="opt">HAVING MIN(salary) &gt;= 5000 AND MAX(salary) &lt;= 15000</button><button class="opt">LIMIT</button></div>
-  <p class="why">Conditions on aggregates of a group go in <b>HAVING</b>; WHERE can't see aggregates.</p>
-</div>
-<div class="quiz" data-answer="1">
-  <p class="q">Which is the correct order of clauses?</p>
-  <div class="opts"><button class="opt">SELECT, WHERE, FROM, GROUP BY, HAVING</button><button class="opt">SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY</button><button class="opt">SELECT, FROM, GROUP BY, WHERE, ORDER BY</button><button class="opt">FROM, SELECT, HAVING, GROUP BY</button></div>
-  <p class="why">SELECT → FROM → (JOIN) → WHERE → GROUP BY → HAVING → ORDER BY → LIMIT.</p>
-</div>
-
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="1">
   <p class="q">Why can't you write <code>WHERE COUNT(*) &gt; 2</code>?</p>
   <div class="opts"><button class="opt">COUNT needs a column name</button><button class="opt">WHERE runs on individual rows <em>before</em> groups exist, so there is nothing to count yet</button><button class="opt">COUNT only works in ORDER BY</button><button class="opt">It's allowed in MySQL 8</button></div>

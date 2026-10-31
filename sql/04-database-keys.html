@@ -156,28 +156,6 @@ enrollments(student_id → students, course_id → courses, enrolled_on)</code><
   <div class="flash"><div class="inner"><div class="face front"><b>Surrogate</b><small>tap to flip</small></div><div class="face back">An artificial id you create when no natural key exists.</div></div></div>
 </div>
 
-<h2 id="mcq">MCQs from the class</h2>
-<div class="quiz" data-answer="3">
-  <p class="q">Which key is used to create the relationship between two tables?</p>
-  <div class="opts"><button class="opt">Super key</button><button class="opt">Candidate key</button><button class="opt">Surrogate key</button><button class="opt">Foreign key</button></div>
-  <p class="why">A <b>foreign key</b> in one table refers to the primary key of another.</p>
-</div>
-<div class="quiz" data-answer="1">
-  <p class="q">True or false: a table can have more than one primary key.</p>
-  <div class="opts"><button class="opt">True</button><button class="opt">False</button></div>
-  <p class="why"><b>False.</b> A table has exactly one primary key (which may span several columns). It can have many candidate, alternate and foreign keys.</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">A <code>recharge_plans</code> table has columns <code>operator</code>, <code>plan_type</code>, <code>price</code>, <code>validity</code>. Each operator offers one plan of each type (e.g. Jio-Regular, Jio-Premium, Airtel-Regular…). Which is a candidate key?</p>
-  <div class="opts"><button class="opt"><code>{operator}</code></button><button class="opt"><code>{plan_type}</code></button><button class="opt"><code>{operator, plan_type}</code></button><button class="opt"><code>{price}</code></button></div>
-  <p class="why">One operator has many plans and one plan type exists for many operators, so neither is unique alone. Together, <b>operator + plan_type</b> is unique and minimal: a candidate key (and a composite one).</p>
-</div>
-<div class="quiz" data-answer="0">
-  <p class="q">You have a table of sensor readings: <code>temperature</code>, <code>humidity</code>, <code>reading_time</code>, and none of these is reliably unique. What should you add?</p>
-  <div class="opts"><button class="opt">A surrogate key (auto-increment id)</button><button class="opt">A foreign key</button><button class="opt">An alternate key</button><button class="opt">Nothing; tables don't need keys</button></div>
-  <p class="why">With no natural key, create an artificial one: a <b>surrogate key</b>.</p>
-</div>
-
 <h2 id="cardinality">Cardinality of relationships</h2>
 <p>When two tables (entities) are related, the <strong>cardinality of the relationship</strong> is the number of instances of one entity that can be associated with instances of the other. There are three kinds (or there's no relationship at all, e.g. students and the college's admin staff):</p>
 <div class="tabs">
@@ -217,19 +195,9 @@ enrollments(student_id → students, course_id → courses, enrolled_on)</code><
   <p style="margin:10px 0 0"><button class="btn small" data-reset>Shuffle again</button></p>
 </div>
 
-<div class="quiz" data-answer="1">
-  <p class="q">To store "a student enrols in a course" (many students, many courses), how many tables do you need at minimum?</p>
-  <div class="opts"><button class="opt">2</button><button class="opt">3</button><button class="opt">4</button><button class="opt">5</button></div>
-  <p class="why"><b>3</b>: <code>students</code>, <code>courses</code>, and a junction table <code>enrollments(student_id, course_id)</code>. Any M:N relationship always needs one extra table.</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">In a 1:N relationship between <code>branch</code> (1) and <code>students</code> (N), where does the foreign key go?</p>
-  <div class="opts"><button class="opt">In <code>branch</code>, pointing to students</button><button class="opt">In a new junction table</button><button class="opt">In <code>students</code>, pointing to branch</button><button class="opt">In both tables</button></div>
-  <p class="why">The FK goes on the <b>many</b> side: each student row stores its single <code>branch_id</code>.</p>
-</div>
 
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="1">
   <p class="q">Is every candidate key a super key? Is every super key a candidate key?</p>
   <div class="opts"><button class="opt">Yes; yes</button><button class="opt">Yes; no</button><button class="opt">No; yes</button><button class="opt">No; no</button></div>

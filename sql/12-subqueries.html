@@ -160,30 +160,8 @@ WHERE fare > (SELECT AVG(fare) FROM train t2 WHERE t2.pclass = t1.pclass);</text
 <div class="callout tip"><span class="t">That's the course!</span>
 <p>Nitish's parting advice: don't stop at the video. Go to SQL practice websites and solve lots of problems. That's what makes this stick. (Popular choices include HackerRank, LeetCode's database problems and StrataScratch.) Then try the interview set in <a href="practice-01-top-10-queries.html">Practice 1</a>.</p></div>
 
-<h2 id="mcq">Check yourself</h2>
-<div class="quiz" data-answer="1">
-  <p class="q">In an independent subquery, how many times does the inner query run?</p>
-  <div class="opts"><button class="opt">Once per outer row</button><button class="opt">Once; its result is then used by the outer query</button><button class="opt">Twice</button><button class="opt">It depends on LIMIT</button></div>
-  <p class="why">Independent = no reference to the outer row, so one evaluation is enough.</p>
-</div>
-<div class="quiz" data-answer="3">
-  <p class="q"><code>WHERE actor = (SELECT actor FROM movies WHERE genre = 'Drama')</code> fails. Why?</p>
-  <div class="opts"><button class="opt">Subqueries can't have WHERE</button><button class="opt">actor is a text column</button><button class="opt">Missing alias</button><button class="opt">The subquery returns many rows, so use IN instead of =</button></div>
-  <p class="why">"Subquery returns more than 1 row."</p>
-</div>
-<div class="quiz" data-answer="0">
-  <p class="q">Which subquery position <b>requires</b> an alias?</p>
-  <div class="opts"><button class="opt">In FROM (a derived table)</button><button class="opt">In WHERE … IN</button><button class="opt">In WHERE … =</button><button class="opt">None</button></div>
-  <p class="why"><code>FROM (…) AS t</code>: every table in FROM needs a name.</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">What makes a subquery "correlated"?</p>
-  <div class="opts"><button class="opt">It uses an aggregate</button><button class="opt">It's in the SELECT list</button><button class="opt">It references a column of the outer query, so it's re-evaluated per outer row</button><button class="opt">It returns many rows</button></div>
-  <p class="why">E.g. <code>WHERE m2.genre = m1.genre</code>.</p>
-</div>
-
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="1">
   <p class="q">Why can correlated subqueries be slow on big tables, and what's a common alternative?</p>
   <div class="opts"><button class="opt">They sort the table; use LIMIT</button><button class="opt">Conceptually the inner query runs once per outer row (n × work); a JOIN with a pre-aggregated derived table (or window functions) often does it in one pass</button><button class="opt">They can't use indexes ever</button><button class="opt">They're always fast</button></div>

@@ -195,35 +195,8 @@ ORDER BY members DESC;</textarea>
   <li>For each user, how many people list them as their emergency contact? (self join + GROUP BY)</li>
 </ol></details>
 
-<h2 id="mcq">Check yourself</h2>
-<div class="quiz" data-answer="2">
-  <p class="q">Table A has 7 rows and table B has 4. How many rows does <code>A CROSS JOIN B</code> return?</p>
-  <div class="opts"><button class="opt">11</button><button class="opt">7</button><button class="opt">28</button><button class="opt">4</button></div>
-  <p class="why">Every row with every row: 7 × 4.</p>
-</div>
-<div class="quiz" data-answer="1">
-  <p class="q">Which join keeps all rows of the <b>first</b> table even when there's no match?</p>
-  <div class="opts"><button class="opt">INNER JOIN</button><button class="opt">LEFT JOIN</button><button class="opt">RIGHT JOIN</button><button class="opt">CROSS JOIN</button></div>
-  <p class="why">LEFT = everything from the left (first-written) table.</p>
-</div>
-<div class="quiz" data-answer="3">
-  <p class="q">How do you get a FULL OUTER JOIN in MySQL?</p>
-  <div class="opts"><button class="opt"><code>FULL JOIN</code></button><button class="opt"><code>OUTER JOIN</code> alone</button><button class="opt">It's impossible</button><button class="opt">LEFT JOIN <code>UNION</code> RIGHT JOIN</button></div>
-  <p class="why">MySQL has no FULL OUTER JOIN keyword; combine the two outer joins with UNION.</p>
-</div>
-<div class="quiz" data-answer="0">
-  <p class="q">What's the difference between UNION and UNION ALL?</p>
-  <div class="opts"><button class="opt">UNION removes duplicate rows; UNION ALL keeps them</button><button class="opt">UNION ALL removes duplicates</button><button class="opt">UNION joins columns side by side</button><button class="opt">No difference</button></div>
-  <p class="why">That's also why UNION ALL is faster: no de-duplication step.</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">Which statement about UNION is required to be true?</p>
-  <div class="opts"><button class="opt">Both queries must read the same table</button><button class="opt">Both must have a WHERE clause</button><button class="opt">Both must return the same number of columns, with compatible types</button><button class="opt">Columns must have the same names</button></div>
-  <p class="why">The output takes its column names from the first query.</p>
-</div>
-
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="1">
   <p class="q">You LEFT JOIN users to membership and add <code>WHERE m.group_id = 1</code>. Users with no group disappear. Why?</p>
   <div class="opts"><button class="opt">LEFT JOIN is broken in MySQL</button><button class="opt">For unmatched users <code>m.group_id</code> is NULL, and the WHERE condition is never true for NULL, so it turns the left join back into an inner join</button><button class="opt">WHERE runs before the join</button><button class="opt">Because of aliases</button></div>

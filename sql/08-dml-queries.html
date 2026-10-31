@@ -296,35 +296,8 @@ ORDER BY fare DESC;</textarea>
   <li>The three longest movies, with runtime in hours to one decimal.</li>
 </ol></details>
 
-<h2 id="mcq">Check yourself</h2>
-<div class="quiz" data-answer="2">
-  <p class="q">Which query returns every unique (sex, pclass) combination?</p>
-  <div class="opts"><button class="opt"><code>SELECT DISTINCT sex FROM train</code></button><button class="opt"><code>SELECT sex, DISTINCT pclass FROM train</code></button><button class="opt"><code>SELECT DISTINCT sex, pclass FROM train</code></button><button class="opt"><code>SELECT UNIQUE(sex, pclass) FROM train</code></button></div>
-  <p class="why"><code>DISTINCT</code> applies to the whole selected row, so it removes duplicate combinations.</p>
-</div>
-<div class="quiz" data-answer="0">
-  <p class="q"><code>WHERE age BETWEEN 10 AND 20</code> includes passengers aged exactly 10 and 20?</p>
-  <div class="opts"><button class="opt">Yes, both ends are included</button><button class="opt">Only 10</button><button class="opt">Only 20</button><button class="opt">Neither</button></div>
-  <p class="why">BETWEEN is inclusive: <code>age &gt;= 10 AND age &lt;= 20</code>.</p>
-</div>
-<div class="quiz" data-answer="3">
-  <p class="q"><code>SUBSTRING('Agneepath', 3, 4)</code> returns…</p>
-  <div class="opts"><button class="opt"><code>'neep'</code> from position 2</button><button class="opt"><code>'Agne'</code></button><button class="opt"><code>'path'</code></button><button class="opt"><code>'neep'</code></button></div>
-  <p class="why">Positions start at <b>1</b>: A(1) g(2) <b>n</b>(3)… so 4 characters from position 3 = "neep".</p>
-</div>
-<div class="quiz" data-answer="1">
-  <p class="q">A column holds 5, 5, 8, NULL. What do <code>COUNT(*)</code>, <code>COUNT(col)</code> and <code>COUNT(DISTINCT col)</code> return?</p>
-  <div class="opts"><button class="opt">4, 4, 3</button><button class="opt">4, 3, 2</button><button class="opt">3, 3, 2</button><button class="opt">4, 3, 3</button></div>
-  <p class="why"><code>COUNT(*)</code> counts rows (4); <code>COUNT(col)</code> skips NULLs (3); DISTINCT also merges the two 5s (2).</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">Which statement removes only the Yahoo users from <code>passengers</code>?</p>
-  <div class="opts"><button class="opt"><code>TRUNCATE TABLE passengers WHERE email LIKE '%yahoo%'</code></button><button class="opt"><code>DROP FROM passengers WHERE email LIKE '%yahoo%'</code></button><button class="opt"><code>DELETE FROM passengers WHERE email LIKE '%yahoo%'</code></button><button class="opt"><code>DELETE email FROM passengers LIKE '%yahoo%'</code></button></div>
-  <p class="why">Only <code>DELETE</code> accepts a <code>WHERE</code>; TRUNCATE always empties the whole table.</p>
-</div>
-
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="1">
   <p class="q">Why does <code>SELECT title, worldwide - budget AS profit FROM movies WHERE profit &gt; 0</code> fail, while <code>… ORDER BY profit</code> works?</p>
   <div class="opts"><button class="opt">WHERE can't do arithmetic</button><button class="opt">WHERE runs before SELECT, so the alias <code>profit</code> doesn't exist yet; ORDER BY runs after SELECT</button><button class="opt">Aliases are only allowed with GROUP BY</button><button class="opt">ORDER BY ignores aliases</button></div>

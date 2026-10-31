@@ -297,23 +297,8 @@ DELETE FROM users WHERE user_id = 1;</code></pre>
   <div class="flash"><div class="inner"><div class="face front"><b>A_I</b><small>what does it do?</small></div><div class="face back">Auto-increment: the DB assigns the next id itself. Pass <code>NULL</code> (or skip the column).</div></div></div>
 </div>
 
-<div class="quiz" data-answer="2">
-  <p class="q">A user types their email and password and clicks "Log in". Which CRUD operation is that?</p>
-  <div class="opts"><button class="opt">Create</button><button class="opt">Update</button><button class="opt">Read</button><button class="opt">Delete</button></div>
-  <p class="why"><b>Read.</b> Nothing changes in the database; the app only looks up whether a matching row exists.</p>
-</div>
-<div class="quiz" data-answer="1">
-  <p class="q">Your INSERT runs with no error but the row never shows up in phpMyAdmin. What did you most likely forget?</p>
-  <div class="opts"><button class="opt"><code>cursor.fetchall()</code></button><button class="opt"><code>conn.commit()</code></button><button class="opt"><code>sys.exit()</code></button><button class="opt">The primary key value</button></div>
-  <p class="why"><b><code>conn.commit()</code></b>. Changes made through the connector stay uncommitted until you commit them.</p>
-</div>
-<div class="quiz" data-answer="3">
-  <p class="q">Why does <code>DBHelper</code> wrap <code>mysql.connector.connect(...)</code> in <code>try/except</code>?</p>
-  <div class="opts"><button class="opt">To speed up the connection</button><button class="opt">Because MySQL requires it</button><button class="opt">To encrypt the password</button><button class="opt">Connecting can fail (wrong password, missing database, server off), and we want a clear message instead of a crash</button></div>
-  <p class="why">The class demonstrated several such failures live: a misspelled database name, a wrong password, and so on.</p>
-</div>
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="1">
   <p class="q">Why does <code>DBHelper</code> connect once in its constructor instead of connecting inside every method?</p>
   <div class="opts"><button class="opt">Python only allows one connection per program</button><button class="opt">Opening a connection is relatively expensive; reusing one is faster and simpler</button><button class="opt">MySQL forbids reconnecting</button><button class="opt">Methods can't call connect()</button></div>

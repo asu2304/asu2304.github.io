@@ -447,39 +447,8 @@ SELECT * FROM students;</script>
 <tr><td>Foreign key</td><td><code>CONSTRAINT fk FOREIGN KEY (c) REFERENCES p(id) ON DELETE CASCADE</code></td></tr>
 </tbody></table></div>
 
-<h2 id="quiz">Check yourself</h2>
-<div class="quiz" data-answer="1">
-  <p class="q">You want to remove every row from <code>users</code> but keep the table and its columns. Which DDL command?</p>
-  <div class="opts"><button class="opt"><code>DROP TABLE users</code></button><button class="opt"><code>TRUNCATE TABLE users</code></button><button class="opt"><code>ALTER TABLE users DROP COLUMN *</code></button><button class="opt"><code>DROP DATABASE users</code></button></div>
-  <p class="why"><b>TRUNCATE</b> empties the table; DROP removes it entirely.</p>
-</div>
-<div class="quiz" data-answer="3">
-  <p class="q">What does <code>IF NOT EXISTS</code> in <code>CREATE TABLE IF NOT EXISTS users (…)</code> do?</p>
-  <div class="opts"><button class="opt">Deletes the old table first</button><button class="opt">Creates a copy with a new name</button><button class="opt">Checks whether the columns exist</button><button class="opt">Skips creation (no error) if a table with that name already exists</button></div>
-  <p class="why">It avoids the "table already exists" error and leaves the existing table untouched.</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">Which constraint makes the database fill in the current time when you don't supply one?</p>
-  <div class="opts"><button class="opt"><code>AUTO_INCREMENT</code></button><button class="opt"><code>CHECK</code></button><button class="opt"><code>DEFAULT CURRENT_TIMESTAMP</code></button><button class="opt"><code>NOT NULL</code></button></div>
-  <p class="why"><b>DEFAULT</b> supplies a value when the insert omits the column.</p>
-</div>
-<div class="quiz" data-answer="0">
-  <p class="q"><code>ALTER TABLE passengers ADD CONSTRAINT p_email_unique UNIQUE (email);</code> fails with "Duplicate entry". Why?</p>
-  <div class="opts"><button class="opt">Existing rows already contain the same email twice</button><button class="opt">Constraints can only be added in CREATE TABLE</button><button class="opt">The constraint name is too long</button><button class="opt">UNIQUE needs NOT NULL first</button></div>
-  <p class="why">The data must already satisfy a constraint before you can add it. Clean the duplicates first.</p>
-</div>
-<div class="quiz" data-answer="1">
-  <p class="q">A <code>customers</code> row is deleted and all of that customer's <code>orders</code> disappear automatically. Which referential action is on the foreign key?</p>
-  <div class="opts"><button class="opt"><code>ON DELETE RESTRICT</code></button><button class="opt"><code>ON DELETE CASCADE</code></button><button class="opt"><code>ON DELETE SET NULL</code></button><button class="opt">No foreign key at all</button></div>
-  <p class="why"><b>CASCADE</b> propagates the delete to child rows. RESTRICT would have refused the delete; SET NULL would keep the orders with <code>cid = NULL</code>.</p>
-</div>
-<div class="quiz" data-answer="3">
-  <p class="q">How do you change the condition of an existing named CHECK constraint?</p>
-  <div class="opts"><button class="opt"><code>ALTER TABLE t MODIFY CONSTRAINT …</code></button><button class="opt"><code>UPDATE CONSTRAINT …</code></button><button class="opt">You can't; recreate the whole table</button><button class="opt">Drop the constraint, then add a new one with the new condition</button></div>
-  <p class="why">Constraints can't be edited in place: <b>drop and re-add</b>, which is easy when you named it.</p>
-</div>
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="1">
   <p class="q">You need to remove all rows from a 50-million-row log table quickly and keep its structure. Which is the better choice and why?</p>
   <div class="opts"><button class="opt">DELETE FROM logs, because it's DML</button><button class="opt">TRUNCATE TABLE logs, because it deallocates the data at once instead of deleting row by row (and resets AUTO_INCREMENT)</button><button class="opt">DROP TABLE logs</button><button class="opt">ALTER TABLE logs DROP COLUMN *</button></div>

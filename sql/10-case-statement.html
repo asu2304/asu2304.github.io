@@ -151,25 +151,8 @@ FROM train;</textarea>
 </div>
 <p class="legend">Try next: survival rate per age group (wrap the CASE in a GROUP BY), or label movies by runtime as "short / standard / epic".</p>
 
-<h2 id="mcq">Check yourself</h2>
-<div class="quiz" data-answer="1">
-  <p class="q">A movie has profit 150. With the WHENs ordered "&gt; 25 → Hit" first and "&gt; 100 → Superhit" second, what label does it get?</p>
-  <div class="opts"><button class="opt">Superhit</button><button class="opt">Hit, because the first true WHEN wins</button><button class="opt">Both</button><button class="opt">An error</button></div>
-  <p class="why">Order matters: put the most specific (strictest) condition first.</p>
-</div>
-<div class="quiz" data-answer="2">
-  <p class="q">What does a CASE return for a row that matches no WHEN and has no ELSE?</p>
-  <div class="opts"><button class="opt">An empty string</button><button class="opt">0</button><button class="opt">NULL</button><button class="opt">The first THEN value</button></div>
-  <p class="why">Always add an ELSE if you don't want NULLs.</p>
-</div>
-<div class="quiz" data-answer="0">
-  <p class="q">Which keyword closes a CASE expression?</p>
-  <div class="opts"><button class="opt"><code>END</code></button><button class="opt"><code>ENDCASE</code></button><button class="opt"><code>STOP</code></button><button class="opt"><code>)</code></button></div>
-  <p class="why"><code>CASE … END</code>, optionally followed by <code>AS name</code>.</p>
-</div>
-
 <h2 id="concepts">Conceptual questions</h2>
-<p>The questions above test facts. These check whether you understand <em>why</em>; several go one step beyond the video.</p>
+<p>These check whether you understand <em>why</em>, not just <em>what</em>. Several go one step beyond the video.</p>
 <div class="quiz" data-answer="3">
   <p class="q">Why does <code>SUM(CASE WHEN sex = 'female' THEN 1 ELSE 0 END)</code> count women?</p>
   <div class="opts"><button class="opt">SUM counts text values</button><button class="opt">CASE filters out the men</button><button class="opt">It's a special MySQL syntax</button><button class="opt">CASE turns each row into 1 (woman) or 0 (not), and summing the 1s counts them</button></div>

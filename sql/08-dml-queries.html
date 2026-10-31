@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css?v=4">
+<link rel="stylesheet" href="sql.css?v=5">
 </head>
 <body class="sql-page" data-chapter="8">
 <header class="site-header">
@@ -126,6 +126,10 @@ SELECT name, age FROM train WHERE age BETWEEN 10 AND 20;</code></pre>
 </svg>
 <figcaption>Logical execution order. GROUP BY and HAVING come in <a href="09-group-by.html">Chapter 9</a>.</figcaption>
 </div>
+<div class="mnemonic"><span class="t">Memory trick: execution order</span>
+<div class="phrase"><b>F</b>rank <b>J</b>ohn's <b>W</b>icked <b>G</b>rave <b>H</b>aunts <b>S</b>everal <b>D</b>ull <b>O</b>wls</div>
+<div class="map"><span><b>F</b>ROM</span><span><b>J</b>OIN</span><span><b>W</b>HERE</span><span><b>G</b>ROUP BY</span><span><b>H</b>AVING</span><span><b>S</b>ELECT</span><span><b>D</b>ISTINCT</span><span><b>O</b>RDER BY</span></div>
+<small>…and <b>LIMIT</b> comes last. This is the order the database <em>runs</em> the clauses, not the order you <em>write</em> them.</small></div>
 
 <h2 id="in">IN and NOT IN</h2>
 <p>For the next topics Nitish switches to a <strong>Bollywood movies</strong> dataset: <code>title</code>, <code>actor</code>, <code>director</code>, <code>genre</code>, <code>budget</code>, <code>india_gross</code>, <code>worldwide</code>, <code>screens</code> (opening screens), <code>runtime</code> (minutes), <code>release_date</code>.</p>
@@ -348,6 +352,6 @@ ORDER BY fare DESC;</textarea>
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js?v=4"></script>
+<script src="notes.js?v=5"></script>
 </body>
 </html>

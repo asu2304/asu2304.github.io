@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="stylesheet" href="sql.css?v=4">
+<link rel="stylesheet" href="sql.css?v=5">
 <style>
 .sac { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
 .sac .stage { border: 1px solid var(--rule); border-radius: 10px; padding: 8px; background: var(--bg); min-height: 120px; opacity: .35; transition: opacity .3s; }
@@ -164,6 +164,10 @@ HAVING COUNT(*) > 2;</code></pre>
 <div class="callout sql"><span class="t">Writing order</span>
 <p style="font-family:var(--mono);font-size:15px;margin:0"><b>SELECT</b> → <b>FROM</b> → <b>JOIN</b> → <b>WHERE</b> → <b>GROUP BY</b> → <b>HAVING</b> → <b>ORDER BY</b> → <b>LIMIT</b></p></div>
 <p>Writing them in any other order is a syntax error (e.g. <code>WHERE</code> after <code>ORDER BY</code>). The logical <em>execution</em> order is different (FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY → LIMIT; see <a href="08-dml-queries.html#order">Chapter 8</a>).</p>
+<div class="mnemonic"><span class="t">Memory trick: execution order</span>
+<div class="phrase"><b>F</b>rank <b>J</b>ohn's <b>W</b>icked <b>G</b>rave <b>H</b>aunts <b>S</b>everal <b>D</b>ull <b>O</b>wls</div>
+<div class="map"><span><b>F</b>ROM</span><span><b>J</b>OIN</span><span><b>W</b>HERE</span><span><b>G</b>ROUP BY</span><span><b>H</b>AVING</span><span><b>S</b>ELECT</span><span><b>D</b>ISTINCT</span><span><b>O</b>RDER BY</span></div>
+<small>…and <b>LIMIT</b> comes last. This is the order the database <em>runs</em> the clauses, not the order you <em>write</em> them.</small></div>
 
 <h2 id="sql-lab">SQL lab</h2>
 <div class="widget playground" id="lab" data-setup-src="data/bollywood.sql data/titanic.sql" data-mysql>
@@ -250,7 +254,7 @@ ORDER BY pclass;</textarea>
 </main>
 </div>
 <footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Notes on "Complete SQL Course For Data Science" by Nitish Singh (CampusX). All teaching credit to the original author.</div></footer>
-<script src="notes.js?v=4"></script>
+<script src="notes.js?v=5"></script>
 <script>
 (function () {
   var rows = [["Salman Khan", "Sultan", 524], ["Aamir Khan", "Dangal", 1954], ["Ranbir Kapoor", "Sanju", 486], ["Salman Khan", "Tiger Zinda Hai", 355],

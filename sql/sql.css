@@ -231,3 +231,13 @@
   .credit { font-size: 13.5px; }
   .sql-page .layout.has-sidebar { display: block; }
 }
+
+/* mnemonic for query execution order */
+.mnemonic { margin: 18px 0 24px; padding: 16px 18px; border-radius: 12px; border: 2px solid var(--sql); background: var(--sql-soft); font-family: var(--sans); }
+.mnemonic .t { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--sql); margin-bottom: 8px; }
+.mnemonic .phrase { font-size: 22px; font-weight: 700; line-height: 1.4; }
+.mnemonic .phrase b { color: var(--sql); font-size: 1.25em; }
+.mnemonic .map { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.mnemonic .map span { font: 600 13px var(--mono); background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 4px 9px; }
+.mnemonic .map span b { color: var(--sql); }
+.mnemonic small { display: block; margin-top: 10px; color: var(--muted); font-size: 13.5px; }

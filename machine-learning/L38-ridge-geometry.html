@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Geometry of Ridge Regression</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 38 · Regression: regularisation, geometrically</div>
+<h1>The Geometry of Ridge: Ellipses Meet a Circle</h1>
+<p class="lede">Ridge regression is the same as minimising the loss while keeping $w$ <b>inside a circle</b> around the origin. The loss grows in <b>elliptical contours</b> around the ML solution. The ridge solution is where the contours first touch the circle. That point is shorter than $\hat w_{\text{ML}}$, but generally has <b>no exactly-zero</b> coordinates.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=rCfjaEYxaC8">this lecture on YouTube</a> (≈25 min). Previous: <a href="L37-ridge-regression.html">L37</a> · Next: <a href="L39-lasso.html">L39</a>.</p>
+
+<h2>1 · Ridge as a constrained problem</h2>
+<p>Two problems that turn out to have the same answer:</p>
+<table>
+<tr><th>(A) Penalised (how we solve it)</th><th>(B) Constrained (how we picture it)</th></tr>
+<tr><td>$\displaystyle\min_{w}\ \sum_i(w^\top x_i-y_i)^2+\lambda\lVert w\rVert^2$</td><td>$\displaystyle\min_{w}\ \sum_i(w^\top x_i-y_i)^2\quad\text{s.t.}\quad\lVert w\rVert^2\le\theta$</td></tr>
+</table>
+<p><b>Equivalence (stated, not proved):</b> for every $\lambda>0$ there is a $\theta$, depending on $\lambda$, such that (A) and (B) have the same optimal $w$. So the regulariser is really a <b>constraint on where we search for $w$</b>.</p>
+<p>With two features (height and weight), $w=(w_1,w_2)$ lives in a 2-D <b>parameter space</b>. The constraint $w_1^2+w_2^2\le\theta$ is a <b>disc</b> centred at the origin with radius $\sqrt\theta$. The unconstrained $\hat w_{\text{ML}}$ can be anywhere, typically outside the disc.</p>
+
+<h2>2 · The shape of the loss: ellipses around ŵ<sub>ML</sub></h2>
+<p>Write the loss as $f(w)=\lVert X^\top w-y\rVert^2$. $\hat w_{\text{ML}}$ has the smallest loss of all. Now ask: which $w$ have loss exactly $c$ <b>more</b> than the minimum, $f(w)=f(\hat w_{\text{ML}})+c$? Expanding both sides and simplifying (worth doing once yourself) gives</p>
+$$\big(w-\hat w_{\text{ML}}\big)^\top XX^\top\big(w-\hat w_{\text{ML}}\big)=c' .$$
+<ul>
+<li>If $XX^\top=I$, this is $\lVert w-\hat w_{\text{ML}}\rVert^2=c'$: a <b>circle</b> around $\hat w_{\text{ML}}$.</li>
+<li>In general $XX^\top$ stretches that circle into an <b>ellipse</b>. Larger $c$ gives a larger ellipse, so the loss grows in concentric ellipses around $\hat w_{\text{ML}}$.</li>
+</ul>
+<p class="small muted">(Going beyond the video: the constant is exactly $c'=c$. The cross term $2(w-\hat w)^\top X(X^\top\hat w-y)$ vanishes because the normal equations say $X(X^\top\hat w_{\text{ML}}-y)=0$.)</p>
+
+<h2>3 · Where the ridge solution sits</h2>
+<p>Grow the ellipses outward from $\hat w_{\text{ML}}$, adding loss as you go. The <b>first point where an ellipse touches the disc</b> is the point inside the disc with the least loss. That's $\hat w_{\text{R}}$.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Parameter space $(w_1,w_2)$. Move $\hat w_{\text{ML}}$, change the ellipses' shape and tilt (that's what $XX^\top$ controls), and change the disc size $\sqrt\theta$ (a larger $\lambda$ means a smaller disc).</p>
+  <div class="row">
+    <label>ŵ<sub>ML</sub>: w₁ = <b id="aV"></b> <input type="range" id="a" min="-30" max="30" value="22" aria-label="ML solution w1"></label>
+    <label>w₂ = <b id="bV"></b> <input type="range" id="b" min="-30" max="30" value="12" aria-label="ML solution w2"></label>
+  </div>
+  <div class="row">
+    <label>ellipse stretch = <b id="kV"></b> <input type="range" id="k" min="10" max="100" value="40" aria-label="ellipse stretch"></label>
+    <label>tilt = <b id="tV"></b> <input type="range" id="t" min="0" max="180" value="30" aria-label="ellipse tilt"></label>
+    <label>disc radius √θ = <b id="rV"></b> <input type="range" id="r" min="2" max="30" value="10" aria-label="disc radius"></label>
+  </div>
+  <canvas id="gc" height="380" aria-label="Elliptical loss contours around the ML solution touching the ridge disc"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>constraint disc ‖w‖² ≤ θ</span><span><i style="background:var(--muted)"></i>loss contours</span><span><i class="dot" style="background:var(--ink)"></i>ŵ<sub>ML</sub></span><span><i class="dot" style="background:var(--s2)"></i>ŵ<sub>R</sub></span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="wr">–</div><div class="l">ŵ<sub>R</sub> = (w₁, w₂)</div></div>
+    <div class="stat"><div class="v" id="len">–</div><div class="l">‖ŵ<sub>ML</sub>‖ → ‖ŵ<sub>R</sub>‖</div></div>
+  </div>
+  <p class="small" id="gTxt"></p>
+</div>
+
+<h2>4 · What this shows</h2>
+<ul>
+<li><b>Ridge shrinks:</b> $\hat w_{\text{R}}$ lies in the disc, so it's shorter than $\hat w_{\text{ML}}$. It pushes weights towards 0.</li>
+<li><b>But it doesn't zero:</b> the touching point is usually somewhere on the round edge, where neither coordinate is exactly 0. A weight that is exactly 0 would tell us the feature is useless and can be dropped. A weight that is merely small leaves us unsure whether to keep the feature.</li>
+</ul>
+<div class="callout"><b>The question this raises:</b> the regulariser decides the shape of the region we search in. Could a <b>different shape</b> make the ellipses more likely to touch at a point where some coordinates are exactly 0? That's lasso, in L39.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Penalised ridge (λ) ⇔ constrained ridge ($\lVert w\rVert^2\le\theta$), for a matching θ.</li>
+<li>Loss contours are ellipses $(w-\hat w_{\text{ML}})^\top XX^\top(w-\hat w_{\text{ML}})=c'$ around $\hat w_{\text{ML}}$.</li>
+<li>$\hat w_{\text{R}}$ is where the growing ellipses first touch the disc: shorter than $\hat w_{\text{ML}}$, rarely with exact zeros.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function setup(){
+  const a = +$('a').value / 10, b = +$('b').value / 10, k = +$('k').value / 10, tilt = +$('t').value, r = +$('r').value / 10;
+  $('aV').textContent = a.toFixed(1); $('bV').textContent = b.toFixed(1); $('kV').textContent = k.toFixed(1); $('tV').textContent = tilt + '°'; $('rV').textContent = r.toFixed(1);
+  const ph = tilt * Math.PI / 180, u1 = [Math.cos(ph), Math.sin(ph)], u2 = [-Math.sin(ph), Math.cos(ph)], l1 = 1, l2 = k;   // XXᵀ = l1·u1u1ᵀ + l2·u2u2ᵀ
+  const q = w => { const d = [w[0] - a, w[1] - b], p1 = d[0] * u1[0] + d[1] * u1[1], p2 = d[0] * u2[0] + d[1] * u2[1]; return l1 * p1 * p1 + l2 * p2 * p2; };
+  return {a, b, r, u1, u2, l1, l2, q};
+}
+function ridgeOnDisc(m){
+  if (m.a * m.a + m.b * m.b <= m.r * m.r) return [m.a, m.b];
+  let best = 0, bv = Infinity; const N = 3600;
+  for (let i = 0; i < N; i++){ const t = 2 * Math.PI * i / N, v = m.q([m.r * Math.cos(t), m.r * Math.sin(t)]); if (v < bv){ bv = v; best = t; } }
+  let lo = best - 2 * Math.PI / N, hi = best + 2 * Math.PI / N;   // golden-section refine
+  for (let it = 0; it < 60; it++){ const t1 = lo + (hi - lo) * 0.382, t2 = lo + (hi - lo) * 0.618;
+    if (m.q([m.r * Math.cos(t1), m.r * Math.sin(t1)]) < m.q([m.r * Math.cos(t2), m.r * Math.sin(t2)])) hi = t2; else lo = t1; }
+  const t = (lo + hi) / 2; return [m.r * Math.cos(t), m.r * Math.sin(t)];
+}
+function draw(){
+  const m = setup(), w = ridgeOnDisc(m);
+  const [ctx, W, H] = setupCanvas($('gc')), S = Math.min(W, H) / 7.4, cx = W / 2, cy = H / 2;
+  const X = v => cx + v * S, Y = v => cy - v * S;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('w₁', W - 6, cy + 4); ctx.textAlign = 'left'; ctx.fillText('w₂', cx + 6, 4);
+  ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = 0.14; ctx.beginPath(); ctx.arc(cx, cy, m.r * S, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(cx, cy, m.r * S, 0, 2 * Math.PI); ctx.stroke();
+  const ell = (c, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+    for (let i = 0; i <= 200; i++){ const t = 2 * Math.PI * i / 200, s1 = Math.sqrt(c / m.l1) * Math.cos(t), s2 = Math.sqrt(c / m.l2) * Math.sin(t);
+      const p = [m.a + s1 * m.u1[0] + s2 * m.u2[0], m.b + s1 * m.u1[1] + s2 * m.u2[1]]; i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])); } ctx.stroke(); };
+  const cStar = m.q(w);
+  if (cStar > 1e-9){ [0.15, 0.4, 0.7].forEach(f => ell(cStar * f, cssv('--faint'), 1)); ell(cStar, cssv('--muted'), 2); }
+  const pt = (p, col, r) => { ctx.fillStyle = col; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); };
+  pt([m.a, m.b], cssv('--ink'), 6); pt(w, cssv('--s2'), 7);
+  ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('ŵ_ML', X(m.a) + 8, Y(m.b) - 4);
+  $('wr').textContent = `(${w[0].toFixed(3)}, ${w[1].toFixed(3)})`;
+  $('len').textContent = `${Math.hypot(m.a, m.b).toFixed(2)} → ${Math.hypot(...w).toFixed(2)}`;
+  const inside = m.a * m.a + m.b * m.b <= m.r * m.r, zero = Math.min(Math.abs(w[0]), Math.abs(w[1])) < 1e-3;
+  $('gTxt').innerHTML = inside ? 'ŵ<sub>ML</sub> is already inside the disc, so the constraint does nothing: ŵ<sub>R</sub> = ŵ<sub>ML</sub>. Shrink the disc (a larger λ).'
+    : zero ? 'Here the touching point happens to be on an axis, but only because ŵ<sub>ML</sub> or the ellipse lines up exactly. Nudge any slider and the zero disappears.'
+    : 'The smallest ellipse that reaches the disc touches it on the round edge. ŵ<sub>R</sub> is shorter than ŵ<sub>ML</sub>, but <b>both coordinates are non-zero</b>.';
+}
+['a', 'b', 'k', 't', 'r'].forEach(id => $(id).oninput = draw);
+onReady(draw);
+</script>
+</body>
+</html>

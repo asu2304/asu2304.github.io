@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ridge Regression and Regularisation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 37 · Regression: regularisation</div>
+<h1>Ridge Regression: Loss Plus a Regulariser</h1>
+<p class="lede">The Bayesian estimator from L36 is <b>ridge regression</b>: the usual squared loss plus a penalty $\lambda\lVert w\rVert^2$. The penalty, called a <b>regulariser</b>, pulls $w$ towards 0. That's useful when many features are <b>redundant</b>, because then many different weight vectors fit the data equally well, and ridge picks a short one.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=dMB1c5NADnE">this lecture on YouTube</a> (≈10 min). Previous: <a href="L36-bayesian-ridge.html">L36</a> · Next: <a href="L38-ridge-geometry.html">L38</a>.</p>
+
+<h2>1 · Two estimators side by side</h2>
+<table>
+<tr><th></th><th>Problem</th><th>Solution</th></tr>
+<tr><td>Linear regression (ML)</td><td>$\hat w_{\text{ML}}=\arg\min_w\sum_i(w^\top x_i-y_i)^2$</td><td>$(XX^\top)^{-1}Xy$</td></tr>
+<tr><td><b>Ridge regression</b> (MAP)</td><td>$\hat w_{\text{R}}=\arg\min_w\sum_i(w^\top x_i-y_i)^2+\lambda\lVert w\rVert^2$</td><td>$(XX^\top+\lambda I)^{-1}Xy$</td></tr>
+</table>
+<ul>
+<li>$\sum_i(w^\top x_i-y_i)^2$ is the <b>loss</b>. $\lambda\lVert w\rVert^2$ is the <b>regulariser</b>: a penalty that makes some kinds of $w$ preferred over others.</li>
+<li>$\lambda$ is a <b>hyperparameter</b>, chosen by cross-validation (L35). From L36, it plays the role of $1/\gamma^2$, one over the prior's variance.</li>
+<li>The name "ridge" comes from classical statistics.</li>
+</ul>
+
+<h2>2 · What the regulariser prefers: short w</h2>
+<p>The prior was centred at $\mathbf 0$, so its peak is at $w=0$. Correspondingly, $\lambda\lVert w\rVert^2$ penalises length and <b>pulls $w$ towards 0</b>, while the loss pulls $w$ towards fitting the data. The answer balances the two. If several $w$ have the same loss, ridge prefers the <b>shortest</b> one, the one with small components. (It never pushes all the way to $w=0$, which would be useless.)</p>
+<div class="callout"><b>How strong is the pull?</b> $\lambda\approx1/\gamma^2$. A strong belief that most weights should be near zero means a small prior variance $\gamma^2$, so a <b>large $\lambda$</b>, so long weight vectors are heavily penalised. A weak belief means a large $\gamma^2$ and a small $\lambda$, and ridge behaves almost like ML.</div>
+
+<h2>3 · Why prefer short w? Redundant features</h2>
+<p>With thousands or millions of features, many are redundant: some feature is a combination of others. Then <b>many weight vectors explain the label equally well</b>. The lecture's example uses three features, $f_1=$ height, $f_2=$ weight, and a third sensor that reports $f_3=2\cdot\text{height}+3\cdot\text{weight}$, with the label $y\approx3\cdot\text{height}+4\cdot\text{weight}$:</p>
+<table>
+<tr><th>Weights $(w_1,w_2,w_3)$</th><th>Check: $w_1h+w_2\,\text{wt}+w_3(2h+3\,\text{wt})$</th><th>$\lVert w\rVert^2$</th></tr>
+<tr><td>$(1,\ 1,\ 1)$</td><td>$3h+4\,\text{wt}$ ✓</td><td>3</td></tr>
+<tr><td>$(3,\ 4,\ 0)$</td><td>$3h+4\,\text{wt}$ ✓ (ignores the redundant $f_3$)</td><td>25</td></tr>
+<tr><td>$(0,\ -0.5,\ 1.5)$</td><td>$3h+4\,\text{wt}$ ✓ (ignores height)</td><td>2.5</td></tr>
+<tr><td>$(\tfrac37,\ \tfrac17,\ \tfrac97)$</td><td>$3h+4\,\text{wt}$ ✓: the <b>shortest</b> one</td><td>≈ 1.86</td></tr>
+</table>
+<p>All four fit perfectly. The lecture's motivation is to avoid giving weight to redundant features. Notice what "shortest" actually picks, though: $(\tfrac37,\tfrac17,\tfrac97)$ spreads weight over <b>all three</b> features rather than dropping one. Ridge makes weights small, but not exactly zero. That observation drives the next two lectures (L38–L39).</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The same three features on 60 simulated people (height and weight standardised, $f_3=2h+3\,\text{wt}$ exactly, label $3h+4\,\text{wt}$ plus a little noise). Because $f_3$ is an exact combination, $XX^\top$ is <b>singular</b>: ML has no unique answer. Ridge always does. Slide λ to see the weights.</p>
+  <div class="row"><label>λ = <b id="lV"></b> <input type="range" id="l" min="-30" max="30" value="-20" aria-label="lambda, log scale"></label><button id="newD">New data</button></div>
+  <canvas id="wc" height="260" aria-label="Ridge weights for the three features as lambda varies"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>w₁ (height)</span><span><i style="background:var(--s2)"></i>w₂ (weight)</span><span><i style="background:var(--s3)"></i>w₃ (2h + 3wt)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="wv">–</div><div class="l">ridge weights (w₁, w₂, w₃)</div></div>
+    <div class="stat"><div class="v" id="nv">–</div><div class="l">‖w‖²</div></div>
+    <div class="stat"><div class="v" id="ev">–</div><div class="l">avg squared error</div></div>
+  </div>
+  <p class="small" id="wTxt"></p>
+</div>
+
+<h2>4 · What's next</h2>
+<p>Could we push redundant weights to <b>exactly</b> zero instead of just making them small? Is ridge the only way to regularise? Understanding ridge <b>geometrically</b> answers both, and leads to a different regulariser (L38–L39).</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Ridge regression: minimise loss $+\ \lambda\lVert w\rVert^2$, giving $\hat w_{\text{R}}=(XX^\top+\lambda I)^{-1}Xy$. It is the MAP estimate with a zero-mean Gaussian prior.</li>
+<li>The regulariser pulls $w$ towards 0, and $\lambda\approx1/\gamma^2$ sets how hard.</li>
+<li>With redundant features many $w$ fit equally well; ridge picks a short one.</li>
+<li>Short isn't sparse: ridge makes weights small but generally not exactly zero.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+let P = [];
+function newData(){ P = Array.from({length: 60}, () => { const h = randn(), t = randn(); return [[h, t, 2 * h + 3 * t], 3 * h + 4 * t + 0.3 * randn()]; }); }
+function ridge(l){ const A = [[l, 0, 0], [0, l, 0], [0, 0, l]], b = [0, 0, 0];
+  P.forEach(([x, y]) => { for (let i = 0; i < 3; i++){ b[i] += x[i] * y; for (let j = 0; j < 3; j++) A[i][j] += x[i] * x[j]; } }); return solve(A, b); }
+const LG = Array.from({length: 121}, (_, i) => -3 + 6 * i / 120);   // λ from 0.001 to 1000
+function draw(){
+  const lg = +$('l').value / 10, l = 10 ** lg, w = ridge(l), path = LG.map(g => ridge(10 ** g));
+  const mse = P.reduce((s, [x, y]) => s + (x[0] * w[0] + x[1] * w[1] + x[2] * w[2] - y) ** 2, 0) / P.length;
+  $('lV').textContent = (+l.toPrecision(2)).toString(); $('wv').textContent = `(${w.map(v => v.toFixed(2)).join(', ')})`;
+  $('nv').textContent = w.reduce((s, v) => s + v * v, 0).toFixed(2); $('ev').textContent = mse.toFixed(3);
+  const [ctx, W, H] = setupCanvas($('wc')), pad = {l: 40, r: 12, t: 10, b: 30}, yr = [-0.5, 1.6];
+  const X = g => pad.l + (g - LG[0]) / (LG[LG.length - 1] - LG[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 0.5, 1, 1.5].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  [-3, -2, -1, 0, 1, 2, 3].forEach(g => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(g < 0 ? 10 ** g : (10 ** g).toLocaleString(), X(g), H - pad.b + 5); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('λ (log scale)', (pad.l + W) / 2, H);
+  ['--s1', '--s2', '--s3'].forEach((c, k) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = 2.5; ctx.beginPath(); path.forEach((v, i) => i ? ctx.lineTo(X(LG[i]), Y(v[k])) : ctx.moveTo(X(LG[i]), Y(v[k]))); ctx.stroke();
+    ctx.fillStyle = cssv(c); ctx.beginPath(); ctx.arc(X(lg), Y(w[k]), 5, 0, 2 * Math.PI); ctx.fill(); });
+  [3 / 7, 1 / 7, 9 / 7].forEach(v => { ctx.strokeStyle = cssv('--faint'); ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(pad.l + 26, Y(v)); ctx.stroke(); }); ctx.setLineDash([]);
+  $('wTxt').innerHTML = l < 0.05 ? 'Tiny λ: ridge lands on the <b>shortest</b> exact fit, about (3/7, 1/7, 9/7) (dashed ticks on the left), not one of the sparser fits like (3, 4, 0). Every weight is non-zero.'
+    : l > 50 ? 'Large λ: the length penalty dominates and all three weights shrink towards 0. The fit gets worse (the error rises).'
+    : 'As λ grows, all three weights shrink smoothly towards 0 together. None of them hits exactly 0 at any λ.';
+}
+$('l').oninput = draw; $('newD').onclick = () => { newData(); draw(); };
+newData(); onReady(draw);
+</script>
+</body>
+</html>

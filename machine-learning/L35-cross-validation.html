@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 35 · Regression: a better estimator, and how to tune it</div>
 <h1>A Better Estimator and Cross-Validation</h1>
 <p class="lede">The ML error is $\sigma^2\sum_i 1/\lambda_i$ over the eigenvalues $\lambda_i$ of $XX^\top$, so <b>small eigenvalues</b> make it blow up. Adding $\lambda I$ before inverting lifts every eigenvalue by $\lambda$. For some $\lambda$, the new estimator $(XX^\top+\lambda I)^{-1}Xy$ has lower mean squared error than ML. Which $\lambda$? Pick it by <b>cross-validation</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_hmPiYKlRTQ">this lecture on YouTube</a> (≈20 min). Previous: <a href="L34-goodness-of-ml-estimator.html">L34</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_hmPiYKlRTQ">this lecture on YouTube</a> (≈20 min). Previous: <a href="L34-goodness-of-ml-estimator.html">L34</a> · Next: <a href="L36-bayesian-ridge.html">L36</a>.</p>
 <p class="small muted">Notation: the lecture uses λ for two things. Here $\lambda_1,\dots,\lambda_d$ (with a subscript) are eigenvalues of $XX^\top$, and plain $\lambda$ is the number we add to the diagonal.</p>
 
 <h2>1 · The trace is a sum of eigenvalues</h2>

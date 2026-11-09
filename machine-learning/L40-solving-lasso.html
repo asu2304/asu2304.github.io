@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solving Lasso, and the Regression Wrap-up</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 40 · Regression: solving lasso, and the wrap-up</div>
+<h1>Solving Lasso: Subgradients, and the Regression Wrap-up</h1>
+<p class="lede">Lasso gives sparse answers, so why still use ridge? Because ridge has a <b>closed-form solution</b> and lasso doesn't: $|w|$ has a kink at 0 where the gradient doesn't exist. Lasso is solved iteratively instead, with <b>subgradient descent</b> (which works because the objective is convex) or special-purpose methods such as IRLS.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=79eeNk7InHk">this lecture on YouTube</a> (≈16 min). Previous: <a href="L39-lasso.html">L39</a>.</p>
+
+<h2>1 · Ridge vs lasso: the practical difference</h2>
+<table>
+<tr><th></th><th>Ridge (L2)</th><th>Lasso (L1)</th></tr>
+<tr><td>Solution</td><td>closed form: $(XX^\top+\lambda I)^{-1}Xy$</td><td><b>no closed form</b></td></tr>
+<tr><td>Why</td><td>the objective is differentiable, so set the gradient to 0</td><td>$|w_j|$ isn't differentiable at 0, so you can't just set the gradient to 0</td></tr>
+<tr><td>How to solve</td><td>directly, or SGD for huge $n$ and $d$</td><td>subgradient descent, or special methods (IRLS)</td></tr>
+<tr><td>Result</td><td>small weights</td><td>exactly-zero weights (sparse)</td></tr>
+</table>
+
+<h2>2 · Subgradients: slopes where there's a kink</h2>
+<p>A gradient exists only where the function is smooth. At a kink, use a <b>subgradient</b>: the slope of any line through the point that stays <b>entirely below</b> the function.</p>
+<div class="callout"><b>Definition.</b> $g\in\mathbb R^d$ is a subgradient of $f:\mathbb R^d\to\mathbb R$ at $x$ if
+$$f(z)\;\ge\;f(x)+g^\top(z-x)\qquad\text{for every }z\in\mathbb R^d .$$
+The linear approximation at $x$ with slope $g$ never goes above $f$.</div>
+<ul>
+<li>Where $f$ is differentiable, the only subgradient is the gradient.</li>
+<li>At a kink there can be many. For $f(x)=|x|$ at $x=0$, every slope $g\in[-1,1]$ works: lines between $-x$ and $x$ stay below the V.</li>
+</ul>
+<div class="card">
+  <p class="small muted" style="margin-top:0">$f(x)=|x|$. Pick a point $x_0$ and a slope $g$. The line $f(x_0)+g\,(x-x_0)$ is a valid subgradient line only if it never rises above the V.</p>
+  <div class="row">
+    <label>point x₀ = <b id="x0V"></b> <input type="range" id="x0" min="-15" max="15" value="0" aria-label="point x0"></label>
+    <label>slope g = <b id="gV"></b> <input type="range" id="g" min="-20" max="20" value="5" aria-label="slope g"></label>
+  </div>
+  <canvas id="sg" height="230" aria-label="Absolute value function with a candidate subgradient line"></canvas>
+  <p class="small" id="sgTxt"></p>
+</div>
+
+<h2>3 · Subgradient descent</h2>
+<p>Like gradient descent (L31), but step along the negative of <b>any</b> subgradient. If $f$ is <b>convex</b>, this still converges to the minimum, whichever subgradient you pick at the kinks.</p>
+<p><b>Why it applies to lasso:</b> the squared loss is convex (a quadratic) and the L1 norm is convex, and a sum of convex functions is convex. So the lasso objective is a convex optimisation problem: not differentiable everywhere, but convex. Subgradient descent is one way to solve it; it's not the only one.</p>
+<p><b>Special-purpose methods.</b> Lasso has special structure: least squares plus a penalty. <b>IRLS</b> (iteratively reweighted least squares) uses the easy least-squares solver as a building block, repeatedly. The course doesn't go into it.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0"><b>Going beyond the video:</b> the simplest lasso has one weight, $\min_w\ \tfrac12(w-a)^2+\lambda|w|$, where $a$ plays the role of $\hat w_{\text{ML}}$. Its exact answer is <b>soft thresholding</b>, $\operatorname{sign}(a)\max(|a|-\lambda,0)$, which is exactly 0 whenever $|a|\le\lambda$. Ridge's version, $\tfrac12(w-a)^2+\lambda w^2$, gives $a/(1+2\lambda)$, which is never exactly 0. The chart compares them; the button runs subgradient descent from $w=2$ and checks it reaches the exact answer.</p>
+  <div class="row">
+    <label>λ = <b id="lV"></b> <input type="range" id="l" min="0" max="20" value="8" aria-label="lambda"></label>
+    <label>a = <b id="aV"></b> <input type="range" id="a" min="-30" max="30" value="12" aria-label="a"></label>
+    <button id="run">Run subgradient descent (500 steps)</button>
+  </div>
+  <canvas id="st" height="250" aria-label="Lasso soft thresholding versus ridge shrinkage as a function of a"></canvas>
+  <div class="legend"><span><i style="background:var(--faint)"></i>no penalty: w = a</span><span><i style="background:var(--s1)"></i>ridge: a/(1+2λ)</span><span><i style="background:var(--s3)"></i>lasso: soft threshold</span></div>
+  <p class="small" id="stTxt"></p>
+</div>
+
+<h2>4 · The regression unit in one view</h2>
+<ol class="steps">
+<li><b>Least squares</b>: closed form $(XX^\top)^{-1}Xy$, geometrically a projection (L28–L30).</li>
+<li><b>Computation</b>: gradient descent and SGD avoid the inverse (L31). Kernels give non-linear fits (L32).</li>
+<li><b>Probabilistic view</b>: squared loss = maximum likelihood under Gaussian noise (L33), and how good that estimator is (L34).</li>
+<li><b>Bayesian view</b>: a Gaussian prior gives <b>ridge</b>, an L2 regulariser, tuned by cross-validation (L35–L37).</li>
+<li><b>Geometry of regularisation</b>: L2 shrinks but rarely zeros. L1 (<b>lasso</b>) gives sparse solutions, solved by subgradient methods (L38–L40).</li>
+</ol>
+<p><b>Beyond ridge and lasso:</b> there's a whole family of regularisers. <b>Elastic net</b> mixes L1 and L2. Others encode domain knowledge, for example that a group of features should be selected or dropped together. If you know something about the structure of a good $w$, you can turn it into a regulariser.</p>
+<div class="callout"><b>Next:</b> supervised learning from the <b>classification</b> side.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Ridge has a closed form; lasso doesn't, because $|w_j|$ has a kink at 0.</li>
+<li>Subgradient: $f(z)\ge f(x)+g^\top(z-x)$ for all $z$. For $|x|$ at 0, any $g\in[-1,1]$.</li>
+<li>Lasso's objective is convex (squared loss + L1), so subgradient descent converges. IRLS is a special-purpose alternative.</li>
+<li>Regression summary: least squares → ML view → ridge (Gaussian prior, L2) → lasso (L1, sparse).</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function drawSG(){
+  const x0 = +$('x0').value / 10, g = +$('g').value / 10;
+  $('x0V').textContent = x0.toFixed(1); $('gV').textContent = g.toFixed(1);
+  let ok = true; for (let i = 0; i <= 400; i++){ const z = -3 + 6 * i / 400; if (Math.abs(x0) + g * (z - x0) > Math.abs(z) + 1e-9){ ok = false; break; } }
+  const [ctx, W, H] = setupCanvas($('sg')), pad = {l: 12, r: 12, t: 10, b: 24}, X = z => pad.l + (z + 3) / 6 * (W - pad.l - pad.r), Y = v => H - pad.b - (v + 1) / 4.2 * (H - pad.t - pad.b);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, Y(0)); ctx.lineTo(W - pad.r, Y(0)); ctx.moveTo(X(0), pad.t); ctx.lineTo(X(0), H - pad.b); ctx.stroke();
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; [-3, -2, -1, 0, 1, 2, 3].forEach(v => ctx.fillText(v, X(v), H - pad.b + 4));
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(-3), Y(3)); ctx.lineTo(X(0), Y(0)); ctx.lineTo(X(3), Y(3)); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  ctx.strokeStyle = ok ? cssv('--s3') : cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(-3), Y(Math.abs(x0) + g * (-3 - x0))); ctx.lineTo(X(3), Y(Math.abs(x0) + g * (3 - x0))); ctx.stroke(); ctx.restore();
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(x0), Y(Math.abs(x0)), 5, 0, 2 * Math.PI); ctx.fill();
+  $('sgTxt').innerHTML = (ok ? '✓ <b>Valid subgradient</b>: the line never rises above |x|. ' : '✗ <b>Not a subgradient</b>: the line rises above |x| somewhere. ')
+    + (Math.abs(x0) < 1e-9 ? 'At the kink x₀ = 0, every slope in [−1, 1] is valid. Many subgradients.' : `Away from the kink, |x| is differentiable, so only the gradient g = ${x0 > 0 ? '+1' : '−1'} works.`);
+}
+const soft = (a, l) => Math.sign(a) * Math.max(Math.abs(a) - l, 0);
+let run = null;
+function drawST(){
+  const l = +$('l').value / 10, a = +$('a').value / 10; $('lV').textContent = l.toFixed(1); $('aV').textContent = a.toFixed(1);
+  const [ctx, W, H] = setupCanvas($('st')), pad = {l: 34, r: 12, t: 10, b: 28}, X = v => pad.l + (v + 3) / 6 * (W - pad.l - pad.r), Y = v => H - pad.b - (v + 3) / 6 * (H - pad.t - pad.b);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted');
+  [-3, -2, -1, 0, 1, 2, 3].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 5, Y(v)); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 4); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('a (the unpenalised answer)', (pad.l + W) / 2, H);
+  const curve = (f, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); for (let i = 0; i <= 300; i++){ const v = -3 + 6 * i / 300; i ? ctx.lineTo(X(v), Y(f(v))) : ctx.moveTo(X(v), Y(f(v))); } ctx.stroke(); };
+  curve(v => v, cssv('--faint'), 1.5); curve(v => v / (1 + 2 * l), cssv('--s1'), 2.5); curve(v => soft(v, l), cssv('--s3'), 3);
+  ctx.strokeStyle = cssv('--muted'); ctx.setLineDash([4, 4]); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(a), pad.t); ctx.lineTo(X(a), H - pad.b); ctx.stroke(); ctx.setLineDash([]);
+  [[a / (1 + 2 * l), '--s1'], [soft(a, l), '--s3']].forEach(([v, c]) => { ctx.fillStyle = cssv(c); ctx.beginPath(); ctx.arc(X(a), Y(v), 5, 0, 2 * Math.PI); ctx.fill(); });
+  const ex = soft(a, l);
+  $('stTxt').innerHTML = `At a = ${a.toFixed(1)}, λ = ${l.toFixed(1)}: ridge gives <b>${(a / (1 + 2 * l)).toFixed(3)}</b>, lasso gives <b>${ex.toFixed(3)}</b>` + (ex === 0 && a !== 0 ? ' (<b>exactly 0</b>: the flat part of the green curve covers |a| ≤ λ).' : '.')
+    + (run ? ` Subgradient descent from w = 2 (step 1/√t) ended at <b>${run.w.toFixed(4)}</b>, objective ${run.f.toFixed(5)} vs exact ${run.fx.toFixed(5)}.` : '');
+}
+$('run').onclick = () => { const l = +$('l').value / 10, a = +$('a').value / 10, F = w => 0.5 * (w - a) ** 2 + l * Math.abs(w);
+  let w = 2, best = w; for (let t = 1; t <= 500; t++){ const g = (w - a) + l * Math.sign(w); w -= g / Math.sqrt(t); if (F(w) < F(best)) best = w; }
+  run = {w: best, f: F(best), fx: F(soft(a, l))}; drawST(); };
+['l', 'a'].forEach(id => $(id).oninput = () => { run = null; drawST(); });
+['x0', 'g'].forEach(id => $(id).oninput = drawSG);
+onReady(() => { drawSG(); drawST(); });
+</script>
+</body>
+</html>

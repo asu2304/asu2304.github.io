@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lasso: L1 Regularisation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 39 · Regression: sparse solutions</div>
+<h1>Lasso: L1 Regularisation for Exact Zeros</h1>
+<p class="lede">Swap ridge's squared length for the <b>L1 norm</b>, the sum of absolute values. The search region changes from a disc to a <b>diamond</b> with sharp corners on the axes. Growing loss ellipses tend to hit a corner first, and at a corner some weights are <b>exactly zero</b>. That's <b>lasso</b>, which selects features rather than only shrinking them.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=f9KWAixPUCc">this lecture on YouTube</a> (≈10 min). Previous: <a href="L38-ridge-geometry.html">L38</a> · Next: <a href="L40-solving-lasso.html">L40</a>.</p>
+
+<h2>1 · The goal: a sparse w</h2>
+<p>A <b>sparse</b> $w$ has many exactly-zero components. Each zero says "this feature is useless", so it can be dropped. L38 showed that ridge's round region makes exact zeros unlikely. Idea: <b>change the region</b> so the loss ellipses are more likely to touch where some coordinates are zero.</p>
+
+<h2>2 · The L1 norm and the lasso problem</h2>
+$$\lVert w\rVert_1=\sum_{j=1}^{d}|w_j| \qquad\text{(vs. ridge's } \lVert w\rVert_2^2=\textstyle\sum_j w_j^2\text{)}$$
+<table>
+<tr><th>Penalised</th><th>Equivalent constrained form</th></tr>
+<tr><td>$\displaystyle\min_w\ \sum_i(w^\top x_i-y_i)^2+\lambda\lVert w\rVert_1$</td><td>$\displaystyle\min_w\ \sum_i(w^\top x_i-y_i)^2\quad\text{s.t.}\quad\lVert w\rVert_1\le\theta$</td></tr>
+</table>
+<p>As with ridge, each $\lambda$ has a matching $\theta$ (generally a different value from ridge's). In 2-D, $|w_1|+|w_2|\le\theta$ is a <b>diamond</b>, a square rotated 45°, with corners on the axes at $(\pm\theta,0)$ and $(0,\pm\theta)$.</p>
+
+<h2>3 · Why corners give zeros</h2>
+<p>The loss still grows in the same ellipses around $\hat w_{\text{ML}}$ (L38). The circle <b>bulges</b> out between the axes, so an ellipse often meets it there, away from any axis. The diamond is flat between its corners, so the ellipse slides past the flat edges and very often first meets a <b>corner</b>. At a corner one coordinate is 0: in 2-D the four corners are exactly the points where only one feature is used.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">The same parameter space as L38, now with both regions. Both use the same size, θ = 1 (radius 1 for the disc, L1 size 1 for the diamond), so you can compare where each one is first touched.</p>
+  <div class="row">
+    <label>ŵ<sub>ML</sub>: w₁ = <b id="aV"></b> <input type="range" id="a" min="-30" max="30" value="18" aria-label="ML solution w1"></label>
+    <label>w₂ = <b id="bV"></b> <input type="range" id="b" min="-30" max="30" value="16" aria-label="ML solution w2"></label>
+    <label>stretch = <b id="kV"></b> <input type="range" id="k" min="10" max="100" value="30" aria-label="ellipse stretch"></label>
+    <label>tilt = <b id="tV"></b> <input type="range" id="t" min="0" max="180" value="120" aria-label="ellipse tilt"></label>
+  </div>
+  <canvas id="gc" height="380" aria-label="Loss contours touching the ridge disc and the lasso diamond"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>ridge disc ‖w‖₂ ≤ 1</span><span><i style="background:var(--s3)"></i>lasso diamond ‖w‖₁ ≤ 1</span><span><i class="dot" style="background:var(--s1)"></i>ŵ<sub>R</sub></span><span><i class="dot" style="background:var(--s3)"></i>ŵ<sub>L</sub> (lasso)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="wr">–</div><div class="l">ridge ŵ<sub>R</sub></div></div>
+    <div class="stat"><div class="v" id="wl">–</div><div class="l">lasso ŵ<sub>L</sub></div></div>
+  </div>
+  <p class="small" id="gTxt"></p>
+  <div class="row"><button id="trials">Try 5,000 random cases</button><span class="small" id="trTxt"></span></div>
+</div>
+<p>This is an intuitive argument, not a guarantee. With an unlucky $\hat w_{\text{ML}}$ and ellipse shape, the ellipse can meet a flat edge instead of a corner. But in high dimensions, L1 regularisation is observed to give <b>much sparser</b> solutions than L2. Advanced courses prove when lasso is guaranteed to.</p>
+
+<h2>4 · What LASSO stands for</h2>
+<table>
+<tr><th>Letter</th><th>Meaning here</th></tr>
+<tr><td><b>L</b>east</td><td>we minimise a (squared) loss</td></tr>
+<tr><td><b>A</b>bsolute</td><td>the penalty is a sum of absolute values, the L1 norm</td></tr>
+<tr><td><b>S</b>hrinkage</td><td>the search region limits the length of $w$ (ridge shrinks too, just in L2)</td></tr>
+<tr><td><b>S</b>election</td><td>pushing weights to exactly 0 <b>selects</b> the features that matter</td></tr>
+<tr><td><b>O</b>perator</td><td>a fancy word for the regulariser</td></tr>
+</table>
+<p>Lasso is especially popular when there are very many features and you expect most to be useless or redundant.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Lasso: minimise squared loss $+\ \lambda\lVert w\rVert_1$, equivalent to a constraint $\lVert w\rVert_1\le\theta$.</li>
+<li>In 2-D the L1 region is a diamond with corners on the axes. Ellipses tend to hit corners, giving exact zeros.</li>
+<li>Ridge shrinks; lasso shrinks <b>and</b> selects (sparsity), typically far more so in high dimensions.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+const R = 1;   // same size θ for both regions
+function model(a, b, k, tilt){
+  const ph = tilt * Math.PI / 180, u1 = [Math.cos(ph), Math.sin(ph)], u2 = [-Math.sin(ph), Math.cos(ph)];
+  const A = [[u1[0] * u1[0] + k * u2[0] * u2[0], u1[0] * u1[1] + k * u2[0] * u2[1]], [0, u1[1] * u1[1] + k * u2[1] * u2[1]]]; A[1][0] = A[0][1];
+  const q = w => { const d = [w[0] - a, w[1] - b]; return d[0] * (A[0][0] * d[0] + A[0][1] * d[1]) + d[1] * (A[1][0] * d[0] + A[1][1] * d[1]); };
+  return {a, b, k, u1, u2, A, q};
+}
+function ridgeSol(m){ if (Math.hypot(m.a, m.b) <= R) return [m.a, m.b];
+  let best = 0, bv = Infinity; for (let i = 0; i < 3600; i++){ const t = 2 * Math.PI * i / 3600, v = m.q([R * Math.cos(t), R * Math.sin(t)]); if (v < bv){ bv = v; best = t; } }
+  let lo = best - 0.002, hi = best + 0.002;
+  for (let it = 0; it < 60; it++){ const t1 = lo + (hi - lo) * 0.382, t2 = lo + (hi - lo) * 0.618;
+    if (m.q([R * Math.cos(t1), R * Math.sin(t1)]) < m.q([R * Math.cos(t2), R * Math.sin(t2)])) hi = t2; else lo = t1; }
+  const t = (lo + hi) / 2; return [R * Math.cos(t), R * Math.sin(t)]; }
+// exact minimum of the quadratic over the diamond's boundary: on each edge it's a 1-D quadratic, clamped to the segment
+function lassoSol(m){ if (Math.abs(m.a) + Math.abs(m.b) <= R) return [m.a, m.b];
+  const C = [[R, 0], [0, R], [-R, 0], [0, -R]]; let best = null, bv = Infinity;
+  for (let e = 0; e < 4; e++){ const P = C[e], Q = C[(e + 1) % 4], d = [Q[0] - P[0], Q[1] - P[1]], g = [P[0] - m.a, P[1] - m.b];
+    const Ad = [m.A[0][0] * d[0] + m.A[0][1] * d[1], m.A[1][0] * d[0] + m.A[1][1] * d[1]];
+    let s = -(g[0] * Ad[0] + g[1] * Ad[1]) / (d[0] * Ad[0] + d[1] * Ad[1]); s = Math.min(1, Math.max(0, s));
+    const w = s === 0 ? P.slice() : s === 1 ? Q.slice() : [P[0] + s * d[0], P[1] + s * d[1]], v = m.q(w); if (v < bv){ bv = v; best = w; } }
+  return best; }
+const isSparse = w => Math.min(Math.abs(w[0]), Math.abs(w[1])) < 1e-9;
+function draw(){
+  const a = +$('a').value / 10, b = +$('b').value / 10, k = +$('k').value / 10, tilt = +$('t').value;
+  $('aV').textContent = a.toFixed(1); $('bV').textContent = b.toFixed(1); $('kV').textContent = k.toFixed(1); $('tV').textContent = tilt + '°';
+  const m = model(a, b, k, tilt), wr = ridgeSol(m), wl = lassoSol(m);
+  const [ctx, W, H] = setupCanvas($('gc')), S = Math.min(W, H) / 7.4, cx = W / 2, cy = H / 2, X = v => cx + v * S, Y = v => cy - v * S;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.moveTo(cx, 0); ctx.lineTo(cx, H); ctx.stroke();
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('w₁', W - 6, cy + 4); ctx.textAlign = 'left'; ctx.fillText('w₂', cx + 6, 4);
+  ctx.globalAlpha = 0.12; ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(cx, cy, R * S, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.moveTo(X(R), Y(0)); ctx.lineTo(X(0), Y(R)); ctx.lineTo(X(-R), Y(0)); ctx.lineTo(X(0), Y(-R)); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.lineWidth = 2; ctx.strokeStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(cx, cy, R * S, 0, 2 * Math.PI); ctx.stroke();
+  ctx.strokeStyle = cssv('--s3'); ctx.beginPath(); ctx.moveTo(X(R), Y(0)); ctx.lineTo(X(0), Y(R)); ctx.lineTo(X(-R), Y(0)); ctx.lineTo(X(0), Y(-R)); ctx.closePath(); ctx.stroke();
+  const ell = (c, col, lw, dash) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash || []); ctx.beginPath();
+    for (let i = 0; i <= 200; i++){ const t = 2 * Math.PI * i / 200, s1 = Math.sqrt(c) * Math.cos(t), s2 = Math.sqrt(c / m.k) * Math.sin(t);
+      const p = [m.a + s1 * m.u1[0] + s2 * m.u2[0], m.b + s1 * m.u1[1] + s2 * m.u2[1]]; i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])); } ctx.stroke(); ctx.setLineDash([]); };
+  const cr = m.q(wr), cl = m.q(wl);
+  if (cr > 1e-9) ell(cr, cssv('--s1'), 1.5, [5, 4]); if (cl > 1e-9) ell(cl, cssv('--s3'), 1.5, [5, 4]);
+  const pt = (p, col, r) => { ctx.fillStyle = col; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); };
+  pt([m.a, m.b], cssv('--ink'), 6); pt(wr, cssv('--s1'), 7); pt(wl, cssv('--s3'), 7);
+  ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('ŵ_ML', X(m.a) + 8, Y(m.b) - 4);
+  const f = w => `(${w.map(v => (Math.abs(v) < 1e-9 ? 0 : v).toFixed(3)).join(', ')})`;
+  $('wr').textContent = f(wr); $('wl').textContent = f(wl);
+  const inside = Math.abs(a) + Math.abs(b) <= R;
+  $('gTxt').innerHTML = inside ? 'ŵ<sub>ML</sub> is inside the diamond, so lasso changes nothing here. Move it further out.'
+    : isSparse(wl) ? `The ellipse first touches the diamond at a <b>corner</b>: lasso sets ${Math.abs(wl[0]) < 1e-9 ? 'w₁' : 'w₂'} to <b>exactly 0</b> and keeps only one feature. Ridge keeps both, just smaller.`
+    : 'Here the ellipse first meets a <b>flat edge</b> of the diamond, so lasso keeps both features too. Corners are likely, not guaranteed. Try other positions, or run the 5,000 random cases.';
+}
+$('trials').onclick = () => { let ls = 0, rs = 0, n = 0;
+  while (n < 5000){ const a = -3 + 6 * Math.random(), b = -3 + 6 * Math.random(); if (Math.hypot(a, b) <= R) continue;
+    const m = model(a, b, 1 + 9 * Math.random(), 180 * Math.random()); n++; if (isSparse(lassoSol(m))) ls++; if (isSparse(ridgeSol(m))) rs++; }
+  $('trTxt').innerHTML = `Random ŵ<sub>ML</sub> (outside both regions) and random ellipse shapes: lasso gave an exact zero in <b>${(100 * ls / n).toFixed(1)}%</b> of cases, ridge in <b>${(100 * rs / n).toFixed(1)}%</b>.`; };
+['a', 'b', 'k', 't'].forEach(id => $(id).oninput = draw);
+onReady(draw);
+</script>
+</body>
+</html>

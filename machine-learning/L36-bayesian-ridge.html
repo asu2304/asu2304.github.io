@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ridge from a Gaussian Prior</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 36 · Regression: the Bayesian view</div>
+<h1>Where the Better Estimator Comes From: a Gaussian Prior</h1>
+<p class="lede">L35 pulled $(XX^\top+\lambda I)^{-1}Xy$ out of a hat. Here it gets a principled origin. Put a <b>Gaussian prior</b> on $w$, centred at 0, and the <b>MAP estimate</b> (the peak of the posterior) is exactly that estimator, with $\lambda=1/\gamma^2$, where $\gamma^2$ is the prior's variance.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=DG7KvatwL2Q">this lecture on YouTube</a> (≈15 min). Previous: <a href="L35-cross-validation.html">L35</a> · Next: <a href="L37-ridge-regression.html">L37</a>.</p>
+
+<h2>1 · The recipe: prior × likelihood → posterior</h2>
+<p>Bayesian modelling, as in L21: put a <b>prior</b> on the unknown parameter, multiply by the <b>likelihood</b> of the data, and get the <b>posterior</b>. Here the parameter is $w\in\mathbb R^d$, a whole vector, so the prior must be a density over all of $\mathbb R^d$.</p>
+<ul>
+<li><b>Likelihood</b> (from L33): $y\mid x\sim\mathcal N(w^\top x,\,1)$. The noise variance is set to 1 just to keep the algebra tidy; a general $\sigma^2$ works the same way.</li>
+<li><b>Which prior?</b> One that is <b>conjugate</b> to the likelihood, so the posterior has the same form as the prior. In L21, Beta was conjugate to the coin (Bernoulli) likelihood. A Gaussian likelihood is $e^{(\text{something})}$, so a prior that is also $e^{(\text{something})}$ multiplies neatly: the exponents just add. The natural choice is a <b>Gaussian prior</b>.</li>
+</ul>
+
+<h2>2 · The Gaussian prior on w</h2>
+$$w\sim\mathcal N\big(0,\;\gamma^2 I\big),\qquad \gamma^2 I=\begin{bmatrix}\gamma^2&&\\&\ddots&\\&&\gamma^2\end{bmatrix}\in\mathbb R^{d\times d}.$$
+<p>The mean is the zero vector, and the covariance is $\gamma^2$ on the diagonal and 0 elsewhere. So each component $w_j$ is an <b>independent</b> $\mathcal N(0,\gamma^2)$: to draw a $w$ from the prior, draw each component separately from a zero-mean Gaussian with variance $\gamma^2$.</p>
+
+<h2>3 · The posterior, and its peak</h2>
+<p>Dropping constants (they don't move the peak):</p>
+$$P(w\mid\text{data})\;\propto\;\underbrace{\prod_{i=1}^{n}e^{-\frac{(y_i-w^\top x_i)^2}{2}}}_{\text{likelihood}}\;\cdot\;\underbrace{e^{-\frac{\lVert w\rVert^2}{2\gamma^2}}}_{\text{prior}} .$$
+<p>The prior factor is $\prod_j e^{-w_j^2/2\gamma^2}=e^{-\sum_j w_j^2/2\gamma^2}=e^{-\lVert w\rVert^2/2\gamma^2}$. The <b>MAP estimate</b> maximises the posterior. Take the log (products become sums) and flip max to min:</p>
+$$\hat w_{\text{MAP}}=\arg\min_{w}\;\frac12\sum_{i=1}^{n}(y_i-w^\top x_i)^2+\frac{1}{2\gamma^2}\lVert w\rVert^2 .$$
+<p>Compared with maximum likelihood, there's one <b>extra term</b>: a penalty on the length of $w$, coming from the prior.</p>
+<ol class="steps">
+<li>Gradient (worth checking yourself): $\;\nabla f(w)=XX^\top w-Xy+\dfrac{1}{\gamma^2}w$.</li>
+<li>Set it to zero: $\;\big(XX^\top+\tfrac{1}{\gamma^2}I\big)w=Xy$.</li>
+<li>$\boxed{\;\hat w_{\text{MAP}}=\Big(XX^\top+\frac{1}{\gamma^2}I\Big)^{-1}Xy\;}$</li>
+</ol>
+<div class="callout"><b>The punchline.</b> This is exactly L35's estimator $(XX^\top+\lambda I)^{-1}Xy$ with $\lambda=1/\gamma^2$. What was guessed by intuition is the MAP estimate under a zero-mean Gaussian prior. In practice you cross-validate $\gamma^2$, just as you cross-validated $\lambda$: it's the same single number.</div>
+<p class="small muted">(Going beyond the video: with noise variance $\sigma^2$ instead of 1, the same steps give $\lambda=\sigma^2/\gamma^2$.)</p>
+
+<h2>4 · See the prior pull the estimate</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">One feature, so $w$ is a single number and every curve is a density over $w$. Five noisy points with true $w=2$. The MAP estimate here is $\sum x_iy_i\,/\,(\sum x_i^2+1/\gamma^2)$.</p>
+  <div class="row">
+    <label>prior variance γ² = <b id="gV"></b> <input type="range" id="g" min="-30" max="30" value="-5" aria-label="prior variance, log scale"></label>
+    <button id="newD">New data</button>
+  </div>
+  <canvas id="pc" height="260" aria-label="Prior, likelihood and posterior over w"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>prior N(0, γ²)</span><span><i style="background:var(--s3)"></i>likelihood (rescaled)</span><span><i style="background:var(--s1)"></i>posterior</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="ml">–</div><div class="l">ŵ<sub>ML</sub> = Σxy / Σx²</div></div>
+    <div class="stat"><div class="v" id="map">–</div><div class="l">ŵ<sub>MAP</sub></div></div>
+    <div class="stat"><div class="v" id="lam">–</div><div class="l">λ = 1/γ²</div></div>
+  </div>
+  <p class="small" id="pTxt"></p>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Bayesian regression: prior on $w$ times the Gaussian likelihood gives the posterior.</li>
+<li>A Gaussian prior is conjugate to a Gaussian likelihood. Use $w\sim\mathcal N(0,\gamma^2I)$: independent zero-mean components.</li>
+<li>The MAP estimate minimises squared loss plus $\tfrac{1}{2\gamma^2}\lVert w\rVert^2$, giving $\hat w_{\text{MAP}}=(XX^\top+\tfrac1{\gamma^2}I)^{-1}Xy$.</li>
+<li>That's L35's estimator with $\lambda=1/\gamma^2$. Choose $\gamma^2$ (equivalently $\lambda$) by cross-validation.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+let D = [];
+const newData = () => { D = Array.from({length: 5}, () => { const x = 0.3 + 0.9 * Math.random(); return [x, 2 * x + randn()]; }); };
+const npdf = (w, m, v) => Math.exp(-((w - m) ** 2) / (2 * v)) / Math.sqrt(2 * Math.PI * v);
+function draw(){
+  const g2 = 10 ** (+$('g').value / 10), sxx = D.reduce((s, [x]) => s + x * x, 0), sxy = D.reduce((s, [x, y]) => s + x * y, 0);
+  const ml = sxy / sxx, mp = sxy / (sxx + 1 / g2), pv = 1 / (sxx + 1 / g2);   // posterior is N(mp, pv)
+  $('gV').textContent = (+g2.toPrecision(2)).toString(); $('ml').textContent = ml.toFixed(3); $('map').textContent = mp.toFixed(3); $('lam').textContent = (+(1 / g2).toPrecision(2)).toString();
+  const curves = [[w => npdf(w, 0, g2), cssv('--s2'), 2, [6, 4]], [w => npdf(w, ml, 1 / sxx), cssv('--s3'), 2, [2, 3]], [w => npdf(w, mp, pv), cssv('--s1'), 3, []]];
+  const [ctx, W, H] = setupCanvas($('pc')), pad = {l: 14, r: 14, t: 10, b: 28}, xr = [-2, 5];
+  let top = 0; for (let i = 0; i <= 300; i++){ const w = xr[0] + 7 * i / 300; curves.forEach(([f]) => top = Math.max(top, f(w))); } top = Math.min(top, 3 * npdf(mp, mp, pv)) * 1.1;
+  const X = w => pad.l + (w - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - Math.min(v, top) / top * (H - pad.t - pad.b);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, Y(0)); ctx.lineTo(W - pad.r, Y(0)); ctx.stroke();
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [-2, -1, 0, 1, 2, 3, 4, 5].forEach(v => ctx.fillText(v, X(v), H - pad.b + 5)); ctx.textBaseline = 'bottom'; ctx.fillText('w', W - pad.r - 4, H);
+  curves.forEach(([f, c, lw, dash]) => { ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.setLineDash(dash); ctx.beginPath();
+    for (let i = 0; i <= 400; i++){ const w = xr[0] + 7 * i / 400; i ? ctx.lineTo(X(w), Y(f(w))) : ctx.moveTo(X(w), Y(f(w))); } ctx.stroke(); }); ctx.setLineDash([]);
+  [[ml, cssv('--s3'), 'ML'], [mp, cssv('--s1'), 'MAP']].forEach(([w, c, t], k) => { ctx.strokeStyle = c; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(w), Y(0)); ctx.lineTo(X(w), pad.t + 14 + 14 * k); ctx.stroke();
+    ctx.fillStyle = c; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(t, X(w) + 4, pad.t + 2 + 14 * k); });
+  $('pTxt').innerHTML = g2 < 0.05 ? 'A <b>narrow prior</b> (small γ², large λ): a strong belief that w is near 0. The MAP estimate is pulled hard towards 0.'
+    : g2 > 20 ? 'A <b>wide prior</b> (large γ², tiny λ): almost no belief either way, so the MAP estimate is essentially the ML estimate.'
+    : 'In between: the posterior sits between the prior (centred at 0) and the likelihood (centred at ŵ<sub>ML</sub>). MAP shrinks ŵ<sub>ML</sub> towards 0.';
+}
+$('g').oninput = draw; $('newD').onclick = () => { newData(); draw(); };
+newData(); onReady(draw);
+</script>
+</body>
+</html>

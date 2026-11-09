@@ -68,11 +68,8 @@ $$\lVert w\rVert_1=\sum_{j=1}^{d}|w_j| \qquad\text{(vs. ridge's } \lVert w\rVert
     <label>stretch = <b id="kV"></b> <input type="range" id="k" min="10" max="100" value="30" aria-label="ellipse stretch"></label>
     <label>tilt = <b id="tV"></b> <input type="range" id="t" min="0" max="180" value="120" aria-label="ellipse tilt"></label>
   </div>
-  <div class="row"><button id="v3d" class="on">3-D view (drag to rotate)</button><button id="v2d">Top view</button></div>
-  <div id="g3" style="height:470px;display:block" aria-label="3-D loss bowl over (w1, w2) with the ridge circle and lasso diamond drawn on it"></div>
-  <p class="small muted" id="g3cap" style="margin:4px 0 0">Height = loss. The bowl's bottom is ŵ<sub>ML</sub>; the rings on the floor are the same loss ellipses as the top view. Each region is a fence: walk along the fence (drawn on the bowl) and the <b>lowest point</b> on it is the regularised answer. On the diamond that lowest point is often a corner.</p>
-  <canvas id="gc" height="380" style="display:none" aria-label="Top view: loss contours touching the ridge disc and the lasso diamond"></canvas>
-  <div class="legend"><span><i style="background:var(--s1)"></i>ridge disc ‖w‖₂ ≤ 1</span><span><i style="background:var(--s3)"></i>lasso diamond ‖w‖₁ ≤ 1</span><span><i class="dot" style="background:var(--ink)"></i>ŵ<sub>ML</sub></span><span><i class="dot" style="background:var(--s1)"></i>ŵ<sub>R</sub></span><span><i class="dot" style="background:var(--s3)"></i>ŵ<sub>L</sub> (lasso)</span></div>
+  <canvas id="gc" height="380" aria-label="Loss contours touching the ridge disc and the lasso diamond"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>ridge disc ‖w‖₂ ≤ 1</span><span><i style="background:var(--s3)"></i>lasso diamond ‖w‖₁ ≤ 1</span><span><i class="dot" style="background:var(--s1)"></i>ŵ<sub>R</sub></span><span><i class="dot" style="background:var(--s3)"></i>ŵ<sub>L</sub> (lasso)</span></div>
   <div class="row">
     <div class="stat"><div class="v" id="wr">–</div><div class="l">ridge ŵ<sub>R</sub></div></div>
     <div class="stat"><div class="v" id="wl">–</div><div class="l">lasso ŵ<sub>L</sub></div></div>
@@ -100,7 +97,6 @@ $$\lVert w\rVert_1=\sum_{j=1}^{d}|w_j| \qquad\text{(vs. ridge's } \lVert w\rVert
 <li>Ridge shrinks; lasso shrinks <b>and</b> selects (sparsity), typically far more so in high dimensions.</li>
 </ol>
 </main>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.33.0/plotly.min.js"></script>
 <script>
 const $ = id => document.getElementById(id);
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -169,45 +165,8 @@ $('trials').onclick = () => { let ls = 0, rs = 0, n = 0;
   while (n < 5000){ const a = -3 + 6 * Math.random(), b = -3 + 6 * Math.random(); if (Math.hypot(a, b) <= R) continue;
     const m = model(a, b, 1 + 9 * Math.random(), 180 * Math.random()); n++; if (isSparse(lassoSol(m))) ls++; if (isSparse(ridgeSol(m))) rs++; }
   $('trTxt').innerHTML = `Random ŵ<sub>ML</sub> (outside both regions) and random ellipse shapes: lasso gave an exact zero in <b>${(100 * ls / n).toFixed(1)}%</b> of cases, ridge in <b>${(100 * rs / n).toFixed(1)}%</b>.`; };
-/* ---- 3-D view: the loss as a bowl over (w1, w2), with both regions drawn as fences on it ---- */
-let view3d = true;
-function draw3d(){
-  const el = $('g3'); if (!view3d || !window.Plotly) return;
-  const a = +$('a').value / 10, b = +$('b').value / 10, m = model(a, b, +$('k').value / 10, +$('t').value), wr = ridgeSol(m), wl = lassoSol(m);
-  const ink = cssv('--ink'), muted = cssv('--muted'), grid = cssv('--grid'), card = cssv('--card'), c1 = cssv('--s1'), c3 = cssv('--s3');
-  const ring = pts => ({x: pts.map(p => p[0]), y: pts.map(p => p[1])});
-  const circle = Array.from({length: 181}, (_, i) => { const t = 2 * Math.PI * i / 180; return [R * Math.cos(t), R * Math.sin(t)]; });
-  // show the bowl up to just above the highest point of the ridge fence (which contains the diamond); hide the rest
-  const zTop = Math.max(0.5, 1.15 * Math.max(...circle.map(p => m.q(p)))), cap = v => Math.min(v, zTop);
-  const L = Math.max(1.6, Math.abs(a) + 0.7, Math.abs(b) + 0.7), N = 71, G = Array.from({length: N}, (_, i) => -L + 2 * L * i / (N - 1));
-  const Z = G.map(y => G.map(x => { const v = m.q([x, y]); return v <= zTop ? v : null; }));
-  const diamond = []; [[R, 0], [0, R], [-R, 0], [0, -R], [R, 0]].forEach((p, i, A) => { if (!i) return; const P = A[i - 1];
-    for (let s = 0; s <= 40; s++) diamond.push([P[0] + (p[0] - P[0]) * s / 40, P[1] + (p[1] - P[1]) * s / 40]); });
-  const fence = (pts, col, name) => [
-    {type: 'scatter3d', mode: 'lines', ...ring(pts), z: pts.map(() => 0), line: {color: col, width: 4, dash: 'dash'}, hoverinfo: 'skip', showlegend: false},
-    {type: 'scatter3d', mode: 'lines', ...ring(pts), z: pts.map(p => cap(m.q(p))), line: {color: col, width: 7}, name, hovertemplate: name + '<br>w = (%{x:.2f}, %{y:.2f})<br>loss %{z:.2f}<extra></extra>'}];
-  const point = (w, col, name, sym) => [
-    {type: 'scatter3d', mode: 'markers', x: [w[0]], y: [w[1]], z: [cap(m.q(w))], marker: {size: 7, color: col, symbol: sym || 'circle', line: {color: card, width: 2}}, name,
-     hovertemplate: name + '<br>w = (%{x:.3f}, %{y:.3f})<br>loss %{z:.3f}<extra></extra>'},
-    {type: 'scatter3d', mode: 'lines', x: [w[0], w[0]], y: [w[1], w[1]], z: [0, cap(m.q(w))], line: {color: col, width: 3}, hoverinfo: 'skip', showlegend: false}];
-  const surf = {type: 'surface', x: G, y: G, z: Z, opacity: 0.55, showscale: false, hoverinfo: 'skip',
-    colorscale: [[0, cssv('--grid')], [1, muted]],
-    contours: {z: {show: true, usecolormap: false, color: muted, width: 1, project: {z: true}, start: 0, end: zTop, size: zTop / 9}}};
-  const axis = t => ({title: {text: t, font: {color: muted, size: 12}}, color: muted, gridcolor: grid, zerolinecolor: grid, backgroundcolor: card, showbackground: true});
-  Plotly.react(el, [surf, ...fence(circle, c1, 'ridge fence ‖w‖₂ = 1'), ...fence(diamond, c3, 'lasso fence ‖w‖₁ = 1'),
-      ...point([a, b], ink, 'ŵ_ML (bottom of the bowl)', 'diamond'), ...point(wr, c1, 'ŵ_R (ridge)'), ...point(wl, c3, 'ŵ_L (lasso)')],
-    {margin: {l: 0, r: 0, t: 0, b: 0}, paper_bgcolor: card, font: {color: ink}, showlegend: false, uirevision: 'keep',
-     scene: {xaxis: {...axis('w₁'), range: [-L, L]}, yaxis: {...axis('w₂'), range: [-L, L]}, zaxis: {...axis('loss'), range: [0, zTop]},
-             aspectmode: 'manual', aspectratio: {x: 1, y: 1, z: 0.65}, camera: {eye: {x: 1.1, y: -1.45, z: 1.25}}},
-     hoverlabel: {bgcolor: card, font: {color: ink}}},
-    {responsive: true, displaylogo: false, scrollZoom: false});
-}
-function setView(is3d){ view3d = is3d; $('v3d').classList.toggle('on', is3d); $('v2d').classList.toggle('on', !is3d);
-  $('g3').style.display = is3d ? 'block' : 'none'; $('g3cap').style.display = is3d ? 'block' : 'none'; $('gc').style.display = is3d ? 'none' : 'block'; drawBoth(); }
-function drawBoth(){ draw(); draw3d(); }
-$('v3d').onclick = () => setView(true); $('v2d').onclick = () => setView(false);
-['a', 'b', 'k', 't'].forEach(id => $(id).oninput = drawBoth);
-onReady(drawBoth);
+['a', 'b', 'k', 't'].forEach(id => $(id).oninput = draw);
+onReady(draw);
 </script>
 </body>
 </html>

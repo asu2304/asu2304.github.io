@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Building a Decision Tree</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 44 · Classification: growing the tree</div>
+<h1>Building a Decision Tree, and What It Learns</h1>
+<p class="lede">Greedy recipe: try every candidate question, keep the one with the highest information gain, split, and <b>repeat on each side</b>. Each question cuts the plane with an <b>axis-parallel line</b>, so the tree carves it into rectangles. Grow it too deep and it boxes in every outlier; pick the <b>depth</b> by cross-validation. The payoff: every prediction comes with a readable <b>explanation</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=5rnu6Hvbt8I">this lecture on YouTube</a> (≈24 min). Previous: <a href="L43-decision-trees.html">L43</a>.</p>
+
+<h2>1 · The algorithm</h2>
+<ol class="steps">
+<li><b>Make the candidate questions.</b> For each feature, discretise its [min, max] range, say into 10 parts. Height from 100 to 200 gives "height ≤ 110?", "height ≤ 120?", and so on.</li>
+<li><b>Pick the question with the largest information gain</b> (L43). It splits the data into $D_{\text{yes}}$ and $D_{\text{no}}$.</li>
+<li><b>Repeat on $D_{\text{yes}}$ and on $D_{\text{no}}$</b>, each with its own best question. Questions that can't split a side are pointless there: once you know height ≤ 150, asking "height ≤ 170?" gets "yes" from everyone.</li>
+<li><b>Stop</b> when a node is pure enough (say over 90% one label) or the tree hits a maximum <b>depth</b>. A leaf predicts its majority label.</li>
+</ol>
+
+<h2>2 · Grow one yourself</h2>
+<p>The lecture's example has two features, $f_1$ and $f_2$ (think height and weight), with the structure "$f_1 > 5$ → 1; otherwise $f_2 > 7$ → 0; otherwise $f_1 \le 3$ → 1, else 0", plus some noisy labels. Filled points train the tree; hollow points are a held-out <b>validation</b> set. <b>Click on the map</b> to drop a new "patient" and get the tree's explanation of its prediction.</p>
+<div class="card">
+  <div class="row">
+    <label>max depth = <b id="dV"></b> <input type="range" id="d" min="1" max="10" value="3" aria-label="maximum depth"></label>
+    <label>stop when a node is ≥ <b id="tV"></b> pure <input type="range" id="tau" min="80" max="100" value="100" aria-label="purity threshold"></label>
+  </div>
+  <div class="row">
+    <span class="small">impurity:</span><button data-c="ent" class="on">entropy</button><button data-c="gini">Gini</button>
+    <span class="small">candidate thresholds:</span><button data-q="bins" class="on">10 per feature (lecture)</button><button data-q="all">every gap between points</button>
+    <button id="newT">New data</button>
+  </div>
+  <canvas id="map" height="380" style="cursor:crosshair" aria-label="Decision regions of the tree; click to explain a prediction"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>label 1</span><span><i class="dot" style="background:var(--s2)"></i>label 0</span><span>filled = train, hollow = validation</span><span>shading = the tree's prediction</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="leaves">–</div><div class="l">leaves (rectangles)</div></div>
+    <div class="stat"><div class="v" id="trA">–</div><div class="l">train accuracy</div></div>
+    <div class="stat"><div class="v" id="vaA">–</div><div class="l">validation accuracy</div></div>
+  </div>
+  <div id="explain" class="callout" style="margin:10px 0 6px">Click anywhere on the map to drop a new point and see <b>why</b> the tree predicts what it does.</div>
+  <div style="overflow-x:auto;border:1px solid var(--grid);border-radius:10px;padding:6px"><svg id="tree" height="260" aria-label="The learned tree"></svg></div>
+  <p class="small muted" style="margin:6px 0 0">The learned tree. The path for your clicked point is highlighted.</p>
+</div>
+
+<h2>3 · Depth is the knob: cross-validate it</h2>
+<p>Every question draws an <b>axis-parallel line</b>, so leaves are rectangles. If no two identical points have different labels, a deep enough tree can surround <b>every point with its own box</b> and get 100% training accuracy, noise included. That's like $k=1$ in k-NN. So treat the <b>maximum depth</b> as a hyperparameter: grow trees of different depths and keep the one that does best on held-out data.</p>
+<div class="card">
+  <canvas id="dc" height="230" aria-label="Train and validation accuracy versus depth"></canvas>
+  <div class="legend"><span><i style="background:var(--faint)"></i>train accuracy</span><span><i style="background:var(--s1)"></i>validation accuracy</span></div>
+  <div class="row"><button id="useBest">Use the best depth</button><span class="small" id="dTxt"></span></div>
+</div>
+<p>Switch to "every gap between points" with purity 100% and depth 10 to see the extreme: tiny boxes around single noisy points, perfect training accuracy, worse validation accuracy.</p>
+
+<h2>4 · Other impurity measures</h2>
+<p>Entropy isn't the only option. The <b>Gini index</b> is another popular one: $\text{Gini}(p)=2p(1-p)$ for two classes. Any function that is 0 at $p=0$ and $p=1$, peaks at $p=\tfrac12$ and is symmetric is a reasonable impurity measure. Toggle it above: the trees usually come out very similar.</p>
+
+<h2>5 · Why trees are popular: interpretability</h2>
+<p>A doctor using a model to flag a disease wants to know <b>why</b>. A tree answers in plain terms: "predicted positive because temperature > … and blood pressure ≤ …". Shallow trees, around ten questions or fewer, are explanations a person can check. And the tree is a compact model: once built, the training data can be discarded.</p>
+<div class="callout"><b>What's next:</b> k-NN and trees make <b>no assumptions</b> about how the data was generated. The next lectures model the data <b>probabilistically</b>, with assumptions about structure and noise, which leads to a new family of classifiers.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Greedy building: discretise each feature into candidate thresholds, take the max-gain question, split, recurse.</li>
+<li>Stop at enough purity or a maximum depth. Leaves predict the majority label.</li>
+<li>Decision boundaries are axis-parallel rectangles. Deep trees fit the noise, so choose the depth by cross-validation.</li>
+<li>Entropy or Gini (or any symmetric impurity that peaks at ½) can score questions.</li>
+<li>Trees are interpretable models: each prediction comes with its chain of reasons.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const truth = (a, b) => a > 5 ? 1 : b > 7 ? 0 : a <= 3 ? 1 : 0;
+let TR = [], VA = [], maxD = 3, tau = 1, crit = 'ent', qmode = 'bins', seed = 21, tree = null, probe = null;
+function makeData(){ const r = rng(seed), all = [];
+  for (let i = 0; i < 150; i++){ const a = 10 * r(), b = 10 * r(); let lab = truth(a, b); if (r() < 0.07) lab = 1 - lab; all.push([a, b, lab]); }
+  TR = all.slice(0, 105); VA = all.slice(105); }
+const IMP = {ent: p => (p <= 0 || p >= 1) ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p)), gini: p => 2 * p * (1 - p)};
+const frac = S => S.length ? S.filter(d => d[2] === 1).length / S.length : 0;
+function cands(f, S){
+  if (qmode === 'bins'){ const v = TR.map(d => d[f]), lo = Math.min(...v), hi = Math.max(...v); return Array.from({length: 9}, (_, j) => lo + (hi - lo) * (j + 1) / 10); }
+  const v = [...new Set(S.map(d => d[f]))].sort((a, b) => a - b); return v.slice(1).map((x, i) => (x + v[i]) / 2); }
+function build(S, depth){
+  const p = frac(S), node = {n: S.length, p, label: p >= 0.5 ? 1 : 0, depth};
+  if (depth >= maxD || p >= tau || p <= 1 - tau || S.length < 2) return node;
+  const I = IMP[crit], base = I(p); let best = {gain: 1e-12};
+  for (const f of [0, 1]) for (const th of cands(f, S)){ const Y = S.filter(d => d[f] <= th), N = S.filter(d => d[f] > th); if (!Y.length || !N.length) continue;
+    const g = Y.length / S.length, gain = base - (g * I(frac(Y)) + (1 - g) * I(frac(N))); if (gain > best.gain) best = {gain, f, th, Y, N}; }
+  if (best.f === undefined) return node;
+  node.f = best.f; node.th = best.th; node.gain = best.gain; node.yes = build(best.Y, depth + 1); node.no = build(best.N, depth + 1); return node; }
+const predictPath = (t, x, path = []) => { path.push(t); return t.f === undefined ? path : predictPath(x[t.f] <= t.th ? t.yes : t.no, x, path); };
+const predict = (t, x) => { const p = predictPath(t, x); return p[p.length - 1].label; };
+const acc = (t, S) => S.filter(d => predict(t, d) === d[2]).length / S.length;
+function leavesOf(t, box, out){ if (t.f === undefined){ out.push([box, t]); return out; }
+  const [x0, x1, y0, y1] = box; if (t.f === 0){ leavesOf(t.yes, [x0, t.th, y0, y1], out); leavesOf(t.no, [t.th, x1, y0, y1], out); }
+  else { leavesOf(t.yes, [x0, x1, y0, t.th], out); leavesOf(t.no, [x0, x1, t.th, y1], out); } return out; }
+const FN = ['f₁', 'f₂'];
+function mapDraw(){
+  const cv = $('map'), [ctx, W, H] = setupCanvas(cv), pad = {l: 30, r: 10, t: 8, b: 24}, X = v => pad.l + v / 10 * (W - pad.l - pad.r), Y = v => H - pad.b - v / 10 * (H - pad.t - pad.b);
+  const L = leavesOf(tree, [0, 10, 0, 10], []);
+  L.forEach(([b, lf]) => { ctx.fillStyle = lf.label ? cssv('--s1') : cssv('--s2'); ctx.globalAlpha = 0.15; ctx.fillRect(X(b[0]), Y(b[3]), X(b[1]) - X(b[0]), Y(b[2]) - Y(b[3])); ctx.globalAlpha = 1;
+    ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1; ctx.strokeRect(X(b[0]), Y(b[3]), X(b[1]) - X(b[0]), Y(b[2]) - Y(b[3])); });
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); [0, 2, 4, 6, 8, 10].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 4); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 5, Y(v)); });
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('f₁ →', W - pad.r, H - pad.b - 2);
+  TR.forEach(([a, b, l]) => { ctx.fillStyle = l ? cssv('--s1') : cssv('--s2'); ctx.beginPath(); ctx.arc(X(a), Y(b), 4.5, 0, 2 * Math.PI); ctx.fill(); });
+  VA.forEach(([a, b, l]) => { ctx.strokeStyle = l ? cssv('--s1') : cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(a), Y(b), 4.5, 0, 2 * Math.PI); ctx.stroke(); });
+  if (probe){ ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(probe[0]), Y(probe[1]), 7, 0, 2 * Math.PI); ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.stroke(); }
+  $('leaves').textContent = L.length; $('trA').textContent = (100 * acc(tree, TR)).toFixed(1) + '%'; $('vaA').textContent = (100 * acc(tree, VA)).toFixed(1) + '%';
+  $('dV').textContent = maxD; $('tV').textContent = Math.round(100 * tau) + '%'; }
+function treeDraw(){
+  const svg = $('tree'), path = probe ? predictPath(tree, probe) : [], onPath = new Set(path), nodes = [], edges = [];
+  let leafX = 0; const NW = 92, LH = 62;
+  (function lay(t){ if (t.f === undefined){ t.x = leafX++ * NW + NW / 2; } else { lay(t.yes); lay(t.no); t.x = (t.yes.x + t.no.x) / 2; edges.push([t, t.yes, 'yes'], [t, t.no, 'no']); } t.y = 26 + t.depth * LH; nodes.push(t); })(tree);
+  const W = Math.max(leafX * NW, 300), depth = Math.max(...nodes.map(n => n.depth)), Hh = 26 + depth * LH + 34;
+  svg.setAttribute('width', W); svg.setAttribute('height', Hh); svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
+  const ink = cssv('--ink'), muted = cssv('--muted'), hl = cssv('--s3');
+  let s = '';
+  edges.forEach(([a, b, t]) => { const on = onPath.has(a) && onPath.has(b); s += `<line x1="${a.x}" y1="${a.y + 14}" x2="${b.x}" y2="${b.y - 14}" stroke="${on ? hl : muted}" stroke-width="${on ? 3 : 1}"/>`
+    + `<text x="${(a.x + b.x) / 2 + (t === 'yes' ? -10 : 10)}" y="${(a.y + b.y) / 2 + 2}" font-size="11" fill="${muted}" text-anchor="middle">${t}</text>`; });
+  nodes.forEach(n => { const on = onPath.has(n), leaf = n.f === undefined, w = leaf ? 64 : 84;
+    s += `<rect x="${n.x - w / 2}" y="${n.y - 14}" width="${w}" height="28" rx="7" fill="${leaf ? (n.label ? cssv('--s1') : cssv('--s2')) : cssv('--card')}" fill-opacity="${leaf ? 0.25 : 1}" stroke="${on ? hl : leaf ? muted : cssv('--s1')}" stroke-width="${on ? 3 : 1}"/>`
+      + `<text x="${n.x}" y="${n.y + 4}" font-size="12" fill="${ink}" text-anchor="middle" font-family="system-ui,sans-serif">${leaf ? `→ ${n.label}  (${n.n})` : `${FN[n.f]} ≤ ${n.th.toFixed(1)}?`}</text>`; });
+  svg.innerHTML = s;
+  if (probe){ const steps = path.slice(0, -1).map(n => { const v = probe[n.f], yes = v <= n.th; return `${FN[n.f]} ${yes ? '≤' : '>'} ${n.th.toFixed(1)} (it is ${v.toFixed(1)})`; });
+    const leaf = path[path.length - 1];
+    $('explain').innerHTML = `<b>Prediction: ${leaf.label}</b>, because ` + (steps.length ? steps.join(', and ') : 'the tree has a single leaf') + `. That leaf holds ${leaf.n} training points, ${Math.round(100 * (leaf.label ? leaf.p : 1 - leaf.p))}% of them labelled ${leaf.label}.`; } }
+function depthCurve(){ const keep = maxD, pts = []; for (let d = 1; d <= 10; d++){ maxD = d; const t = build(TR, 0); pts.push([d, acc(t, TR), acc(t, VA)]); } maxD = keep; return pts; }
+function depthDraw(){
+  const pts = depthCurve(), [ctx, W, H] = setupCanvas($('dc')), pad = {l: 44, r: 12, t: 10, b: 28};
+  const lo = Math.min(...pts.map(p => Math.min(p[1], p[2]))), yMin = Math.max(0, Math.floor((lo - 0.05) * 10) / 10);
+  const X = d => pad.l + (d - 1) / 9 * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yMin) / (1.02 - yMin) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let v = yMin; v <= 1.0001; v += 0.1){ ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(Math.round(100 * v) + '%', pad.l - 6, Y(v)); }
+  for (let d = 1; d <= 10; d++){ ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(d, X(d), H - pad.b + 4); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('max depth', (pad.l + W) / 2, H);
+  [[1, '--faint'], [2, '--s1']].forEach(([k, c]) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = 2.5; ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[k])) : ctx.moveTo(X(p[0]), Y(p[k]))); ctx.stroke(); });
+  let best = pts[0]; pts.forEach(p => { if (p[2] > best[2] + 1e-12) best = p; });
+  ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(X(best[0]), Y(best[2]), 7, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(maxD), Y(pts[maxD - 1][2]), 4, 0, 2 * Math.PI); ctx.fill();
+  $('dTxt').innerHTML = `Validation accuracy peaks at <b>depth ${best[0]}</b> (${(100 * best[2]).toFixed(1)}%). Training accuracy keeps climbing with depth, so it can't be used to choose.`;
+  return best[0]; }
+function rebuild(){ tree = build(TR, 0); mapDraw(); treeDraw(); depthDraw(); }
+const cv = $('map');
+cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(), pad = {l: 30, r: 10, t: 8, b: 24};
+  const a = (e.clientX - r.left - pad.l) / (r.width - pad.l - pad.r) * 10, b = (r.height - pad.b - (e.clientY - r.top)) / (r.height - pad.t - pad.b) * 10;
+  if (a < 0 || a > 10 || b < 0 || b > 10) return; probe = [a, b]; mapDraw(); treeDraw(); });
+$('d').oninput = () => { maxD = +$('d').value; rebuild(); };
+$('tau').oninput = () => { tau = +$('tau').value / 100; rebuild(); };
+document.querySelectorAll('button[data-c]').forEach(b => b.onclick = () => { crit = b.dataset.c; document.querySelectorAll('button[data-c]').forEach(x => x.classList.toggle('on', x === b)); rebuild(); });
+document.querySelectorAll('button[data-q]').forEach(b => b.onclick = () => { qmode = b.dataset.q; document.querySelectorAll('button[data-q]').forEach(x => x.classList.toggle('on', x === b)); rebuild(); });
+$('newT').onclick = () => { seed++; makeData(); probe = null; $('explain').innerHTML = 'Click anywhere on the map to drop a new point and see <b>why</b> the tree predicts what it does.'; rebuild(); };
+$('useBest').onclick = () => { const b = depthDraw(); maxD = b; $('d').value = b; rebuild(); };
+makeData(); tree = build(TR, 0);
+onReady(rebuild);
+</script>
+</body>
+</html>

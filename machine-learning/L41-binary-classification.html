@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Binary Classification and the 0-1 Loss</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 41 · Classification begins</div>
+<h1>Binary Classification: the 0-1 Loss, and Why Regression Isn't Enough</h1>
+<p class="lede">Classification predicts one of <b>two labels</b>. The natural error to measure is the <b>0-1 loss</b>: the fraction of points you get wrong. Even with linear classifiers $\operatorname{sign}(w^\top x)$, minimising it is <b>NP-hard</b>. Reusing least squares regression doesn't work well either: it cares <i>where</i> points are, not just <i>which side</i> of the line they're on.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_w9irUy_8Cs">this lecture on YouTube</a> (≈23 min). Previous: <a href="L40-solving-lasso.html">L40</a> · Next: <a href="L42-knn.html">L42</a>.</p>
+
+<h2>1 · The problem</h2>
+<p>Data $x_1,\dots,x_n\in\mathbb R^d$ with labels $y_i\in\{0,1\}$, or equivalently $\{-1,+1\}$: which numbers name the two classes doesn't matter, and different algorithms prefer different conventions. Example: spam vs not spam. We want $h:\mathbb R^d\to\{0,1\}$ that labels <b>new</b> points correctly. The course focuses on <b>binary</b> classification; multi-class mostly reuses its ideas.</p>
+
+<h2>2 · The 0-1 loss</h2>
+$$\text{loss}(h)=\frac1n\sum_{i=1}^{n}\mathbb 1\big(h(x_i)\neq y_i\big),\qquad \mathbb 1(z)=\begin{cases}1&z\text{ true}\\0&\text{otherwise}\end{cases}$$
+<p>It's the <b>fraction of training points $h$ gets wrong</b>, which is exactly what we care about in classification. Unlike squared error, it only asks right or wrong, not "by how much".</p>
+<p>As with regression (L28), searching over all functions gives zero training error by memorising, noise included. So restrict to <b>linear classifiers</b>:</p>
+$$\mathcal H_{\text{linear}}=\{\,h_w(x)=\operatorname{sign}(w^\top x)\,\},\qquad \operatorname{sign}(z)=\begin{cases}1&z>0\\0&\text{otherwise.}\end{cases}$$
+<p>Geometrically, $w$ is a <b>normal vector</b>: the line (hyperplane) $w^\top x=0$ splits the plane, everything on the side $w$ points to is predicted 1, and the rest is predicted 0. Points exactly on the line are a tie; the convention here calls them 0, but any tie-break works.</p>
+
+<div class="card">
+  <h3 style="margin:0 0 4px">Be the classifier</h3>
+  <p class="small muted" style="margin-top:0">Drag the <b>black dot</b> to move the line, and the <b>arrow tip</b> to turn $w$. The shaded side is where $h$ predicts 1. Points you get wrong are circled. Can you reach 0% error? (This line can sit anywhere, i.e. $\operatorname{sign}(w^\top x-b)$; the lecture's version passes through the origin, which is the special case $b=0$.)</p>
+  <canvas id="game" height="360" style="touch-action:none;cursor:grab" aria-label="Drag a line and its normal vector to separate two classes"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>label 1</span><span><i class="dot" style="background:var(--s2)"></i>label 0</span><span><i style="background:var(--ink)"></i>w (normal) and the line wᵀx = b</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="gErr">–</div><div class="l">0-1 loss (fraction wrong)</div></div>
+    <div class="stat"><div class="v" id="gMis">–</div><div class="l">points wrong</div></div>
+    <button id="gFlip">Flip w (swap the sides)</button><button id="gNew">New data</button>
+  </div>
+  <p class="small" id="gTxt"></p>
+</div>
+
+<h2>3 · Why not just minimise it? It's NP-hard</h2>
+<p>For regression we set the gradient to zero. Here the loss only takes the values 0 or 1 per point, so it's <b>not continuous or differentiable</b>: nudging $w$ either changes nothing or flips a point. Finding the line with the fewest mistakes becomes a discrete search, and for general data it's <b>NP-hard</b>, with no known efficient algorithm.</p>
+<p class="small muted">(In the 2-D sandbox below the computer <i>can</i> brute-force it, by trying every direction and every cut. That trick doesn't scale to many dimensions.)</p>
+
+<h2>4 · What about using linear regression?</h2>
+<p>Regression already solves a bigger problem (any real label), so why not: fit least squares to the $\pm1$ labels, get $w$, and predict $\operatorname{sign}(w^\top x)$? The trouble is that regression tries to make $w^\top x$ <b>equal</b> to $+1$ or $-1$. A positive point far on the correct side has $w^\top x\gg1$, which regression counts as a <b>big error</b>, so it tilts the line to reduce it, even if that makes other points wrong.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">Regression gets dragged; the 0-1 line doesn't</h3>
+  <p class="small muted" style="margin-top:0"><b>Click</b> to add a point of the selected class; <b>shift-click</b> removes the nearest. Or use the button to add far-away points that are on the <b>correct</b> side. Orange dashed: the least-squares line. Green: the line with the fewest mistakes (brute-force search).</p>
+  <div class="row">
+    <button id="cPos" class="on">Add label 1</button><button id="cNeg">Add label 0</button>
+    <button id="far">Add 12 far-away label-1 points</button><button id="rReset">Reset</button>
+  </div>
+  <canvas id="reg" height="360" style="cursor:crosshair" aria-label="Least squares vs minimum 0-1 loss classifier"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>least squares + sign</span><span><i style="background:var(--s3)"></i>fewest mistakes</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="rLS">–</div><div class="l">0-1 loss of least squares</div></div>
+    <div class="stat"><div class="v" id="rBest">–</div><div class="l">0-1 loss of the best line</div></div>
+    <div class="stat"><div class="v" id="rN">–</div><div class="l">points</div></div>
+  </div>
+  <p class="small" id="rTxt"></p>
+</div>
+<div class="callout"><b>Conclusion:</b> regression is sensitive to the <b>location</b> of points, not just which <b>side</b> of the separator they're on. A point that's "too correct" still pulls on the line.</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0"><b>Going beyond the video: the same idea as two curves.</b> Write the margin $m=y\,w^\top x$ (with $y=\pm1$), positive when correct. The 0-1 loss is a step: 1 if $m\le0$, else 0. The squared loss is $(y-w^\top x)^2=(1-m)^2$, which grows again for $m>1$: being <b>very correct</b> is punished. That's exactly the tilt in the sandbox above.</p>
+  <canvas id="lossC" height="200" aria-label="0-1 loss and squared loss as functions of the margin"></canvas>
+  <div class="legend"><span><i style="background:var(--ink)"></i>0-1 loss</span><span><i style="background:var(--s2)"></i>squared loss (1 − m)²</span></div>
+</div>
+
+<h2>5 · Where this leaves us</h2>
+<p>The natural loss is NP-hard to minimise, and regression isn't a good stand-in. That's <b>why there are so many classification algorithms</b>: each gets around the hardness with different assumptions. Starting simple: given a new point, what is the most obvious way to predict its label? (Next: <a href="L42-knn.html">L42</a>.)</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Binary classification: features $x\in\mathbb R^d$, labels in $\{0,1\}$ or $\{-1,+1\}$.</li>
+<li>0-1 loss = fraction misclassified. Restrict to linear classifiers $\operatorname{sign}(w^\top x)$: a hyperplane with normal $w$.</li>
+<li>Minimising 0-1 loss is NP-hard in general: the loss is discrete, so gradients don't help.</li>
+<li>Least squares regression + sign is a poor substitute: far-away, correctly-placed points still tilt the line.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gaussR = r => { let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const SPAN = 4.2;   // both canvases show [-SPAN, SPAN] in w-space units
+function frame(cv){ const [ctx, W, H] = setupCanvas(cv), s = Math.min(W, H) / (2 * SPAN), cx = W / 2, cy = H / 2;
+  return {ctx, W, H, X: v => cx + v * s, Y: v => cy - v * s, ix: px => (px - cx) / s, iy: py => (cy - py) / s, s}; }
+function axesLight(f){ const {ctx, W, H, X, Y} = f; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.stroke(); }
+// shade the half-plane n·x > b and draw its boundary line
+function halfPlane(f, n, b, col, alpha, lineCol, dash){
+  const {ctx, W, H, X, Y} = f, L = 50, nn = Math.hypot(n[0], n[1]) || 1, u = [n[0] / nn, n[1] / nn], p0 = [u[0] * b / nn, u[1] * b / nn], t = [-u[1], u[0]];
+  const A = [p0[0] + L * t[0], p0[1] + L * t[1]], B = [p0[0] - L * t[0], p0[1] - L * t[1]];
+  if (alpha){ ctx.fillStyle = col; ctx.globalAlpha = alpha; ctx.beginPath(); ctx.moveTo(X(A[0]), Y(A[1])); ctx.lineTo(X(B[0]), Y(B[1]));
+    ctx.lineTo(X(B[0] + L * u[0]), Y(B[1] + L * u[1])); ctx.lineTo(X(A[0] + L * u[0]), Y(A[1] + L * u[1])); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1; }
+  ctx.strokeStyle = lineCol; ctx.lineWidth = 2.5; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(X(A[0]), Y(A[1])); ctx.lineTo(X(B[0]), Y(B[1])); ctx.stroke(); ctx.setLineDash([]); }
+function dots(f, P, ring){ const {ctx, X, Y} = f;
+  P.forEach(([x, y, lab], i) => { ctx.fillStyle = lab === 1 ? cssv('--s1') : cssv('--s2'); ctx.beginPath(); ctx.arc(X(x), Y(y), 5, 0, 2 * Math.PI); ctx.fill();
+    if (ring && ring[i]){ ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(x), Y(y), 9, 0, 2 * Math.PI); ctx.stroke(); } }); }
+
+/* ---------- 1 · the game: drag the line ---------- */
+let G = [], C = [-1.6, 1.2], T = [-0.6, 2.0], drag = null;
+function newGame(seed){ const r = rng(seed); G = [];
+  const ang = r() * Math.PI, n = [Math.cos(ang), Math.sin(ang)], b = (r() - 0.5) * 1.2;
+  while (G.length < 40){ const p = [(r() - 0.5) * 7, (r() - 0.5) * 7], m = n[0] * p[0] + n[1] * p[1] - b; if (Math.abs(m) < 0.35) continue; G.push([p[0], p[1], m > 0 ? 1 : 0]); }
+  C = [-1.6, 1.2]; T = [-0.6, 2.0]; }
+function gameDraw(){ const f = frame($('game')), w = [T[0] - C[0], T[1] - C[1]], b = w[0] * C[0] + w[1] * C[1];
+  axesLight(f); halfPlane(f, w, b, cssv('--s1'), 0.12, cssv('--ink'));
+  const wrong = G.map(([x, y, lab]) => ((w[0] * x + w[1] * y - b > 0) ? 1 : 0) !== lab); dots(f, G, wrong);
+  const {ctx, X, Y} = f; ctx.strokeStyle = cssv('--ink'); ctx.fillStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(C[0]), Y(C[1])); ctx.lineTo(X(T[0]), Y(T[1])); ctx.stroke();
+  const a = Math.atan2(Y(T[1]) - Y(C[1]), X(T[0]) - X(C[0])); ctx.beginPath(); ctx.moveTo(X(T[0]), Y(T[1])); ctx.lineTo(X(T[0]) - 12 * Math.cos(a - 0.4), Y(T[1]) - 12 * Math.sin(a - 0.4)); ctx.lineTo(X(T[0]) - 12 * Math.cos(a + 0.4), Y(T[1]) - 12 * Math.sin(a + 0.4)); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.arc(X(C[0]), Y(C[1]), 7, 0, 2 * Math.PI); ctx.fill(); ctx.font = '13px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('w', X(T[0]) + 8, Y(T[1]) - 4);
+  const k = wrong.filter(Boolean).length; $('gErr').textContent = (100 * k / G.length).toFixed(1) + '%'; $('gMis').textContent = `${k} of ${G.length}`;
+  $('gTxt').innerHTML = k === 0 ? '🎉 <b>0% error.</b> Every point is on its correct side. Notice how many different lines achieve this: the 0-1 loss is flat between them.' : k > G.length / 2 ? 'More than half wrong? Try <b>Flip w</b>: pointing w the other way swaps which side is predicted 1.' : 'Move the line and turn w until no point is circled.'; }
+const gcv = $('game');
+gcv.addEventListener('pointerdown', e => { const f = frame(gcv), r = gcv.getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const d = (p) => Math.hypot(f.X(p[0]) - px, f.Y(p[1]) - py); drag = d(T) < 18 ? 'T' : d(C) < 18 ? 'C' : null;
+  if (!drag){ const dx = T[0] - C[0], dy = T[1] - C[1]; C = [f.ix(px), f.iy(py)]; T = [C[0] + dx, C[1] + dy]; drag = 'C'; }
+  gcv.setPointerCapture(e.pointerId); gcv.style.cursor = 'grabbing'; gameDraw(); });
+gcv.addEventListener('pointermove', e => { if (!drag) return; const f = frame(gcv), r = gcv.getBoundingClientRect(), p = [f.ix(e.clientX - r.left), f.iy(e.clientY - r.top)];
+  if (drag === 'T') T = p; else { const dx = T[0] - C[0], dy = T[1] - C[1]; C = p; T = [p[0] + dx, p[1] + dy]; } gameDraw(); });
+gcv.addEventListener('pointerup', () => { drag = null; gcv.style.cursor = 'grab'; });
+$('gFlip').onclick = () => { T = [2 * C[0] - T[0], 2 * C[1] - T[1]]; gameDraw(); };
+let gSeed = 7; $('gNew').onclick = () => { newGame(++gSeed); gameDraw(); };
+
+/* ---------- 2 · regression vs the 0-1 line ---------- */
+let R0 = [], RP = [], addLab = 1;
+function baseReg(){ const r = rng(42), P = [];
+  for (let i = 0; i < 18; i++) P.push([-1.7 + 0.7 * gaussR(r), -0.6 + 0.7 * gaussR(r), 0]);
+  for (let i = 0; i < 18; i++) P.push([0.9 + 0.6 * gaussR(r), 0.7 + 0.6 * gaussR(r), 1]);
+  return P; }
+function leastSquares(P){ const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], v = [0, 0, 0];
+  P.forEach(([x, y, lab]) => { const z = [x, y, 1], t = lab === 1 ? 1 : -1; for (let i = 0; i < 3; i++){ v[i] += z[i] * t; for (let j = 0; j < 3; j++) A[i][j] += z[i] * z[j]; } });
+  for (let i = 0; i < 3; i++) A[i][i] += 1e-9; return solve(A, v); }   // w = (w1, w2, w0): predict 1 if w1 x + w2 y + w0 > 0
+const errOf = (P, n, b) => P.filter(([x, y, lab]) => ((n[0] * x + n[1] * y - b > 0) ? 1 : 0) !== lab).length;
+function bestLine(P){   // exact minimum 0-1 loss over 720 directions: for each, sweep the threshold over the sorted projections
+  let best = {e: Infinity};
+  for (let k = 0; k < 720; k++){ const a = Math.PI * 2 * k / 720, n = [Math.cos(a), Math.sin(a)];
+    const pr = P.map(([x, y, lab]) => [n[0] * x + n[1] * y, lab]).sort((p, q) => p[0] - q[0]);
+    let e = pr.filter(p => p[1] === 0).length;   // threshold below everything: all predicted 1, so every label-0 point is wrong
+    let bestHere = e, bi = -1;
+    for (let i = 0; i < pr.length; i++){ e += pr[i][1] === 1 ? 1 : -1; if (e < bestHere){ bestHere = e; bi = i; } }
+    if (bestHere < best.e){ const lo = bi < 0 ? pr[0][0] - 1 : pr[bi][0], hi = bi + 1 < pr.length ? pr[bi + 1][0] : lo + 1; best = {e: bestHere, n, b: (lo + hi) / 2}; } }
+  return best; }
+function regDraw(){ const f = frame($('reg')), w = leastSquares(RP), n = [w[0], w[1]], b = -w[2], best = bestLine(RP);
+  axesLight(f); halfPlane(f, best.n, best.b, cssv('--s3'), 0.08, cssv('--s3')); halfPlane(f, n, b, null, 0, cssv('--s2'), [8, 6]);
+  const wrongLS = RP.map(([x, y, lab]) => ((n[0] * x + n[1] * y - b > 0) ? 1 : 0) !== lab); dots(f, RP, wrongLS);
+  const eLS = wrongLS.filter(Boolean).length;
+  $('rLS').textContent = `${(100 * eLS / RP.length).toFixed(1)}% (${eLS})`; $('rBest').textContent = `${(100 * best.e / RP.length).toFixed(1)}% (${best.e})`; $('rN').textContent = RP.length;
+  $('rTxt').innerHTML = eLS > best.e ? `Least squares now gets <b>${eLS}</b> point${eLS > 1 ? 's' : ''} wrong (circled), but a line with only <b>${best.e}</b> mistake${best.e === 1 ? '' : 's'} exists. The far-away points pulled it.`
+    : 'Right now least squares is as good as the best line. Add far-away points on the correct side (the button) and watch the orange line tilt.'; }
+const rcv = $('reg');
+rcv.addEventListener('click', e => { const f = frame(rcv), r = rcv.getBoundingClientRect(), p = [f.ix(e.clientX - r.left), f.iy(e.clientY - r.top)];
+  if (e.shiftKey){ if (!RP.length) return; let k = 0; RP.forEach((q, i) => { if (Math.hypot(q[0] - p[0], q[1] - p[1]) < Math.hypot(RP[k][0] - p[0], RP[k][1] - p[1])) k = i; }); RP.splice(k, 1); }
+  else RP.push([p[0], p[1], addLab]); regDraw(); });
+$('cPos').onclick = () => { addLab = 1; $('cPos').classList.add('on'); $('cNeg').classList.remove('on'); };
+$('cNeg').onclick = () => { addLab = 0; $('cNeg').classList.add('on'); $('cPos').classList.remove('on'); };
+$('far').onclick = () => { const r = rng(RP.length * 7 + 3); for (let i = 0; i < 12; i++) RP.push([3.7 + 0.25 * gaussR(r), 3.4 + 0.25 * gaussR(r), 1]); regDraw(); };
+$('rReset').onclick = () => { RP = baseReg(); regDraw(); };
+
+/* ---------- loss shapes ---------- */
+function lossDraw(){ const [ctx, W, H] = setupCanvas($('lossC')), pad = {l: 34, r: 12, t: 10, b: 26}, X = m => pad.l + (m + 2) / 5 * (W - pad.l - pad.r), Y = v => H - pad.b - v / 4.2 * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 1, 2, 3, 4].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  [-2, -1, 0, 1, 2, 3].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 4); });
+  ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('margin m = y·wᵀx →', W - pad.r, H - pad.b - 4);
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(-2), Y(1)); ctx.lineTo(X(0), Y(1)); ctx.lineTo(X(0), Y(0)); ctx.lineTo(X(3), Y(0)); ctx.stroke();
+  ctx.strokeStyle = cssv('--s2'); ctx.beginPath(); for (let i = 0; i <= 200; i++){ const m = -2 + 5 * i / 200, v = Math.min((1 - m) ** 2, 4.2); i ? ctx.lineTo(X(m), Y(v)) : ctx.moveTo(X(m), Y(v)); } ctx.stroke();
+  ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('"too correct" still costs', X(2.05), Y(1.4)); }
+
+function drawAll(){ gameDraw(); regDraw(); lossDraw(); }
+newGame(gSeed); RP = baseReg(); onReady(drawAll);
+</script>
+</body>
+</html>

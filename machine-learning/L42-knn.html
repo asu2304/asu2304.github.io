@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>k-Nearest Neighbours</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 42 · Classification: the simplest algorithm</div>
+<h1>k-Nearest Neighbours: Ask Your Neighbours</h1>
+<p class="lede">To label a new point, look at the training points closest to it and let them <b>vote</b>. One neighbour is fooled by outliers; everyone gives the same answer everywhere. The right <b>k</b> sits in between, found by cross-validation. The deeper problem: k-NN <b>learns no model</b>, so every prediction needs the whole training set.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=H-Y_A7HvBqk">this lecture on YouTube</a> (≈25 min). Previous: <a href="L41-binary-classification.html">L41</a> · Next: <a href="L43-decision-trees.html">L43</a>.</p>
+
+<h2>1 · From one neighbour to k</h2>
+<ol class="steps">
+<li><b>Nearest neighbour:</b> given $x_{\text{test}}$, find the closest training point $x^\star$ and predict its label $y^\star$.</li>
+<li><b>Problem:</b> if $x^\star$ is an <b>outlier</b> (say a mislabelled point inside the other class's region), you copy its mistake. Real datasets are noisy.</li>
+<li><b>Fix:</b> ask $k$ neighbours $x_1^\star,\dots,x_k^\star$ and take the <b>majority vote</b> of $y_1^\star,\dots,y_k^\star$. If most of your neighbours agree, a single outlier can't flip the answer.</li>
+</ol>
+
+<h2>2 · The decision boundary, live</h2>
+<p>A decision boundary shows what the algorithm would predict for <b>every</b> possible test point. The lecture's picture: label-0 regions on both sides, a label-1 band in the middle, and a couple of outliers. Hover anywhere to see that spot's $k$ neighbours vote.</p>
+<div class="card">
+  <div class="row">
+    <label>k = <b id="kV"></b> <input type="range" id="k" min="1" max="61" step="2" value="1" aria-label="number of neighbours k"></label>
+    <span class="small">distance:</span><button data-m="l2" class="on">Euclidean</button><button data-m="l1">Manhattan</button><button data-m="linf">Chebyshev</button>
+  </div>
+  <div class="row">
+    <button id="aPos" class="on">click adds label 1</button><button id="aNeg">click adds label 0</button><button id="kReset">Reset data</button>
+    <span class="small muted">shift-click removes the nearest point</span>
+  </div>
+  <canvas id="map" height="380" style="cursor:crosshair" aria-label="k-NN decision regions; hover to see the neighbours vote"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>label 1</span><span><i class="dot" style="background:var(--s2)"></i>label 0</span><span>shading = what k-NN predicts there</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="vote">hover the map</div><div class="l">neighbours' vote at the cursor</div></div>
+    <div class="stat"><div class="v" id="cost">–</div><div class="l">distance computations per prediction</div></div>
+    <div class="stat"><div class="v" id="ms">–</div><div class="l">time to paint this map (real)</div></div>
+  </div>
+  <p class="small" id="mapTxt"></p>
+</div>
+<ul>
+<li><b>k = 1:</b> the map is rugged, with <b>holes</b> around each outlier. That's the outlier sensitivity.</li>
+<li><b>k = n:</b> everyone votes on every point, so the answer is the overall majority <b>everywhere</b>: one colour fills the plane. Also bad.</li>
+<li>In between there's a $k^\star$ that keeps the real structure (0 | 1 | 0) and ignores the outliers.</li>
+</ul>
+
+<h2>3 · Choosing k: cross-validation</h2>
+<p>$k$ isn't learned from the data; it's a <b>hyperparameter</b>. Smaller $k$ means a more complicated boundary. Pick $k$ by trying several and keeping the one with the best accuracy on held-out data. Below: <b>leave-one-out</b> cross-validation (L35), where each point is predicted from all the others, for every odd $k$.</p>
+<div class="card">
+  <canvas id="cv" height="220" aria-label="Leave-one-out error versus k"></canvas>
+  <div class="row"><button id="useBest">Use the best k</button><span class="small" id="cvTxt"></span></div>
+</div>
+
+<h2>4 · What's wrong with k-NN</h2>
+<table>
+<tr><th>Issue</th><th>Why it matters</th></tr>
+<tr><td><b>Choosing a distance</b></td><td>Why Euclidean? Different features may need different notions of "close". Try the three metrics above: the boundaries change. Domain knowledge can help design one.</td></tr>
+<tr><td><b>Prediction is expensive</b></td><td>Every prediction compares against <b>all $n$</b> training points and picks the top $k$. With a billion points that's a billion distances, per prediction. The live counter above shows $n$, and the timer shows real milliseconds.</td></tr>
+<tr><td><b>No model is learned</b> (the root cause)</td><td>Nothing is extracted from the data, so you can never throw the data away. Real learning should compress the data into a <b>model</b> that's enough for prediction, like the compression idea from the start of the course.</td></tr>
+</table>
+<div class="callout"><b>Next:</b> an algorithm that learns an interpretable <b>model</b> from the data and then discards the data: the decision tree (<a href="L43-decision-trees.html">L43</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>k-NN: predict the majority label of the $k$ closest training points.</li>
+<li>$k=1$ overfits (outlier holes); $k=n$ predicts the majority class everywhere. Choose $k$ by cross-validation.</li>
+<li>Open choices: the distance function.</li>
+<li>Biggest issue: no model, so prediction costs $O(n)$ distances per point and the data must be kept forever.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const XR = [-5, 5], YR = [-3.4, 3.4];
+let P = [], K = 1, metric = 'l2', addLab = 1, hover = null, cvErr = [];
+function baseData(){ const r = rng(7), Q = [];   // bands overlap a little at the edges, like real data
+  for (let i = 0; i < 22; i++) Q.push([-4.6 + 3.5 * r(), -3 + 6 * r(), 0]);
+  for (let i = 0; i < 22; i++) Q.push([1.1 + 3.5 * r(), -3 + 6 * r(), 0]);
+  for (let i = 0; i < 18; i++) Q.push([-1.7 + 3.4 * r(), -3 + 6 * r(), 1]);
+  Q.push([-3.2, 0.6, 1], [2.6, -1.2, 1], [-0.2, 2.3, 0]);   // three outliers, as in the lecture's picture
+  return Q; }
+const DIST = {l2: (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]), l1: (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]), linf: (a, b) => Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]))};
+function neighbours(q, k, skip){ const d = []; for (let i = 0; i < P.length; i++){ if (i === skip) continue; d.push([DIST[metric](q, P[i]), i]); } d.sort((a, b) => a[0] - b[0]); return d.slice(0, k); }
+function predict(q, k, skip){ const nb = neighbours(q, k, skip); let ones = 0; nb.forEach(([, i]) => ones += P[i][2]); return {lab: ones * 2 > nb.length ? 1 : 0, ones, nb}; }   // ties go to label 0, like sign()
+let shade = null, lastMs = 0;   // cached decision-region image, rebuilt only when data, k or the metric change
+function mapDraw(rebuild = true){
+  const cv = $('map'), [ctx, W, H] = setupCanvas(cv), sx = W / (XR[1] - XR[0]), sy = H / (YR[1] - YR[0]), X = v => (v - XR[0]) * sx, Y = v => H - (v - YR[0]) * sy;
+  const kk = Math.min(K, P.length), cell = 6, c1 = cssv('--s1'), c0 = cssv('--s2');
+  if (rebuild || !shade || shade.width !== cv.width){ const t0 = performance.now(); shade = document.createElement('canvas'); shade.width = cv.width; shade.height = cv.height;
+    const sc = shade.getContext('2d'), dpr = cv.width / W; sc.setTransform(dpr, 0, 0, dpr, 0, 0); sc.globalAlpha = 0.16;
+    for (let px = 0; px < W; px += cell) for (let py = 0; py < H; py += cell){ const q = [XR[0] + (px + cell / 2) / sx, YR[0] + (H - py - cell / 2) / sy];
+      sc.fillStyle = predict(q, kk).lab ? c1 : c0; sc.fillRect(px, py, cell, cell); }
+    lastMs = performance.now() - t0; }
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(shade, 0, 0); ctx.restore();
+  const ms = lastMs, hv = hover ? predict(hover, kk) : null, inNb = new Set(hv ? hv.nb.map(([, i]) => i) : []);
+  if (hv){ const {nb, ones} = hv; ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1; ctx.globalAlpha = 0.55;
+    nb.forEach(([, i]) => { ctx.beginPath(); ctx.moveTo(X(hover[0]), Y(hover[1])); ctx.lineTo(X(P[i][0]), Y(P[i][1])); ctx.stroke(); }); ctx.globalAlpha = 1;
+    const rad = nb.length ? nb[nb.length - 1][0] : 0; ctx.setLineDash([4, 4]); ctx.beginPath();
+    if (metric === 'l2') ctx.ellipse(X(hover[0]), Y(hover[1]), rad * sx, rad * sy, 0, 0, 2 * Math.PI);
+    else if (metric === 'linf') ctx.rect(X(hover[0] - rad), Y(hover[1] + rad), 2 * rad * sx, 2 * rad * sy);
+    else { ctx.moveTo(X(hover[0] + rad), Y(hover[1])); ctx.lineTo(X(hover[0]), Y(hover[1] + rad)); ctx.lineTo(X(hover[0] - rad), Y(hover[1])); ctx.lineTo(X(hover[0]), Y(hover[1] - rad)); ctx.closePath(); }
+    ctx.stroke(); ctx.setLineDash([]);
+    $('vote').innerHTML = `${ones} × label 1 · ${nb.length - ones} × label 0 → <b>${ones * 2 > nb.length ? 1 : 0}</b>`; }
+  P.forEach(([x, y, lab], i) => { ctx.fillStyle = lab ? c1 : c0; ctx.beginPath(); ctx.arc(X(x), Y(y), 5, 0, 2 * Math.PI); ctx.fill();
+    if (inNb.has(i)){ ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(x), Y(y), 8, 0, 2 * Math.PI); ctx.stroke(); } });
+  if (hover){ ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(hover[0]), Y(hover[1]), 4, 0, 2 * Math.PI); ctx.fill(); }
+  $('kV').textContent = kk; $('cost').textContent = `${P.length} (one per training point)`;
+  $('ms').textContent = `${ms.toFixed(0)} ms for ${Math.ceil(W / cell) * Math.ceil(H / cell)} predictions`;
+  $('mapTxt').innerHTML = kk === 1 ? '<b>k = 1:</b> look for the small islands around the three outliers. Each one flips its neighbourhood.'
+    : kk >= P.length - 1 ? '<b>k ≈ n:</b> every point asks everyone, so the whole plane gets the overall majority label.'
+    : `k = ${kk}: the outlier islands ${kk >= 5 ? 'are gone' : 'are shrinking'}, and the 0 | 1 | 0 structure remains.`;
+}
+function cvCompute(){ cvErr = []; for (let k = 1; k <= Math.min(61, P.length - 1); k += 2){ let e = 0; P.forEach((p, i) => { if (predict(p, k, i).lab !== p[2]) e++; }); cvErr.push([k, e / P.length]); } }
+function cvDraw(){
+  const [ctx, W, H] = setupCanvas($('cv')), pad = {l: 44, r: 12, t: 10, b: 28}, kmax = cvErr.length ? cvErr[cvErr.length - 1][0] : 1, top = Math.max(0.1, ...cvErr.map(c => c[1])) * 1.1;
+  const X = k => pad.l + (k - 1) / Math.max(1, kmax - 1) * (W - pad.l - pad.r), Y = v => H - pad.b - v / top * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++){ const v = top * i / 4; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText((100 * v).toFixed(0) + '%', pad.l - 6, Y(v)); }
+  for (let k = 1; k <= kmax; k += 10){ ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(k, X(k), H - pad.b + 4); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('k', (pad.l + W) / 2, H);
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); cvErr.forEach(([k, e], i) => i ? ctx.lineTo(X(k), Y(e)) : ctx.moveTo(X(k), Y(e))); ctx.stroke();
+  let best = cvErr[0]; cvErr.forEach(c => { if (c[1] < best[1]) best = c; });
+  const cur = cvErr.find(c => c[0] === Math.min(K, P.length)) || cvErr[0];
+  ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(X(best[0]), Y(best[1]), 6, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(cur[0]), Y(cur[1]), 4, 0, 2 * Math.PI); ctx.fill();
+  $('cvTxt').innerHTML = `Leave-one-out error is lowest at <b>k = ${best[0]}</b> (${(100 * best[1]).toFixed(1)}%). Your k = ${cur[0]} gives ${(100 * cur[1]).toFixed(1)}%.`;
+  return best[0]; }
+function refresh(recalc){ if (recalc) cvCompute(); mapDraw(); cvDraw(); }
+const cv = $('map');
+cv.addEventListener('mousemove', e => { const r = cv.getBoundingClientRect(), sx = r.width / (XR[1] - XR[0]), sy = r.height / (YR[1] - YR[0]);
+  hover = [XR[0] + (e.clientX - r.left) / sx, YR[0] + (r.height - (e.clientY - r.top)) / sy]; mapDraw(false); });
+cv.addEventListener('mouseleave', () => { hover = null; $('vote').textContent = 'hover the map'; mapDraw(false); });
+cv.addEventListener('click', e => { const r = cv.getBoundingClientRect(), sx = r.width / (XR[1] - XR[0]), sy = r.height / (YR[1] - YR[0]);
+  const p = [XR[0] + (e.clientX - r.left) / sx, YR[0] + (r.height - (e.clientY - r.top)) / sy];
+  if (e.shiftKey){ if (P.length < 3) return; let j = 0; P.forEach((q, i) => { if (DIST.l2(q, p) < DIST.l2(P[j], p)) j = i; }); P.splice(j, 1); }
+  else P.push([p[0], p[1], addLab]);
+  $('k').max = Math.max(1, P.length % 2 ? P.length : P.length - 1); refresh(true); });
+$('k').oninput = () => { K = +$('k').value; refresh(false); };
+document.querySelectorAll('button[data-m]').forEach(b => b.onclick = () => { metric = b.dataset.m; document.querySelectorAll('button[data-m]').forEach(x => x.classList.toggle('on', x === b)); refresh(true); });
+$('aPos').onclick = () => { addLab = 1; $('aPos').classList.add('on'); $('aNeg').classList.remove('on'); };
+$('aNeg').onclick = () => { addLab = 0; $('aNeg').classList.add('on'); $('aPos').classList.remove('on'); };
+$('kReset').onclick = () => { P = baseData(); $('k').max = P.length % 2 ? P.length : P.length - 1; refresh(true); };
+$('useBest').onclick = () => { const b = cvDraw(); K = b; $('k').value = b; refresh(false); };
+P = baseData(); $('k').max = P.length % 2 ? P.length : P.length - 1; cvCompute();
+onReady(() => refresh(false));
+</script>
+</body>
+</html>

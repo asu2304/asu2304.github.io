@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Decision Trees: Good Questions</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 43 · Classification: learning a model</div>
+<h1>Decision Trees: Asking Good Questions</h1>
+<p class="lede">A decision tree is a <b>model</b>: a short sequence of yes/no questions like "is height ≤ 180 cm?" that ends in a label. Once it's built, the data can be thrown away. To build it, we need to score how good a question is. A good question splits the labels into <b>pure</b> groups, measured with <b>entropy</b>, and the score is the <b>information gain</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gXbAJGd8fO0">this lecture on YouTube</a> (≈26 min). Previous: <a href="L42-knn.html">L42</a> · Next: <a href="L44-building-trees.html">L44</a>.</p>
+
+<h2>1 · What a decision tree is</h2>
+<div class="card" style="overflow-x:auto">
+<svg viewBox="0 0 640 230" width="100%" style="max-width:640px;display:block;margin:auto" role="img" aria-label="Example tree: root question, internal questions, leaf predictions">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+  <g font-family="system-ui,sans-serif" font-size="13">
+    <rect x="245" y="10" width="150" height="34" rx="8" fill="var(--tint)" stroke="var(--s1)"/><text x="320" y="32" text-anchor="middle" fill="var(--ink)">height ≤ 180?</text>
+    <path d="M290,44 L170,92" stroke="var(--muted)" marker-end="url(#ar)"/><text x="215" y="62" fill="var(--muted)" font-size="12">yes</text>
+    <path d="M350,44 L470,92" stroke="var(--muted)" marker-end="url(#ar)"/><text x="415" y="62" fill="var(--muted)" font-size="12">no</text>
+    <rect x="95" y="94" width="150" height="34" rx="8" fill="var(--tint)" stroke="var(--s1)"/><text x="170" y="116" text-anchor="middle" fill="var(--ink)">weight ≤ 70?</text>
+    <rect x="435" y="94" width="70" height="34" rx="8" fill="var(--card)" stroke="var(--s3)" stroke-width="2"/><text x="470" y="116" text-anchor="middle" fill="var(--ink)" font-weight="700">1</text>
+    <path d="M145,128 L95,176" stroke="var(--muted)" marker-end="url(#ar)"/><text x="105" y="152" fill="var(--muted)" font-size="12">yes</text>
+    <path d="M195,128 L245,176" stroke="var(--muted)" marker-end="url(#ar)"/><text x="228" y="152" fill="var(--muted)" font-size="12">no</text>
+    <rect x="55" y="178" width="70" height="34" rx="8" fill="var(--card)" stroke="var(--s3)" stroke-width="2"/><text x="90" y="200" text-anchor="middle" fill="var(--ink)" font-weight="700">0</text>
+    <rect x="215" y="178" width="70" height="34" rx="8" fill="var(--card)" stroke="var(--s3)" stroke-width="2"/><text x="250" y="200" text-anchor="middle" fill="var(--ink)" font-weight="700">1</text>
+    <text x="540" y="200" fill="var(--muted)" font-size="12">green boxes = leaves</text><text x="540" y="182" fill="var(--muted)" font-size="12">blue boxes = questions</text>
+  </g>
+</svg>
+</div>
+<ul>
+<li>A <b>binary tree</b>: a root, internal nodes and leaves. Every internal node asks a <b>yes/no question</b>; every leaf holds a <b>prediction</b> (1 or 0).</li>
+<li><b>To predict</b>: start at the root, answer each question for $x_{\text{test}}$, follow yes or no down to a leaf, and output its label. That's fast: just a few comparisons.</li>
+<li><b>The tree is the model.</b> Unlike k-NN, once it's built you don't need the training data.</li>
+<li><b>A question is a (feature, value) pair</b>: "is feature $k$ ≤ $\theta$?", for example "is height ≤ 180 cm?".</li>
+</ul>
+
+<h2>2 · What makes a question good: purity</h2>
+<p>A question splits the data $D$ into $D_{\text{yes}}$ and $D_{\text{no}}$. The <b>ideal</b> question makes each side <b>pure</b> (all the same label), so that one question classifies the training set perfectly. Real data rarely allows that, so we need a number that says how <b>impure</b> a set of labels is.</p>
+<p>Let $p$ be the fraction of 1s in the set. An impurity measure should be:</p>
+<ul>
+<li><b>0 when $p=0$ or $p=1$</b>: all the same label, no doubt.</li>
+<li><b>Largest at $p=\tfrac12$</b>: a 50/50 mix, the most confusing.</li>
+<li><b>Symmetric</b>: 25% ones is exactly as confusing as 75% ones, since neither label is special.</li>
+</ul>
+<p>A popular choice with all three properties is <b>entropy</b> (from physics, adopted by Shannon in information theory):</p>
+$$\text{Entropy}(p)=-\big[\,p\log p+(1-p)\log(1-p)\,\big],\qquad \text{with } 0\log0=0 .$$
+<div class="card">
+  <div class="row"><label>fraction of 1s, p = <b id="pV"></b> <input type="range" id="p" min="0" max="100" value="25" aria-label="fraction of ones"></label></div>
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px" class="pair2">
+    <div><canvas id="bag" height="170" aria-label="A bag of 20 labels with the chosen fraction of ones"></canvas><p class="small muted" style="text-align:center;margin:4px 0 0">a set of 20 labels</p></div>
+    <div><canvas id="ent" height="170" aria-label="Entropy as a function of p"></canvas><p class="small muted" style="text-align:center;margin:4px 0 0">entropy (log base 2, so the peak is 1 bit)</p></div>
+  </div>
+  <p class="small" id="eTxt"></p>
+</div>
+
+<h2>3 · Scoring a question: information gain</h2>
+<p>A question gives three entropies: of $D$, of $D_{\text{yes}}$ and of $D_{\text{no}}$. Combine them into one score: <b>how much impurity the question removes</b>. Weight each side by its share of the points, $\gamma=|D_{\text{yes}}|/|D|$:</p>
+$$\text{InfoGain}(\text{feature},\text{value})=\text{Entropy}(D)-\Big[\gamma\,\text{Entropy}(D_{\text{yes}})+(1-\gamma)\,\text{Entropy}(D_{\text{no}})\Big].$$
+<ul>
+<li><b>Why weight by $\gamma$?</b> Entropy only sees the <i>fraction</i> of 1s, not how many points. 80% ones among 10,000 points is far more convincing than 80% among 100, so a side holding more points should count more.</li>
+<li><b>A perfect question</b> makes both sides pure, so both entropies are 0 and the gain equals all the impurity we started with, $\text{Entropy}(D)$.</li>
+</ul>
+<div class="card">
+  <h3 style="margin:0 0 4px">Find the best question</h3>
+  <p class="small muted" style="margin-top:0">60 people, two features, labels 1/0. Choose a feature and slide the threshold to ask "feature ≤ θ?". The table updates live; the chart below scores <b>every</b> threshold for both features.</p>
+  <div class="row">
+    <button data-f="0" class="on">height</button><button data-f="1">weight</button>
+    <label>θ = <b id="thV"></b> <input type="range" id="th" min="0" max="200" value="80" aria-label="threshold"></label>
+    <button id="bestQ">Jump to the best question</button>
+    <button id="clean">Data: noisy</button>
+  </div>
+  <canvas id="sc" height="320" aria-label="Scatter of height and weight with the current question's split"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>label 1</span><span><i class="dot" style="background:var(--s2)"></i>label 0</span><span>shaded side = D<sub>yes</sub></span></div>
+  <table id="qt" style="margin-top:8px"></table>
+  <canvas id="ig" height="190" style="margin-top:10px" aria-label="Information gain for every threshold of both features"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>gain using height</span><span><i style="background:var(--s3)"></i>gain using weight</span><span><i class="dot" style="background:var(--ink)"></i>your question</span></div>
+  <p class="small" id="qTxt"></p>
+</div>
+<p>The next step (L44) turns this into an algorithm: pick the question with the highest information gain, split, and repeat on each side.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>A decision tree is a model: yes/no questions at internal nodes, labels at leaves. Predict by walking from the root to a leaf.</li>
+<li>A question is a (feature, value) pair, "is feature ≤ θ?", which splits $D$ into $D_{\text{yes}}$ and $D_{\text{no}}$.</li>
+<li>Impurity of a set of labels: entropy of the fraction of 1s. It's 0 when pure, highest at 50/50, and symmetric.</li>
+<li>Information gain = Entropy(D) − weighted average of the two sides' entropies. Bigger means a better question.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const H2 = p => (p <= 0 || p >= 1) ? 0 : -(p * Math.log2(p) + (1 - p) * Math.log2(1 - p));
+
+/* ---------- entropy explorer ---------- */
+function entDraw(){
+  const p = +$('p').value / 100; $('pV').textContent = p.toFixed(2);
+  let [ctx, W, H] = setupCanvas($('bag')); const ones = Math.round(20 * p), r = Math.min(W / 22, H / 9);
+  for (let i = 0; i < 20; i++){ const cx = W / 2 + ((i % 5) - 2) * r * 2.6, cy = H / 2 + (Math.floor(i / 5) - 1.5) * r * 2.6;
+    ctx.fillStyle = i < ones ? cssv('--s1') : cssv('--s2'); ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = `${Math.round(r)}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(i < ones ? '1' : '0', cx, cy + 1); }
+  [ctx, W, H] = setupCanvas($('ent')); const pad = {l: 30, r: 10, t: 10, b: 22}, X = v => pad.l + v * (W - pad.l - pad.r), Y = v => H - pad.b - v / 1.08 * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 5, Y(v)); });
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 4); });
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i <= 200; i++){ const q = i / 200; i ? ctx.lineTo(X(q), Y(H2(q))) : ctx.moveTo(X(q), Y(H2(q))); } ctx.stroke();
+  const mirror = 1 - p; ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--faint'); ctx.beginPath(); ctx.moveTo(X(p), Y(H2(p))); ctx.lineTo(X(mirror), Y(H2(mirror))); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--faint'); ctx.beginPath(); ctx.arc(X(mirror), Y(H2(mirror)), 4, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(p), Y(H2(p)), 6, 0, 2 * Math.PI); ctx.fill();
+  $('eTxt').innerHTML = `${ones} of 20 labels are 1. Entropy = <b>${H2(p).toFixed(3)}</b> bits` + (p === 0 || p === 1 ? ': perfectly pure.' : Math.abs(p - 0.5) < 0.005 ? ': the maximum, as confusing as possible.'
+    : `. The same as at p = ${mirror.toFixed(2)} (grey dot): swapping which label is called "1" changes nothing.`); }
+$('p').oninput = entDraw;
+
+/* ---------- best-question finder ---------- */
+const FN = ['height (cm)', 'weight (kg)'], RANGE = [[140, 200], [40, 110]];
+let D = [], feat = 0, noisy = true;
+function makeData(){ const r = rng(noisy ? 5 : 9); D = [];
+  for (let i = 0; i < 60; i++){ let h = 140 + 60 * r(); const w = 40 + 70 * r();
+    if (!noisy && Math.abs(h - 172) < 2.5) h += h < 172 ? -2.5 : 2.5;   // leave a visible gap so one question can be perfect
+    let lab = h > 172 ? 1 : 0; if (noisy){ if (w > 92 && h > 160) lab = 1; if (r() < 0.08) lab = 1 - lab; }
+    D.push([h, w, lab]); } }
+function split(f, th){ const yes = D.filter(d => d[f] <= th), no = D.filter(d => d[f] > th), frac = S => S.length ? S.filter(d => d[2] === 1).length / S.length : 0;
+  const g = yes.length / D.length, eD = H2(frac(D)), eY = H2(frac(yes)), eN = H2(frac(no)); return {yes, no, g, eD, eY, eN, pD: frac(D), pY: frac(yes), pN: frac(no), ig: eD - (g * eY + (1 - g) * eN)}; }
+const thOf = f => RANGE[f][0] + (RANGE[f][1] - RANGE[f][0]) * (+$('th').value / 200);
+function curves(){ return [0, 1].map(f => Array.from({length: 201}, (_, i) => { const th = RANGE[f][0] + (RANGE[f][1] - RANGE[f][0]) * i / 200; return [th, split(f, th).ig]; })); }
+function qDraw(){
+  const th = thOf(feat), s = split(feat, th); $('thV').textContent = th.toFixed(0) + (feat ? ' kg' : ' cm');
+  let [ctx, W, H] = setupCanvas($('sc')); const pad = {l: 44, r: 12, t: 10, b: 30};
+  const X = v => pad.l + (v - RANGE[0][0]) / 60 * (W - pad.l - pad.r), Y = v => H - pad.b - (v - RANGE[1][0]) / 70 * (H - pad.t - pad.b);
+  ctx.fillStyle = cssv('--s3'); ctx.globalAlpha = 0.12;
+  if (feat === 0) ctx.fillRect(pad.l, pad.t, X(th) - pad.l, H - pad.t - pad.b); else ctx.fillRect(pad.l, Y(th), W - pad.l - pad.r, H - pad.b - Y(th)); ctx.globalAlpha = 1;
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [140, 160, 180, 200].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 4); });
+  [40, 60, 80, 100].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('height (cm)', (pad.l + W) / 2, H);
+  ctx.save(); ctx.translate(11, (pad.t + H - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('weight (kg)', 0, 0); ctx.restore();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); if (feat === 0){ ctx.moveTo(X(th), pad.t); ctx.lineTo(X(th), H - pad.b); } else { ctx.moveTo(pad.l, Y(th)); ctx.lineTo(W - pad.r, Y(th)); } ctx.stroke();
+  D.forEach(([h, w, lab]) => { ctx.fillStyle = lab ? cssv('--s1') : cssv('--s2'); ctx.beginPath(); ctx.arc(X(h), Y(w), 5, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.fillStyle = cssv('--ink'); ctx.font = '600 12px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText(`yes: ${feat ? 'weight' : 'height'} ≤ ${th.toFixed(0)}`, feat ? pad.l + 6 : pad.l + 6, feat ? Y(th) + 4 : pad.t + 4);
+  const row = (n, S, p, e) => `<tr><td>${n}</td><td>${S.length}</td><td>${p.toFixed(2)}</td><td>${e.toFixed(3)}</td></tr>`;
+  $('qt').innerHTML = '<tr><th>set</th><th>points</th><th>fraction of 1s, p</th><th>entropy</th></tr>' + row('D (all)', D, s.pD, s.eD) + row('D<sub>yes</sub>', s.yes, s.pY, s.eY) + row('D<sub>no</sub>', s.no, s.pN, s.eN)
+    + `<tr><td colspan="3"><b>information gain</b> = ${s.eD.toFixed(3)} − [${s.g.toFixed(2)} × ${s.eY.toFixed(3)} + ${(1 - s.g).toFixed(2)} × ${s.eN.toFixed(3)}]</td><td><b>${s.ig.toFixed(3)}</b></td></tr>`;
+  const C = curves(); [ctx, W, H] = setupCanvas($('ig')); const p2 = {l: 44, r: 12, t: 10, b: 26}, top = Math.max(0.05, s.eD) * 1.08;
+  const X2 = v => p2.l + v * (W - p2.l - p2.r), Y2 = v => H - p2.b - v / top * (H - p2.t - p2.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, top / 2, s.eD].forEach(v => { ctx.beginPath(); ctx.moveTo(p2.l, Y2(v)); ctx.lineTo(W - p2.r, Y2(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v.toFixed(2), p2.l - 6, Y2(v)); });
+  ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('Entropy(D): the most any question can gain', p2.l + 4, Y2(s.eD) - 2);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('threshold, from each feature’s min to max →', (p2.l + W) / 2, H - p2.b + 6);
+  [[C[0], '--s1'], [C[1], '--s3']].forEach(([c, col]) => { ctx.strokeStyle = cssv(col); ctx.lineWidth = 2.2; ctx.beginPath(); c.forEach(([, g], i) => i ? ctx.lineTo(X2(i / 200), Y2(g)) : ctx.moveTo(X2(i / 200), Y2(g))); ctx.stroke(); });
+  for (let j = 0; j <= 10; j++){ ctx.fillStyle = cssv('--faint'); ctx.fillRect(X2(j / 10) - 0.5, H - p2.b - 6, 1, 6); }
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X2(+$('th').value / 200), Y2(s.ig), 6, 0, 2 * Math.PI); ctx.fill();
+  let best = {g: -1}; C.forEach((c, f) => c.forEach(([t, g]) => { if (g > best.g + 1e-12) best = {g, f, t}; }));
+  $('qTxt').innerHTML = `Best question overall: <b>${best.f ? 'weight' : 'height'} ≤ ${best.t.toFixed(0)}</b>, gain ${best.g.toFixed(3)} of a possible ${s.eD.toFixed(3)}. `
+    + (s.ig >= best.g - 1e-9 ? 'You found it!' : `Yours gains ${s.ig.toFixed(3)}.`) + (best.g > s.eD - 1e-9 ? ' This question is <b>perfect</b>: both sides are pure.' : '')
+    + ' The grey ticks on the axis mark the 10 evenly spaced thresholds the L44 algorithm will try.';
+  return best; }
+document.querySelectorAll('button[data-f]').forEach(b => b.onclick = () => { feat = +b.dataset.f; document.querySelectorAll('button[data-f]').forEach(x => x.classList.toggle('on', x === b)); qDraw(); });
+$('th').oninput = qDraw;
+$('bestQ').onclick = () => { const b = qDraw(); feat = b.f; document.querySelectorAll('button[data-f]').forEach(x => x.classList.toggle('on', +x.dataset.f === feat));
+  $('th').value = Math.round((b.t - RANGE[feat][0]) / (RANGE[feat][1] - RANGE[feat][0]) * 200); qDraw(); };
+$('clean').onclick = () => { noisy = !noisy; $('clean').textContent = noisy ? 'Data: noisy' : 'Data: perfectly separable'; makeData(); qDraw(); };
+makeData();
+onReady(() => { entDraw(); qDraw(); });
+</script>
+</body>
+</html>

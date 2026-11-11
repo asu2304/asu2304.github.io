@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generative and Discriminative Models</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px} @media (max-width:640px){.two{grid-template-columns:1fr}}
+.qcard{border:1px solid var(--grid);border-radius:10px;padding:10px 12px;margin:8px 0;background:var(--surface)}
+.qcard.ok{border-color:var(--s3)} .qcard.no{border-color:var(--s2)}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;color:#fff}
+</style>
+<div class="kicker">Lecture 45 · Classification: two ways to model</div>
+<h1>Generative and Discriminative Models</h1>
+<p class="lede">Learning only works if training and test data are linked. The link is an <b>unknown but fixed distribution</b> over (features, label) pairs. There are two schools for what to assume about it: a <b>generative</b> model describes how the features <i>and</i> the label are produced, $P(x,y)$; a <b>discriminative</b> model only describes the label given the features, $P(y\mid x)$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gwa47ZzhYno">this lecture on YouTube</a> (≈23 min). Previous: <a href="L44-building-trees.html">L44</a> · Next: <a href="L46-generative-spam-model.html">L46</a>.</p>
+
+<h2>1 · What links training and test data?</h2>
+<ul>
+<li>If the test points are <b>exactly</b> the training points, memorising wins, and nothing was learned.</li>
+<li>If the test data is <b>unrelated</b> to the training data (study physics, get tested on chemistry), no algorithm can learn anything.</li>
+<li>So we assume a middle ground: there is a distribution $D$ over $\mathcal X\times\mathcal Y$. Every training pair $(x_i,y_i)$ is drawn from $D$, and so is every test pair. Think of the box from the estimation lectures: press it, and out comes a point <b>with its label</b>.</li>
+<li>The only assumption so far: $D$ is <b>unknown but fixed</b>. All we ever see of it is the training data.</li>
+</ul>
+<div class="card">
+  <h3 style="margin:0 0 4px">Press the box</h3>
+  <p class="small muted" style="margin-top:0">Two learners train on 40 points from the box. The <b>memoriser</b> stores every point and guesses on anything new. The <b>model</b> keeps only the two class centres and a dividing line. Now test them three ways.</p>
+  <div class="row"><button id="mNew">⟳ Press the box: new training set</button>
+    <span class="small">show test set:</span><button data-t="same" class="on">the training points again</button><button data-t="fresh">fresh points, same D</button><button data-t="other">points from a different D</button></div>
+  <canvas id="mach" height="290" aria-label="Training points, the model's dividing line and the chosen test set"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>label 1</span><span><i class="dot" style="background:var(--s2)"></i>label 0</span><span>filled = training · hollow = test</span><span><i style="background:var(--ink)"></i>the model's line</span></div>
+  <table id="mT" style="margin-top:8px"></table>
+  <p class="small" id="mTxt"></p>
+</div>
+
+<h2>2 · Two schools of modelling</h2>
+<p>To build a model we need more assumptions about $D$. A distribution over pairs means every (features, label) pair has a probability (a density, when features are continuous). The two schools differ in <b>what they model</b>:</p>
+<table>
+<tr><th></th><th>Generative model</th><th>Discriminative model</th></tr>
+<tr><td><b>Models</b></td><td>$P(x,y)$: features and label jointly</td><td>$P(y\mid x)$: only the label given the features</td></tr>
+<tr><td><b>Says</b></td><td>how the features themselves are generated</td><td>nothing about where $x$ comes from</td></tr>
+<tr><td><b>Lecture's example</b></td><td>someone who <b>speaks</b> Bengali: can produce sentences, so recognising them is easy</td><td>someone who can only <b>tell</b> "Bengali or not" by ear, without speaking it</td></tr>
+</table>
+<div class="callout"><b>Which is better?</b> There's no single answer. If you have good reason to believe <b>how the features are generated</b> (domain knowledge), generative modelling helps: knowing how to generate usually makes you better at discriminating. If you don't, a wrong generative story hurts even the discriminating task, so stick to discriminative.</div>
+<div class="card">
+  <h3 style="margin:0 0 4px">Same data, two kinds of model</h3>
+  <p class="small muted" style="margin-top:0">Left: a generative model whose story is "each class is one round blob". It learns a centre and a spread per class, so it can <b>make new points</b>. Right: a discriminative model (the k-NN of L42, k = 5) that only answers "which label here?". Shading shows each model's prediction.</p>
+  <div class="row"><button data-g="blobs" class="on">Data: one blob per class</button><button data-g="xor">Data: two clumps per class</button>
+    <label>training points per class = <b id="gNv"></b> <input type="range" id="gN" min="5" max="100" value="30" aria-label="training points per class"></label><button id="gNew">New data</button></div>
+  <div class="two">
+    <div><canvas id="gen" height="260" aria-label="Generative model: fitted blobs and its predictions"></canvas>
+      <div class="row" style="margin-bottom:0"><button id="gSample">Generate 40 new points</button><span class="stat"><span class="v" id="gAcc">–</span> <span class="l">test accuracy</span></span></div></div>
+    <div><canvas id="dis" height="260" aria-label="Discriminative model: k-NN predictions"></canvas>
+      <div class="row" style="margin-bottom:0"><button disabled title="It never modelled x" style="opacity:.5;cursor:not-allowed">Generate new points: can't</button><span class="stat"><span class="v" id="dAcc">–</span> <span class="l">test accuracy</span></span></div></div>
+  </div>
+  <div class="legend"><span>circles = the generative model's fitted blobs (1 and 2 standard deviations)</span><span>□ = points the model generated</span></div>
+  <p class="small" id="gTxt"></p>
+  <p class="beyond" style="margin-bottom:0">The lecture gives the idea in words; the round-blob (Gaussian) story here is my illustration. Gaussian generative classifiers come up properly later in the course.</p>
+</div>
+
+<h2>3 · Where k-NN and decision trees fit</h2>
+<p>Both are <b>discriminative</b>: neither says anything about how $x$ is generated; each only says how to get $y$ once $x$ is given. Their "probabilities" are trivial, 0 or 1:</p>
+$$P(y=1\mid x)=\begin{cases}1 & \text{if the tree's leaf (or the majority of the $k$ neighbours) says 1}\\ 0 & \text{otherwise.}\end{cases}$$
+<p>Any deterministic rule from features to labels is a discriminative model in this sense. Probability just generalises a hard decision.</p>
+
+<h2>4 · Check yourself: which kind of model?</h2>
+<div id="quiz"></div>
+<p class="small" id="qScore"></p>
+
+<div class="callout"><b>Next:</b> a first generative algorithm, built for spam detection with 0/1 features (<a href="L46-generative-spam-model.html">L46</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Training and test data are linked by one unknown, fixed distribution $D$ over (features, label). Without that link there is nothing to learn.</li>
+<li>Generative: model $P(x,y)$, including how features arise. Discriminative: model only $P(y\mid x)$.</li>
+<li>Use a generative model when you trust your story of how features are generated; otherwise go discriminative.</li>
+<li>k-NN and decision trees are discriminative, with 0/1 "probabilities".</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const XR = [-5, 5], YR = [-3.6, 3.6];
+const maps = (W, H) => [x => (x - XR[0]) / (XR[1] - XR[0]) * W, y => H - (y - YR[0]) / (YR[1] - YR[0]) * H];
+function dot(ctx, x, y, lab, hollow, sq){ const c = cssv(lab ? '--s1' : '--s2'); ctx.beginPath(); sq ? ctx.rect(x - 3.5, y - 3.5, 7, 7) : ctx.arc(x, y, 4.5, 0, 2 * Math.PI);
+  if (hollow){ ctx.strokeStyle = c; ctx.lineWidth = 1.8; ctx.stroke(); } else { ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.stroke(); } }
+const pct = v => (100 * v).toFixed(0) + '%';
+
+/* ---------- 1. the box ---------- */
+let mSeed = 3, TR = [], TE = {}, show = 'same', M = null;
+const drawD = (r, n, other) => Array.from({length: n}, () => { const y = r() < 0.5 ? 1 : 0, c = other ? (y ? [-1.1, 1.6] : [1.1, -1.6]) : (y ? [1.6, 1.1] : [-1.6, -1.1]); return [c[0] + gs(r), c[1] + 0.9 * gs(r), y]; });
+function mMake(){ const r = rng(mSeed); TR = drawD(r, 40, false); TE = {same: TR, fresh: drawD(r, 300, false), other: drawD(r, 300, true)};
+  const mean = y => { const S = TR.filter(p => p[2] === y); return [S.reduce((a, p) => a + p[0], 0) / S.length, S.reduce((a, p) => a + p[1], 0) / S.length]; }; M = [mean(0), mean(1)]; }
+const modelPred = p => Math.hypot(p[0] - M[1][0], p[1] - M[1][1]) < Math.hypot(p[0] - M[0][0], p[1] - M[0][1]) ? 1 : 0;
+function memoAcc(T){ const key = p => p[0] + ',' + p[1], seen = new Map(TR.map(p => [key(p), p[2]])), r = rng(99); let ok = 0;
+  T.forEach(p => { const g = seen.has(key(p)) ? seen.get(key(p)) : (r() < 0.5 ? 1 : 0); if (g === p[2]) ok++; }); return ok / T.length; }
+const modelAcc = T => T.filter(p => modelPred(p) === p[2]).length / T.length;
+function mDraw(){
+  const [ctx, W, H] = setupCanvas($('mach')), [X, Y] = maps(W, H);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+  const mid = [(M[0][0] + M[1][0]) / 2, (M[0][1] + M[1][1]) / 2], d = [M[1][0] - M[0][0], M[1][1] - M[0][1]], pr = [-d[1], d[0]];
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(mid[0] - 9 * pr[0]), Y(mid[1] - 9 * pr[1])); ctx.lineTo(X(mid[0] + 9 * pr[0]), Y(mid[1] + 9 * pr[1])); ctx.stroke();
+  if (show !== 'same') TE[show].slice(0, 90).forEach(p => dot(ctx, X(p[0]), Y(p[1]), p[2], true));
+  TR.forEach(p => dot(ctx, X(p[0]), Y(p[1]), p[2], false));
+  const rows = [['same', 'The training points again'], ['fresh', 'Fresh points from the same D'], ['other', 'Points from a different D']];
+  $('mT').innerHTML = '<tr><th>Test set</th><th>Memoriser</th><th>Model (centres + line)</th></tr>' + rows.map(([k, n]) => `<tr style="${k === show ? 'background:var(--tint)' : ''}"><td>${n}</td><td><b>${pct(memoAcc(TE[k]))}</b></td><td><b>${pct(modelAcc(TE[k]))}</b></td></tr>`).join('');
+  $('mTxt').innerHTML = show === 'same' ? 'Tested on the very same points, the memoriser is perfect. That tells us nothing about learning.'
+    : show === 'fresh' ? 'Fresh points from the <b>same</b> box: the memoriser has never seen them and is reduced to guessing, while the model carries over. The shared distribution is what makes the model\'s knowledge useful.'
+    : 'A <b>different</b> box (the classes now sit somewhere else): both learners are near 50%. Physics revision doesn\'t help in a chemistry exam.'; }
+$('mNew').onclick = () => { mSeed++; mMake(); mDraw(); };
+document.querySelectorAll('button[data-t]').forEach(b => b.onclick = () => { show = b.dataset.t; document.querySelectorAll('button[data-t]').forEach(x => x.classList.toggle('on', x === b)); mDraw(); });
+
+/* ---------- 2. generative vs discriminative ---------- */
+let gMode = 'blobs', gSeed = 5, G = [], GT = [], fit = null, samples = [];
+function gData(r, n){ const Q = []; for (let y = 0; y < 2; y++) for (let i = 0; i < n; i++){ let c, sd;
+    if (gMode === 'blobs'){ c = y ? [1.7, 0.8] : [-1.7, -0.8]; sd = 1.1; } else { const s = r() < 0.5 ? 1 : -1; c = y ? [2.3 * s, 1.6 * s] : [2.3 * s, -1.6 * s]; sd = 0.75; }
+    Q.push([c[0] + sd * gs(r), c[1] + sd * gs(r), y]); } return Q; }
+function gMake(){ const r = rng(gSeed), n = +$('gN').value; $('gNv').textContent = n; G = gData(r, n); GT = gData(rng(gSeed + 1000), 300); samples = [];
+  fit = [0, 1].map(y => { const S = G.filter(p => p[2] === y), m = S.length, mx = S.reduce((a, p) => a + p[0], 0) / m, my = S.reduce((a, p) => a + p[1], 0) / m;
+    return {mx, my, v: Math.max(0.05, S.reduce((a, p) => a + (p[0] - mx) ** 2 + (p[1] - my) ** 2, 0) / (2 * m)), pi: m / G.length}; }); }
+const logJoint = (x, y, f) => Math.log(f.pi) - Math.log(2 * Math.PI * f.v) - ((x - f.mx) ** 2 + (y - f.my) ** 2) / (2 * f.v);
+const genPred = (x, y) => logJoint(x, y, fit[1]) > logJoint(x, y, fit[0]) ? 1 : 0;
+function knnPred(x, y){ const d = G.map(p => [(p[0] - x) ** 2 + (p[1] - y) ** 2, p[2]]).sort((a, b) => a[0] - b[0]); let s = 0; for (let i = 0; i < 5; i++) s += d[i][1]; return s >= 3 ? 1 : 0; }
+function panel(cv, pred, isGen){
+  const [ctx, W, H] = setupCanvas(cv), [X, Y] = maps(W, H), st = 8;
+  for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const x = XR[0] + (px + st / 2) / W * (XR[1] - XR[0]), y = YR[0] + (H - py - st / 2) / H * (YR[1] - YR[0]);
+    ctx.fillStyle = cssv(pred(x, y) ? '--s1' : '--s2'); ctx.globalAlpha = 0.16; ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1;
+  if (isGen){ fit.forEach((f, y) => { ctx.strokeStyle = cssv(y ? '--s1' : '--s2'); [1, 2].forEach(k => { ctx.lineWidth = k === 1 ? 2 : 1; ctx.beginPath();
+      ctx.ellipse(X(f.mx), Y(f.my), k * Math.sqrt(f.v) / (XR[1] - XR[0]) * W, k * Math.sqrt(f.v) / (YR[1] - YR[0]) * H, 0, 0, 2 * Math.PI); ctx.stroke(); });
+      ctx.fillStyle = cssv('--ink'); ctx.font = 'bold 13px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.fillText('×', X(f.mx), Y(f.my) + 4); });
+    samples.forEach(p => dot(ctx, X(p[0]), Y(p[1]), p[2], true, true)); }
+  G.forEach(p => dot(ctx, X(p[0]), Y(p[1]), p[2], false));
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.fillText(isGen ? 'generative: models P(x, y)' : 'discriminative: models P(y | x)', 8, 16); }
+function gDraw(){ panel($('gen'), genPred, true); panel($('dis'), knnPred, false);
+  const ga = GT.filter(p => genPred(p[0], p[1]) === p[2]).length / GT.length, da = GT.filter(p => knnPred(p[0], p[1]) === p[2]).length / GT.length;
+  $('gAcc').textContent = pct(ga); $('dAcc').textContent = pct(da);
+  $('gTxt').innerHTML = gMode === 'blobs' ? `<b>The story is right</b> (the data really is one blob per class). The generative model summarises each class with a centre and a spread, generates believable new points, and classifies well (${pct(ga)} vs ${pct(da)} for k-NN), even from very few training points. Try 5 per class.`
+    : `<b>The story is wrong</b>: each class is really two clumps in opposite corners, but the model insists on one round blob per class. Both blobs land on top of each other, the generated points look nothing like the data, and its predictions fall apart (${pct(ga)}). The discriminative model made no assumption about how x arises, ` + (da > 0.8 ? `so it copes (${pct(da)}).` : `but with this few training points it struggles too (${pct(da)}). Give it more points and it recovers; the generative model never does.`); }
+document.querySelectorAll('button[data-g]').forEach(b => b.onclick = () => { gMode = b.dataset.g; document.querySelectorAll('button[data-g]').forEach(x => x.classList.toggle('on', x === b)); gMake(); gDraw(); });
+$('gN').oninput = () => { gMake(); gDraw(); };
+$('gNew').onclick = () => { gSeed++; gMake(); gDraw(); };
+$('gSample').onclick = () => { samples = Array.from({length: 40}, () => { const y = Math.random() < fit[1].pi ? 1 : 0, f = fit[y], s = Math.sqrt(f.v); return [f.mx + s * randn(), f.my + s * randn(), y]; }); gDraw(); };
+
+/* ---------- 4. quiz ---------- */
+const QZ = [
+  ['k-NN: "the label is whatever most of the k nearest training points say."', 'D', 'It only says how to get y from x, and says nothing about how x is produced.'],
+  ['"First toss a coin to decide spam or not spam. Then produce the email\'s words according to that label."', 'G', 'It describes how features and label are both generated, so it defines P(x, y). This is the model of the next lecture.'],
+  ['A decision tree: "answer the questions down to a leaf and read off the label."', 'D', 'A deterministic map from x to y: P(y = 1 | x) is 0 or 1.'],
+  ['A model that assigns a probability to every possible (email, label) pair.', 'G', 'A probability for each pair is exactly the joint distribution P(x, y).'],
+  ['You have no idea how the features come about, and only need to separate the two classes.', 'D', 'With no trusted story for the features, the lecture\'s advice is to model only P(y | x).']];
+const ans = QZ.map(() => null);
+function quiz(){ $('quiz').innerHTML = QZ.map((q, i) => `<div class="qcard ${ans[i] === null ? '' : ans[i] === q[1] ? 'ok' : 'no'}"><div>${q[0]}</div>
+  <div class="row" style="margin-bottom:0"><button data-q="${i}" data-a="G" class="${ans[i] === 'G' ? 'on' : ''}">Generative</button><button data-q="${i}" data-a="D" class="${ans[i] === 'D' ? 'on' : ''}">Discriminative</button>
+  ${ans[i] === null ? '' : `<span class="small"><b>${ans[i] === q[1] ? 'Correct.' : 'Not quite: it\'s ' + (q[1] === 'G' ? 'generative' : 'discriminative') + '.'}</b> ${q[2]}</span>`}</div></div>`).join('');
+  const done = ans.filter(a => a !== null).length; $('qScore').textContent = done ? `${ans.filter((a, i) => a === QZ[i][1]).length} of ${done} answered correctly.` : '';
+  document.querySelectorAll('button[data-q]').forEach(b => b.onclick = () => { ans[+b.dataset.q] = b.dataset.a; quiz(); }); }
+
+mMake(); gMake(); quiz();
+onReady(() => { mDraw(); gDraw(); });
+</script>
+</body>
+</html>

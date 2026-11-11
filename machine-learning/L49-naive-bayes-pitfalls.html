@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Naive Bayes Pitfalls: Zero Counts and Laplace Smoothing</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>
+.inbox td,.inbox th{text-align:center;padding:4px 6px} .inbox td:first-child,.inbox th:first-child{text-align:left}
+.inbox tr.ps td{background:var(--warn-bg)} .inbox td.zc{color:var(--s2);font-weight:700}
+.bit{min-width:70px;text-align:center;border:1px solid var(--grid);border-radius:8px;padding:5px 6px;font-size:12px;cursor:pointer;background:var(--surface);color:var(--muted);user-select:none}
+.bit b{display:block;font-size:18px;color:var(--faint)} .bit.on{border-color:var(--s1);background:var(--tint);color:var(--ink)} .bit.on b{color:var(--s1)}
+.frm{font-size:14px;line-height:2.1;font-variant-numeric:tabular-nums} .f{display:inline-block;padding:0 6px;border-radius:6px;background:var(--tint);margin:0 1px;line-height:1.5}
+.f.z{background:var(--warn-bg)} .f.pr{background:none;border:1px solid var(--muted)} .f.zero{background:var(--s2);color:#fff}
+.post{display:flex;height:26px;border-radius:8px;overflow:hidden;margin:8px 0;font-size:13px;font-weight:700;color:#fff}
+.post div{display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;transition:width .2s}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:14px}
+</style>
+<div class="kicker">Lecture 49 · Classification: making naive Bayes robust</div>
+<h1>Naive Bayes Pitfalls: Zero Counts and Laplace Smoothing</h1>
+<p class="lede">If a word never appears in training, its estimated probability is <b>0</b> in both classes. One such word in a test email makes <b>both</b> products 0, erasing everything the other words said. The standard fix is <b>Laplace smoothing</b>: add two pretend emails containing every word, one per label. A second, numerical pitfall: multiply many small probabilities and the result underflows, so compare <b>sums of logs</b> instead.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=RuE8SQajgxY">this lecture on YouTube</a> (≈12 min). Previous: <a href="L48-naive-bayes.html">L48</a>.</p>
+
+<h2>1 · The zero-frequency problem</h2>
+<p>Say word $j$ ("zebra") is in the dictionary but in <b>no training email</b>. Counting gives $\hat p^{1}_j=0$ and $\hat p^{0}_j=0$. Now a test email contains it, so $f_j=1$ and its factor on each side is</p>
+$$(\hat p^{\,y}_j)^{1}\,(1-\hat p^{\,y}_j)^{0}=0\times 1=0 .$$
+<p>A product with one zero factor is zero, so both sides are 0 and can't be compared. The email might also say "lottery, money, win", strong signs of spam, but that <b>one unseen word destroys all of it</b>, because the evidence is multiplied.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">Break it, then fix it</h3>
+  <p class="small muted" style="margin-top:0">The inbox from L48, with "zebra" added to the dictionary. No training email contains it. Toggle words in the test email, then switch the fix on.</p>
+  <div class="row"><span class="small">estimates:</span><button data-m="none" class="on">Plain counting (maximum likelihood)</button><button data-m="lap">Laplace smoothing (lecture)</button><button data-m="add1">Add-one, both outcomes</button></div>
+  <div style="overflow-x:auto"><table class="inbox" id="inbox"></table></div>
+  <div style="overflow-x:auto;margin-top:10px"><table class="inbox" id="est"></table></div>
+  <p class="small muted" style="margin:10px 0 2px"><b>Test email:</b></p>
+  <div class="row" id="bits" style="margin-top:0"></div>
+  <div class="frm" id="calc"></div>
+  <div class="post" id="post"></div>
+  <p class="small" id="verdict" style="margin-bottom:0"></p>
+</div>
+
+<h2>2 · Fixes</h2>
+<ul>
+<li><b>Ignore the feature:</b> skip any word never seen in training. It works, but you must keep track of which words those are.</li>
+<li><b>Laplace smoothing</b> (the usual simple fix): add <b>two pseudo-emails</b> to the training set, each containing <b>every</b> word: $x=(1,1,\dots,1)$ once with label 1 and once with label 0. Then do maximum likelihood as before.</li>
+</ul>
+<p>Now every word has appeared at least once in a spam email and once in a non-spam email, so no estimate can be 0. With $c$ = number of $y$-labelled emails containing word $j$, and $n_y$ = number of $y$-labelled emails:</p>
+$$\hat p^{\,y}_j=\frac{c}{n_y}\quad\longrightarrow\quad\frac{c+1}{n_y+1},\qquad\qquad \hat p=\frac{n_1}{n}\quad\longrightarrow\quad\frac{n_1+1}{n+2}.$$
+<div class="card">
+  <div class="row"><label>emails with this label, $n_y$ = <b id="nyV"></b> <input type="range" id="ny" min="1" max="200" value="5" aria-label="emails with this label"></label>
+    <label>of which contain the word, $c$ = <b id="cV"></b> <input type="range" id="c" min="0" max="5" value="0" aria-label="emails containing the word"></label></div>
+  <div class="row"><span class="stat"><span class="v" id="sM">–</span><br><span class="l">plain counting, c / n</span></span><span class="stat"><span class="v" id="sL">–</span><br><span class="l">Laplace (lecture), (c+1)/(n+1)</span></span><span class="stat"><span class="v" id="sA">–</span><br><span class="l">add-one both ways, (c+1)/(n+2)</span></span></div>
+  <p class="small" id="sTxt" style="margin-bottom:0"></p>
+</div>
+<div class="callout"><b>A Bayesian reading.</b> The two pseudo-emails act like a <b>prior</b>: as if someone told you beforehand, "I've seen one spam and one non-spam email with every word in them", so you never dismiss a word as impossible. Adding pseudo-data and then doing maximum likelihood is equivalent to a Bayesian estimate with that prior (compare the Beta prior's pseudo-counts in <a href="L21-bayesian-estimation.html">L21</a>).</div>
+<p class="beyond"><b>Beyond the lecture.</b> The lecture's version protects against a word that is <b>never</b> seen. The mirror-image problem remains: a word present in <b>every</b> email of a class gets $\hat p=(n_y+1)/(n_y+1)=1$, so an email <i>lacking</i> it gets a factor $1-\hat p=0$. Many textbooks therefore also add two pseudo-emails containing <b>no</b> words, giving $(c+1)/(n_y+2)$, which is never 0 or 1. That's the third button above. Try it: in the demo, "report" is in every non-spam email after you flip one cell, or use the slider with $c=n_y$.</p>
+
+<h2>3 · A numerical pitfall: use logs</h2>
+<p>Each side is a product of $d$ probabilities, all below 1. With a dictionary-sized $d$ the product becomes too small for floating-point numbers and turns into 0, for both classes. Since $\log$ is increasing, comparing the products is the same as comparing <b>sums of logs</b>, which are perfectly ordinary numbers:</p>
+$$\sum_{j=1}^d\Big[f_j\log\hat p^{1}_j+(1-f_j)\log(1-\hat p^{1}_j)\Big]+\log\hat p\ \ \ge\ \ \sum_{j=1}^d\Big[f_j\log\hat p^{0}_j+(1-f_j)\log(1-\hat p^{0}_j)\Big]+\log(1-\hat p).$$
+<div class="card">
+  <div class="row"><label>number of words (factors), d = <b id="mV"></b> <input type="range" id="m" min="10" max="3000" step="10" value="700" style="width:260px" aria-label="number of factors"></label></div>
+  <canvas id="uf" height="210" aria-label="Size of the two products as factors are multiplied in, against the floating-point limit"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>spam side</span><span><i style="background:var(--s1)"></i>non-spam side</span><span><i style="background:var(--faint)"></i>smallest number a 64-bit float can hold (≈ 10<sup>−324</sup>)</span></div>
+  <table style="margin-top:8px"><tr><th></th><th>spam side</th><th>non-spam side</th><th>decision</th></tr>
+    <tr><td>multiply the probabilities</td><td class="mono" id="p1"></td><td class="mono" id="p0"></td><td id="pd"></td></tr>
+    <tr><td>add their logs</td><td class="mono" id="l1"></td><td class="mono" id="l0"></td><td id="ld"></td></tr></table>
+  <p class="small muted" style="margin-bottom:0">The numbers in the first row are what your browser actually computes, right now.</p>
+</div>
+<p><b>Careful:</b> logs do <b>not</b> cure the zero-frequency problem. $\log 0$ is undefined, so a zero estimate still breaks everything. Smooth first, then take logs.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>A word unseen in training has $\hat p^1_j=\hat p^0_j=0$; if it shows up at test time both products are 0 and all other evidence is lost.</li>
+<li>Laplace smoothing: add two pseudo-emails with all words present, one labelled 1 and one labelled 0. No estimate can be 0 any more.</li>
+<li>Smoothing is the same as a Bayesian estimate with a prior worth those two emails; its effect fades as real data grows.</li>
+<li>Compare sums of logs instead of products to avoid underflow. Logs don't fix zeros.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+const W = ['lottery', 'money', 'win', 'hello', 'meeting', 'report', 'zebra'], D = W.length;
+const REAL = [[1,1,1,0,0,0,0,1],[1,0,1,0,0,0,0,1],[0,1,1,1,0,0,0,1],[1,1,0,0,0,0,0,1],[1,1,1,1,0,0,0,1],[0,0,0,1,1,0,0,0],[0,0,0,0,1,1,0,0],[0,0,0,1,0,1,0,0],[0,1,0,1,1,1,0,0],[0,0,0,0,0,1,0,0]].map(r => [...r]);
+let mode = 'none', x = [1, 1, 1, 0, 0, 0, 1];
+const ones = y => [...new Array(D).fill(1), y, 'p'], zeros = y => [...new Array(D).fill(0), y, 'p'];
+const pseudo = () => mode === 'none' ? [] : mode === 'lap' ? [ones(1), ones(0)] : [ones(1), zeros(1), ones(0), zeros(0)];
+function est(){ const E = [...REAL, ...pseudo()], n = E.length, S = [E.filter(e => e[D] === 0), E.filter(e => e[D] === 1)];
+  return {E, n, ny: [S[0].length, S[1].length], p: S[1].length / n, c: [0, 1].map(y => W.map((_, j) => S[y].filter(e => e[j]).length)), q: [0, 1].map(y => W.map((_, j) => S[y].filter(e => e[j]).length / S[y].length))}; }
+function draw(){ const m = est();
+  $('inbox').innerHTML = `<tr><th>email</th>${W.map(w => `<th>${w}</th>`).join('')}<th>label</th></tr>` + m.E.map((e, i) => `<tr class="${e[D + 1] ? 'ps' : ''}"><td class="muted">${e[D + 1] ? 'pseudo' : '#' + (i + 1)}</td>${W.map((_, j) => `<td ${e[D + 1] ? '' : `style="cursor:pointer" data-i="${i}" data-j="${j}"`}>${e[j]}</td>`).join('')}<td><b style="color:${e[D] ? 'var(--s2)' : 'var(--s1)'}">${e[D] ? 'spam' : 'not spam'}</b></td></tr>`).join('');
+  document.querySelectorAll('#inbox td[data-i]').forEach(t => t.onclick = () => { REAL[+t.dataset.i][+t.dataset.j] ^= 1; draw(); });
+  $('est').innerHTML = `<tr><th>estimate</th>${W.map(w => `<th>${w}</th>`).join('')}</tr>` + [1, 0].map(y => `<tr><td><b style="color:${y ? 'var(--s2)' : 'var(--s1)'}">p̂<sup>${y}</sup><sub>j</sub></b></td>${W.map((_, j) => `<td class="${m.q[y][j] === 0 || m.q[y][j] === 1 ? 'zc' : ''}">${m.c[y][j]}/${m.ny[y]}<br><b>${m.q[y][j].toFixed(2)}</b></td>`).join('')}</tr>`).join('')
+    + `<tr><td colspan="${D + 1}" style="text-align:left"><b>p̂</b> = ${m.ny[1]}/${m.n} = <b>${m.p.toFixed(2)}</b>. <span class="muted">Orange estimates are exactly 0 or 1: each can produce a zero factor. Click a 0/1 in the inbox to edit the real emails.</span></td></tr>`;
+  $('bits').innerHTML = W.map((w, j) => `<div class="bit ${x[j] ? 'on' : ''}" data-j="${j}">${w}<b>${x[j]}</b></div>`).join('');
+  document.querySelectorAll('#bits .bit').forEach(b => b.onclick = () => { x[+b.dataset.j] ^= 1; draw(); });
+  const sc = [0, 1].map(y => x.reduce((a, b, j) => a * (b ? m.q[y][j] : 1 - m.q[y][j]), 1) * (y ? m.p : 1 - m.p));
+  const line = y => { const chips = x.map((b, j) => { const v = b ? m.q[y][j] : 1 - m.q[y][j]; return `<span class="f ${v === 0 ? 'zero' : b ? '' : 'z'}">${W[j]}${b ? '' : ' ✗'} ${v.toFixed(2)}</span>`; }).join(' × ');
+    return `<div><b style="color:${y ? 'var(--s2)' : 'var(--s1)'}">${y ? 'spam' : 'not spam'}:</b> ${chips} × <span class="f pr">prior ${(y ? m.p : 1 - m.p).toFixed(2)}</span> = <b>${sc[y] === 0 ? '0' : sc[y] < 1e-4 ? sc[y].toExponential(2) : sc[y].toFixed(5)}</b></div>`; };
+  $('calc').innerHTML = line(1) + line(0);
+  const tot = sc[0] + sc[1], z = [0, 1].map(y => x.map((b, j) => (b ? m.q[y][j] : 1 - m.q[y][j]) === 0 ? W[j] : null).filter(Boolean));
+  const fixTip = mode === 'none' ? ' Switch on Laplace smoothing above.' : mode === 'lap' ? ' The lecture\'s smoothing removed the zeros for unseen words; this zero comes from a word present in <b>every</b> email of a class, missing here. The third button handles that too.' : '';
+  if (tot === 0){ $('post').innerHTML = '<div style="width:100%;background:var(--faint)">0 vs 0: no decision</div>';
+    $('verdict').innerHTML = `<b>Both sides are exactly 0.</b> Red chips mark the zero factors (${[...new Set([...z[0], ...z[1]])].join(', ')}). Whatever the other words say, the comparison is 0 vs 0.` + fixTip; return; }
+  const ps = sc[1] / tot;
+  $('post').innerHTML = `<div style="width:${100 * ps}%;background:var(--s2)">${ps > 0.14 ? 'spam ' + (100 * ps).toFixed(1) + '%' : ''}</div><div style="width:${100 * (1 - ps)}%;background:var(--s1)">${ps < 0.86 ? 'not spam ' + (100 * (1 - ps)).toFixed(1) + '%' : ''}</div>`;
+  $('verdict').innerHTML = `P(spam | x<sub>test</sub>) = <b>${ps.toFixed(3)}</b>, so predict <b>${ps >= 0.5 ? 'spam' : 'not spam'}</b>.`
+    + (z[0].length || z[1].length ? ` But one side is exactly 0 because of a single factor (${[...new Set([...z[0], ...z[1]])].join(', ')}): the verdict is 100% certain on the strength of one word.` + fixTip
+      : mode !== 'none' && x[6] ? ' "zebra" now contributes a small, non-zero factor to both sides, so the other words decide.' : ''); }
+document.querySelectorAll('button[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; document.querySelectorAll('button[data-m]').forEach(v => v.classList.toggle('on', v === b)); draw(); });
+
+/* ---------- smoothing slider ---------- */
+function sm(){ const n = +$('ny').value; $('c').max = n; const c = Math.min(+$('c').value, n); $('nyV').textContent = n; $('cV').textContent = c;
+  const a = c / n, l = (c + 1) / (n + 1), t = (c + 1) / (n + 2), col = v => v === 0 || v === 1 ? 'var(--s2)' : 'inherit';
+  [['sM', a], ['sL', l], ['sA', t]].forEach(([id, v]) => { $(id).textContent = v.toFixed(3); $(id).style.color = col(v); });
+  $('sTxt').innerHTML = c === 0 ? `The word was never seen. Plain counting says <b>impossible</b> (0); smoothing says <b>rare</b> (${l.toFixed(3)}), and rarer the more emails we have seen without it.`
+    : c === n ? `The word was in every email. Plain counting and the lecture's smoothing both say <b>certain</b> (1), so an email without it gets a factor of 0. Add-one both ways gives ${t.toFixed(3)}.`
+    : n >= 50 ? 'With plenty of data the three estimates nearly agree: the two pseudo-emails are drowned out by real ones.' : 'With little data the pseudo-emails pull the estimate noticeably; drag $n_y$ up to watch that fade.'.replace('$n_y$', 'n'); }
+$('ny').oninput = sm; $('c').oninput = sm;
+
+/* ---------- underflow ---------- */
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const FA = (() => { const r = rng(4), a = [], b = []; for (let i = 0; i < 3000; i++){ a.push(0.08 + 0.72 * r()); b.push(0.05 + 0.7 * r()); } return [b, a]; })();   // [non-spam, spam] factors
+function uf(){ const m = +$('m').value; $('mV').textContent = m.toLocaleString();
+  const prod = [1, 1], ls = [0, 0], path = [[], []];
+  for (let i = 0; i < m; i++) for (let y = 0; y < 2; y++){ prod[y] *= FA[y][i]; ls[y] += Math.log(FA[y][i]); if (i % 5 === 4 || i === m - 1) path[y].push([i + 1, ls[y] / Math.LN10]); }
+  const show = v => v === 0 ? '<b style="color:var(--s2)">0</b> (underflow)' : v.toExponential(3);
+  $('p1').innerHTML = show(prod[1]); $('p0').innerHTML = show(prod[0]); $('l1').textContent = ls[1].toFixed(1); $('l0').textContent = ls[0].toFixed(1);
+  $('pd').innerHTML = prod[0] === 0 && prod[1] === 0 ? '<b style="color:var(--s2)">0 vs 0: can\'t decide</b>' : prod[0] === 0 || prod[1] === 0 ? '<b style="color:var(--s2)">one side underflowed: unreliable</b>' : `<b>${prod[1] >= prod[0] ? 'spam' : 'not spam'}</b>`;
+  $('ld').innerHTML = `<b>${ls[1] >= ls[0] ? 'spam' : 'not spam'}</b>`;
+  const [ctx, Wd, H] = setupCanvas($('uf')), pad = {l: 56, r: 12, t: 10, b: 30}, lo = Math.min(-360, path[0][path[0].length - 1][1] * 1.05, path[1][path[1].length - 1][1] * 1.05);
+  const X = i => pad.l + i / m * (Wd - pad.l - pad.r), Y = v => pad.t + v / lo * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--warn-bg'); ctx.fillRect(pad.l, Y(-324), Wd - pad.l - pad.r, H - pad.b - Y(-324));
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++){ const v = lo * i / 4; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(Wd - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(i ? '10^' + Math.round(v) : '1', pad.l - 6, Y(v)); }
+  for (let i = 0; i <= 4; i++){ ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(Math.round(m * i / 4), X(m * i / 4), H - pad.b + 5); }
+  ctx.textBaseline = 'bottom'; ctx.fillText('factors multiplied so far', (pad.l + Wd) / 2, H + 1);
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pad.l, Y(-324)); ctx.lineTo(Wd - pad.r, Y(-324)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'top'; if (lo < -340) ctx.fillText('below this line a float is just 0', Wd - pad.r - 6, Y(-324) + 4);
+  [[1, '--s2'], [0, '--s1']].forEach(([y, c]) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); path[y].forEach(p => ctx.lineTo(X(p[0]), Y(p[1]))); ctx.stroke(); }); }
+$('m').oninput = uf;
+
+draw(); sm();
+onReady(uf);
+</script>
+</body>
+</html>

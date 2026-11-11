@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Naive Bayes Algorithm</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>
+.inbox td,.inbox th{text-align:center;padding:5px 6px} .inbox td:first-child,.inbox th:first-child{text-align:left}
+.tg{display:inline-block;width:30px;height:26px;line-height:24px;border-radius:6px;border:1px solid var(--grid);cursor:pointer;color:var(--faint);background:var(--surface);user-select:none;font-variant-numeric:tabular-nums}
+.tg.on{background:var(--tint);border-color:var(--s1);color:var(--s1);font-weight:700}
+.lb{display:inline-block;min-width:74px;padding:2px 8px;border-radius:999px;cursor:pointer;color:#fff;font-size:12px;font-weight:700;user-select:none}
+.bit{min-width:74px;text-align:center;border:1px solid var(--grid);border-radius:8px;padding:5px 6px;font-size:12px;cursor:pointer;background:var(--surface);color:var(--muted);user-select:none}
+.bit b{display:block;font-size:18px;color:var(--faint)} .bit.on{border-color:var(--s1);background:var(--tint);color:var(--ink)} .bit.on b{color:var(--s1)}
+.frm{font-size:14px;line-height:2.1;font-variant-numeric:tabular-nums} .f{display:inline-block;padding:0 6px;border-radius:6px;background:var(--tint);margin:0 1px;line-height:1.5}
+.f.z{background:var(--warn-bg)} .f.pr{background:none;border:1px solid var(--muted)} .f.zero{background:var(--s2);color:#fff}
+.post{display:flex;height:26px;border-radius:8px;overflow:hidden;margin:8px 0;font-size:13px;font-weight:700;color:#fff}
+.post div{display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;transition:width .2s}
+.x{cursor:pointer;color:var(--faint);padding:0 4px}
+</style>
+<div class="kicker">Lecture 48 · Classification: learn the coins, then predict</div>
+<h1>The Naive Bayes Algorithm</h1>
+<p class="lede">The coin model has $2d+1$ unknowns. Maximum likelihood estimates them by <b>counting</b>: the fraction of emails that are spam, and for each word, the fraction of spam (and of non-spam) emails containing it. To classify a new email, <b>Bayes' rule</b> turns $P(x\mid y)$ into $P(y\mid x)$, and we pick the more probable label. "Naive" for the independence assumption, "Bayes" for the rule.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=VKqGflpKG_A">this lecture on YouTube</a> (≈29 min). Previous: <a href="L47-coin-model.html">L47</a> · Next: <a href="L49-naive-bayes-pitfalls.html">L49</a>.</p>
+
+<h2>1 · Estimating the parameters: just count</h2>
+<p>Parameters: $p$, and $p^1_1,\dots,p^1_d$, $p^0_1,\dots,p^0_d$. Every one is the bias of a coin (a Bernoulli), and we already know the maximum-likelihood estimate of a coin's bias: the fraction of heads.</p>
+<ul>
+<li><b>The label coin</b> was tossed once per email, and only the labels record it:
+$$\hat p=\frac1n\sum_{i=1}^n y_i=\text{fraction of emails that are spam.}$$</li>
+<li><b>Word $j$'s coin in room $y$</b> was tossed once for each email with label $y$, so only those emails matter, and only their feature $j$:
+$$\hat p^{\,y}_j=\frac{\sum_{i=1}^n \mathbb 1\big(f^i_j=1,\;y_i=y\big)}{\sum_{i=1}^n \mathbb 1\big(y_i=y\big)}=\text{fraction of $y$-labelled emails that contain word $j$.}$$</li>
+</ul>
+<p>All $2d+1$ estimates are closed-form counting. No optimisation needed.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">A tiny training inbox</h3>
+  <p class="small muted" style="margin-top:0">Click any 0/1 to flip a word in or out of an email, click a label to switch it, or add emails. The estimates below are recounted instantly.</p>
+  <div style="overflow-x:auto"><table class="inbox" id="inbox"></table></div>
+  <div class="row"><button id="addS">+ spam email</button><button id="addH">+ non-spam email</button><button id="reset">Reset inbox</button></div>
+  <div style="overflow-x:auto"><table class="inbox" id="est"></table></div>
+</div>
+
+<h2>2 · Predicting: compare two posteriors</h2>
+<p>Given a new email $x_{\text{test}}$, predict the label that is more probable <b>given the email</b>:</p>
+$$\hat y_{\text{test}}=\begin{cases}1 & \text{if } P(y=1\mid x_{\text{test}})\ \ge\ P(y=0\mid x_{\text{test}})\\ 0 & \text{otherwise.}\end{cases}$$
+<p>But the model gives $P(y)$ and $P(x\mid y)$, not $P(y\mid x)$. <b>Bayes' rule</b> flips it:</p>
+$$P(y=1\mid x_{\text{test}})=\frac{P(x_{\text{test}}\mid y=1)\,P(y=1)}{P(x_{\text{test}})},\qquad P(y=0\mid x_{\text{test}})=\frac{P(x_{\text{test}}\mid y=0)\,P(y=0)}{P(x_{\text{test}})} .$$
+<p>Both have the <b>same denominator</b>, a positive number, so it can't change which is bigger. Compare only the numerators, plugging in the estimates. With $x_{\text{test}}=[f_1,\dots,f_d]$, predict spam if</p>
+$$\Big[\prod_{j=1}^d(\hat p^{1}_j)^{f_j}(1-\hat p^{1}_j)^{1-f_j}\Big]\,\hat p\ \ \ge\ \ \Big[\prod_{j=1}^d(\hat p^{0}_j)^{f_j}(1-\hat p^{0}_j)^{1-f_j}\Big]\,(1-\hat p).$$
+<div class="card">
+  <h3 style="margin:0 0 4px">Classify a test email</h3>
+  <p class="small muted" style="margin-top:0">Choose the words in the test email. Each chip is one word's factor, taken from the estimates above; the outlined chip is the class prior.</p>
+  <div class="row" id="bits"></div>
+  <div class="frm" id="calc"></div>
+  <div class="post" id="post"></div>
+  <p class="small" id="verdict" style="margin-bottom:0"></p>
+</div>
+
+<h2>3 · Why the name</h2>
+<ul>
+<li><b>Naive:</b> the class-conditional independence assumption. Given "spam", knowing "lottery" is present shouldn't change our belief about "money". That is often false in practice.</li>
+<li><b>Bayes:</b> the model is generative, giving $P(y)$ and $P(x\mid y)$, so Bayes' rule is needed to reach $P(y\mid x)$ for prediction.</li>
+</ul>
+<p>Despite the naive assumption, the algorithm works well in practice, especially when the number of features is large (dictionary-sized). The experiment below shows one reason.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">Experiment: naive coins vs the "honest" dice, when words are correlated</h3>
+  <p class="small muted" style="margin-top:0">Emails with $d=8$ words are generated from a world where words come in pairs that tend to appear <b>together</b>, so the naive assumption is false. Two learners see the same training emails: naive Bayes (17 parameters) and the full dice model of L46 (511 parameters, no assumption). Accuracy is on 2,000 fresh emails.</p>
+  <div class="row"><label>how strongly paired words stick together = <b id="rhoV"></b> <input type="range" id="rho" min="0" max="90" value="60" step="10" aria-label="correlation between paired words"></label><button id="rerun">Run again</button></div>
+  <canvas id="ex" height="250" aria-label="Test accuracy of naive Bayes and the dice model against number of training emails"></canvas>
+  <div class="legend"><span><i style="background:var(--s3)"></i>naive Bayes</span><span><i style="background:var(--s2)"></i>dice model (2<sup>d+1</sup> − 1 parameters)</span><span><i style="background:var(--faint)"></i>best possible (knowing the true world)</span></div>
+  <p class="small" id="exTxt"></p>
+  <p class="beyond" style="margin-bottom:0">This experiment is my addition; the lecture states the conclusion without it.</p>
+</div>
+<div class="callout"><b>Next:</b> what goes wrong when a test email contains a word the training set never saw, and how to fix it (<a href="L49-naive-bayes-pitfalls.html">L49</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>$\hat p$ = fraction of spam emails. $\hat p^{\,y}_j$ = fraction of $y$-labelled emails containing word $j$. All counting.</li>
+<li>Predict the label with the larger $P(y\mid x_{\text{test}})$; by Bayes' rule, compare $P(x_{\text{test}}\mid y)\,P(y)$ for $y=1$ and $y=0$ (the denominator cancels).</li>
+<li>$P(x_{\text{test}}\mid y)$ is the product of per-word factors: $\hat p^{\,y}_j$ if the word is present, $1-\hat p^{\,y}_j$ if absent.</li>
+<li>Naive = class-conditional independence; Bayes = Bayes' rule. Simple, and effective in practice.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+const W = ['lottery', 'money', 'win', 'hello', 'meeting', 'report'];
+const START = [[1,1,1,0,0,0,1],[1,0,1,0,0,0,1],[0,1,1,1,0,0,1],[1,1,0,0,0,0,1],[1,1,1,1,0,0,1],[0,0,0,1,1,0,0],[0,0,0,0,1,1,0],[0,0,0,1,0,1,0],[0,1,0,1,1,1,0],[0,0,0,0,0,1,0]];
+let E = START.map(r => [...r]), x = [0, 1, 0, 1, 0, 0];
+const fr = (c, n) => n ? `${c}/${n}` : '–';
+function est(){ const n = E.length, S = [E.filter(e => e[6] === 0), E.filter(e => e[6] === 1)];
+  return {n, n1: S[1].length, n0: S[0].length, p: n ? S[1].length / n : 0, c: [0, 1].map(y => W.map((_, j) => S[y].filter(e => e[j]).length)), q: [0, 1].map(y => W.map((_, j) => S[y].length ? S[y].filter(e => e[j]).length / S[y].length : 0))}; }
+
+/* ---------- inbox ---------- */
+function inbox(){
+  $('inbox').innerHTML = `<tr><th>email</th>${W.map(w => `<th>${w}</th>`).join('')}<th>label</th><th></th></tr>` + E.map((e, i) => `<tr><td class="muted">#${i + 1}</td>${W.map((_, j) => `<td><span class="tg ${e[j] ? 'on' : ''}" data-i="${i}" data-j="${j}">${e[j]}</span></td>`).join('')}
+    <td><span class="lb" data-i="${i}" style="background:${e[6] ? 'var(--s2)' : 'var(--s1)'}">${e[6] ? 'spam' : 'not spam'}</span></td><td><span class="x" data-i="${i}" title="remove">✕</span></td></tr>`).join('');
+  const m = est();
+  $('est').innerHTML = `<tr><th>estimate</th>${W.map(w => `<th>${w}</th>`).join('')}<th>emails</th></tr>`
+    + [1, 0].map(y => `<tr><td><b style="color:${y ? 'var(--s2)' : 'var(--s1)'}">p̂<sup>${y}</sup><sub>j</sub></b> <span class="muted">(${y ? 'spam' : 'not spam'})</span></td>${W.map((_, j) => `<td>${fr(m.c[y][j], y ? m.n1 : m.n0)}<br><b>${m.q[y][j].toFixed(2)}</b></td>`).join('')}<td>${y ? m.n1 : m.n0}</td></tr>`).join('')
+    + `<tr><td colspan="${W.length + 2}" style="text-align:left"><b>p̂</b> = ${fr(m.n1, m.n)} = <b>${m.p.toFixed(2)}</b> <span class="muted">(fraction of spam). Each cell: emails of that label containing the word / emails of that label.</span></td></tr>`;
+  document.querySelectorAll('#inbox .tg').forEach(t => t.onclick = () => { E[+t.dataset.i][+t.dataset.j] ^= 1; all(); });
+  document.querySelectorAll('#inbox .lb').forEach(t => t.onclick = () => { E[+t.dataset.i][6] ^= 1; all(); });
+  document.querySelectorAll('#inbox .x').forEach(t => t.onclick = () => { E.splice(+t.dataset.i, 1); all(); }); }
+$('addS').onclick = () => { E.push([1, 1, 0, 0, 0, 0, 1]); all(); };
+$('addH').onclick = () => { E.push([0, 0, 0, 1, 1, 0, 0]); all(); };
+$('reset').onclick = () => { E = START.map(r => [...r]); all(); };
+
+/* ---------- prediction ---------- */
+function predict(){ const m = est();
+  $('bits').innerHTML = W.map((w, j) => `<div class="bit ${x[j] ? 'on' : ''}" data-j="${j}">${w}<b>${x[j]}</b></div>`).join('');
+  document.querySelectorAll('#bits .bit').forEach(b => b.onclick = () => { x[+b.dataset.j] ^= 1; predict(); });
+  const sc = [0, 1].map(y => x.reduce((a, b, j) => a * (b ? m.q[y][j] : 1 - m.q[y][j]), 1) * (y ? m.p : 1 - m.p));
+  const line = y => { const chips = x.map((b, j) => { const v = b ? m.q[y][j] : 1 - m.q[y][j]; return `<span class="f ${v === 0 ? 'zero' : b ? '' : 'z'}" title="${W[j]} ${b ? 'present' : 'absent'}">${W[j]}${b ? '' : ' ✗'} ${v.toFixed(2)}</span>`; }).join(' × ');
+    return `<div><b style="color:${y ? 'var(--s2)' : 'var(--s1)'}">${y ? 'spam' : 'not spam'}:</b> ${chips} × <span class="f pr">prior ${(y ? m.p : 1 - m.p).toFixed(2)}</span> = <b>${sc[y] === 0 ? '0' : sc[y] < 1e-4 ? sc[y].toExponential(2) : sc[y].toFixed(5)}</b></div>`; };
+  $('calc').innerHTML = line(1) + line(0) + '<div class="small muted">Blue chip: word present, factor p̂. Orange chip (✗): word absent, factor 1 − p̂. Red chip: a factor of exactly 0.</div>';
+  const tot = sc[0] + sc[1];
+  if (tot === 0){ $('post').innerHTML = '<div style="width:100%;background:var(--faint)">0 vs 0</div>';
+    $('verdict').innerHTML = '<b>Both numerators are exactly 0</b>, so there is nothing to compare. A single zero factor on each side wiped out all the other evidence. This is the pitfall of the next lecture.'; return; }
+  const ps = sc[1] / tot;
+  $('post').innerHTML = `<div style="width:${100 * ps}%;background:var(--s2)">${ps > 0.12 ? 'spam ' + (100 * ps).toFixed(1) + '%' : ''}</div><div style="width:${100 * (1 - ps)}%;background:var(--s1)">${ps < 0.88 ? 'not spam ' + (100 * (1 - ps)).toFixed(1) + '%' : ''}</div>`;
+  $('verdict').innerHTML = `Dividing each numerator by their sum (that sum is P(x<sub>test</sub>), the denominator we skipped) gives P(spam | x<sub>test</sub>) = <b>${ps.toFixed(3)}</b>. Prediction: <b>${ps >= 0.5 ? 'spam (ŷ = 1)' : 'not spam (ŷ = 0)'}</b>.`
+    + (sc[0] === 0 || sc[1] === 0 ? ' Note the red chip: one factor of 0 made a whole side 0, whatever the other words say.' : ''); }
+
+/* ---------- experiment ---------- */
+const Q1 = [0.7, 0.6, 0.5, 0.4, 0.2, 0.15, 0.3, 0.25], Q0 = [0.2, 0.15, 0.3, 0.25, 0.6, 0.5, 0.5, 0.4], PS = 0.4, NS = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000];
+let curve = null;
+function sample(rho){ const y = Math.random() < PS ? 1 : 0, q = y ? Q1 : Q0; let k = 0;
+  for (let a = 0; a < 8; a += 2){ const fa = Math.random() < q[a] ? 1 : 0, fb = Math.random() < rho ? fa : (Math.random() < q[a + 1] ? 1 : 0); k |= fa << a | fb << (a + 1); } return [k, y]; }
+function trueP(k, y, rho){ const q = y ? Q1 : Q0; let v = y ? PS : 1 - PS;
+  for (let a = 0; a < 8; a += 2){ const fa = k >> a & 1, fb = k >> (a + 1) & 1; v *= (fa ? q[a] : 1 - q[a]) * (rho * (fa === fb ? 1 : 0) + (1 - rho) * (fb ? q[a + 1] : 1 - q[a + 1])); } return v; }
+function runExp(){ const rho = +$('rho').value / 100; $('rhoV').textContent = rho.toFixed(1);
+  let best = 0; for (let k = 0; k < 256; k++) best += Math.max(trueP(k, 1, rho), trueP(k, 0, rho));
+  const test = Array.from({length: 2000}, () => sample(rho)), reps = 6;
+  const pts = NS.map(n => { let nb = 0, die = 0; for (let r = 0; r < reps; r++){
+      const cnt = [new Float64Array(256), new Float64Array(256)], wc = [new Float64Array(8), new Float64Array(8)], ny = [0, 0];
+      for (let i = 0; i < n; i++){ const [k, y] = sample(rho); cnt[y][k]++; ny[y]++; for (let j = 0; j < 8; j++) if (k >> j & 1) wc[y][j]++; }
+      const maj = ny[1] > ny[0] ? 1 : 0, nbS = new Float64Array(512);
+      for (let y = 0; y < 2; y++) for (let k = 0; k < 256; k++){ let v = ny[y] / n; if (ny[y]) for (let j = 0; j < 8; j++){ const q = wc[y][j] / ny[y]; v *= (k >> j & 1) ? q : 1 - q; } nbS[y * 256 + k] = v; }
+      test.forEach(([k, y]) => { const a = nbS[256 + k], b = nbS[k]; if ((a === b ? maj : a > b ? 1 : 0) === y) nb++; const c1 = cnt[1][k], c0 = cnt[0][k]; if ((c1 === c0 ? maj : c1 > c0 ? 1 : 0) === y) die++; }); }
+    return [n, nb / (reps * 2000), die / (reps * 2000)]; });
+  curve = {pts, best, rho}; exDraw(); }
+function exDraw(){ if (!curve) return; const {pts, best, rho} = curve, [ctx, Wd, H] = setupCanvas($('ex')), pad = {l: 44, r: 14, t: 12, b: 34};
+  const X = n => pad.l + (Math.log10(n) - 1) / (Math.log10(5000) - 1) * (Wd - pad.l - pad.r), Y = v => H - pad.b - (v - 0.5) / 0.4 * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.lineWidth = 1; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted');
+  [0.5, 0.6, 0.7, 0.8, 0.9].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(Wd - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText((100 * v) + '%', pad.l - 6, Y(v)); });
+  NS.forEach(n => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(n >= 1000 ? n / 1000 + 'k' : n, X(n), H - pad.b + 5); });
+  ctx.textBaseline = 'bottom'; ctx.fillText('training emails (log scale)', (pad.l + Wd) / 2, H);
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pad.l, Y(best)); ctx.lineTo(Wd - pad.r, Y(best)); ctx.stroke(); ctx.setLineDash([]);
+  [[1, '--s3'], [2, '--s2']].forEach(([i, c]) => { ctx.strokeStyle = cssv(c); ctx.fillStyle = cssv(c); ctx.lineWidth = 2.5; ctx.beginPath(); pts.forEach((p, j) => j ? ctx.lineTo(X(p[0]), Y(Math.max(0.5, p[i]))) : ctx.moveTo(X(p[0]), Y(Math.max(0.5, p[i])))); ctx.stroke();
+    pts.forEach(p => { ctx.beginPath(); ctx.arc(X(p[0]), Y(Math.max(0.5, p[i])), 3.5, 0, 2 * Math.PI); ctx.fill(); }); });
+  const at = n => pts.find(p => p[0] === n), cross = pts.find(p => p[2] > p[1] + 0.003), pc = v => (100 * v).toFixed(0) + '%';
+  $('exTxt').innerHTML = `With 50 training emails: naive Bayes <b>${pc(at(50)[1])}</b>, dice model <b>${pc(at(50)[2])}</b>. With 5,000: <b>${pc(at(5000)[1])}</b> vs <b>${pc(at(5000)[2])}</b> (best possible ${pc(best)}; measured figures wobble by about a point). `
+    + (rho === 0 ? 'Here the words really are independent, so naive Bayes has the right story and the dice model only catches up with a lot of data.'
+      : cross ? `The naive assumption is wrong here, yet naive Bayes is ahead until about ${cross[0].toLocaleString()} emails: with few numbers to estimate, it learns fast. The dice model wins only once there is enough data to fill its 256 faces per class. With a 10,000-word dictionary that point never comes.`
+      : 'The naive assumption is wrong here, yet naive Bayes stays ahead at every training size shown: it has few numbers to estimate, so it learns fast.'); }
+$('rho').oninput = runExp; $('rerun').onclick = runExp;
+
+function all(){ inbox(); predict(); }
+all(); runExp();
+onReady(exDraw);
+</script>
+</body>
+</html>

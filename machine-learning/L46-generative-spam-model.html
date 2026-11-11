@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Generative Model for Spam: The Dice Story</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px} @media (max-width:640px){.two{grid-template-columns:1fr}}
+.vec{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.cell{min-width:58px;text-align:center;border:1px solid var(--grid);border-radius:8px;padding:4px 6px;font-size:12px;color:var(--muted);background:var(--surface)}
+.cell b{display:block;font-size:18px;color:var(--faint)} .cell.on{border-color:var(--s1);background:var(--tint);color:var(--ink)} .cell.on b{color:var(--s1)}
+textarea,input[type=text]{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--grid);border-radius:8px;background:var(--surface);color:var(--ink)}
+.room{border:1px solid var(--grid);border-radius:10px;padding:10px;background:var(--surface)} .room.live{border-color:var(--s3);box-shadow:0 0 0 2px var(--s3) inset}
+.face{display:grid;grid-template-columns:38px 1fr 118px;gap:6px;align-items:center;font-size:13px;padding:2px 4px;border-radius:6px;cursor:pointer;font-variant-numeric:tabular-nums}
+.face:hover{background:var(--tint)} .face.hit{background:var(--tint);outline:2px solid var(--s3)} .face.sel{outline:2px solid var(--s1)}
+.bar{height:10px;border-radius:5px;background:var(--grid);overflow:hidden} .bar i{display:block;height:100%;border-radius:5px}
+.coin{display:inline-flex;width:54px;height:54px;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid var(--muted);background:var(--card)}
+.big{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all}
+</style>
+<div class="kicker">Lecture 46 · Classification: a first generative model</div>
+<h1>A Generative Model for Spam: The Dice Story</h1>
+<p class="lede">Turn each email into a 0/1 vector (is each dictionary word present?). Then tell a story for how (email, label) pairs are generated: toss a <b>coin</b> for the label, then roll that label's <b>die</b>, which has one face per possible email. It is a perfectly valid model, but it needs about $2^{d+1}$ numbers, far too many to learn. So the story must change.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=tna8wxoasss">this lecture on YouTube</a> (≈30 min). Previous: <a href="L45-generative-discriminative.html">L45</a> · Next: <a href="L47-coin-model.html">L47</a>.</p>
+
+<h2>1 · Emails as binary feature vectors</h2>
+<p>Data: $(x_1,y_1),\dots,(x_n,y_n)$ with $y_i\in\{0,1\}$ (1 = spam). Emails have different lengths, but algorithms need a fixed number $d$ of features. One simple way: let $d$ be the number of words in the dictionary, and set feature $j$ to 1 if word $j$ <b>appears</b> in the email, else 0.</p>
+<div class="card">
+  <h3 style="margin:0 0 6px">Type an email</h3>
+  <input type="text" id="mail" value="Hello, how are you?" aria-label="email text">
+  <div class="vec" id="vec"></div>
+  <p class="small" id="vecTxt"></p>
+  <p class="small muted" style="margin-bottom:0">A toy dictionary of 12 words. A real one has $d\approx 10{,}000$, so the vector is mostly zeros. This is one simple encoding, not the only one, and it does reasonably well in practice.</p>
+</div>
+
+<h2>2 · Which way to split $P(x,y)$</h2>
+<p>A generative model must give a probability to every (email, label) pair. The joint can be factored two ways:</p>
+$$P(x,y)=\underbrace{P(x)\,P(y\mid x)}_{\text{route A}}=\underbrace{P(y)\,P(x\mid y)}_{\text{route B}}$$
+<ul>
+<li><b>Route A</b> already contains $P(y\mid x)$, which is all we need for prediction. If we can assume its structure, modelling $P(x)$ adds little: we may as well be discriminative.</li>
+<li><b>Route B</b> is the natural generative choice: $P(y)$ is how often spam occurs, and $P(x\mid y)$ is <b>what spam emails look like</b> and what non-spam emails look like. This is the route we take.</li>
+</ul>
+
+<h2>3 · The generative story: one coin, two dice</h2>
+<ol class="steps">
+<li><b>Decide the label</b> by tossing a coin: $P(y_i=1)=p$.</li>
+<li><b>Decide the features</b> from $P(x_i\mid y_i)$: go to the room for that label and roll its die. The die has one face for each possible email, $2^d$ faces, each with its own probability.</li>
+</ol>
+<p>The spam die and the non-spam die have the <b>same faces</b> but <b>different probabilities</b>: an email with "lottery, money" is likely to come off the spam die and unlikely (not impossible) off the other.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">Run the story with d = 3 words: lottery, money, meeting</h3>
+  <p class="small muted" style="margin-top:0">Each face is a 3-bit email, e.g. <b>110</b> = "lottery" and "money" present, "meeting" absent. Click a face to see its joint probability.</p>
+  <div class="row"><span class="coin" id="coin">coin</span>
+    <label>P(spam) = p = <b id="pV"></b> <input type="range" id="p" min="5" max="95" value="40" aria-label="probability of spam"></label>
+    <button id="g1">Generate one email</button><button id="g200">Generate 200</button><button id="gClr">Clear</button><button id="gRnd">Shuffle the dice</button></div>
+  <div class="two">
+    <div class="room" id="room1"><b style="color:var(--s2)">Spam room</b> <span class="small muted">· die for P(x | y = 1)</span><div id="die1"></div></div>
+    <div class="room" id="room0"><b style="color:var(--s1)">Non-spam room</b> <span class="small muted">· die for P(x | y = 0)</span><div id="die0"></div></div>
+  </div>
+  <p class="small" id="gLog" style="min-height:22px"></p>
+  <div class="callout" id="joint" style="margin-bottom:0"></div>
+</div>
+
+<h2>4 · Counting the parameters</h2>
+<ul>
+<li>The coin: <b>1</b> number, $p$.</li>
+<li>Each die: $2^d$ face probabilities that must sum to 1, so $2^d-1$ free numbers.</li>
+</ul>
+$$\text{total}=1+2\,(2^d-1)=2^{d+1}-1 .$$
+<p>Knowing all of them means knowing the whole generating process, so we could compute $P(y\mid x)$ for any email. But to <b>learn</b> the model from data we'd have to estimate every one.</p>
+<div class="card">
+  <div class="row"><label>dictionary size d = <b id="dV"></b> <input type="range" id="d" min="1" max="300" value="3" style="width:260px" aria-label="number of words"></label><button id="d10k">d = 10,000</button></div>
+  <div class="small muted">parameters to learn, $2^{d+1}-1$:</div>
+  <div class="big" id="cnt"></div>
+  <p class="small" id="cntTxt"></p>
+  <hr style="border:none;border-top:1px solid var(--grid);margin:14px 0">
+  <h3 style="margin:0 0 4px">How much of one die would your data even touch?</h3>
+  <div class="row"><label>d = <b id="d2V"></b> <input type="range" id="d2" min="3" max="30" value="10" aria-label="words"></label>
+    <label>training emails in that room, n = <b id="nV"></b> <input type="range" id="n" min="20" max="60" value="30" aria-label="emails (log scale)"></label></div>
+  <div class="bar" style="height:16px"><i id="cov" style="background:var(--s3)"></i></div>
+  <p class="small" id="covTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>5 · The verdict</h2>
+<p>A generative story must pass two tests:</p>
+<ol>
+<li><b>Does it explain the data reasonably?</b> Yes: it puts no restriction at all on what spam looks like.</li>
+<li><b>Can we learn it?</b> No: with $d=10{,}000$ it has about $2^{10000}$ parameters.</li>
+</ol>
+<div class="callout"><b>Next:</b> keep the coin (one parameter is fine), and replace the two enormous dice with something much smaller (<a href="L47-coin-model.html">L47</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>An email becomes a $d$-dimensional 0/1 vector: feature $j$ = "does dictionary word $j$ appear?".</li>
+<li>Generative route: model $P(y)$ and $P(x\mid y)$, then $P(x,y)=P(y)P(x\mid y)$.</li>
+<li>Story: coin for the label, then a $2^d$-faced die for the email, with a different die per class.</li>
+<li>Parameters: $2^{d+1}-1$. Reasonable as a description, hopeless to learn. Change the story.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+/* ---------- 1. encoder ---------- */
+const DICT = ['about', 'are', 'hello', 'how', 'lottery', 'meeting', 'money', 'reply', 'report', 'win', 'you', 'zebra'];
+function enc(){ const toks = ($('mail').value.toLowerCase().match(/[a-z]+/g) || []), set = new Set(toks), out = toks.filter(t => !DICT.includes(t));
+  $('vec').innerHTML = DICT.map(w => `<div class="cell ${set.has(w) ? 'on' : ''}">${w}<b>${set.has(w) ? 1 : 0}</b></div>`).join('');
+  const rep = [...set].filter(t => toks.filter(u => u === t).length > 1 && DICT.includes(t));
+  $('vecTxt').innerHTML = `x = (${DICT.map(w => set.has(w) ? 1 : 0).join(', ')})` + (out.length ? `. Not in this dictionary, so ignored: <i>${[...new Set(out)].join(', ')}</i>` : '') + (rep.length ? `. Repeated words (<i>${rep.join(', ')}</i>) still give just a 1: only presence counts` : '') + '.'; }
+$('mail').oninput = enc;
+
+/* ---------- 3. coin + dice ---------- */
+const WORDS = ['lottery', 'money', 'meeting'], code = k => k.toString(2).padStart(3, '0');
+let DIE = {1: [0.02, 0.03, 0.10, 0.02, 0.13, 0.05, 0.55, 0.10], 0: [0.30, 0.50, 0.07, 0.08, 0.02, 0.02, 0.005, 0.005]};
+let CNT = {1: new Array(8).fill(0), 0: new Array(8).fill(0)}, last = null, sel = {y: 1, k: 6}, log = [];
+const pv = () => +$('p').value / 100;
+const words = k => WORDS.filter((w, j) => code(k)[j] === '1').join(' + ') || '(none of the three words)';
+function roll(P){ let u = Math.random(), k = 0; while (k < 7 && u > P[k]){ u -= P[k]; k++; } return k; }
+function gen1(){ const y = Math.random() < pv() ? 1 : 0, k = roll(DIE[y]); CNT[y][k]++; last = {y, k}; log.unshift(`(${code(k)}, ${y ? 'spam' : 'not spam'})`); log = log.slice(0, 6); }
+function dieHTML(y){ const tot = CNT[y].reduce((a, b) => a + b, 0), col = y ? 'var(--s2)' : 'var(--s1)';
+  return DIE[y].map((q, k) => `<div class="face ${last && last.y === y && last.k === k ? 'hit' : ''} ${sel.y === y && sel.k === k ? 'sel' : ''}" data-y="${y}" data-k="${k}"><b>${code(k)}</b>
+    <div class="bar"><i style="width:${100 * q}%;background:${col}"></i></div><span>${q.toFixed(3)}${tot ? ` <span class="muted">· seen ${(CNT[y][k] / tot).toFixed(2)}</span>` : ''}</span></div>`).join('')
+    + `<div class="small muted" style="margin-top:4px">${tot} emails generated here</div>`; }
+function story(){ $('pV').textContent = pv().toFixed(2); $('die1').innerHTML = dieHTML(1); $('die0').innerHTML = dieHTML(0);
+  $('room1').classList.toggle('live', !!last && last.y === 1); $('room0').classList.toggle('live', !!last && last.y === 0);
+  $('coin').textContent = last ? (last.y ? 'heads' : 'tails') : 'coin'; $('coin').style.borderColor = last ? (last.y ? 'var(--s2)' : 'var(--s1)') : 'var(--muted)';
+  $('gLog').innerHTML = log.length ? 'Latest pairs (x, y): ' + log.map((s, i) => i ? s : `<b>${s}</b>`).join(' · ') : 'Nothing generated yet. Each press of the box runs both steps.';
+  const {y, k} = sel, py = y ? pv() : 1 - pv();
+  $('joint').innerHTML = `<b>P(x = ${code(k)}, y = ${y ? 'spam' : 'not spam'})</b> = P(y) × P(x | y) = ${py.toFixed(2)} × ${DIE[y][k].toFixed(3)} = <b>${(py * DIE[y][k]).toFixed(4)}</b>. That email contains: ${words(k)}.`
+    + ((CNT[1].reduce((a, b) => a + b, 0) + CNT[0].reduce((a, b) => a + b, 0)) >= 200 ? ' With many emails, the "seen" fractions approach the die\'s probabilities: that is how one would learn the dice from data.' : '');
+  document.querySelectorAll('.face').forEach(f => f.onclick = () => { sel = {y: +f.dataset.y, k: +f.dataset.k}; story(); }); }
+$('p').oninput = story;
+$('g1').onclick = () => { gen1(); sel = {...last}; story(); };
+$('g200').onclick = () => { for (let i = 0; i < 200; i++) gen1(); story(); };
+$('gClr').onclick = () => { CNT = {1: new Array(8).fill(0), 0: new Array(8).fill(0)}; last = null; log = []; story(); };
+$('gRnd').onclick = () => { [1, 0].forEach(y => { const a = Array.from({length: 8}, () => Math.log(Math.random()) ** 2), s = a.reduce((x, v) => x + v, 0); DIE[y] = a.map(v => v / s); }); $('gClr').onclick(); };
+
+/* ---------- 4. parameter counter ---------- */
+function fmtBig(b){ const s = b.toString(); if (s.length <= 27) return s.replace(/\B(?=(\d{3})+(?!\d))/g, ','); return `≈ ${s[0]}.${s.slice(1, 3)} × 10<sup>${s.length - 1}</sup> <span class="small muted">(a number with ${s.length.toLocaleString()} digits)</span>`; }
+let dBig = 3;
+function count(){ const d = dBig; $('dV').textContent = d.toLocaleString(); const N = 2n ** BigInt(d + 1) - 1n; $('cnt').innerHTML = fmtBig(N);
+  const digits = N.toString().length;
+  $('cntTxt').innerHTML = d <= 3 ? 'Tiny: with 3 words there are just two 8-faced dice and a coin.' : digits <= 7 ? 'Still learnable with a decent dataset.'
+    : digits <= 10 ? 'Already more parameters than most datasets have emails.' : digits <= 11 ? 'More parameters than there are people on Earth (about 8 billion).'
+    : digits <= 23 ? 'More parameters than there are stars in the Milky Way (about 10<sup>11</sup>).' : digits <= 80 ? 'More parameters than grains of sand on Earth (about 10<sup>19</sup>).'
+    : d < 10000 ? 'More parameters than atoms in the observable universe (about 10<sup>80</sup>).' : 'A realistic dictionary. No computer could store this, let alone learn it. Atoms in the universe: only about 10<sup>80</sup>.'; }
+$('d').oninput = () => { dBig = +$('d').value; count(); };
+$('d10k').onclick = () => { dBig = 10000; count(); };
+function cover(){ const d = +$('d2').value, n = Math.round(10 ** (+$('n').value / 10)), F = 2 ** d, frac = -Math.expm1(n * Math.log1p(-1 / F)), seen = F * frac;
+  $('d2V').textContent = d; $('nV').textContent = n.toLocaleString(); $('cov').style.width = Math.max(0.3, 100 * frac) + '%';
+  $('covTxt').innerHTML = `The die has <b>${F.toLocaleString()}</b> faces. Even in the best case (all faces equally likely), ${n.toLocaleString()} emails land on about <b>${Math.round(seen).toLocaleString()}</b> different faces: <b>${frac >= 0.0001 ? (100 * frac).toFixed(frac < 0.1 ? 2 : 0) + '%' : 'less than 0.01%'}</b> of the die. `
+    + (frac > 0.95 ? 'Enough data to estimate every face.' : 'Every face never seen would get an estimated probability of 0, and the model would know nothing about that email.'); }
+$('d2').oninput = cover; $('n').oninput = cover;
+
+enc(); story(); count(); cover();
+onReady(() => {});
+</script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Simpler Story: One Coin per Word</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px} @media (max-width:640px){.two{grid-template-columns:1fr}}
+.room{border:1px solid var(--grid);border-radius:10px;padding:10px;background:var(--surface)} .room.live{border-color:var(--s3);box-shadow:0 0 0 2px var(--s3) inset}
+.wrow{display:grid;grid-template-columns:62px 1fr 40px 46px;gap:6px;align-items:center;font-size:13px;margin:6px 0;font-variant-numeric:tabular-nums}
+.wrow input{width:100%}
+.coin{display:inline-flex;width:42px;height:42px;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:15px;border:2px solid var(--grid);background:var(--card);color:var(--faint)}
+.coin.h{border-color:var(--s3);color:var(--ink);background:var(--tint)} .coin.t{border-color:var(--muted);color:var(--muted)}
+.bit{width:86px;text-align:center;border:1px solid var(--grid);border-radius:8px;padding:5px 6px;font-size:12px;cursor:pointer;background:var(--surface);color:var(--muted);user-select:none}
+.bit b{display:block;font-size:20px;color:var(--faint)} .bit.on{border-color:var(--s1);background:var(--tint);color:var(--ink)} .bit.on b{color:var(--s1)}
+.bar{height:12px;border-radius:6px;background:var(--grid);overflow:hidden} .bar i{display:block;height:100%;border-radius:6px}
+.brow{display:grid;grid-template-columns:150px 1fr 54px;gap:8px;align-items:center;font-size:13px;margin:5px 0;font-variant-numeric:tabular-nums}
+.frm{font-size:15px;line-height:1.9;font-variant-numeric:tabular-nums} .frm .f{display:inline-block;padding:0 7px;border-radius:6px;background:var(--tint);margin:0 1px}
+.frm .f.z{background:var(--warn-bg)}
+</style>
+<div class="kicker">Lecture 47 · Classification: a learnable generative model</div>
+<h1>A Simpler Story: One Coin per Word</h1>
+<p class="lede">The dice story needed $2^{d+1}-1$ parameters. Keep the label coin, but replace each giant die with <b>$d$ small coins</b>, one per word: toss word $j$'s coin to decide whether that word appears. That drops the count to <b>$2d+1$</b>. The price is an assumption: given the class, the words are <b>independent</b> of each other.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=GdYLuJqHZAc">this lecture on YouTube</a> (≈18 min). Previous: <a href="L46-generative-spam-model.html">L46</a> · Next: <a href="L48-naive-bayes.html">L48</a>.</p>
+
+<h2>1 · The new story</h2>
+<ol class="steps">
+<li><b>Label, as before:</b> toss a coin with $P(y=1)=p$. One parameter was never the problem.</li>
+<li><b>Features, changed:</b> go to the room for that label. It holds $d$ coins, one per dictionary word. Coin $j$ in the spam room lands heads with probability $p^1_j$; in the non-spam room, $p^0_j$. Toss all $d$ coins: <b>heads = the word appears</b>, tails = it doesn't.</li>
+</ol>
+<p>Notation: in $p^y_j$ the superscript is the <b>label</b> and the subscript is the <b>word</b>. Two sets of coins are needed because the same word behaves differently by class: "lottery" might have $p^1_j=0.8$ in spam but $p^0_j=0.1$ otherwise.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">Set the coins, then press the box</h3>
+  <div class="row"><span class="coin" id="lab" style="width:54px;height:54px;font-size:13px">coin</span>
+    <label>P(spam) = p = <b id="pV"></b> <input type="range" id="p" min="5" max="95" value="40" aria-label="probability of spam"></label>
+    <button id="g1">Generate one email</button><button id="g200">Generate 200</button><button id="gClr">Clear</button></div>
+  <div class="two">
+    <div class="room" id="room1"><b style="color:var(--s2)">Spam room</b> <span class="small muted">· coins $p^1_j$</span><div id="coins1"></div></div>
+    <div class="room" id="room0"><b style="color:var(--s1)">Non-spam room</b> <span class="small muted">· coins $p^0_j$</span><div id="coins0"></div></div>
+  </div>
+  <p class="small" id="gLog" style="min-height:22px;margin-bottom:0"></p>
+</div>
+
+<h2>2 · The probability of an email</h2>
+<p>Because the coins are tossed independently, the probability of a whole email given its class is a <b>product</b>, one factor per word. Write the email as $x=[f_1,\dots,f_d]$ with $f_i\in\{0,1\}$:</p>
+$$P\big(x=[f_1,\dots,f_d]\,\big|\,y\big)=\prod_{i=1}^{d}\big(p^y_i\big)^{f_i}\big(1-p^y_i\big)^{1-f_i}$$
+<p>The exponents just pick the right factor: if word $i$ is present ($f_i=1$) the factor is $p^y_i$; if absent, $1-p^y_i$. It's the Bernoulli likelihood from the estimation lectures, once per word.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">Work one out</h3>
+  <p class="small muted" style="margin-top:0">Click the words to build an email. The factors use the coin values you set above.</p>
+  <div class="row" id="bits"></div>
+  <div class="frm" id="frm"></div>
+  <hr style="border:none;border-top:1px solid var(--grid);margin:12px 0">
+  <p class="small" style="margin:0 0 4px"><b>All 8 possible emails.</b> Three coins quietly define a full 8-faced die for each room, using only 3 numbers instead of 7:</p>
+  <div class="two"><div id="imp1"></div><div id="imp0"></div></div>
+</div>
+
+<h2>3 · Counting parameters again</h2>
+$$\underbrace{1}_{\text{label coin}}+\underbrace{d}_{\text{spam coins}}+\underbrace{d}_{\text{non-spam coins}}=2d+1$$
+<div class="card">
+  <div class="row"><label>dictionary size d = <b id="dV"></b> <input type="range" id="d" min="1" max="60" value="10" style="width:240px" aria-label="number of words"></label><button id="d10k">d = 10,000</button></div>
+  <div class="brow"><span>dice story, $2^{d+1}-1$</span><div class="bar"><i id="bDie" style="background:var(--s2)"></i></div><span></span></div>
+  <div class="brow"><span>coin story, $2d+1$</span><div class="bar"><i id="bCoin" style="background:var(--s3)"></i></div><span></span></div>
+  <p class="small" id="cTxt" style="margin-bottom:0"></p>
+  <p class="small muted" style="margin:4px 0 0">Bar lengths are on a log scale (number of digits), otherwise the green bar would be invisible.</p>
+</div>
+
+<h2>4 · What we gave up: class-conditional independence</h2>
+<p>Suppose an email is spam and you learn it contains "lottery". Does that change your belief that it also contains "money"? In real spam, yes: the two travel together. In this model, <b>no</b>: "money" has its own coin, and the lottery coin's result doesn't touch it.</p>
+<div class="callout"><b>Class-conditional independence assumption:</b> given the class, the features are independent of each other. Knowing the label is all that matters; knowing one word tells you nothing more about another. The independence is <b>conditional on the class</b>: it holds inside the spam room and inside the non-spam room, not across the whole inbox.</div>
+<div class="card">
+  <h3 style="margin:0 0 4px">Real spam vs the coin model's version of it</h3>
+  <p class="small muted" style="margin-top:0">Inside the spam room, "lottery" and "money" each appear in 60% of emails. Slide to choose how often they appear <b>together</b> in the real world. The coin model only stores the two 60% figures, so its picture never moves.</p>
+  <div class="row"><label>real P(lottery and money | spam) = <b id="cV"></b> <input type="range" id="c" min="20" max="60" value="52" aria-label="probability both words appear"></label><button id="cInd">Make them truly independent</button></div>
+  <div class="two">
+    <div><b class="small">Real spam</b><div id="real"></div></div>
+    <div><b class="small">Coin model (product of the two coins)</b><div id="naive"></div></div>
+  </div>
+  <div class="row"><span class="stat"><span class="v" id="sReal">–</span><br><span class="l">real P(money | lottery, spam)</span></span><span class="stat"><span class="v" id="sNaive">0.60</span><br><span class="l">coin model: always P(money | spam)</span></span></div>
+  <p class="small" id="iTxt" style="margin-bottom:0"></p>
+</div>
+<p>The assumption may well be false in practice. We accept it because it buys a model with a manageable number of parameters.</p>
+<div class="callout"><b>Next:</b> the model is fixed, with $2d+1$ unknowns. Estimate them by maximum likelihood, and use them to classify (<a href="L48-naive-bayes.html">L48</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Story: label coin $p$; then $d$ word coins from the room for that label, $p^1_j$ or $p^0_j$.</li>
+<li>$P(x\mid y)=\prod_i (p^y_i)^{f_i}(1-p^y_i)^{1-f_i}$, and $P(x,y)=P(y)\,P(x\mid y)$.</li>
+<li>Parameters: $2d+1$ instead of $2^{d+1}-1$.</li>
+<li>The cost is the class-conditional independence assumption: given the label, words don't inform each other.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+const WORDS = ['lottery', 'money', 'meeting'], code = k => k.toString(2).padStart(3, '0');
+let PW = {1: [0.8, 0.7, 0.1], 0: [0.05, 0.15, 0.6]}, last = null, log = [], total = 0, x = [0, 1, 0];
+const pv = () => +$('p').value / 100;
+const pxy = (f, y) => f.reduce((a, b, j) => a * (b ? PW[y][j] : 1 - PW[y][j]), 1);
+
+/* ---------- 1. coin rooms ---------- */
+function rooms(){ $('pV').textContent = pv().toFixed(2);
+  [1, 0].forEach(y => { $('coins' + y).innerHTML = WORDS.map((w, j) => { const res = last && last.y === y ? last.f[j] : null;
+      return `<div class="wrow"><span>${w}</span><input type="range" min="0" max="100" value="${Math.round(100 * PW[y][j])}" data-y="${y}" data-j="${j}" aria-label="${w} coin, ${y ? 'spam' : 'non-spam'} room"><b>${PW[y][j].toFixed(2)}</b><span class="coin ${res === null ? '' : res ? 'h' : 't'}">${res === null ? '?' : res ? 'H' : 'T'}</span></div>`; }).join('');
+    $('room' + y).classList.toggle('live', !!last && last.y === y); });
+  $('lab').textContent = last ? (last.y ? 'heads' : 'tails') : 'coin'; $('lab').style.borderColor = last ? (last.y ? 'var(--s2)' : 'var(--s1)') : 'var(--grid)';
+  $('gLog').innerHTML = log.length ? `${total} generated. Latest (x, y): ` + log.map((s, i) => i ? s : `<b>${s}</b>`).join(' · ') : 'Nothing generated yet. H = the word appears in the email, T = it doesn\'t.';
+  document.querySelectorAll('.wrow input').forEach(s => { s.oninput = () => { PW[+s.dataset.y][+s.dataset.j] = +s.value / 100; s.parentElement.querySelector('b').textContent = (+s.value / 100).toFixed(2); work(); }; }); }
+function gen1(){ const y = Math.random() < pv() ? 1 : 0, f = PW[y].map(q => Math.random() < q ? 1 : 0); last = {y, f}; total++;
+  log.unshift(`(${f.join('')}, ${y ? 'spam' : 'not spam'})`); log = log.slice(0, 6); }
+$('p').oninput = () => { $('pV').textContent = pv().toFixed(2); work(); };
+$('g1').onclick = () => { gen1(); x = [...last.f]; rooms(); work(); };
+$('g200').onclick = () => { for (let i = 0; i < 200; i++) gen1(); rooms(); };
+$('gClr').onclick = () => { last = null; log = []; total = 0; rooms(); };
+
+/* ---------- 2. worked product ---------- */
+function work(){
+  $('bits').innerHTML = WORDS.map((w, j) => `<div class="bit ${x[j] ? 'on' : ''}" data-j="${j}">${w}<b>${x[j]}</b></div>`).join('') + `<span class="small muted">x = ${x.join('')}</span>`;
+  document.querySelectorAll('.bit').forEach(b => b.onclick = () => { x[+b.dataset.j] ^= 1; work(); });
+  const line = y => { const fs = x.map((b, j) => `<span class="f ${b ? '' : 'z'}">${b ? PW[y][j].toFixed(2) : '(1 − ' + PW[y][j].toFixed(2) + ')'}</span>`).join(' × '), v = pxy(x, y), py = y ? pv() : 1 - pv();
+    return `<div><b>P(x = ${x.join('')} | ${y ? 'spam' : 'not spam'})</b> = ${fs} = <b>${v.toFixed(4)}</b><br><span class="muted">joint: P(x, ${y ? 'spam' : 'not spam'}) = ${py.toFixed(2)} × ${v.toFixed(4)} = </span><b>${(py * v).toFixed(4)}</b></div>`; };
+  $('frm').innerHTML = line(1) + '<div style="height:8px"></div>' + line(0) + `<div class="small muted" style="margin-top:6px">Blue factor: word present, use $p$. Orange factor: word absent, use $1-p$.</div>`.replace(/\$p\$/, '<i>p</i>').replace(/\$1-p\$/, '1 − <i>p</i>');
+  [1, 0].forEach(y => { let s = 0; $('imp' + y).innerHTML = `<div class="small muted">${y ? 'spam room' : 'non-spam room'}</div>` + Array.from({length: 8}, (_, k) => { const f = [...code(k)].map(Number), v = pxy(f, y); s += v;
+      return `<div class="brow" style="grid-template-columns:34px 1fr 50px;${f.join('') === x.join('') ? 'font-weight:700' : ''}"><span>${code(k)}</span><div class="bar"><i style="width:${100 * v}%;background:${y ? 'var(--s2)' : 'var(--s1)'}"></i></div><span>${v.toFixed(3)}</span></div>`; }).join('') + `<div class="small muted">sum = ${s.toFixed(3)}</div>`; }); }
+
+/* ---------- 3. counts ---------- */
+let dBig = 10;
+function counts(){ const d = dBig, die = 2n ** BigInt(d + 1) - 1n, coin = 2 * d + 1, dd = die.toString().length, cd = String(coin).length, mx = Math.max(dd, 12);
+  $('dV').textContent = d.toLocaleString(); $('bDie').style.width = Math.min(100, 100 * dd / mx) + '%'; $('bCoin').style.width = Math.max(1, 100 * cd / mx) + '%';
+  const ds = die.toString(), dStr = ds.length <= 18 ? ds.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : `≈ ${ds[0]}.${ds.slice(1, 3)} × 10<sup>${ds.length - 1}</sup>`;
+  $('cTxt').innerHTML = `Dice story: <b>${dStr}</b> parameters. Coin story: <b>${coin.toLocaleString()}</b>.` + (d >= 10000 ? ' Twenty thousand numbers is an ordinary estimation problem.' : d <= 2 ? ' For tiny d the two stories are nearly the same size.' : ''); }
+$('d').oninput = () => { dBig = +$('d').value; counts(); };
+$('d10k').onclick = () => { dBig = 10000; counts(); };
+
+/* ---------- 4. independence ---------- */
+const A = 0.6, B = 0.6;
+function bars(el, q, col){ const names = ['neither', 'money only', 'lottery only', 'lottery and money'];
+  $(el).innerHTML = q.map((v, i) => `<div class="brow"><span>${names[i]}</span><div class="bar"><i style="width:${100 * v / 0.6}%;background:${col}"></i></div><span>${v.toFixed(2)}</span></div>`).join(''); }
+function indep(){ const c = +$('c').value / 100; $('cV').textContent = c.toFixed(2);
+  bars('real', [1 - A - B + c, B - c, A - c, c], 'var(--s2)'); bars('naive', [(1 - A) * (1 - B), (1 - A) * B, A * (1 - B), A * B], 'var(--s3)');
+  $('sReal').textContent = (c / A).toFixed(2);
+  $('iTxt').innerHTML = Math.abs(c - A * B) < 0.006 ? 'Here the words really are independent given spam (0.6 × 0.6 = 0.36), so the coin model is <b>exactly right</b>.'
+    : c > A * B ? `In real spam, seeing "lottery" raises the chance of "money" from 0.60 to <b>${(c / A).toFixed(2)}</b>. The coin model can't represent that: it underrates emails with both words (${(A * B).toFixed(2)} instead of ${c.toFixed(2)}) and overrates emails with just one.`
+    : `Here the two words tend to <b>avoid</b> each other: seeing "lottery" lowers the chance of "money" to ${(c / A).toFixed(2)}. The coin model still says 0.60.`; }
+$('c').oninput = indep; $('cInd').onclick = () => { $('c').value = 36; indep(); };
+
+rooms(); work(); counts(); indep();
+onReady(() => {});
+</script>
+</body>
+</html>

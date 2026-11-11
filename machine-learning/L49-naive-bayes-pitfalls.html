@@ -56,7 +56,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 49 · Classification: making naive Bayes robust</div>
 <h1>Naive Bayes Pitfalls: Zero Counts and Laplace Smoothing</h1>
 <p class="lede">If a word never appears in training, its estimated probability is <b>0</b> in both classes. One such word in a test email makes <b>both</b> products 0, erasing everything the other words said. The standard fix is <b>Laplace smoothing</b>: add two pretend emails containing every word, one per label. A second, numerical pitfall: multiply many small probabilities and the result underflows, so compare <b>sums of logs</b> instead.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=RuE8SQajgxY">this lecture on YouTube</a> (≈12 min). Previous: <a href="L48-naive-bayes.html">L48</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=RuE8SQajgxY">this lecture on YouTube</a> (≈12 min). Previous: <a href="L48-naive-bayes.html">L48</a> · Next: <a href="L50-naive-bayes-decision-function.html">L50</a>.</p>
 
 <h2>1 · The zero-frequency problem</h2>
 <p>Say word $j$ ("zebra") is in the dictionary but in <b>no training email</b>. Counting gives $\hat p^{1}_j=0$ and $\hat p^{0}_j=0$. Now a test email contains it, so $f_j=1$ and its factor on each side is</p>

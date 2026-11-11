@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gaussian Naive Bayes</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 51 · Classification: a generative model for real-valued features</div>
+<h1>Gaussian Naive Bayes</h1>
+<p class="lede">Naive Bayes needed 0/1 features. For features in $\mathbb R^d$, keep the label coin and swap the word coins for a <b>Gaussian per class</b>: different means, and (the key simplification) the <b>same covariance</b>. Maximum likelihood is again simple averaging, prediction is again Bayes' rule, and the decision boundary is again <b>linear</b>. Let each class have its own covariance and the boundary becomes <b>quadratic</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=oTMYU7hC2bw">this lecture on YouTube</a> (≈31 min). Previous: <a href="L50-naive-bayes-decision-function.html">L50</a>.</p>
+
+<h2>1 · The generative story</h2>
+<p>Data: $(x_1,y_1),\dots,(x_n,y_n)$ with $y_i\in\{0,1\}$ and now $x_i\in\mathbb R^d$. As in naive Bayes, model $P(y)$ first, then $P(x\mid y)$:</p>
+<ol class="steps">
+<li><b>Label:</b> toss a coin, $P(y=1)=p$. Nothing changes here.</li>
+<li><b>Features:</b> draw $x$ from that label's Gaussian:
+$$x\mid y=1\ \sim\ \mathcal N(\mu_1,\Sigma),\qquad x\mid y=0\ \sim\ \mathcal N(\mu_0,\Sigma).$$</li>
+</ol>
+<p>The means differ (something has to distinguish the classes). The covariance $\Sigma$, which sets the shape and direction of the elliptical density contours, is <b>assumed to be the same</b> for both. Parameters to estimate: $p,\ \mu_0,\ \mu_1,\ \Sigma$.</p>
+
+<h2>2 · Maximum-likelihood estimates</h2>
+<table>
+<tr><th>Parameter</th><th>Estimate</th><th>In words</th></tr>
+<tr><td>$\hat p$</td><td>$\dfrac1n\sum_i y_i$</td><td>fraction of points labelled 1 (same as naive Bayes)</td></tr>
+<tr><td>$\hat\mu_1$</td><td>$\dfrac{\sum_i \mathbb 1(y_i=1)\,x_i}{\sum_i \mathbb 1(y_i=1)}$</td><td>sample mean of the points labelled 1</td></tr>
+<tr><td>$\hat\mu_0$</td><td>$\dfrac{\sum_i \mathbb 1(y_i=0)\,x_i}{\sum_i \mathbb 1(y_i=0)}$</td><td>sample mean of the points labelled 0</td></tr>
+<tr><td>$\hat\Sigma$</td><td>$\dfrac1n\sum_i (x_i-\hat\mu_{y_i})(x_i-\hat\mu_{y_i})^\top$</td><td>covariance after centring each point on <b>its own class's</b> mean</td></tr>
+</table>
+<p>$\hat\Sigma$ is not the plain covariance of all the data: with two means, each point is measured from the mean of its own class, and all $n$ points are then pooled.</p>
+
+<h2>3 · Prediction, and why it is linear</h2>
+<p>Bayes' rule as always, with <b>densities</b> in place of probabilities because $x$ is continuous. Predict 1 if</p>
+$$f(x_{\text{test}};\hat\mu_1,\hat\Sigma)\;\hat p\ \ \ge\ \ f(x_{\text{test}};\hat\mu_0,\hat\Sigma)\;(1-\hat p),\qquad f(x;\mu,\Sigma)\ \propto\ \exp\!\Big(-\tfrac12(x-\mu)^\top\Sigma^{-1}(x-\mu)\Big).$$
+<p>The constant in front of the Gaussian depends only on $\Sigma$, which is shared, so it cancels. Take logs and expand: the quadratic term $x^\top\hat\Sigma^{-1}x$ appears on <b>both sides and cancels too</b>. What is left is linear in $x$:</p>
+$$\underbrace{\big[\hat\Sigma^{-1}(\hat\mu_1-\hat\mu_0)\big]^\top}_{w^\top}x_{\text{test}}\;+\;\underbrace{\tfrac12\big(\hat\mu_0^\top\hat\Sigma^{-1}\hat\mu_0-\hat\mu_1^\top\hat\Sigma^{-1}\hat\mu_1\big)+\log\frac{\hat p}{1-\hat p}}_{b}\ \ \ge\ 0 .$$
+<p class="small muted">The lecture writes this out quickly on the board; the careful version above has a factor ½ on the two mean terms and $\log\frac{\hat p}{1-\hat p}$ (larger $\hat p$ favours class 1). The message is unchanged: a vector $w$, a number $b$, and a linear rule.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">Play with the model</h3>
+  <p class="small muted" style="margin-top:0"><b>Drag the two squares</b> to move the true class means. The model sees only the sampled points, fits $\hat p,\hat\mu_0,\hat\mu_1,\hat\Sigma$, and shades its prediction. Move the pointer over the plot to test a point.</p>
+  <div class="row"><span class="small">data:</span><button data-d="same" class="on">both classes, same shape</button><button data-d="diff">different shapes</button>
+    <span class="small" style="margin-left:8px">model:</span><button data-f="shared" class="on">shared Σ̂ (the lecture's model)</button><button data-f="sep">separate Σ̂₁, Σ̂₀</button></div>
+  <div class="row"><label>stretch = <b id="stV"></b> <input type="range" id="st" min="10" max="35" value="22" aria-label="stretch of the ellipse"></label>
+    <label>tilt = <b id="tiV"></b>° <input type="range" id="ti" min="0" max="180" value="35" aria-label="tilt of the ellipse"></label>
+    <label>P(y = 1) = <b id="prV"></b> <input type="range" id="pr" min="5" max="95" value="50" aria-label="class balance"></label><button id="resamp">New sample</button></div>
+  <canvas id="gnb" height="380" style="touch-action:none;cursor:crosshair" aria-label="Sampled data, fitted Gaussians and the decision boundary"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>label 1</span><span><i class="dot" style="background:var(--s2)"></i>label 0</span><span>ellipses = fitted Gaussians (1σ, 2σ) · × = fitted means</span><span><i style="background:var(--ink)"></i>decision boundary</span><span><i style="background:var(--faint)"></i>perpendicular bisector of the fitted means</span></div>
+  <div class="row"><span class="stat"><span class="v" id="sP">–</span><br><span class="l">p̂</span></span><span class="stat"><span class="v" id="sW">–</span><br><span class="l">w = Σ̂⁻¹(μ̂₁ − μ̂₀)</span></span><span class="stat"><span class="v" id="sB">–</span><br><span class="l">b</span></span><span class="stat"><span class="v" id="sA">–</span><br><span class="l">training accuracy</span></span></div>
+  <p class="small" id="probe" style="min-height:22px"></p>
+  <p class="small" id="gTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>4 · Reading the geometry</h2>
+<ul>
+<li><b>$\Sigma=I$ (circular contours):</b> $w$ points along $\hat\mu_1-\hat\mu_0$, so the boundary is the <b>perpendicular bisector</b> of the two means, shifted by the bias. Set stretch to 1.0 above to see the black and grey lines coincide.</li>
+<li><b>Shared but not identity:</b> $\hat\Sigma^{-1}$ <b>tilts</b> the boundary away from the bisector. It is still a straight line.</li>
+<li><b>The prior shifts it:</b> the bias contains $\log\frac{\hat p}{1-\hat p}$. If class 1 is more common, the boundary moves towards $\hat\mu_0$, giving class 1 more room.</li>
+<li><b>Different covariances</b> $\Sigma_1\ne\Sigma_0$: the contours point in different directions, the $x^\top\Sigma^{-1}x$ terms no longer cancel, and the set where the two sides are equal is in general a <b>quadratic</b> curve. Estimating two covariances buys a richer boundary. Which to use is a modelling decision.</li>
+</ul>
+<div class="card">
+  <h3 style="margin:0 0 4px">The prior's push, in one dimension</h3>
+  <p class="small muted" style="margin-top:0">Two bell curves with the same width, each already multiplied by its prior. The prediction is whichever curve is higher; the boundary is where they cross.</p>
+  <div class="row"><label>P(y = 1) = p̂ = <b id="p1V"></b> <input type="range" id="p1" min="3" max="97" value="50" aria-label="prior of class 1"></label>
+    <label>distance between means = <b id="sepV"></b> <input type="range" id="sep" min="5" max="50" value="24" aria-label="distance between means"></label></div>
+  <canvas id="one" height="210" aria-label="Two prior-weighted Gaussian curves and their crossing point"></canvas>
+  <p class="small" id="oneTxt" style="margin-bottom:0"></p>
+</div>
+<p>The lecture calls this algorithm <b>Gaussian naive Bayes</b>: given the label, the data comes from a simple Gaussian (the "naive" part), and Bayes' rule inverts $P(x\mid y)$ into $P(y\mid x)$.</p>
+<p class="beyond"><b>Naming, beyond the lecture.</b> The lecture notes this algorithm goes by several names. In most textbooks the shared-covariance version is <b>linear discriminant analysis</b> (LDA) and the separate-covariance version <b>quadratic discriminant analysis</b> (QDA); "Gaussian naive Bayes" there usually means each class's covariance is diagonal (features independent given the class), matching the naive assumption of L47.</p>
+
+<h2>5 · The bridge to discriminative models</h2>
+<p>Two generative models, coins for binary features and shared-covariance Gaussians for real ones, both ended in a <b>linear</b> $P(y\mid x)$ decision. If nice generative assumptions keep leading to linear boundaries, why not skip modelling $P(y)$ and $P(x\mid y)$, and model $P(y\mid x)$ <b>directly</b> as a linear function? That is discriminative modelling again, but more principled than k-NN or trees, and it is where the course goes next.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Story: $y\sim\text{coin}(p)$, then $x\mid y\sim\mathcal N(\mu_y,\Sigma)$ with a shared $\Sigma$.</li>
+<li>MLE: $\hat p$ = fraction of 1s; $\hat\mu_y$ = class sample means; $\hat\Sigma$ = pooled covariance around each point's own class mean.</li>
+<li>Bayes' rule with densities gives $w^\top x+b\ge0$, $w=\hat\Sigma^{-1}(\hat\mu_1-\hat\mu_0)$: a linear boundary.</li>
+<li>Identity covariance: perpendicular bisector moved by the prior. Different covariances: quadratic boundary.</li>
+<li>Linear boundaries keep appearing, which motivates modelling $P(y\mid x)$ directly.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const XR = [-6, 6], YR = [-4, 4], N = 220;
+let MU = [[-1.7, -0.7], [1.7, 0.7]], dMode = 'same', fMode = 'shared', seed = 7, Z = [], drag = -1, probe = null, FIT = null, geo = null;
+const det = A => A[0][0] * A[1][1] - A[0][1] * A[1][0], inv = A => { const d = det(A); return [[A[1][1] / d, -A[0][1] / d], [-A[1][0] / d, A[0][0] / d]]; };
+const mv = (A, v) => [A[0][0] * v[0] + A[0][1] * v[1], A[1][0] * v[0] + A[1][1] * v[1]], dotp = (a, b) => a[0] * b[0] + a[1] * b[1];
+function resample(){ const r = rng(seed); Z = Array.from({length: N}, () => [r(), gs(r), gs(r)]); }
+function shapeL(y){ const s = +$('st').value / 10, th = +$('ti').value * Math.PI / 180;   // returns L with Σ = L Lᵀ
+  if (dMode === 'diff' && y === 1) return [[0.8, 0], [0, 0.8]];
+  const a = 0.7 * s, b = 0.7, c = Math.cos(th), si = Math.sin(th); return [[c * a, -si * b], [si * a, c * b]]; }
+function points(){ const p = +$('pr').value / 100, L = [shapeL(0), shapeL(1)]; return Z.map(([u, z1, z2]) => { const y = u < p ? 1 : 0, l = L[y]; return [MU[y][0] + l[0][0] * z1 + l[0][1] * z2, MU[y][1] + l[1][0] * z1 + l[1][1] * z2, y]; }); }
+function fitModel(P){ const S = [P.filter(q => q[2] === 0), P.filter(q => q[2] === 1)], n = P.length;
+  const mu = S.map(s => [s.reduce((a, q) => a + q[0], 0) / Math.max(1, s.length), s.reduce((a, q) => a + q[1], 0) / Math.max(1, s.length)]);
+  const cov = (pts, m) => { const C = [[0, 0], [0, 0]]; pts.forEach(q => { const d = [q[0] - m(q)[0], q[1] - m(q)[1]]; C[0][0] += d[0] * d[0]; C[0][1] += d[0] * d[1]; C[1][1] += d[1] * d[1]; });
+    const k = Math.max(1, pts.length); return [[C[0][0] / k + 1e-6, C[0][1] / k], [C[0][1] / k, C[1][1] / k + 1e-6]]; };
+  const pooled = cov(P, q => mu[q[2]]), Sg = fMode === 'shared' ? [pooled, pooled] : [cov(S[0], () => mu[0]), cov(S[1], () => mu[1])];
+  return {p: S[1].length / n, mu, Sg, Si: Sg.map(inv), ld: Sg.map(s => Math.log(det(s)))}; }
+function score(x, y, F){ const d = [x[0] - F.mu[y][0], x[1] - F.mu[y][1]]; return Math.log(Math.max(1e-9, y ? F.p : 1 - F.p)) - 0.5 * F.ld[y] - 0.5 * dotp(d, mv(F.Si[y], d)); }
+function ellipse(ctx, X, Y, m, S, k){ const tr = S[0][0] + S[1][1], df = Math.sqrt(Math.max(0, (S[0][0] - S[1][1]) ** 2 / 4 + S[0][1] ** 2)), l1 = tr / 2 + df, l2 = Math.max(1e-6, tr / 2 - df), ang = Math.atan2(l1 - S[0][0], S[0][1] || 1e-12);
+  const sx = Math.abs(X(1) - X(0)), sy = Math.abs(Y(1) - Y(0)); ctx.beginPath();
+  for (let i = 0; i <= 60; i++){ const t = i / 60 * 2 * Math.PI, u = k * Math.sqrt(l1) * Math.cos(t), v = k * Math.sqrt(l2) * Math.sin(t), ex = Math.abs(S[0][1]) < 1e-9 && S[0][0] >= S[1][1] ? [u, v] : [u * Math.cos(ang) - v * Math.sin(ang), u * Math.sin(ang) + v * Math.cos(ang)];
+    const px = X(m[0]) + ex[0] * sx, py = Y(m[1]) - ex[1] * sy; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); }
+function gDraw(){
+  ['st', 'ti', 'pr'].forEach(id => $(id + 'V').textContent = id === 'ti' ? $(id).value : (+$(id).value / (id === 'st' ? 10 : 100)).toFixed(id === 'st' ? 1 : 2));
+  const P = points(), F = FIT = fitModel(P), [ctx, W, H] = setupCanvas($('gnb')), X = x => (x - XR[0]) / (XR[1] - XR[0]) * W, Y = y => H - (y - YR[0]) / (YR[1] - YR[0]) * H, st = 6; geo = {W, H};
+  for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const x = [XR[0] + (px + st / 2) / W * (XR[1] - XR[0]), YR[0] + (H - py - st / 2) / H * (YR[1] - YR[0])];
+    ctx.fillStyle = cssv(score(x, 1, F) >= score(x, 0, F) ? '--s1' : '--s2'); ctx.globalAlpha = 0.15; ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1;
+  P.forEach(q => { ctx.fillStyle = cssv(q[2] ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(X(q[0]), Y(q[1]), 3.2, 0, 2 * Math.PI); ctx.fill(); });
+  const mid = [(F.mu[0][0] + F.mu[1][0]) / 2, (F.mu[0][1] + F.mu[1][1]) / 2], dm = [F.mu[1][0] - F.mu[0][0], F.mu[1][1] - F.mu[0][1]], line = (c, t, col, w, dash) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(c[0] - 20 * t[0]), Y(c[1] - 20 * t[1])); ctx.lineTo(X(c[0] + 20 * t[0]), Y(c[1] + 20 * t[1])); ctx.stroke(); ctx.setLineDash([]); };
+  const dn = Math.hypot(dm[0], dm[1]) || 1; line(mid, [-dm[1] / dn, dm[0] / dn], cssv('--faint'), 1.5, [6, 5]);
+  let w = null, b = null;
+  if (fMode === 'shared'){ w = mv(F.Si[0], dm); b = 0.5 * (dotp(F.mu[0], mv(F.Si[0], F.mu[0])) - dotp(F.mu[1], mv(F.Si[0], F.mu[1]))) + Math.log(F.p / (1 - F.p)); const n2 = dotp(w, w) || 1e-9; line([-b * w[0] / n2, -b * w[1] / n2], [-w[1] / Math.sqrt(n2), w[0] / Math.sqrt(n2)], cssv('--ink'), 2.5, []); }
+  else { ctx.fillStyle = cssv('--ink'); const g = 3; for (let px = 0; px < W; px += g) for (let py = 0; py < H; py += g){ const f = (qx, qy) => { const x = [XR[0] + qx / W * (XR[1] - XR[0]), YR[0] + (H - qy) / H * (YR[1] - YR[0])]; return score(x, 1, F) - score(x, 0, F); }, a = f(px, py);
+      if (a * f(px + g, py) < 0 || a * f(px, py + g) < 0) ctx.fillRect(px, py, 2.5, 2.5); } }
+  [0, 1].forEach(y => { ctx.strokeStyle = cssv(y ? '--s1' : '--s2'); ctx.lineWidth = 2; ellipse(ctx, X, Y, F.mu[y], F.Sg[y], 1); ctx.lineWidth = 1; ellipse(ctx, X, Y, F.mu[y], F.Sg[y], 2);
+    ctx.fillStyle = cssv('--ink'); ctx.font = 'bold 15px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('×', X(F.mu[y][0]), Y(F.mu[y][1]));
+    ctx.fillStyle = cssv('--card'); ctx.strokeStyle = cssv(y ? '--s1' : '--s2'); ctx.lineWidth = 3; ctx.beginPath(); ctx.rect(X(MU[y][0]) - 8, Y(MU[y][1]) - 8, 16, 16); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = cssv('--ink'); ctx.font = '11px system-ui,sans-serif'; ctx.fillText(y ? 'μ₁' : 'μ₀', X(MU[y][0]), Y(MU[y][1]) + 1); });
+  if (probe){ ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(probe[0]), Y(probe[1]), 7, 0, 2 * Math.PI); ctx.stroke();
+    const s1 = score(probe, 1, F), s0 = score(probe, 0, F), post = 1 / (1 + Math.exp(s0 - s1));
+    $('probe').innerHTML = `<b>Test point (${probe[0].toFixed(1)}, ${probe[1].toFixed(1)}):</b> log[density × prior] is ${s1.toFixed(2)} for class 1 and ${s0.toFixed(2)} for class 0, so predict <b style="color:${s1 >= s0 ? 'var(--s1)' : 'var(--s2)'}">${s1 >= s0 ? 1 : 0}</b> (P(y = 1 | x) = ${post.toFixed(3)}).`; }
+  else $('probe').innerHTML = '<span class="muted">Move the pointer over the plot to test a point.</span>';
+  $('sP').textContent = F.p.toFixed(2); $('sW').textContent = w ? `(${w[0].toFixed(2)}, ${w[1].toFixed(2)})` : 'not a line'; $('sB').textContent = b === null ? '–' : b.toFixed(2);
+  $('sA').textContent = (100 * P.filter(q => (score(q, 1, F) >= score(q, 0, F) ? 1 : 0) === q[2]).length / P.length).toFixed(0) + '%';
+  const round = +$('st').value === 10;
+  $('gTxt').innerHTML = fMode === 'shared' ? (dMode === 'same' ? (round ? 'Circular contours: w points straight from μ̂₀ to μ̂₁, so the boundary (black) is parallel to the perpendicular bisector (grey dashes); with equal priors they coincide. Slide P(y = 1) to shift it.'
+        : 'Shared, stretched Σ̂: the boundary is still a straight line, but Σ̂⁻¹ tilts it away from the bisector so it runs more along the ellipses\' long direction. Change the tilt to watch it turn.')
+      : 'The classes really have different shapes, but the model is forced to use one pooled Σ̂ (both fitted ellipses are identical). The boundary stays a straight line and misses the curve the data wants. Switch the model to separate Σ̂.')
+    : (dMode === 'diff' ? 'Separate covariances: the round class sits inside a curved region. The boundary is a <b>quadratic</b> curve, here bending around the compact class.' : 'Separate Σ̂₁ and Σ̂₀ on same-shape data: the two estimates come out nearly equal, so the quadratic boundary is almost straight. The extra parameters bought very little.'); }
+const cv = $('gnb'), toData = e => { const r = cv.getBoundingClientRect(); return [XR[0] + (e.clientX - r.left) / r.width * (XR[1] - XR[0]), YR[0] + (r.height - (e.clientY - r.top)) / r.height * (YR[1] - YR[0])]; };
+cv.addEventListener('pointerdown', e => { const q = toData(e), r = cv.getBoundingClientRect(), tol = 22 / r.width * (XR[1] - XR[0]); drag = -1; [0, 1].forEach(y => { if (Math.hypot(q[0] - MU[y][0], q[1] - MU[y][1]) < tol) drag = y; }); if (drag >= 0) cv.setPointerCapture(e.pointerId); else { probe = q; gDraw(); } });
+cv.addEventListener('pointermove', e => { const q = toData(e); if (drag >= 0){ MU[drag] = [Math.max(XR[0] + 0.5, Math.min(XR[1] - 0.5, q[0])), Math.max(YR[0] + 0.5, Math.min(YR[1] - 0.5, q[1]))]; probe = null; } else probe = q; gDraw(); });
+cv.addEventListener('pointerup', () => { drag = -1; }); cv.addEventListener('pointerleave', () => { if (drag < 0){ probe = null; gDraw(); } });
+document.querySelectorAll('button[data-d]').forEach(bn => bn.onclick = () => { dMode = bn.dataset.d; document.querySelectorAll('button[data-d]').forEach(v => v.classList.toggle('on', v === bn)); gDraw(); });
+document.querySelectorAll('button[data-f]').forEach(bn => bn.onclick = () => { fMode = bn.dataset.f; document.querySelectorAll('button[data-f]').forEach(v => v.classList.toggle('on', v === bn)); gDraw(); });
+['st', 'ti', 'pr'].forEach(id => $(id).oninput = gDraw);
+$('resamp').onclick = () => { seed++; resample(); gDraw(); };
+
+/* ---------- 1-D prior demo ---------- */
+function one(){ const p = +$('p1').value / 100, sep = +$('sep').value / 10, m1 = sep / 2, m0 = -sep / 2; $('p1V').textContent = p.toFixed(2); $('sepV').textContent = sep.toFixed(1);
+  const [ctx, W, H] = setupCanvas($('one')), pad = {l: 10, r: 10, t: 12, b: 26}, lo = -6, hi = 6, X = x => pad.l + (x - lo) / (hi - lo) * (W - pad.l - pad.r), g = (x, m) => Math.exp(-0.5 * (x - m) ** 2) / Math.sqrt(2 * Math.PI);
+  const top = Math.max(p, 1 - p) * g(0, 0) * 1.1, Y = v => H - pad.b - v / top * (H - pad.t - pad.b), xs = sep > 0 ? Math.log((1 - p) / p) / sep : 0;
+  ctx.fillStyle = cssv('--s2'); ctx.globalAlpha = 0.12; ctx.fillRect(X(lo), pad.t, Math.max(0, X(Math.max(lo, Math.min(hi, xs))) - X(lo)), H - pad.t - pad.b);
+  ctx.fillStyle = cssv('--s1'); ctx.fillRect(X(Math.max(lo, Math.min(hi, xs))), pad.t, X(hi) - X(Math.max(lo, Math.min(hi, xs))), H - pad.t - pad.b); ctx.globalAlpha = 1;
+  [[m0, 1 - p, '--s2'], [m1, p, '--s1']].forEach(([m, pr, c]) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i <= 240; i++){ const x = lo + (hi - lo) * i / 240; i ? ctx.lineTo(X(x), Y(pr * g(x, m))) : ctx.moveTo(X(x), Y(pr * g(x, m))); } ctx.stroke(); });
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(lo), H - pad.b); ctx.lineTo(X(hi), H - pad.b); ctx.stroke();
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('μ₀', X(m0), H - pad.b + 5); ctx.fillText('μ₁', X(m1), H - pad.b + 5);
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = cssv('--faint'); ctx.beginPath(); ctx.moveTo(X(0), pad.t); ctx.lineTo(X(0), H - pad.b); ctx.stroke(); ctx.setLineDash([]);
+  if (xs > lo && xs < hi){ ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(xs), pad.t); ctx.lineTo(X(xs), H - pad.b); ctx.stroke(); }
+  $('oneTxt').innerHTML = Math.abs(p - 0.5) < 0.006 ? 'Equal priors: the curves cross exactly halfway between the means (the grey dashed line), the 1-D version of the perpendicular bisector.'
+    : `Class ${p > 0.5 ? 1 : 0} is more common, so its curve is taller and wins further out: the boundary (black) sits at x = ${xs.toFixed(2)}, pushed ${Math.abs(xs).toFixed(2)} towards μ${p > 0.5 ? '₀' : '₁'}. `
+      + (xs <= lo || xs >= hi ? 'It has left the picture: one class is predicted everywhere shown.' : 'Bring the means closer and the same prior pushes it much further: the shift is σ² log((1 − p̂)/p̂) / (μ₁ − μ₀).'); }
+$('p1').oninput = one; $('sep').oninput = one;
+
+resample();
+onReady(() => { gDraw(); one(); });
+</script>
+</body>
+</html>

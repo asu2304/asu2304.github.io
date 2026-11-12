@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 51 · Classification: a generative model for real-valued features</div>
 <h1>Gaussian Naive Bayes</h1>
 <p class="lede">Naive Bayes needed 0/1 features. For features in $\mathbb R^d$, keep the label coin and swap the word coins for a <b>Gaussian per class</b>: different means, and (the key simplification) the <b>same covariance</b>. Maximum likelihood is again simple averaging, prediction is again Bayes' rule, and the decision boundary is again <b>linear</b>. Let each class have its own covariance and the boundary becomes <b>quadratic</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=oTMYU7hC2bw">this lecture on YouTube</a> (≈31 min). Previous: <a href="L50-naive-bayes-decision-function.html">L50</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=oTMYU7hC2bw">this lecture on YouTube</a> (≈31 min). Previous: <a href="L50-naive-bayes-decision-function.html">L50</a> · Next: <a href="L52-perceptron.html">L52</a>.</p>
 
 <h2>1 · The generative story</h2>
 <p>Data: $(x_1,y_1),\dots,(x_n,y_n)$ with $y_i\in\{0,1\}$ and now $x_i\in\mathbb R^d$. As in naive Bayes, model $P(y)$ first, then $P(x\mid y)$:</p>

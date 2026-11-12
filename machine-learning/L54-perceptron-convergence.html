@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Perceptron Convergence: The Radius-Margin Bound</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px} @media (max-width:640px){.two{grid-template-columns:1fr}}
+</style>
+<div class="kicker">Lecture 54 · Classification: a guarantee for the perceptron</div>
+<h1>Perceptron Convergence: The Radius-Margin Bound</h1>
+<p class="lede">If the data is linearly separable with margin $\gamma$ and lies inside a ball of radius $R$, the perceptron makes <b>at most $R^2/\gamma^2$ mistakes</b>, and therefore stops. The proof traps $\lVert w\rVert^2$ between two quantities: it can grow <b>at most linearly</b> in the number of mistakes, yet must grow <b>at least quadratically</b>. Those can't both hold for long.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=fHDouTKwfXw">this lecture on YouTube</a> (≈32 min). Previous: <a href="L53-perceptron-update-rule.html">L53</a> · Next: <a href="L55-sigmoid.html">L55</a>.</p>
+
+<h2>1 · Three assumptions (only the first is a real one)</h2>
+<ol class="steps">
+<li><b>Margin.</b> There is a $w^*$ with $(w^{*\top}x_i)\,y_i\ge\gamma$ for all $i$, for some $\gamma&gt;0$.</li>
+<li><b>Radius.</b> $\lVert x_i\rVert\le R$ for all $i$. Always true for a finite dataset: take $R$ = the length of the longest point.</li>
+<li><b>Unit length.</b> $\lVert w^*\rVert=1$, without loss of generality. Dividing $w^{*\top}x=\gamma$ by $\lVert w^*\rVert$ gives the <b>same line</b> written with a unit vector and a rescaled margin $\gamma'=\gamma/\lVert w^*\rVert$, still positive. (Just as $y=mx+c$ and $2y=2mx+2c$ are the same line.)</li>
+</ol>
+<div class="card">
+  <div class="row"><label>length of w* = <b id="scV"></b> <input type="range" id="sc" min="2" max="60" value="25" aria-label="length of w star"></label></div>
+  <p class="small" id="scTxt" style="margin:0"></p>
+</div>
+
+<h2>2 · The proof: count the mistakes</h2>
+<p>Updates happen <b>only on mistakes</b>. So if the number of mistakes is bounded by a finite number, the algorithm must stop. Let $w^l$ be the vector after $l$ mistakes, and suppose $w^l$ errs on $(x,y)$, so $w^{l+1}=w^l+xy$.</p>
+<p><b>Observation 1: the length can't grow fast.</b></p>
+$$\lVert w^{l+1}\rVert^2=\lVert w^l\rVert^2+\underbrace{2\,(w^{l\top}x)\,y}_{\le\,0\ \text{(it was a mistake)}}+\underbrace{\lVert x\rVert^2y^2}_{\le\,R^2}\ \le\ \lVert w^l\rVert^2+R^2 .$$
+<p>The middle term is $\le0$ because a mistake means $w^{l\top}x$ and $y$ have opposite signs. Unrolling back to $w^0=0$: $\ \lVert w^{l}\rVert^2\le l\,R^2$.</p>
+<p><b>Observation 2: the alignment with $w^*$ must grow.</b></p>
+$$w^{l+1\top}w^*=w^{l\top}w^*+\underbrace{(w^{*\top}x)\,y}_{\ge\,\gamma\ \text{(margin)}}\ \ge\ w^{l\top}w^*+\gamma .$$
+<p>Each mistake adds at least $\gamma$. Unrolling: $\ w^{l\top}w^*\ge l\,\gamma$. We never know $w^*$, but we can still reason about it.</p>
+<p><b>Observation 3: connect them with Cauchy–Schwarz</b>, $(a^\top b)^2\le\lVert a\rVert^2\lVert b\rVert^2$ (a projection is never longer than the vector, by Pythagoras):</p>
+$$l^2\gamma^2\ \le\ (w^{l\top}w^*)^2\ \le\ \lVert w^l\rVert^2\,\underbrace{\lVert w^*\rVert^2}_{=1}\ \le\ l\,R^2\quad\Longrightarrow\quad l\ \le\ \frac{R^2}{\gamma^2}.$$
+<div class="callout"><b>Radius-margin bound.</b> The number of mistakes the perceptron makes is at most $R^2/\gamma^2$. With $\gamma&gt;0$ that is finite, so the perceptron <b>converges</b>. With $\gamma=0$ (points allowed on the separator) the bound reads $l\le\infty$, which says nothing: exactly the looping example of L53.</div>
+
+<h2>3 · Watch the sandwich close</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">A full perceptron run on the data at left. On the right, $\lVert w^l\rVert^2$ (black dots) must stay <b>below</b> the line $lR^2$ and <b>above</b> the parabola $l^2\gamma^2$. The parabola overtakes the line at $l=R^2/\gamma^2$; past that point there is no room left, so the run must have ended before it.</p>
+  <div class="row"><label>gap between the classes = <b id="gapV"></b> <input type="range" id="gap" min="5" max="150" value="45" aria-label="gap between classes"></label><button id="pNew">New data</button>
+    <label><input type="checkbox" id="zoom"> zoom the chart to the actual run</label></div>
+  <div class="two">
+    <canvas id="pd" height="320" aria-label="Data with radius circle, margin band and the perceptron's final separator"></canvas>
+    <canvas id="sw" height="320" aria-label="Squared length of w against the upper and lower bounds"></canvas>
+  </div>
+  <div class="legend"><span><i style="background:var(--faint)"></i>circle of radius R</span><span><i style="background:var(--s3)"></i>w* and its empty band ±γ</span><span><i style="background:var(--ink)"></i>perceptron's final line</span><span><i style="background:var(--s2)"></i>upper bound lR²</span><span><i style="background:var(--s1)"></i>lower bound l²γ²</span></div>
+  <div class="row"><span class="stat"><span class="v" id="sR">–</span><br><span class="l">radius R</span></span><span class="stat"><span class="v" id="sG">–</span><br><span class="l">margin γ (best w*)</span></span><span class="stat"><span class="v" id="sB">–</span><br><span class="l">bound R²/γ²</span></span><span class="stat"><span class="v" id="sL">–</span><br><span class="l">mistakes actually made</span></span></div>
+  <p class="small" id="pTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>4 · What the bound says</h2>
+<ul>
+<li><b>Bigger margin, fewer mistakes.</b> The bound falls as $1/\gamma^2$: halve the margin and it quadruples.</li>
+<li><b>Only the ratio $R/\gamma$ matters.</b> Scale every point by 10 and both $R$ and $\gamma$ scale by 10; nothing changes.</li>
+<li><b>No $n$ and no $d$.</b> Neither the number of points nor the dimension appears.</li>
+<li>It is a <b>worst-case</b> ceiling. Real runs usually stop far below it.</li>
+</ul>
+<div class="card">
+  <h3 style="margin:0 0 4px">Experiment: mistakes against margin</h3>
+  <p class="small muted" style="margin-top:0">72 random datasets with different gaps. Each dot is one perceptron run; the line is the guarantee for that dataset's own $R$ and $\gamma$, plotted against $R/\gamma$. No dot can be above it.</p>
+  <div class="row"><button id="eRun">Run again</button></div>
+  <canvas id="ex" height="250" aria-label="Actual perceptron mistakes versus R over gamma, with the bound"></canvas>
+  <p class="small" id="eTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>5 · Why this matters</h2>
+<p>A very simple algorithm with a <b>provable</b> convergence guarantee, one of the first in machine learning. Two major lines of work grew from the perceptron and its analysis: <b>neural networks</b>, and (taking the role of the margin $\gamma$ seriously) <b>support vector machines</b>. The course returns to the margin later.</p>
+<div class="callout"><b>Next:</b> the perceptron's all-or-nothing probabilities can't describe data with outliers. Soften them (<a href="L55-sigmoid.html">L55</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Assume margin $\gamma&gt;0$, radius $R$, and (for free) $\lVert w^*\rVert=1$.</li>
+<li>After $l$ mistakes: $\lVert w^l\rVert^2\le lR^2$ and $w^{l\top}w^*\ge l\gamma$.</li>
+<li>Cauchy–Schwarz joins them: $l^2\gamma^2\le lR^2$, so $l\le R^2/\gamma^2$.</li>
+<li>Finite mistakes means the perceptron converges on any dataset that is separable with a positive margin.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], len = a => Math.hypot(a[0], a[1]), f2 = v => (v < -0.004 ? '−' : '') + Math.abs(v).toFixed(2), vec = a => `(${f2(a[0])}, ${f2(a[1])})`;
+const YR = 3.6;
+function view(cv){ const [ctx, W, H] = setupCanvas(cv), sc = H / (2 * YR); return {ctx, W, H, sc, X: x => W / 2 + x * sc, Y: y => H / 2 - y * sc, xr: W / 2 / sc}; }
+function evPt(cv, e){ const r = cv.getBoundingClientRect(), sc = r.height / (2 * YR); return [(e.clientX - r.left - r.width / 2) / sc, (r.height / 2 - (e.clientY - r.top)) / sc]; }
+function axes(v){ const {ctx, W, H} = v; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); }
+function shade(v, fn, a = 0.14){ const {ctx, W, H, sc} = v, st = 8; for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const val = fn([(px + st / 2 - W / 2) / sc, (H / 2 - py - st / 2) / sc]); if (!val) continue;
+    ctx.fillStyle = cssv(val > 0 ? '--s1' : '--s2'); ctx.globalAlpha = a * Math.min(1, Math.abs(val)); ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1; }
+function sepLine(v, w, col, wd = 2.5, dash = [], off = 0){ const n = len(w); if (n < 1e-9) return; const {ctx, X, Y} = v, u = [w[0] / n, w[1] / n], c = [u[0] * off, u[1] * off], t = [-u[1], u[0]];
+  ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(c[0] - 30 * t[0]), Y(c[1] - 30 * t[1])); ctx.lineTo(X(c[0] + 30 * t[0]), Y(c[1] + 30 * t[1])); ctx.stroke(); ctx.setLineDash([]); }
+function arrow(v, a, b, col, wd = 2.5, label, dash = []){ const {ctx, X, Y} = v, x0 = X(a[0]), y0 = Y(a[1]), x1 = X(b[0]), y1 = Y(b[1]); if (Math.hypot(x1 - x0, y1 - y0) < 3) return; const ang = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 10 * Math.cos(ang - 0.4), y1 - 10 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 10 * Math.cos(ang + 0.4), y1 - 10 * Math.sin(ang + 0.4)); ctx.fill();
+  if (label){ ctx.font = 'italic 15px Georgia,serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x1 + 8 * Math.cos(ang) + 2, y1 + 8 * Math.sin(ang)); } }
+function pt(v, p, o = {}){ const {ctx, X, Y} = v, c = cssv(p[2] > 0 ? '--s1' : '--s2'), r = o.r || 5; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.stroke();
+  if (o.ring){ ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r + 5, 0, 2 * Math.PI); ctx.strokeStyle = o.ring; ctx.lineWidth = 2.2; ctx.stroke(); } }
+const pred = (w, p) => dot(w, p) >= 0 ? 1 : -1, wrong = (w, P) => P.filter(p => pred(w, p) !== p[2]);
+function makeData(seed, n, gap, wt = [0.86, 0.51]){ const r = rng(seed), P = []; let guard = 0; while (P.length < n && guard++ < 9000){ const p = [-4.2 + 8.4 * r(), -3 + 6 * r()], s = dot(wt, p); if (Math.abs(s) >= gap && len(p) > 0.4) P.push([p[0], p[1], s > 0 ? 1 : -1]); } return P; }
+function bestSep(P){ let best = {g: -Infinity, u: [1, 0]}; for (let i = 0; i < 1440; i++){ const a = i / 1440 * 2 * Math.PI, u = [Math.cos(a), Math.sin(a)]; let g = Infinity; for (const p of P){ const m = p[2] * dot(u, p); if (m < g) g = m; if (g < best.g) break; } if (g > best.g) best = {g, u}; } return best; }
+
+/* ---------- rescaling w* ---------- */
+function scDraw(){ const c = +$('sc').value / 10, g0 = 0.8; $('scV').textContent = c.toFixed(1);
+  $('scTxt').innerHTML = `Take a unit direction u whose closest point is 0.80 away. With w* = ${c.toFixed(1)}·u the same condition reads (w*ᵀxᵢ)yᵢ ≥ <b>γ = ${(c * g0).toFixed(2)}</b>. Divide through by ‖w*‖ = ${c.toFixed(1)}: γ′ = ${(c * g0).toFixed(2)} / ${c.toFixed(1)} = <b>0.80</b>, whatever the length. The line and the gap never moved; only the way of writing them did. So we may as well use length 1, where γ is literally the distance to the closest point.`; }
+$('sc').oninput = scDraw;
+
+/* ---------- full run ---------- */
+function viewFit(cv){ const [ctx, W, H] = setupCanvas(cv), sc = Math.min(W, H) / 11.2; return {ctx, W, H, sc, X: x => W / 2 + x * sc, Y: y => H / 2 - y * sc}; }
+function runPerc(P, cap = 20000){ let w = [0, 0], i = 0, clean = 0; const tr = [0], al = []; const n = P.length;
+  while (clean < n && tr.length <= cap){ const p = P[i]; if (pred(w, p) !== p[2]){ w = [w[0] + p[2] * p[0], w[1] + p[2] * p[1]]; tr.push(dot(w, w)); al.push([...w]); clean = 0; } else clean++; i = (i + 1) % n; }
+  return {w, tr, L: tr.length - 1}; }
+let pSeed = 3, RUN = null;
+function pMake(){ const gap = +$('gap').value / 100; $('gapV').textContent = gap.toFixed(2); const P = makeData(pSeed, 40, gap), b = bestSep(P), R = Math.max(...P.map(len)); RUN = {P, b, R, ...runPerc(P)}; pDraw(); }
+function pDraw(){ if (!RUN) return; const {P, b, R, w, tr, L} = RUN, g = b.g, bound = R * R / (g * g), v = viewFit($('pd')), ink = cssv('--ink'), {ctx, X, Y, sc} = v;
+  axes(v); ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(X(0), Y(0), R * sc, 0, 2 * Math.PI); ctx.stroke(); ctx.setLineDash([]);
+  const t = [-b.u[1], b.u[0]]; ctx.fillStyle = cssv('--s3'); ctx.globalAlpha = 0.16; ctx.beginPath(); [[g, -30], [g, 30], [-g, 30], [-g, -30]].forEach(([o, k], i) => { const q = [b.u[0] * o + t[0] * k, b.u[1] * o + t[1] * k]; i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])); }); ctx.fill(); ctx.globalAlpha = 1;
+  sepLine(v, b.u, cssv('--s3'), 1.5, [6, 4]); sepLine(v, w, ink, 2.5); arrow(v, [0, 0], [b.u[0] * 1.3, b.u[1] * 1.3], cssv('--s3'), 2.5, 'w*');
+  P.forEach(p => pt(v, p, {r: 4.5}));
+  $('sR').textContent = R.toFixed(2); $('sG').textContent = g.toFixed(3); $('sB').textContent = bound < 1e5 ? Math.floor(bound).toLocaleString() : bound.toExponential(1); $('sL').textContent = L;
+  const [c2, W, H] = setupCanvas($('sw')), pad = {l: 50, r: 10, t: 12, b: 30}, zoom = $('zoom').checked, lmax = zoom ? Math.max(4, L * 1.25) : bound * 1.12, ymax = lmax * R * R;
+  const CX = l => pad.l + l / lmax * (W - pad.l - pad.r), CY = y => H - pad.b - Math.min(y, ymax * 1.02) / ymax * (H - pad.t - pad.b);
+  c2.font = '12px system-ui,sans-serif'; c2.strokeStyle = cssv('--grid'); c2.fillStyle = cssv('--muted'); c2.lineWidth = 1;
+  for (let i = 0; i <= 4; i++){ const y = ymax * i / 4; c2.beginPath(); c2.moveTo(pad.l, CY(y)); c2.lineTo(W - pad.r, CY(y)); c2.stroke(); c2.textAlign = 'right'; c2.textBaseline = 'middle'; c2.fillText(y >= 1000 ? (y / 1000).toFixed(1) + 'k' : y.toFixed(0), pad.l - 5, CY(y)); }
+  for (let i = 0; i <= 4; i++){ const l = lmax * i / 4; c2.textAlign = 'center'; c2.textBaseline = 'top'; c2.fillText(Math.round(l), CX(l), H - pad.b + 5); }
+  c2.textBaseline = 'bottom'; c2.fillText('mistakes so far, l', (pad.l + W) / 2, H + 1);
+  if (!zoom){ c2.fillStyle = cssv('--s2'); c2.globalAlpha = 0.1; c2.fillRect(CX(bound), pad.t, W - pad.r - CX(bound), H - pad.t - pad.b); c2.globalAlpha = 1; c2.strokeStyle = cssv('--faint'); c2.setLineDash([4, 4]); c2.beginPath(); c2.moveTo(CX(bound), pad.t); c2.lineTo(CX(bound), H - pad.b); c2.stroke(); c2.setLineDash([]);
+    c2.fillStyle = cssv('--muted'); c2.textAlign = 'right'; c2.textBaseline = 'top'; c2.fillText('l = R²/γ²', CX(bound) - 5, pad.t + 2); }
+  c2.strokeStyle = cssv('--s2'); c2.lineWidth = 2; c2.beginPath(); c2.moveTo(CX(0), CY(0)); c2.lineTo(CX(lmax), CY(lmax * R * R)); c2.stroke();
+  c2.strokeStyle = cssv('--s1'); c2.beginPath(); for (let i = 0; i <= 120; i++){ const l = lmax * i / 120; i ? c2.lineTo(CX(l), CY(l * l * g * g)) : c2.moveTo(CX(l), CY(0)); } c2.stroke();
+  c2.fillStyle = ink; const stepN = Math.max(1, Math.floor(tr.length / 400)); for (let l = 0; l < tr.length; l += stepN){ c2.beginPath(); c2.arc(CX(l), CY(tr[l]), zoom ? 3 : 2.2, 0, 2 * Math.PI); c2.fill(); }
+  const okU = tr.every((y, l) => y <= l * R * R + 1e-6), okL = tr.every((y, l) => y >= l * l * g * g - 1e-6);
+  $('pTxt').innerHTML = `The perceptron stopped after <b>${L}</b> mistakes; the guarantee was at most <b>${Math.floor(bound).toLocaleString()}</b>. Every black dot is ${okU && okL ? 'between the two bounds, as the proof says' : '<b>outside a bound (numerical issue)</b>'}. `
+    + (zoom ? 'Zoomed in: the dots hug neither bound, which is why real runs finish early.' : L < bound / 20 ? 'The run is squeezed into the far left of the chart: tick "zoom" to see it.' : '') + ' Shrink the gap: γ falls, the crossing point R²/γ² races to the right, and the run gets longer.'; }
+$('gap').oninput = pMake; $('pNew').onclick = () => { pSeed++; pMake(); }; $('zoom').onchange = pDraw;
+
+/* ---------- experiment ---------- */
+let EX = [], eSeed = 100;
+function eRun(){ EX = []; for (let k = 0; k < 72; k++){ const gap = 0.06 + 1.4 * (k % 12) / 11, P = makeData(eSeed + k, 40, gap), b = bestSep(P), R = Math.max(...P.map(len)); if (b.g <= 1e-6) continue; EX.push([R / b.g, runPerc(P).L]); } eSeed += 72; eDraw(); }
+function eDraw(){ if (!EX.length) return; const [ctx, W, H] = setupCanvas($('ex')), pad = {l: 50, r: 12, t: 12, b: 32}, xl = [Math.log10(2), Math.log10(Math.max(...EX.map(e => e[0])) * 1.2)], yl = [0, Math.log10(Math.max(...EX.map(e => e[0] ** 2)) * 1.3)];
+  const X = r => pad.l + (Math.log10(r) - xl[0]) / (xl[1] - xl[0]) * (W - pad.l - pad.r), Y = m => H - pad.b - (Math.log10(Math.max(1, m)) - yl[0]) / (yl[1] - yl[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let e = 0; e <= yl[1]; e++){ ctx.beginPath(); ctx.moveTo(pad.l, Y(10 ** e)); ctx.lineTo(W - pad.r, Y(10 ** e)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText((10 ** e).toLocaleString(), pad.l - 5, Y(10 ** e)); }
+  [2, 5, 10, 20, 50, 100, 200].filter(r => Math.log10(r) <= xl[1]).forEach(r => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(r, X(r), H - pad.b + 5); });
+  ctx.textBaseline = 'bottom'; ctx.fillText('R / γ  (log scale; larger = narrower margin)', (pad.l + W) / 2, H + 1);
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(2), Y(4)); ctx.lineTo(X(10 ** xl[1]), Y(10 ** (2 * xl[1]))); ctx.stroke();
+  ctx.fillStyle = cssv('--s1'); EX.forEach(([r, m]) => { ctx.globalAlpha = 0.75; ctx.beginPath(); ctx.arc(X(r), Y(m), 4, 0, 2 * Math.PI); ctx.fill(); }); ctx.globalAlpha = 1;
+  ctx.fillStyle = cssv('--s2'); ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('bound (R/γ)²', X(2) + 8, Y(4) - 16);
+  const viol = EX.filter(([r, m]) => m > r * r).length, ratio = EX.map(([r, m]) => m / (r * r)).sort((a, b) => a - b)[Math.floor(EX.length / 2)];
+  $('eTxt').innerHTML = `${EX.length} runs, <b>${viol}</b> above the bound. Mistakes rise as the margin narrows, as the bound predicts, but the typical run used only about ${(100 * ratio).toFixed(ratio < 0.01 ? 1 : 0)}% of its allowance. The bound is a guarantee, not a forecast.`; }
+$('eRun').onclick = eRun;
+
+scDraw(); pMake(); eRun();
+onReady(() => { pDraw(); eDraw(); });
+</script>
+</body>
+</html>

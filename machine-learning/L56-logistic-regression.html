@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Logistic Regression</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>
+.two{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px} @media (max-width:640px){.two{grid-template-columns:1fr}}
+</style>
+<div class="kicker">Lecture 56 · Classification: learning the sigmoid model</div>
+<h1>Logistic Regression</h1>
+<p class="lede">With $P(y=1\mid x)=g(w^\top x)$, pick the $w$ that makes the observed labels most probable. The log-likelihood has <b>no closed-form maximiser</b>, so climb it with gradient ascent. The gradient is strikingly simple, $\sum_i x_i\,(y_i-g(w^\top x_i))$: every point pulls on $w$ in proportion to <b>how wrong the current probability is</b> for it. Unlike the perceptron, this works on any dataset and returns a confidence with each prediction.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=bb4yn4RssLs">this lecture on YouTube</a> (≈23 min). Previous: <a href="L55-sigmoid.html">L55</a>.</p>
+
+<h2>1 · The model and its name</h2>
+$$P(y=1\mid x)=g(w^\top x)=\frac{1}{1+e^{-w^\top x}},\qquad y\in\{0,1\}.$$
+<p><b>Logistic</b> for the logistic (sigmoid) function; <b>regression</b> because the probabilities are driven by a real-valued score $w^\top x$. Despite the name it is a <b>classification</b> model.</p>
+
+<h2>2 · Maximum likelihood</h2>
+<p>The features are given; only labels are random, each drawn independently. Exactly like the Bernoulli likelihood, except the coin's bias is now $g(w^\top x_i)$, different for every point:</p>
+$$L(w)=\prod_{i=1}^n g(w^\top x_i)^{\,y_i}\,\big(1-g(w^\top x_i)\big)^{1-y_i}.$$
+<p>Take logs and plug in $g$, using $1-g(z)=\dfrac{e^{-z}}{1+e^{-z}}$. The exponentials and logs cancel nicely (one reason the sigmoid is convenient), leaving</p>
+$$\log L(w)=\sum_{i=1}^n\Big[(1-y_i)\,(-w^\top x_i)-\log\big(1+e^{-w^\top x_i}\big)\Big].$$
+<p>The first part is linear in $w$; the $\log(1+e^{\dots})$ part is not. Setting the gradient to zero gives <b>no closed-form solution</b>. That's fine: use a gradient method.</p>
+
+<h2>3 · The gradient, and what it means</h2>
+$$\nabla\log L(w)=\sum_{i=1}^n x_i\,\Big(y_i-\frac{1}{1+e^{-w^\top x_i}}\Big)=\sum_{i=1}^n x_i\,\underbrace{\big(y_i-g(w^\top x_i)\big)}_{\theta_i}.$$
+<p>Since we are <b>maximising</b>, move <b>along</b> the gradient (gradient ascent), with a step size $\eta_t$ (a constant, or one that shrinks like $1/t$):</p>
+$$w^{t+1}=w^t+\eta_t\sum_{i=1}^n x_i\,\big(y_i-g(w^{t\top}x_i)\big).$$
+<ul>
+<li><b>A linear combination of the data points.</b> The gradient is $\sum_i\theta_i x_i$ with numbers $\theta_i$.</li>
+<li><b>$\theta_i$ = label minus current probability.</b> If $y_i=1$ and the model already says 0.99, then $\theta_i=0.01$: that point barely matters. If $y_i=1$ but the model says 0.1, then $\theta_i=0.9$: a big mismatch, a big pull.</li>
+<li>So each step is shaped mostly by the points the current $w$ gets <b>wrong</b>. $\theta_i$ is never exactly 0, because the probabilities are never exactly 0 or 1.</li>
+</ul>
+<div class="card">
+  <h3 style="margin:0 0 4px">How hard does one point pull?</h3>
+  <div class="row"><button id="ty">Label y = 1</button><label>its current score z = wᵀx = <b id="tzV"></b> <input type="range" id="tz" min="-60" max="60" value="-15" style="width:240px" aria-label="score of the point"></label></div>
+  <canvas id="th" height="200" aria-label="Sigmoid curve with the gap between the label and the current probability"></canvas>
+  <p class="small" id="thTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>4 · Watch gradient ascent work</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Left: the data, with shading $=P(y=1\mid x)$ under the current $w$. Each point's <b>ring size is $|\theta_i|$</b>, its pull on the next step. Right: the log-likelihood over all $w=(w_1,w_2)$, brighter = higher, with the path taken. <b>Click the right panel to start from any w.</b></p>
+  <div class="row"><span class="small">data:</span><button data-d="out" class="on">with outliers</button><button data-d="sep">linearly separable</button>
+    <button id="lStep">Step</button><button id="lRun">▶ Run</button><button id="lReset">Reset w = 0</button></div>
+  <div class="row"><label>step size η = <b id="etaV"></b> <input type="range" id="eta" min="1" max="100" value="12" aria-label="step size"></label>
+    <label>regulariser λ = <b id="lamV"></b> <input type="range" id="lam" min="0" max="40" value="0" aria-label="regularisation strength"></label></div>
+  <div class="two">
+    <canvas id="lr" height="330" aria-label="Data with the current logistic regression fit"></canvas>
+    <canvas id="ls" height="330" style="cursor:crosshair" aria-label="Log-likelihood surface over the two weights, with the ascent path"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>y = 1</span><span><i class="dot" style="background:var(--s2)"></i>y = 0</span><span><i style="background:var(--s3)"></i>gradient direction (left) · path (right)</span><span>+ = highest point on the grid</span></div>
+  <div class="row"><span class="stat"><span class="v" id="sIt">0</span><br><span class="l">steps</span></span><span class="stat"><span class="v" id="sW">–</span><br><span class="l">w</span></span><span class="stat"><span class="v" id="sLL">–</span><br><span class="l">log-likelihood</span></span><span class="stat"><span class="v" id="sAcc">–</span><br><span class="l">training accuracy</span></span></div>
+  <p class="small" id="lTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>5 · Predicting</h2>
+<p>Let $\hat w$ be where gradient ascent settles. For a test point, predict $\hat y_{\text{test}}=\operatorname{sign}(\hat w^\top x_{\text{test}})$, i.e. label 1 when $g(\hat w^\top x_{\text{test}})\ge\tfrac12$. Because probabilities are built into the model, you also get $g(\hat w^\top x_{\text{test}})$ itself: a <b>confidence</b> for the prediction. That is a major advantage of this model.</p>
+
+<h2>6 · Three things worth knowing</h2>
+<ul>
+<li><b>Faster solvers exist.</b> Plain gradient ascent is the simplest; second-order methods such as IRLS (iteratively reweighted least squares) are faster.</li>
+<li><b>It can be kernelised.</b> The optimal $w^*$ is a linear combination of the data points (the <b>representer theorem</b>), so the objective can be written with inner products $x_i^\top x_j$ and a kernel substituted, for data whose structure is more than linear.</li>
+<li><b>Regularised logistic regression</b> is what people usually run in practice. As a minimisation, with $\lambda$ chosen by cross-validation:
+$$\min_w\ \sum_{i=1}^n\Big[\log\big(1+e^{-w^\top x_i}\big)+w^\top x_i\,(1-y_i)\Big]+\frac{\lambda}{2}\lVert w\rVert^2 .$$
+Its gradient is the previous one plus $\lambda w$, so gradient descent is just as easy. Try the λ slider above.</li>
+</ul>
+<p class="beyond"><b>Beyond the lecture.</b> On the "linearly separable" data with $\lambda=0$, watch $w$ keep growing: scaling up a separating $w$ always raises the likelihood, so there is no finite maximum and the path runs off the map. A little regularisation gives a finite answer. This is one practical reason the regularised version is preferred.</p>
+
+<h2>7 · Perceptron vs logistic regression</h2>
+<table>
+<tr><th></th><th>Perceptron</th><th>Logistic regression</th></tr>
+<tr><td><b>Assumes</b></td><td>$P(y=1\mid x)\in\{0,1\}$: linearly separable data</td><td>$P(y=1\mid x)=g(w^\top x)$: any dataset</td></tr>
+<tr><td><b>Update</b></td><td>only on a mistake: add $y_ix_i$</td><td>every point, every step: add $\eta\,\theta_i x_i$</td></tr>
+<tr><td><b>With outliers</b></td><td>never converges</td><td>converges to a reasonable $w$</td></tr>
+<tr><td><b>Output</b></td><td>a label</td><td>a label and a probability</td></tr>
+</table>
+<p>Logistic regression finds $w$ its own way, by maximising likelihood. The perceptron's mistake bound pointed somewhere else: the <b>margin</b>. Building an algorithm directly around the margin gives the <b>support vector machine</b>, which the course takes up next.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Model $P(y=1\mid x)=g(w^\top x)$; choose $w$ by maximum likelihood.</li>
+<li>$\log L(w)=\sum_i\big[(1-y_i)(-w^\top x_i)-\log(1+e^{-w^\top x_i})\big]$ has no closed-form maximiser.</li>
+<li>$\nabla\log L=\sum_i x_i(y_i-g(w^\top x_i))$; gradient ascent $w\leftarrow w+\eta\nabla$. Badly predicted points pull hardest.</li>
+<li>Predict with $\operatorname{sign}(\hat w^\top x)$, and report $g(\hat w^\top x)$ as confidence.</li>
+<li>Works on non-separable data; can be regularised ($+\frac\lambda2\lVert w\rVert^2$) and kernelised.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], len = a => Math.hypot(a[0], a[1]), f2 = v => (v < -0.004 ? '−' : '') + Math.abs(v).toFixed(2), vec = a => `(${f2(a[0])}, ${f2(a[1])})`;
+const YR = 3.6;
+function view(cv){ const [ctx, W, H] = setupCanvas(cv), sc = H / (2 * YR); return {ctx, W, H, sc, X: x => W / 2 + x * sc, Y: y => H / 2 - y * sc, xr: W / 2 / sc}; }
+function evPt(cv, e){ const r = cv.getBoundingClientRect(), sc = r.height / (2 * YR); return [(e.clientX - r.left - r.width / 2) / sc, (r.height / 2 - (e.clientY - r.top)) / sc]; }
+function axes(v){ const {ctx, W, H} = v; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); }
+function shade(v, fn, a = 0.14){ const {ctx, W, H, sc} = v, st = 8; for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const val = fn([(px + st / 2 - W / 2) / sc, (H / 2 - py - st / 2) / sc]); if (!val) continue;
+    ctx.fillStyle = cssv(val > 0 ? '--s1' : '--s2'); ctx.globalAlpha = a * Math.min(1, Math.abs(val)); ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1; }
+function sepLine(v, w, col, wd = 2.5, dash = [], off = 0){ const n = len(w); if (n < 1e-9) return; const {ctx, X, Y} = v, u = [w[0] / n, w[1] / n], c = [u[0] * off, u[1] * off], t = [-u[1], u[0]];
+  ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(c[0] - 30 * t[0]), Y(c[1] - 30 * t[1])); ctx.lineTo(X(c[0] + 30 * t[0]), Y(c[1] + 30 * t[1])); ctx.stroke(); ctx.setLineDash([]); }
+function arrow(v, a, b, col, wd = 2.5, label, dash = []){ const {ctx, X, Y} = v, x0 = X(a[0]), y0 = Y(a[1]), x1 = X(b[0]), y1 = Y(b[1]); if (Math.hypot(x1 - x0, y1 - y0) < 3) return; const ang = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 10 * Math.cos(ang - 0.4), y1 - 10 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 10 * Math.cos(ang + 0.4), y1 - 10 * Math.sin(ang + 0.4)); ctx.fill();
+  if (label){ ctx.font = 'italic 15px Georgia,serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x1 + 8 * Math.cos(ang) + 2, y1 + 8 * Math.sin(ang)); } }
+function pt(v, p, o = {}){ const {ctx, X, Y} = v, c = cssv(p[2] > 0 ? '--s1' : '--s2'), r = o.r || 5; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.stroke();
+  if (o.ring){ ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r + 5, 0, 2 * Math.PI); ctx.strokeStyle = o.ring; ctx.lineWidth = 2.2; ctx.stroke(); } }
+const pred = (w, p) => dot(w, p) >= 0 ? 1 : -1, wrong = (w, P) => P.filter(p => pred(w, p) !== p[2]);
+function makeData(seed, n, gap, wt = [0.86, 0.51]){ const r = rng(seed), P = []; let guard = 0; while (P.length < n && guard++ < 9000){ const p = [-4.2 + 8.4 * r(), -3 + 6 * r()], s = dot(wt, p); if (Math.abs(s) >= gap && len(p) > 0.4) P.push([p[0], p[1], s > 0 ? 1 : -1]); } return P; }
+function bestSep(P){ let best = {g: -Infinity, u: [1, 0]}; for (let i = 0; i < 1440; i++){ const a = i / 1440 * 2 * Math.PI, u = [Math.cos(a), Math.sin(a)]; let g = Infinity; for (const p of P){ const m = p[2] * dot(u, p); if (m < g) g = m; if (g < best.g) break; } if (g > best.g) best = {g, u}; } return best; }
+
+const g = z => 1 / (1 + Math.exp(-z)), l1p = z => z > 30 ? z : Math.log1p(Math.exp(z));   // log(1 + e^z), safely
+/* ---------- theta explorer ---------- */
+let ty = 1;
+function thDraw(){ const z = +$('tz').value / 10; $('tzV').textContent = f2(z); $('ty').textContent = 'Label y = ' + ty;
+  const [ctx, W, H] = setupCanvas($('th')), pad = {l: 40, r: 12, t: 14, b: 26}, X = v => pad.l + (v + 6) / 12 * (W - pad.l - pad.r), Y = v => H - pad.b - v * (H - pad.t - pad.b), th = ty - g(z);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  for (let v = -6; v <= 6; v += 2){ ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); }
+  ctx.strokeStyle = cssv(ty ? '--s1' : '--s2'); ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(pad.l, Y(ty)); ctx.lineTo(W - pad.r, Y(ty)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i <= 160; i++){ const v = -6 + 12 * i / 160; i ? ctx.lineTo(X(v), Y(g(v))) : ctx.moveTo(X(v), Y(g(v))); } ctx.stroke();
+  ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(X(z), Y(g(z))); ctx.lineTo(X(z), Y(ty)); ctx.stroke();
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(z), Y(g(z)), 6, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = cssv('--s3'); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = 'bold 13px system-ui,sans-serif'; ctx.fillText('θ = ' + f2(th), X(z) + 10, (Y(g(z)) + Y(ty)) / 2);
+  const right = (z >= 0) === (ty === 1);
+  $('thTxt').innerHTML = `The model gives this point P(y = 1) = ${g(z).toFixed(3)}; its label is ${ty}. So θ = ${ty} − ${g(z).toFixed(3)} = <b>${f2(th)}</b> (the green bar), and it adds ${f2(th)}·x to the gradient. `
+    + (Math.abs(th) < 0.1 ? 'Well predicted: almost no pull.' : right ? 'On the correct side but not confident: a moderate pull to push it further.' : Math.abs(th) > 0.8 ? '<b>Badly wrong: nearly the maximum pull.</b>' : 'On the wrong side: a strong pull.')
+    + ` The perceptron would ${right ? 'do <b>nothing</b> here (no mistake)' : 'add the full ' + (ty ? '+x' : '−x') + ' (a mistake)'}: all or nothing, where logistic regression is graded.`; }
+$('ty').onclick = () => { ty = 1 - ty; thDraw(); }; $('tz').oninput = thDraw;
+
+/* ---------- gradient ascent ---------- */
+const WR = 4.5; let LP = [], lw = [0, 0], path = [[0, 0]], it = 0, lTimer = null, dKind = 'out', surf = null, surfKey = '', peak = null;
+const eta = () => +$('eta').value / 1000, lam = () => +$('lam').value / 10;
+function lLoad(k){ dKind = k; LP = makeData(31, 36, k === 'sep' ? 0.45 : 0.3); if (k === 'out') LP.push([2.4, 1.5, -1], [1.2, 2.6, -1], [-2.1, -1.2, 1]); lResetW(); }
+const J = w => LP.reduce((a, p) => { const z = dot(w, p); return a + (p[2] > 0 ? 0 : -z) - l1p(-z); }, 0) - lam() / 2 * dot(w, w);
+const LL = w => LP.reduce((a, p) => { const z = dot(w, p); return a + (p[2] > 0 ? 0 : -z) - l1p(-z); }, 0);
+const grad = w => { const G = [-lam() * w[0], -lam() * w[1]]; LP.forEach(p => { const th = (p[2] > 0 ? 1 : 0) - g(dot(w, p)); G[0] += th * p[0]; G[1] += th * p[1]; }); return G; };
+function lStop(){ if (lTimer){ clearInterval(lTimer); lTimer = null; } $('lRun').textContent = '▶ Run'; }
+function lResetW(w0){ lStop(); lw = w0 || [0, 0]; path = [[...lw]]; it = 0; lDraw(); }
+function lStepOnce(){ const G = grad(lw); lw = [lw[0] + eta() * G[0], lw[1] + eta() * G[1]]; path.push([...lw]); if (path.length > 3000) path.shift(); it++; return len(G); }
+function surface(W, H){ const key = [dKind, lam(), Math.round(W), H].join(); if (key === surfKey && surf) return; surfKey = key; const dpr = window.devicePixelRatio || 1, st = 5, vals = []; let lo = Infinity, hi = -Infinity; peak = null;
+  for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const w = [(px + st / 2) / W * 2 * WR - WR, WR - (py + st / 2) / H * 2 * WR], j = J(w); vals.push([px, py, j]); if (j < lo) lo = j; if (j > hi){ hi = j; peak = w; } }
+  surf = document.createElement('canvas'); surf.width = W * dpr; surf.height = H * dpr; const c = surf.getContext('2d'); c.scale(dpr, dpr); c.fillStyle = cssv('--s3');
+  vals.forEach(([px, py, j]) => { const t = Math.exp((j - hi) / Math.max(1, (hi - lo) / 9)); c.globalAlpha = 0.04 + 0.9 * t; c.fillRect(px, py, st, st); }); }
+function lDraw(){ $('etaV').textContent = eta().toFixed(3); $('lamV').textContent = lam().toFixed(1);
+  const v = view($('lr')), ink = cssv('--ink'), G = grad(lw), gn = len(G);
+  shade(v, q => 2 * g(dot(lw, q)) - 1, 0.42); axes(v); sepLine(v, lw, ink, 2.5);
+  LP.forEach(p => { const th = Math.abs((p[2] > 0 ? 1 : 0) - g(dot(lw, p))); v.ctx.strokeStyle = ink; v.ctx.globalAlpha = 0.25 + 0.75 * th; v.ctx.lineWidth = 1.5; v.ctx.beginPath(); v.ctx.arc(v.X(p[0]), v.Y(p[1]), 5 + 13 * th, 0, 2 * Math.PI); v.ctx.stroke(); v.ctx.globalAlpha = 1; pt(v, p, {r: 4.5}); });
+  const s = Math.min(1, 3 / Math.max(len(lw), 1e-9)), tip = [lw[0] * s, lw[1] * s]; arrow(v, [0, 0], tip, ink, 3, 'w');
+  if (gn > 1e-3) arrow(v, tip, [tip[0] + G[0] / gn * Math.min(1.6, 0.25 + gn / 12), tip[1] + G[1] / gn * Math.min(1.6, 0.25 + gn / 12)], cssv('--s3'), 2.5);
+  const [ctx, W, H] = setupCanvas($('ls')); surface(W, H); ctx.drawImage(surf, 0, 0, W, H);
+  const SX = a => (a + WR) / (2 * WR) * W, SY = b => (WR - b) / (2 * WR) * H;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(SX(0), 0); ctx.lineTo(SX(0), H); ctx.moveTo(0, SY(0)); ctx.lineTo(W, SY(0)); ctx.stroke(); ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('w₁ →', W - 6, SY(0) - 3); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('↑ w₂', SX(0) + 5, 5);
+  if (peak){ ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(SX(peak[0]) - 6, SY(peak[1])); ctx.lineTo(SX(peak[0]) + 6, SY(peak[1])); ctx.moveTo(SX(peak[0]), SY(peak[1]) - 6); ctx.lineTo(SX(peak[0]), SY(peak[1]) + 6); ctx.stroke(); }
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.8; ctx.beginPath(); path.forEach((q, i) => i ? ctx.lineTo(SX(q[0]), SY(q[1])) : ctx.moveTo(SX(q[0]), SY(q[1]))); ctx.stroke();
+  ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(SX(lw[0]), SY(lw[1]), 5, 0, 2 * Math.PI); ctx.fill();
+  const acc = LP.filter(p => (dot(lw, p) >= 0 ? 1 : -1) === p[2]).length / LP.length, off = Math.abs(lw[0]) > WR || Math.abs(lw[1]) > WR;
+  $('sIt').textContent = it; $('sW').textContent = vec(lw); $('sLL').textContent = f2(LL(lw)); $('sAcc').textContent = (100 * acc).toFixed(0) + '%';
+  $('lTxt').innerHTML = it === 0 && len(lw) < 1e-9 ? 'w = (0, 0): every probability is 0.5, so every point has |θ| = 0.5 and pulls equally (all rings the same size). Press Step.'
+    : gn < 0.02 ? `<b style="color:var(--s3)">Settled</b> after ${it} steps: the gradient is essentially zero. ${dKind === 'out' ? 'The outliers keep large rings (they stay badly predicted and keep pulling), but they are outvoted. A perceptron would still be cycling.' : ''} Final accuracy ${(100 * acc).toFixed(0)}%.`
+    : off ? `w has left the map: ‖w‖ = ${len(lw).toFixed(1)} and still climbing. ${dKind === 'sep' && lam() === 0 ? 'On separable data with λ = 0 a longer w is always more likely, so there is no peak to reach. Raise λ.' : ''}`
+    : `Gradient length ${gn.toFixed(2)}. Big rings mark the points driving this step. ` + (dKind === 'sep' && lam() === 0 && it > 40 ? 'Every point is correct, yet w keeps growing to become more confident.' : eta() > 0.06 ? 'With a large step size the path can zig-zag or overshoot; lower η to smooth it.' : ''); }
+$('lStep').onclick = () => { lStop(); lStepOnce(); lDraw(); };
+$('lRun').onclick = () => { if (lTimer){ lStop(); return; } $('lRun').textContent = '❚❚ Pause'; let n = 0; lTimer = setInterval(() => { const gnorm = lStepOnce(); lDraw(); if (gnorm < 0.02 || ++n > 1500 || len(lw) > 60) lStop(); }, 45); };
+$('lReset').onclick = () => lResetW();
+$('eta').oninput = lDraw; $('lam').oninput = () => { surfKey = ''; lDraw(); };
+document.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => { document.querySelectorAll('button[data-d]').forEach(x => x.classList.toggle('on', x === b)); surfKey = ''; lLoad(b.dataset.d); });
+$('ls').addEventListener('click', e => { const r = $('ls').getBoundingClientRect(); lResetW([(e.clientX - r.left) / r.width * 2 * WR - WR, WR - (e.clientY - r.top) / r.height * 2 * WR]); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { surfKey = ''; });
+
+lLoad('out');
+onReady(() => { thDraw(); lDraw(); });
+</script>
+</body>
+</html>

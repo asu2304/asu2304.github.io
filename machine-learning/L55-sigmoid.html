@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>From Scores to Probabilities: The Sigmoid</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 55 · Classification: softening the perceptron</div>
+<h1>From Scores to Probabilities: The Sigmoid</h1>
+<p class="lede">The perceptron's model says $P(y=1\mid x)$ is exactly 1 or 0, which is why one outlier makes a dataset impossible. Relax it: let the <b>score</b> $z=w^\top x$ set a real probability through a <b>link function</b>. The popular choice is the <b>sigmoid</b>, $g(z)=1/(1+e^{-z})$. Now every dataset is possible under every $w$, just more or less likely, and choosing $w$ becomes a maximum-likelihood problem.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=udFWtBLJUvA">this lecture on YouTube</a> (≈20 min). Previous: <a href="L54-perceptron-convergence.html">L54</a> · Next: <a href="L56-logistic-regression.html">L56</a>.</p>
+
+<h2>1 · Where the perceptron stands</h2>
+<p>It converges on linearly separable data, with at most $R^2/\gamma^2$ mistakes. The margin $\gamma$ deserves a longer discussion, which the course parks for later. Today's question is about the <b>assumption</b>:</p>
+$$P(y=1\mid x)=\begin{cases}1 & w^\top x\ge0\\0&\text{otherwise.}\end{cases}$$
+<p>Put one $-$ among the $+$ points and one $+$ among the $-$ points: whichever $w$ the labeller used, it would have labelled those two the other way. The data could not have come from this model. The culprit is that the probabilities are <b>exactly</b> 1 and 0.</p>
+
+<h2>2 · Score: how far, and on which side</h2>
+<p>For a point $x$, call $z=w^\top x$ its <b>score</b>. All points with the same score lie on a line parallel to the separator: $z=0$ is the separator itself, $z=1$ one step out on the positive side, $z=-1$ one step out on the other, $z=100$ far away.</p>
+<p>Intuition to build in: a point with $z=100$ should be labelled $+1$ with <b>much higher probability</b> than a point with $z=1$ near the boundary. Every point may get either label; the further along $w$ it sits, the likelier $+1$ becomes, and the further the other way, the likelier $-1$.</p>
+
+<h2>3 · Turning a score into a probability</h2>
+<p>A score lives in $(-\infty,\infty)$; a probability must be in $[0,1]$. We need a function $g$, called a <b>link function</b>, with:</p>
+<ul>
+<li>$g(0)=\tfrac12$: on the separator we can't tell, so a fair coin.</li>
+<li>$g(z)\to1$ as $z\to\infty$.</li>
+<li>$g(z)\to0$ as $z\to-\infty$.</li>
+</ul>
+<p>Several functions qualify. One popular choice is the <b>sigmoid</b> (or <b>logistic</b>) function, named for its S shape:</p>
+$$g(z)=\frac{1}{1+e^{-z}} .$$
+<div class="card">
+  <div class="row"><label>score z = <b id="zV"></b> <input type="range" id="z" min="-80" max="80" value="10" style="width:280px" aria-label="score"></label><button id="hard">Compare: the perceptron's step</button></div>
+  <canvas id="sg" height="230" aria-label="The sigmoid function with the chosen score marked"></canvas>
+  <p class="small" id="sgTxt" style="margin-bottom:0"></p>
+</div>
+<p>The lecture's example: a point on the line $w^\top x=1$ gets $+1$ with probability $\frac{1}{1+e^{-1}}=\frac{e}{e+1}\approx0.73$. A point at $w^\top x=10$ gets $+1$ with probability $\frac{e^{10}}{e^{10}+1}\approx0.99995$. It can still come up $-1$; that's just very unlikely.</p>
+
+<h2>4 · The new story for labels</h2>
+<ol class="steps">
+<li>Someone hands over $x$ (still no model of where $x$ comes from).</li>
+<li>Compute the score $z=w^\top x$ with the labeller's hidden $w$.</li>
+<li>Toss a coin with $P(\text{heads})=g(z)$. Heads: label $+1$. Tails: label $-1$.</li>
+</ol>
+<p>This is called the <b>sigmoid model</b> or <b>logistic model</b>. An outlier is no longer forbidden: it is a coin that happened to land on its unlikely side.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">Be the labeller, then be the detective</h3>
+  <p class="small muted" style="margin-top:0"><b>Drag the tip of w.</b> Its direction sets the separator; its <b>length</b> sets how quickly certainty builds as you move away. Shading is $P(y=+1\mid x)$. Dashed lines mark scores $\pm1,\pm2$. Move the pointer to inspect any spot.</p>
+  <div class="row"><span class="small">model:</span><button data-m="soft" class="on">sigmoid</button><button data-m="hard">perceptron (0 or 1)</button>
+    <button id="toss">🎲 Relabel the points: toss each coin with this w</button><button id="orig">Restore the original labels</button></div>
+  <canvas id="sf" height="360" style="touch-action:none;cursor:grab" aria-label="Probability field of the logistic model with labelled points"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>label +1</span><span><i class="dot" style="background:var(--s2)"></i>label −1</span><span>black ring = on the less likely side for this w</span></div>
+  <div class="row"><span class="stat"><span class="v" id="sLL">–</span><br><span class="l">log-likelihood of these labels under this w</span></span><span class="stat"><span class="v" id="sPr">–</span><br><span class="l">probability of exactly these labels</span></span><span class="stat"><span class="v" id="sBest">–</span><br><span class="l">best log-likelihood you've found</span></span></div>
+  <p class="small" id="hov" style="min-height:22px;margin-bottom:4px"></p>
+  <p class="small" id="sfTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>5 · Every w is now a suspect</h2>
+<p>Under the sigmoid model, <b>any</b> $w$ could have produced the labels we see: each $w$ gives each point a nonzero chance of either label. So the data no longer rules lines in or out. Instead, each $w$ has a <b>probability of generating the observed labels</b>, and the natural choice is the $w$ that makes that probability largest. That is maximum-likelihood estimation again, which we know how to set up.</p>
+<div class="callout"><b>Next:</b> write down that likelihood, take its gradient, and climb it: logistic regression (<a href="L56-logistic-regression.html">L56</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The perceptron model's 0/1 probabilities forbid any dataset with an outlier.</li>
+<li>Score $z=w^\top x$: sign says which side, size says how far.</li>
+<li>A link function turns scores into probabilities: $g(0)=\frac12$, $g\to1$ as $z\to\infty$, $g\to0$ as $z\to-\infty$. Sigmoid: $g(z)=\frac1{1+e^{-z}}$.</li>
+<li>Labels are coin tosses with bias $g(w^\top x)$, so every dataset is allowed and every $w$ has some likelihood. Pick the most likely $w$.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], len = a => Math.hypot(a[0], a[1]), f2 = v => (v < -0.004 ? '−' : '') + Math.abs(v).toFixed(2), vec = a => `(${f2(a[0])}, ${f2(a[1])})`;
+const YR = 3.6;
+function view(cv){ const [ctx, W, H] = setupCanvas(cv), sc = H / (2 * YR); return {ctx, W, H, sc, X: x => W / 2 + x * sc, Y: y => H / 2 - y * sc, xr: W / 2 / sc}; }
+function evPt(cv, e){ const r = cv.getBoundingClientRect(), sc = r.height / (2 * YR); return [(e.clientX - r.left - r.width / 2) / sc, (r.height / 2 - (e.clientY - r.top)) / sc]; }
+function axes(v){ const {ctx, W, H} = v; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); }
+function shade(v, fn, a = 0.14){ const {ctx, W, H, sc} = v, st = 8; for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const val = fn([(px + st / 2 - W / 2) / sc, (H / 2 - py - st / 2) / sc]); if (!val) continue;
+    ctx.fillStyle = cssv(val > 0 ? '--s1' : '--s2'); ctx.globalAlpha = a * Math.min(1, Math.abs(val)); ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1; }
+function sepLine(v, w, col, wd = 2.5, dash = [], off = 0){ const n = len(w); if (n < 1e-9) return; const {ctx, X, Y} = v, u = [w[0] / n, w[1] / n], c = [u[0] * off, u[1] * off], t = [-u[1], u[0]];
+  ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(c[0] - 30 * t[0]), Y(c[1] - 30 * t[1])); ctx.lineTo(X(c[0] + 30 * t[0]), Y(c[1] + 30 * t[1])); ctx.stroke(); ctx.setLineDash([]); }
+function arrow(v, a, b, col, wd = 2.5, label, dash = []){ const {ctx, X, Y} = v, x0 = X(a[0]), y0 = Y(a[1]), x1 = X(b[0]), y1 = Y(b[1]); if (Math.hypot(x1 - x0, y1 - y0) < 3) return; const ang = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 10 * Math.cos(ang - 0.4), y1 - 10 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 10 * Math.cos(ang + 0.4), y1 - 10 * Math.sin(ang + 0.4)); ctx.fill();
+  if (label){ ctx.font = 'italic 15px Georgia,serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x1 + 8 * Math.cos(ang) + 2, y1 + 8 * Math.sin(ang)); } }
+function pt(v, p, o = {}){ const {ctx, X, Y} = v, c = cssv(p[2] > 0 ? '--s1' : '--s2'), r = o.r || 5; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.stroke();
+  if (o.ring){ ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r + 5, 0, 2 * Math.PI); ctx.strokeStyle = o.ring; ctx.lineWidth = 2.2; ctx.stroke(); } }
+const pred = (w, p) => dot(w, p) >= 0 ? 1 : -1, wrong = (w, P) => P.filter(p => pred(w, p) !== p[2]);
+function makeData(seed, n, gap, wt = [0.86, 0.51]){ const r = rng(seed), P = []; let guard = 0; while (P.length < n && guard++ < 9000){ const p = [-4.2 + 8.4 * r(), -3 + 6 * r()], s = dot(wt, p); if (Math.abs(s) >= gap && len(p) > 0.4) P.push([p[0], p[1], s > 0 ? 1 : -1]); } return P; }
+function bestSep(P){ let best = {g: -Infinity, u: [1, 0]}; for (let i = 0; i < 1440; i++){ const a = i / 1440 * 2 * Math.PI, u = [Math.cos(a), Math.sin(a)]; let g = Infinity; for (const p of P){ const m = p[2] * dot(u, p); if (m < g) g = m; if (g < best.g) break; } if (g > best.g) best = {g, u}; } return best; }
+
+const g = z => 1 / (1 + Math.exp(-z));
+/* ---------- sigmoid curve ---------- */
+let showHard = false;
+function sgDraw(){ const z = +$('z').value / 10; $('zV').textContent = f2(z); const [ctx, W, H] = setupCanvas($('sg')), pad = {l: 40, r: 12, t: 12, b: 28}, X = v => pad.l + (v + 8) / 16 * (W - pad.l - pad.r), Y = v => H - pad.b - v * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  for (let v = -8; v <= 8; v += 2){ ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); }
+  ctx.beginPath(); ctx.moveTo(X(0), pad.t); ctx.lineTo(X(0), H - pad.b); ctx.stroke();
+  if (showHard){ ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(X(-8), Y(0)); ctx.lineTo(X(0), Y(0)); ctx.lineTo(X(0), Y(1)); ctx.lineTo(X(8), Y(1)); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 3; ctx.beginPath(); for (let i = 0; i <= 200; i++){ const v = -8 + 16 * i / 200; i ? ctx.lineTo(X(v), Y(g(v))) : ctx.moveTo(X(v), Y(g(v))); } ctx.stroke();
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(z), Y(0)); ctx.lineTo(X(z), Y(g(z))); ctx.lineTo(pad.l, Y(g(z))); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(z), Y(g(z)), 6, 0, 2 * Math.PI); ctx.fill();
+  $('sgTxt').innerHTML = `g(${f2(z)}) = <b>${g(z).toFixed(4)}</b>: the coin for a point with this score says +1 with probability ${(100 * g(z)).toFixed(1)}% and −1 with ${(100 * (1 - g(z))).toFixed(1)}%. `
+    + (Math.abs(z) < 0.05 ? 'On the separator: a fair coin.' : Math.abs(z) > 5 ? 'Far from the separator: nearly certain, but never exactly 0 or 1.' : 'Note the symmetry: g(−z) = 1 − g(z).')
+    + (showHard ? ' The grey dashed step is the perceptron\'s version: it jumps straight from 0 to 1 at z = 0.' : ''); }
+$('z').oninput = sgDraw; $('hard').onclick = () => { showHard = !showHard; $('hard').classList.toggle('on', showHard); sgDraw(); };
+
+/* ---------- probability field ---------- */
+const BASE = (() => { const P = makeData(21, 34, 0.35); P.push([2.2, 1.6, -1], [-2.0, -1.1, 1]); return P; })();
+let SP = BASE.map(p => [...p]), sw = [0.9, 0.3], model = 'soft', sDrag = false, best = -Infinity, hov = null, custom = false;
+const pPlus = (w, q) => model === 'soft' ? g(dot(w, q)) : (dot(w, q) >= 0 ? 1 : 0);
+function sfDraw(){ const v = view($('sf')), ink = cssv('--ink'), n = len(sw);
+  shade(v, q => 2 * pPlus(sw, q) - 1, 0.42); axes(v);
+  if (n > 1e-6 && model === 'soft') [-2, -1, 1, 2].forEach(k => sepLine(v, sw, cssv('--faint'), 1, [4, 4], k / n));
+  sepLine(v, sw, ink, 2.5); arrow(v, [0, 0], sw, ink, 3, 'w');
+  let ll = 0, imp = 0; SP.forEach(p => { const pr = p[2] > 0 ? pPlus(sw, p) : 1 - pPlus(sw, p); if (pr <= 0) imp++; else ll += Math.log(pr); pt(v, p, {ring: pr < 0.5 ? ink : null}); });
+  if (hov){ v.ctx.strokeStyle = ink; v.ctx.lineWidth = 1.5; v.ctx.beginPath(); v.ctx.arc(v.X(hov[0]), v.Y(hov[1]), 6, 0, 2 * Math.PI); v.ctx.stroke(); const z = dot(sw, hov);
+    $('hov').innerHTML = `At (${f2(hov[0])}, ${f2(hov[1])}): score z = wᵀx = <b>${f2(z)}</b>, so P(y = +1 | x) = <b>${pPlus(sw, hov).toFixed(3)}</b>.`; } else $('hov').innerHTML = '<span class="muted">Move the pointer over the plot to read the score and probability at any spot.</span>';
+  if (imp){ $('sLL').textContent = '−∞'; $('sPr').textContent = '0'; } else { $('sLL').textContent = f2(ll); $('sPr').textContent = Math.exp(ll) < 1e-3 ? Math.exp(ll).toExponential(1) : Math.exp(ll).toFixed(3); if (model === 'soft' && !custom && ll > best) best = ll; }
+  $('sBest').textContent = isFinite(best) && !custom ? f2(best) : '–';
+  $('sfTxt').innerHTML = model === 'hard' ? (imp ? `Under the perceptron model, <b>${imp} label${imp > 1 ? 's are' : ' is'} impossible</b> for this w (ringed), so the whole dataset has probability 0. Try any other w: with the two outliers in place, some point is always on the wrong side.` : 'Every point is on its required side: this w could have produced these labels, with probability 1.')
+    : custom ? 'These labels came from tossing each coin with a w like this one. Points near the separator land either way; far ones almost always follow their side. Toss again to see a different draw, or stretch w to make the coins more decisive.'
+    : `The original labels include two outliers. No w is ruled out any more; each just makes the data more or less probable. <b>Hunt for the w with the highest log-likelihood</b> (closest to 0): try turning it, then changing its length. A long w pointing the right way is confident, and pays heavily for the outliers.`; }
+const sf = $('sf');
+sf.addEventListener('pointerdown', e => { sDrag = true; sf.setPointerCapture(e.pointerId); sw = evPt(sf, e); hov = null; sf.style.cursor = 'grabbing'; sfDraw(); });
+sf.addEventListener('pointermove', e => { const q = evPt(sf, e); if (sDrag){ sw = q; hov = null; } else hov = q; sfDraw(); });
+sf.addEventListener('pointerup', () => { sDrag = false; sf.style.cursor = 'grab'; }); sf.addEventListener('pointerleave', () => { if (!sDrag){ hov = null; sfDraw(); } });
+document.querySelectorAll('button[data-m]').forEach(b => b.onclick = () => { model = b.dataset.m; document.querySelectorAll('button[data-m]').forEach(x => x.classList.toggle('on', x === b)); sfDraw(); });
+$('toss').onclick = () => { SP = BASE.map(p => [p[0], p[1], Math.random() < pPlus(sw, p) ? 1 : -1]); custom = true; sfDraw(); };
+$('orig').onclick = () => { SP = BASE.map(p => [...p]); custom = false; sfDraw(); };
+
+onReady(() => { sgDraw(); sfDraw(); });
+</script>
+</body>
+</html>

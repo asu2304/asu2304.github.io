@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Perceptron Update Rule and the Margin</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>
+.nl{position:relative;height:34px;margin:16px 0 22px;border-radius:8px;background:linear-gradient(90deg,var(--s2) 0 50%,var(--s1) 50% 100%);opacity:.9}
+.nl b{position:absolute;top:-7px;width:4px;height:48px;border-radius:2px;transform:translateX(-2px)} .nl span{position:absolute;top:38px;font-size:12px;transform:translateX(-50%);white-space:nowrap;color:var(--muted)}
+.nl em{position:absolute;top:8px;color:#fff;font-size:12px;font-style:normal;font-weight:700}
+.two{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px} @media (max-width:640px){.two{grid-template-columns:1fr}}
+</style>
+<div class="kicker">Lecture 53 · Classification: inside the perceptron</div>
+<h1>The Perceptron Update Rule and the Margin</h1>
+<p class="lede">One update, $w^{t+1}=w^t+x_iy_i$, always moves $w^\top x_i$ in the <b>right direction</b> for the point that was wrong. It may not fully fix that point, and it can <b>break others</b>. A three-point example even makes the algorithm loop forever, although the data is linearly separable. The cure is a slightly stronger assumption: linear separability with a <b>margin $\gamma&gt;0$</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=FMRpmR9HNtY">this lecture on YouTube</a> (≈36 min). Previous: <a href="L52-perceptron.html">L52</a> · Next: <a href="L54-perceptron-convergence.html">L54</a>.</p>
+
+<h2>1 · Two kinds of mistake, one rule</h2>
+<table>
+<tr><th></th><th>What happened</th><th>What we want</th></tr>
+<tr><td><b>Type 1</b></td><td>predicted $+1$ ($w^{t\top}x_i\ge0$), actual $y_i=-1$</td><td>$w^\top x_i$ should become negative</td></tr>
+<tr><td><b>Type 2</b></td><td>predicted $-1$ ($w^{t\top}x_i&lt;0$), actual $y_i=+1$</td><td>$w^\top x_i$ should become positive</td></tr>
+</table>
+<p>How does the new $w$ score the point it was just wrong on?</p>
+$$w^{t+1\top}x_i=(w^t+x_iy_i)^\top x_i=w^{t\top}x_i+y_i\,\lVert x_i\rVert^2 .$$
+<ul>
+<li><b>Type 1:</b> $y_i=-1$, so we <b>subtract</b> $\lVert x_i\rVert^2$ from a score that was too high.</li>
+<li><b>Type 2:</b> $y_i=+1$, so we <b>add</b> $\lVert x_i\rVert^2$ to a score that was too low.</li>
+</ul>
+<p>Either way the score moves towards the correct side. It need not cross zero: −10 plus 5 is −5, still wrong, but closer.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">One update under the microscope</h3>
+  <p class="small muted" style="margin-top:0"><b>Drag the tip of w</b> (black) and <b>drag the point x</b>. Flip its label. The green arrow is the updated w.</p>
+  <div class="row"><button id="flip">Label of x: +1</button><button id="apply">Apply the update (w ← new w)</button><button id="anReset">Reset</button></div>
+  <canvas id="an" height="320" style="touch-action:none;cursor:grab" aria-label="A weight vector, one data point, and the weight vector after one update"></canvas>
+  <div class="nl" id="nl"></div>
+  <p class="small" id="anTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>2 · Fixing one point can break others</h2>
+<p>The argument above is <b>local</b>: it only looks at the point being corrected. Changing $w$ moves the whole line, so points that were correct can become wrong. Then fixing those may break something else, and so on. It is not obvious this ever ends.</p>
+<div class="card">
+  <div class="row"><button id="fStep">Step: next mistake</button><button id="fRun">▶ Run</button><button id="fReset">Reset</button><button id="fNew">New data</button></div>
+  <div class="two">
+    <canvas id="fb" height="300" aria-label="Perceptron on a dataset, highlighting points broken by the last update"></canvas>
+    <canvas id="mc" height="300" aria-label="Number of misclassified points after each update"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s3)"></i>ring: the point just used</span><span><i class="dot" style="background:var(--s2)"></i>thick ring: correct before this update, wrong now</span><span>right: mistakes after each update</span></div>
+  <p class="small" id="fTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>3 · A dataset where it never stops</h2>
+<p>Three points: $x_1=(0,1)$ and $x_2=(0,-1)$ labelled $+1$, and $x_3=(-1,\tfrac12)$ labelled $-1$. It <b>is</b> linearly separable by our definition: $w=(1,0)$ gives $w^\top x=0\ge0$ for the two $+1$ points (they sit <b>on</b> the line) and a negative value for $x_3$.</p>
+<div class="card">
+  <div class="row"><button id="cStep">Step</button><button id="cReset">Reset</button><button id="cFix">Nudge the +1 points off the line</button></div>
+  <div class="two">
+    <canvas id="cy" height="290" aria-label="Three points and the perceptron's weight vector cycling"></canvas>
+    <div style="overflow-x:auto"><table id="cT" style="font-size:13px"></table></div>
+  </div>
+  <p class="small" id="cTxt" style="margin-bottom:0"></p>
+</div>
+<p>From $w^0=(0,0)$: mistake on $x_3$ gives $w^1=(1,-\tfrac12)$; mistake on $x_1$ gives $w^2=(1,\tfrac12)$; mistake on $x_2$ gives $w^3=(1,-\tfrac12)=w^1$. It bounces between $w^1$ and $w^2$ forever. So "linearly separable" alone does <b>not</b> guarantee convergence.</p>
+<p><b>Why it failed:</b> the separating line passes <b>through data points</b>. Calling $w^\top x=0$ a $+1$ was an arbitrary convention, and the whole example leans on it.</p>
+
+<h2>4 · The fix: linear separability with γ-margin</h2>
+<div class="callout">A dataset $(x_1,y_1),\dots,(x_n,y_n)$ is <b>linearly separable with $\gamma$-margin</b> if there is a $w^*\in\mathbb R^d$ with
+$$(w^{*\top}x_i)\,y_i\ \ge\ \gamma\quad\text{for all } i,\qquad\text{for some }\gamma&gt;0 .$$</div>
+<ul>
+<li>The product is a compact way to write two conditions: $w^{*\top}x_i\ge\gamma$ when $y_i=+1$, and $w^{*\top}x_i\le-\gamma$ when $y_i=-1$.</li>
+<li>Picture: two lines parallel to the separator, at $w^{*\top}x=\gamma$ and $w^{*\top}x=-\gamma$. <b>No data point lies in the band between them</b>, and in particular none on the separator.</li>
+<li>$\gamma$ can be as small as you like, 0.1 or 0.0001, but <b>not zero</b>. The three-point dataset is now disallowed.</li>
+</ul>
+<div class="card">
+  <h3 style="margin:0 0 4px">Find a w* with a margin</h3>
+  <div class="row"><label>direction of w* = <b id="angV"></b>° <input type="range" id="ang" min="0" max="359" value="10" style="width:260px" aria-label="direction of w star"></label><button id="angBest">Widest band</button></div>
+  <canvas id="mg" height="320" aria-label="A candidate separator and its empty band of width gamma on each side"></canvas>
+  <p class="small" id="mgTxt" style="margin-bottom:0"></p>
+</div>
+<div class="callout"><b>Next:</b> with this assumption, a proof that the perceptron makes only a finite number of mistakes (<a href="L54-perceptron-convergence.html">L54</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>After an update, $w^{t+1\top}x_i=w^{t\top}x_i+y_i\lVert x_i\rVert^2$: the score moves in the right direction for that point.</li>
+<li>That's only local. An update can turn previously correct points into mistakes.</li>
+<li>With points on the separator, the perceptron can cycle forever, even on separable data.</li>
+<li>Stronger assumption: some $w^*$ has $(w^{*\top}x_i)y_i\ge\gamma&gt;0$ for all $i$, an empty band around the separator.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], len = a => Math.hypot(a[0], a[1]), f2 = v => (v < -0.004 ? '−' : '') + Math.abs(v).toFixed(2), vec = a => `(${f2(a[0])}, ${f2(a[1])})`;
+const YR = 3.6;
+function view(cv){ const [ctx, W, H] = setupCanvas(cv), sc = H / (2 * YR); return {ctx, W, H, sc, X: x => W / 2 + x * sc, Y: y => H / 2 - y * sc, xr: W / 2 / sc}; }
+function evPt(cv, e){ const r = cv.getBoundingClientRect(), sc = r.height / (2 * YR); return [(e.clientX - r.left - r.width / 2) / sc, (r.height / 2 - (e.clientY - r.top)) / sc]; }
+function axes(v){ const {ctx, W, H} = v; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); }
+function shade(v, fn, a = 0.14){ const {ctx, W, H, sc} = v, st = 8; for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const val = fn([(px + st / 2 - W / 2) / sc, (H / 2 - py - st / 2) / sc]); if (!val) continue;
+    ctx.fillStyle = cssv(val > 0 ? '--s1' : '--s2'); ctx.globalAlpha = a * Math.min(1, Math.abs(val)); ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1; }
+function sepLine(v, w, col, wd = 2.5, dash = [], off = 0){ const n = len(w); if (n < 1e-9) return; const {ctx, X, Y} = v, u = [w[0] / n, w[1] / n], c = [u[0] * off, u[1] * off], t = [-u[1], u[0]];
+  ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(c[0] - 30 * t[0]), Y(c[1] - 30 * t[1])); ctx.lineTo(X(c[0] + 30 * t[0]), Y(c[1] + 30 * t[1])); ctx.stroke(); ctx.setLineDash([]); }
+function arrow(v, a, b, col, wd = 2.5, label, dash = []){ const {ctx, X, Y} = v, x0 = X(a[0]), y0 = Y(a[1]), x1 = X(b[0]), y1 = Y(b[1]); if (Math.hypot(x1 - x0, y1 - y0) < 3) return; const ang = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 10 * Math.cos(ang - 0.4), y1 - 10 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 10 * Math.cos(ang + 0.4), y1 - 10 * Math.sin(ang + 0.4)); ctx.fill();
+  if (label){ ctx.font = 'italic 15px Georgia,serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x1 + 8 * Math.cos(ang) + 2, y1 + 8 * Math.sin(ang)); } }
+function pt(v, p, o = {}){ const {ctx, X, Y} = v, c = cssv(p[2] > 0 ? '--s1' : '--s2'), r = o.r || 5; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.stroke();
+  if (o.ring){ ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r + 5, 0, 2 * Math.PI); ctx.strokeStyle = o.ring; ctx.lineWidth = 2.2; ctx.stroke(); } }
+const pred = (w, p) => dot(w, p) >= 0 ? 1 : -1, wrong = (w, P) => P.filter(p => pred(w, p) !== p[2]);
+function makeData(seed, n, gap, wt = [0.86, 0.51]){ const r = rng(seed), P = []; let guard = 0; while (P.length < n && guard++ < 9000){ const p = [-4.2 + 8.4 * r(), -3 + 6 * r()], s = dot(wt, p); if (Math.abs(s) >= gap && len(p) > 0.4) P.push([p[0], p[1], s > 0 ? 1 : -1]); } return P; }
+function bestSep(P){ let best = {g: -Infinity, u: [1, 0]}; for (let i = 0; i < 1440; i++){ const a = i / 1440 * 2 * Math.PI, u = [Math.cos(a), Math.sin(a)]; let g = Infinity; for (const p of P){ const m = p[2] * dot(u, p); if (m < g) g = m; if (g < best.g) break; } if (g > best.g) best = {g, u}; } return best; }
+
+/* ---------- 1. anatomy of one update ---------- */
+let aw = [2.4, 2.6], ax = [1.0, 0.2, -1], aDrag = null;
+const A0 = () => { aw = [2.4, 2.6]; ax = [1.0, 0.2, -1]; };
+function anDraw(){ const v = view($('an')), ink = cssv('--ink'), s = dot(aw, ax), mis = pred(aw, ax) !== ax[2], nw = mis ? [aw[0] + ax[2] * ax[0], aw[1] + ax[2] * ax[1]] : aw, s2 = dot(nw, ax);
+  shade(v, q => dot(aw, q) >= 0 ? 1 : -1, 0.1); axes(v); sepLine(v, aw, ink, 2);
+  if (mis){ sepLine(v, nw, cssv('--s3'), 2, [6, 4]); arrow(v, aw, nw, cssv('--s3'), 1.5, null, [4, 3]); arrow(v, [0, 0], nw, cssv('--s3'), 2.5, 'new w'); }
+  arrow(v, [0, 0], aw, ink, 3, 'w'); arrow(v, [0, 0], ax, cssv(ax[2] > 0 ? '--s1' : '--s2'), 1.5, 'x'); pt(v, ax, {r: 8, ring: mis ? ink : null});
+  $('flip').textContent = 'Label of x: ' + (ax[2] > 0 ? '+1' : '−1');
+  const mx = Math.max(12, Math.abs(s), Math.abs(s2)) * 1.1, pos = z => (50 + 50 * z / mx) + '%';
+  $('nl').innerHTML = `<em style="left:8px">score &lt; 0: predict −1</em><em style="right:8px">score ≥ 0: predict +1</em><b style="left:${pos(s)};background:var(--ink)"></b><span style="left:${pos(s)}">before: ${f2(s)}</span>` + (mis ? `<b style="left:${pos(s2)};background:var(--s3)"></b><span style="left:${pos(s2)};top:-22px">after: ${f2(s2)}</span>` : '');
+  $('anTxt').innerHTML = !mis ? `wᵀx = ${f2(s)}, so the prediction is ${s >= 0 ? '+1' : '−1'}, which matches the label. <b>No mistake, no update.</b> Drag x across the line or flip its label.`
+    : `<b>Type ${ax[2] < 0 ? 1 : 2} mistake.</b> wᵀx = ${f2(s)} but the label is ${ax[2] > 0 ? '+1' : '−1'}. The update ${ax[2] > 0 ? 'adds' : 'subtracts'} ‖x‖² = ${f2(dot(ax, ax))}, giving ${f2(s)} ${ax[2] > 0 ? '+' : '−'} ${f2(dot(ax, ax))} = <b>${f2(s2)}</b>. `
+      + (pred(nw, ax) === ax[2] ? 'That crosses zero: this one update <b>fixed</b> the point.' : `Right direction, but <b>still wrong</b>: it needs ${Math.ceil(Math.abs(s2) / dot(ax, ax) + (ax[2] > 0 ? 1e-9 : 0)) || 1} more update${Math.abs(s2) / dot(ax, ax) > 1 ? 's' : ''} on this point. Short x and long w make this happen.`); }
+const an = $('an');
+an.addEventListener('pointerdown', e => { const q = evPt(an, e); aDrag = Math.hypot(q[0] - ax[0], q[1] - ax[1]) < Math.hypot(q[0] - aw[0], q[1] - aw[1]) ? 'x' : 'w'; an.setPointerCapture(e.pointerId); an.style.cursor = 'grabbing'; });
+an.addEventListener('pointermove', e => { if (!aDrag) return; const q = evPt(an, e); if (aDrag === 'x'){ ax[0] = q[0]; ax[1] = q[1]; } else aw = q; anDraw(); });
+an.addEventListener('pointerup', () => { aDrag = null; an.style.cursor = 'grab'; });
+$('flip').onclick = () => { ax[2] = -ax[2]; anDraw(); };
+$('apply').onclick = () => { if (pred(aw, ax) !== ax[2]) aw = [aw[0] + ax[2] * ax[0], aw[1] + ax[2] * ax[1]]; anDraw(); };
+$('anReset').onclick = () => { A0(); anDraw(); };
+
+/* ---------- 2. fix one, break others ---------- */
+let fSeed = 14, FP = [], fw = [0, 0], fi = 0, fHist = [], fCur = null, fBroke = [], fTimer = null;
+function fLoad(){ FP = makeData(fSeed, 36, 0.22); fResetW(); }
+function fResetW(){ if (fTimer){ clearInterval(fTimer); fTimer = null; $('fRun').textContent = '▶ Run'; } fw = [0, 0]; fi = 0; fCur = null; fBroke = []; fHist = [wrong(fw, FP).length]; fDraw(); }
+function fStep(){ const n = FP.length; for (let k = 0; k < n; k++){ const p = FP[(fi + k) % n]; if (pred(fw, p) !== p[2]){ const before = new Set(wrong(fw, FP)); fw = [fw[0] + p[2] * p[0], fw[1] + p[2] * p[1]]; fi = (fi + k + 1) % n; fCur = p;
+      fBroke = wrong(fw, FP).filter(q => !before.has(q)); fHist.push(wrong(fw, FP).length); return true; } } fCur = null; fBroke = []; return false; }
+function fDraw(){ const v = view($('fb')), ink = cssv('--ink'), bad = wrong(fw, FP);
+  shade(v, q => len(fw) < 1e-9 ? 1 : (dot(fw, q) >= 0 ? 1 : -1), 0.12); axes(v); sepLine(v, fw, ink, 2.5);
+  FP.forEach(p => pt(v, p, {r: 4.5, ring: p === fCur ? cssv('--s3') : fBroke.includes(p) ? cssv('--s2') : bad.includes(p) ? cssv('--faint') : null}));
+  const [ctx, W, H] = setupCanvas($('mc')), pad = {l: 30, r: 8, t: 10, b: 26}, top = Math.max(...fHist, 4), nx = Math.max(10, fHist.length - 1), X = i => pad.l + i / nx * (W - pad.l - pad.r), Y = m => H - pad.b - m / top * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++){ const m = Math.round(top * i / 4); ctx.beginPath(); ctx.moveTo(pad.l, Y(m)); ctx.lineTo(W - pad.r, Y(m)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(m, pad.l - 5, Y(m)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('updates →', (pad.l + W) / 2, H);
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath(); fHist.forEach((m, i) => i ? ctx.lineTo(X(i), Y(m)) : ctx.moveTo(X(i), Y(m))); ctx.stroke();
+  fHist.forEach((m, i) => { ctx.fillStyle = cssv(i && m > fHist[i - 1] ? '--s2' : '--s1'); ctx.beginPath(); ctx.arc(X(i), Y(m), 3.2, 0, 2 * Math.PI); ctx.fill(); });
+  const ups = fHist.filter((m, i) => i && m > fHist[i - 1]).length;
+  $('fTxt').innerHTML = fHist.length === 1 ? 'w = (0, 0): everything is predicted +1. Step through and watch the mistake count on the right. It does not go down steadily.'
+    : (fCur ? `Update ${fHist.length - 1} used the green-ringed point${fBroke.length ? ` and <b style="color:var(--s2)">broke ${fBroke.length} point${fBroke.length > 1 ? 's' : ''}</b> that had been correct` : ', breaking nothing'}: ${fHist[fHist.length - 2]} → ${fHist[fHist.length - 1]} mistakes. ` : '')
+      + (bad.length === 0 ? `<b style="color:var(--s3)">Converged</b> after ${fHist.length - 1} updates. Along the way the mistake count went <b>up</b> ${ups} time${ups === 1 ? '' : 's'} (orange dots), yet it still got there. Why it must is the next lecture.` : ''); }
+$('fStep').onclick = () => { fStep(); fDraw(); };
+$('fRun').onclick = () => { if (fTimer){ clearInterval(fTimer); fTimer = null; $('fRun').textContent = '▶ Run'; return; } $('fRun').textContent = '❚❚ Pause'; fTimer = setInterval(() => { const m = fStep(); fDraw(); if (!m || fHist.length > 600){ clearInterval(fTimer); fTimer = null; $('fRun').textContent = '▶ Run'; } }, 140); };
+$('fReset').onclick = fResetW; $('fNew').onclick = () => { fSeed++; fLoad(); };
+
+/* ---------- 3. the cycle ---------- */
+let CP, cw, cLog, cFixed = false, cLast = null;
+function cInit(){ CP = cFixed ? [[0.5, 1, 1], [0.5, -1, 1], [-1, 0.5, -1]] : [[0, 1, 1], [0, -1, 1], [-1, 0.5, -1]]; cw = [0, 0]; cLog = [{w: [0, 0], used: null}]; cLast = null; cDraw(); }
+function cStep(){ const order = [2, 0, 1]; for (const i of order){ const p = CP[i]; if (pred(cw, p) !== p[2]){ cw = [cw[0] + p[2] * p[0], cw[1] + p[2] * p[1]]; cLast = p; cLog.push({w: [...cw], used: i}); return; } } cLast = null; }
+function cDraw(){ const v = view($('cy')), ink = cssv('--ink'), bad = wrong(cw, CP);
+  shade(v, q => len(cw) < 1e-9 ? 1 : (dot(cw, q) >= 0 ? 1 : -1), 0.12); axes(v); sepLine(v, cw, ink, 2.5); arrow(v, [0, 0], cw, ink, 3, 'w');
+  CP.forEach((p, i) => { pt(v, p, {r: 7, ring: p === cLast ? cssv('--s3') : bad.includes(p) ? ink : null}); v.ctx.fillStyle = ink; v.ctx.font = '13px system-ui,sans-serif'; v.ctx.textAlign = 'left'; v.ctx.fillText('x' + '₁₂₃'[i], v.X(p[0]) + 12, v.Y(p[1]) - 10); });
+  const rows = cLog.slice(-7), off = cLog.length - rows.length;
+  $('cT').innerHTML = '<tr><th>t</th><th>w<sup>t</sup></th><th>w·x₁</th><th>w·x₂</th><th>w·x₃</th><th>mistake on</th></tr>' + rows.map((r, k) => { const bads = CP.map((p, i) => pred(r.w, p) !== p[2] ? 'x' + '₁₂₃'[i] : null).filter(Boolean);
+    return `<tr><td>${off + k}</td><td>${vec(r.w)}</td>${CP.map(p => `<td style="${pred(r.w, p) !== p[2] ? 'color:var(--s2);font-weight:700' : ''}">${f2(dot(r.w, p))}</td>`).join('')}<td>${bads.join(', ') || '<b style="color:var(--s3)">none</b>'}</td></tr>`; }).join('');
+  const key = w => w.map(z => z.toFixed(3)).join(), seen = cLog.slice(0, -1).findIndex(r => key(r.w) === key(cw));
+  $('cTxt').innerHTML = bad.length === 0 && cLog.length > 1 ? `<b style="color:var(--s3)">Converged</b> after ${cLog.length - 1} update${cLog.length === 2 ? '' : 's'}. With the +1 points moved off the line there is a real gap (a margin), and the cycle is gone.`
+    : seen >= 0 && cLog.length > 2 ? `<b style="color:var(--s2)">w<sup>${cLog.length - 1}</sup> is the same as w<sup>${seen}</sup>.</b> The algorithm is in a loop: it will alternate between these two vectors forever, each wrong on exactly one point.`
+    : cLog.length === 1 ? 'w⁰ = (0, 0) predicts +1 for all three, so only x₃ (label −1) is a mistake. Press Step.' : 'Orange numbers are on the wrong side. Keep stepping.'; }
+$('cStep').onclick = () => { cStep(); cDraw(); }; $('cReset').onclick = cInit;
+$('cFix').onclick = () => { cFixed = !cFixed; $('cFix').textContent = cFixed ? 'Put the +1 points back on the line' : 'Nudge the +1 points off the line'; cInit(); };
+
+/* ---------- 4. margin ---------- */
+const MP = makeData(4, 34, 0.9), MB = bestSep(MP);
+function mgDraw(){ const a = +$('ang').value * Math.PI / 180, u = [Math.cos(a), Math.sin(a)]; $('angV').textContent = $('ang').value;
+  const ms = MP.map(p => p[2] * dot(u, p)), g = Math.min(...ms), v = view($('mg')), ink = cssv('--ink');
+  axes(v);
+  if (g > 0){ const {ctx, X, Y} = v, t = [-u[1], u[0]]; ctx.fillStyle = cssv('--s3'); ctx.globalAlpha = 0.16; ctx.beginPath(); [[g, -30], [g, 30], [-g, 30], [-g, -30]].forEach(([o, k], i) => { const q = [u[0] * o + t[0] * k, u[1] * o + t[1] * k]; i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])); }); ctx.fill(); ctx.globalAlpha = 1;
+    sepLine(v, u, cssv('--s3'), 1.5, [6, 4], g); sepLine(v, u, cssv('--s3'), 1.5, [6, 4], -g); }
+  sepLine(v, u, ink, 2.5); arrow(v, [0, 0], [u[0] * 1.4, u[1] * 1.4], ink, 3, 'w*');
+  MP.forEach((p, i) => pt(v, p, {ring: ms[i] < 0 ? cssv('--s2') : Math.abs(ms[i] - g) < 1e-9 && g > 0 ? cssv('--s3') : null}));
+  const nb = ms.filter(m => m < 0).length;
+  $('mgTxt').innerHTML = g > 0 ? `This w* (length 1) separates the data, and the closest point is at distance <b>γ = ${g.toFixed(2)}</b> (green ring). The shaded band between w*ᵀx = −γ and w*ᵀx = +γ is empty: the data is linearly separable with γ-margin. `
+      + (g > MB.g - 0.02 ? 'This is about the widest band any direction achieves.' : `Other directions do better; the widest is γ = ${MB.g.toFixed(2)}.`) + ' Any positive γ is enough for the assumption.'
+    : `This w* puts <b style="color:var(--s2)">${nb} point${nb === 1 ? '' : 's'} on the wrong side</b> (orange rings), so (w*ᵀxᵢ)yᵢ is negative for them. It is not a valid w*. The assumption only needs <b>some</b> direction to work: keep turning.`; }
+$('ang').oninput = mgDraw; $('angBest').onclick = () => { $('ang').value = Math.round((Math.atan2(MB.u[1], MB.u[0]) * 180 / Math.PI + 360) % 360); mgDraw(); };
+
+fLoad(); cInit();
+onReady(() => { anDraw(); fDraw(); cDraw(); mgDraw(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Finding the Best Line: Reconstruction Error and the Covariance Matrix</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.rev{grid-template-columns:minmax(0,2fr) minmax(0,1fr)} .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+@media (max-width:600px){.pair.rev,.trio{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 4 · Unsupervised learning: representation learning, part 2</div>
+<h1>Finding the Best Line: Reconstruction Error and the Covariance Matrix</h1>
+<p class="lede">Real data never lies exactly on a line, and nobody tells us which line to project onto. Every line gives the same compression, but not the same <b>reconstruction error</b>. Minimising that error over unit vectors $w$ turns into maximising $w^\top Cw$, where $C=\frac1n\sum_i x_ix_i^\top$ is the <b>covariance matrix</b>. The answer is the <b>eigenvector of $C$ with the largest eigenvalue</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=mU6CzvuUM00">this lecture on YouTube</a> (≈17 min). Previous: <a href="L3-representation-learning.html">L3</a> · Next: <a href="L5-compression-residue.html">L5</a>.</p>
+
+<h2>1 · Nobody gives us the line</h2>
+<p>L3 assumed we knew which points were on the line and which weren't. In practice we just get a dataset. Measure the height and weight of 100 people: weight tends to rise with height, but maybe <b>no</b> point lies exactly on any line. An exact linear relationship between features is a myth (physical laws, perhaps; real-world data, practically never). Off-line points are <b>the rule, not the exception</b>, so every point needs a proxy, and we must <b>find the line</b> too.</p>
+
+<h2>2 · Same compression, different error</h2>
+<p>Given any line, we can project every point onto it, store one representative and one coefficient per point, and get the same ~50% compression. So two candidate lines, say a "red" one along the cloud and a "blue" one across it, compress equally well. The red one is still better: the proxies on it are <b>closer to the original points</b>, so reconstructing the data from them loses less.</p>
+<div class="callout"><b>Goal:</b> given a dataset, find the line with the <b>least reconstruction error</b>.</div>
+
+<h2>3 · The objective</h2>
+<p>Data: $\{x_1,\dots,x_n\}$, $x_i\in\mathbb R^d$. A line through the origin is represented by a unit vector $w$ ($\lVert w\rVert^2=w^\top w=1$). From L3, the proxy for $x_i$ is $(x_i^\top w)\,w$, so its error is the squared length of $x_i-(x_i^\top w)w$. Add up over the data, or average (the same $w$ minimises both, and the average turns out easier to interpret):</p>
+$$f(w)=\frac1n\sum_{i=1}^{n}\big\lVert x_i-(x_i^\top w)\,w\big\rVert^2,\qquad \min_{\lVert w\rVert=1} f(w).$$
+
+<h2>4 · Simplifying</h2>
+<ol class="steps">
+<li>Squared length = vector transposed times itself: $\lVert x_i-(x_i^\top w)w\rVert^2=\big(x_i-(x_i^\top w)w\big)^\top\big(x_i-(x_i^\top w)w\big)$.</li>
+<li>Expand: $x_i^\top x_i-(x_i^\top w)^2-(x_i^\top w)^2+(x_i^\top w)^2\,w^\top w$.</li>
+<li>Use $w^\top w=1$: the last term cancels one middle term, leaving $\lVert x_i\rVert^2-(x_i^\top w)^2$.</li>
+<li>$\frac1n\sum_i\lVert x_i\rVert^2$ doesn't involve $w$, so drop it; the same $w$ minimises $g(w)=-\frac1n\sum_i(x_i^\top w)^2$.</li>
+<li>Minimising a negative is maximising the positive: $\;\max_{\lVert w\rVert=1}\frac1n\sum_i(x_i^\top w)^2.$</li>
+<li>Write $(x_i^\top w)^2=w^\top x_i\,x_i^\top w$ (just regrouping the matrix product), and pull $w$ out of the sum since it doesn't depend on $i$: $\;w^\top\Big(\frac1n\sum_i x_ix_i^\top\Big)w .$</li>
+</ol>
+<p>The bracket is an average of $n$ matrices $x_ix_i^\top$, each $d\times d$ ($x_i$ is a $d\times1$ column, $x_i^\top$ a $1\times d$ row). Call it $C$:</p>
+$$\boxed{\;\max_{\lVert w\rVert=1}\;w^\top C\,w,\qquad C=\frac1n\sum_{i=1}^{n}x_ix_i^\top=\frac1n XX^\top\;}$$
+<p>with $X\in\mathbb R^{d\times n}$ the matrix whose columns are the data points. $C$ is the <b>covariance matrix</b> of the dataset.</p>
+
+<h2>5 · The solution: an eigenvector</h2>
+<p>From linear algebra, $w^\top Cw$ over unit vectors $w$ is maximised by the <b>eigenvector of $C$ corresponding to its largest eigenvalue</b>. So the line that best represents the data (least reconstruction error) is the line through that eigenvector. The takeaway for now: this is not a hard problem. It has a well-understood solution in terms of the eigenvectors of a matrix built from the data. Why "covariance" shows up in an error-minimisation problem is explained in later lectures.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">60 points (height and weight measured from the average). Rotate the unit vector $w$ with the slider or by dragging on the plot. Orange segments are the errors $x_i-(x_i^\top w)w$; green dots are the proxies. The right plot shows, for every direction, the average error $f(w)$ and the average squared coefficient $w^\top Cw$.</p>
+  <div class="row">
+    <label>angle of w = <b id="aV"></b> <input type="range" id="ang" min="0" max="179" value="120" aria-label="angle of w in degrees"></label>
+    <button id="best">Jump to the top eigenvector</button><button id="newD">New data</button>
+  </div>
+  <div class="pair rev">
+    <canvas id="lc" height="320" aria-label="Data, the line through w, projections and errors"></canvas>
+    <canvas id="ac" height="320" aria-label="Reconstruction error and w transpose C w for every angle"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>data xᵢ</span><span><i class="dot" style="background:var(--s3)"></i>proxy (xᵢᵀw)w</span><span><i style="background:var(--s2)"></i>error f(w)</span><span><i style="background:var(--s1)"></i>wᵀCw</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="fV">–</div><div class="l">avg reconstruction error f(w)</div></div>
+    <div class="stat"><div class="v" id="qV">–</div><div class="l">wᵀCw</div></div>
+    <div class="stat"><div class="v" id="sV">–</div><div class="l">sum = avg ‖xᵢ‖² (constant)</div></div>
+    <div class="stat"><div class="v" id="eV">–</div><div class="l">eigenvalues of C</div></div>
+  </div>
+  <p class="small" id="lTxt"></p>
+</div>
+<div class="beyond"><b>Two remarks beyond the video.</b> (1) Step 4 says $f(w)+w^\top Cw=\frac1n\sum_i\lVert x_i\rVert^2$, a constant. That's why the two curves in the demo are mirror images: lowering the error raises $w^\top Cw$ by exactly the same amount. (2) Why the top eigenvector? Write $w$ in $C$'s orthonormal eigenvectors, $w=\sum_j a_ju_j$ with $\sum_ja_j^2=1$. Then $w^\top Cw=\sum_j\lambda_ja_j^2\le\lambda_{\max}$, with equality at $w=u_{\max}$. Also, $\frac1n\sum x_ix_i^\top$ is the covariance only when the data has mean zero (as here); the course deals with centring when it returns to PCA.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Real data never sits exactly on a line, so every point gets a proxy, and the line itself must be found.</li>
+<li>All lines compress equally; the best one has the <b>least reconstruction error</b> $\frac1n\sum_i\lVert x_i-(x_i^\top w)w\rVert^2$ over unit $w$.</li>
+<li>Expanding with $w^\top w=1$ gives $\lVert x_i\rVert^2-(x_i^\top w)^2$; dropping the constant turns minimising error into maximising $\frac1n\sum_i(x_i^\top w)^2=w^\top Cw$.</li>
+<li>$C=\frac1n\sum_ix_ix_i^\top$ is the $d\times d$ covariance matrix of the data.</li>
+<li>The best $w$ is the eigenvector of $C$ with the largest eigenvalue.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const N = 60, R = 4;
+let D = [], C = null, g = null, dragging = false;
+function newData(){
+  const th = (25 + 40 * Math.random()) * Math.PI / 180, a = 1.6, b = 0.45;
+  D = Array.from({length: N}, () => { const u = a * randn(), v = b * randn(); return [u * Math.cos(th) - v * Math.sin(th), u * Math.sin(th) + v * Math.cos(th)]; });
+  const m = [D.reduce((s, p) => s + p[0], 0) / N, D.reduce((s, p) => s + p[1], 0) / N]; D = D.map(([x, y]) => [x - m[0], y - m[1]]);   // centre the cloud
+  let c11 = 0, c12 = 0, c22 = 0; D.forEach(([x, y]) => { c11 += x * x / N; c12 += x * y / N; c22 += y * y / N; });
+  const tr = (c11 + c22) / 2, dd = Math.sqrt(((c11 - c22) / 2) ** 2 + c12 * c12);
+  C = {c11, c12, c22, l: [tr + dd, tr - dd], top: Math.atan2(tr + dd - c11, c12) };
+}
+const wOf = deg => [Math.cos(deg * Math.PI / 180), Math.sin(deg * Math.PI / 180)];
+const quad = w => C.c11 * w[0] * w[0] + 2 * C.c12 * w[0] * w[1] + C.c22 * w[1] * w[1];
+const avgSq = () => D.reduce((s, [x, y]) => s + x * x + y * y, 0) / N;
+const topDeg = () => { let d = C.top * 180 / Math.PI; d = ((d % 180) + 180) % 180; return d; };
+function draw(){
+  const deg = +$('ang').value, w = wOf(deg), q = quad(w), s = avgSq(), f = s - q;
+  $('aV').textContent = deg + '°'; $('fV').textContent = f.toFixed(3); $('qV').textContent = q.toFixed(3); $('sV').textContent = s.toFixed(3);
+  $('eV').textContent = C.l.map(v => v.toFixed(2)).join(', ');
+  const [ctx, Wd, H] = setupCanvas($('lc')), side = Math.min(Wd, H) - 12, ox = (Wd - side) / 2, oy = (H - side) / 2;
+  const X = v => ox + (v + R) / (2 * R) * side, Y = v => oy + side - (v + R) / (2 * R) * side;
+  g = {cx: X(0), cy: Y(0)};
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, side, side);
+  ctx.beginPath(); ctx.moveTo(X(-R), Y(0)); ctx.lineTo(X(R), Y(0)); ctx.moveTo(X(0), Y(-R)); ctx.lineTo(X(0), Y(R)); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, side, side); ctx.clip();
+  const tw = wOf(topDeg());
+  ctx.strokeStyle = cssv('--faint'); ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(-2 * R * tw[0]), Y(-2 * R * tw[1])); ctx.lineTo(X(2 * R * tw[0]), Y(2 * R * tw[1])); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(-2 * R * w[0]), Y(-2 * R * w[1])); ctx.lineTo(X(2 * R * w[0]), Y(2 * R * w[1])); ctx.stroke();
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 1.3;
+  D.forEach(([x, y]) => { const c = x * w[0] + y * w[1]; ctx.beginPath(); ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(c * w[0]), Y(c * w[1])); ctx.stroke(); });
+  const dot = (x, y, col, r) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(x), Y(y), r, 0, 2 * Math.PI); ctx.fill(); };
+  D.forEach(([x, y]) => { const c = x * w[0] + y * w[1]; dot(c * w[0], c * w[1], cssv('--s3'), 2.6); });
+  D.forEach(([x, y]) => dot(x, y, cssv('--s1'), 3.6));
+  // unit arrow w
+  ctx.strokeStyle = cssv('--ink'); ctx.fillStyle = cssv('--ink'); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(w[0]), Y(w[1])); ctx.stroke();
+  const ang = Math.atan2(Y(w[1]) - Y(0), X(w[0]) - X(0)); ctx.beginPath(); ctx.moveTo(X(w[0]), Y(w[1])); ctx.lineTo(X(w[0]) - 10 * Math.cos(ang - 0.4), Y(w[1]) - 10 * Math.sin(ang - 0.4)); ctx.lineTo(X(w[0]) - 10 * Math.cos(ang + 0.4), Y(w[1]) - 10 * Math.sin(ang + 0.4)); ctx.fill();
+  ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('w', X(w[0]) + 6, Y(w[1]) - 2);
+  ctx.restore();
+  // both objectives over all angles
+  const [a2, AW, AH] = setupCanvas($('ac')), pad = {l: 34, r: 8, t: 8, b: 28}, yMax = s * 1.05;
+  const AX = d => pad.l + d / 180 * (AW - pad.l - pad.r), AY = v => AH - pad.b - v / yMax * (AH - pad.t - pad.b);
+  a2.font = '11px system-ui,sans-serif'; a2.fillStyle = cssv('--muted'); a2.strokeStyle = cssv('--grid'); a2.lineWidth = 1;
+  [0, s / 2, s].forEach(v => { a2.beginPath(); a2.moveTo(pad.l, AY(v)); a2.lineTo(AW - pad.r, AY(v)); a2.stroke(); a2.textAlign = 'right'; a2.textBaseline = 'middle'; a2.fillText(v.toFixed(1), pad.l - 4, AY(v)); });
+  [0, 90, 180].forEach(v => { a2.textAlign = 'center'; a2.textBaseline = 'top'; a2.fillText(v + '°', AX(v), AH - pad.b + 4); });
+  a2.textBaseline = 'bottom'; a2.fillText('angle of w', (pad.l + AW) / 2, AH);
+  const curve = (fn, col) => { a2.strokeStyle = col; a2.lineWidth = 2; a2.beginPath(); for (let d = 0; d <= 180; d += 1){ const v = fn(wOf(d)); d ? a2.lineTo(AX(d), AY(v)) : a2.moveTo(AX(d), AY(v)); } a2.stroke(); };
+  curve(v => s - quad(v), cssv('--s2')); curve(quad, cssv('--s1'));
+  a2.strokeStyle = cssv('--faint'); a2.setLineDash([4, 4]); a2.beginPath(); a2.moveTo(AX(topDeg()), pad.t); a2.lineTo(AX(topDeg()), AH - pad.b); a2.stroke(); a2.setLineDash([]);
+  a2.strokeStyle = cssv('--ink'); a2.lineWidth = 1.5; a2.beginPath(); a2.moveTo(AX(deg), pad.t); a2.lineTo(AX(deg), AH - pad.b); a2.stroke();
+  const dt = (v, col) => { a2.fillStyle = col; a2.strokeStyle = cssv('--card'); a2.lineWidth = 2; a2.beginPath(); a2.arc(AX(deg), AY(v), 5, 0, 2 * Math.PI); a2.fill(); a2.stroke(); };
+  dt(f, cssv('--s2')); dt(q, cssv('--s1'));
+  const off = Math.min(Math.abs(deg - topDeg()), 180 - Math.abs(deg - topDeg()));
+  $('lTxt').innerHTML = off < 1
+    ? `This is the top eigenvector of C (dashed line): the error is at its minimum, ${f.toFixed(3)} = smaller eigenvalue ${C.l[1].toFixed(3)}, and wᵀCw is at its maximum, the larger eigenvalue ${C.l[0].toFixed(3)}.`
+    : off > 80
+      ? 'This line runs <b>across</b> the cloud (like the lecture\'s "blue" line): it compresses just as well, but the orange errors are long, so the reconstruction is poor.'
+      : `${off.toFixed(0)}° away from the best line (dashed). Rotate towards it: the orange errors shrink and wᵀCw grows by exactly the same amount.`;
+}
+$('ang').oninput = draw;
+$('best').onclick = () => { $('ang').value = Math.round(topDeg()) % 180; draw(); };
+$('newD').onclick = () => { newData(); draw(); };
+const setFromPointer = e => { const r = $('lc').getBoundingClientRect(); let d = Math.atan2(-(e.clientY - r.top - g.cy), e.clientX - r.left - g.cx) * 180 / Math.PI; d = ((Math.round(d) % 180) + 180) % 180; $('ang').value = d; draw(); };
+$('lc').addEventListener('pointerdown', e => { dragging = true; $('lc').setPointerCapture(e.pointerId); setFromPointer(e); });
+$('lc').addEventListener('pointermove', e => { if (dragging) setFromPointer(e); });
+$('lc').addEventListener('pointerup', () => { dragging = false; });
+newData(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eigenfaces, and Two Issues with PCA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 8 · PCA in practice, and its limits</div>
+<h1>Eigenfaces, and Two Issues with PCA</h1>
+<p class="lede">Treat every face image as one long vector of pixels and run PCA: the principal components are themselves face-like images ("eigenfaces"), and a few hundred of them describe a 32,000-pixel face well enough to recognise the person. Then two concerns: computing the eigenvectors costs about $d^3$, painful when $d$ is huge; and PCA only finds <b>linear</b> structure, so data on a curved surface fools it. Surprisingly, one idea will fix both.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=sgU4zbO-W4M">this lecture on YouTube</a> (≈25 min). Previous: <a href="L7-pca-variance.html">L7</a> · Next: <a href="L9-pca-time-complexity.html">L9</a>.</p>
+
+<h2>1 · Images as data points</h2>
+<p>The <b>Extended Yale Face Database</b> contains grayscale, same-size, camera-facing face images (the lecture quotes around 20,000 of them). To turn an image into features:</p>
+<ul>
+<li>An image is an $m\times n$ matrix of pixels, each a grayscale value between 0 and 255.</li>
+<li><b>Vectorise</b> it into an $mn\times1$ vector. Here that's roughly 32,000 pixels, so every face is a point in $\mathbb R^{\approx 32{,}000}$.</li>
+<li>Run standard PCA: the covariance matrix is $d\times d$ (about $32{,}000\times32{,}000$), and each eigenvector is also a 32,000-dimensional vector.</li>
+<li>The pixel ordering is fixed, so the map can be reversed: reshape each eigenvector into an $m\times n$ image and <b>look at it</b>.</li>
+</ul>
+
+<h2>2 · What the principal components look like</h2>
+<ul>
+<li><b>PC1</b> is the direction of most variance in a dataset full of faces. As an image it's a prototype that captures the "faceness" of the data.</li>
+<li>Later components add <b>more and more detail</b>: by some PC $k$, the nose and mouth are much sharper. The most common template comes first; other important characteristics follow.</li>
+</ul>
+
+<h2>3 · How many components does a face need?</h2>
+<p>Reconstruct a <b>test</b> face (not in the dataset, e.g. someone walking past a CCTV camera) from its projections on the top $r$ components: take its dot product with each component and linearly combine the component images with those coefficients.</p>
+<table>
+<tr><th>Components kept</th><th>Test face from the lecture's slides</th></tr>
+<tr><td>25</td><td>Clearly a person, but not clearly <b>this</b> person.</td></tr>
+<tr><td>≈200–400</td><td>The person-specific details are there: enough to recognise them.</td></tr>
+<tr><td>1,600</td><td>Close to the original, with finer details not needed for recognition.</td></tr>
+</table>
+<p>So roughly 300 numbers instead of 32,000 pixels: about a <b>100×</b> saving.</p>
+<p><b>A dog's face</b>, run through the same face components, comes out as "the best human representation of a dog" at 25, 100, 200 or 400 components. Only around 1,600 does it look like the dog. The top components are the important directions <b>for human faces</b>. Even 25 components separate "human" from "dog", while about 200–300 are needed to tell <b>which</b> human. A tree would need more (the lecturer's guess), and an image of random pixels has no structure at all, so reproducing it exactly needs all ~32,000 dimensions (with all of them, any image can be reconstructed).</p>
+<div class="callout"><b>Why it works:</b> natural images like faces have structure. Most of their information lies in a low-dimensional <b>linear subspace</b>. In practice PCA is a <b>pre-processing</b> step: store each image's projections on the top few eigen-directions, train a supervised model on those, and project new test images the same way.</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A toy version: 220 synthetic 16×16 "faces" (256 pixels each) that vary in face width, eye position and size, mouth shape, nose, brightness and lighting. Top row: the mean face and the first principal components (grey = 0, light = positive, dark = negative). Below: reconstruct a new image from its top $r$ components. The error is measured relative to how far the image is from the mean face $\mu$ (so $r=0$ means 100%).</p>
+  <div class="row">
+    <button data-t="face" class="on">new face</button><button data-t="house">a house</button><button data-t="noise">random pixels</button>
+    <label>components kept r = <b id="rV"></b> <input type="range" id="r" min="0" max="32" value="6" aria-label="number of principal components kept"></label>
+    <label><input type="checkbox" id="cen" checked> subtract the mean face first</label>
+  </div>
+  <canvas id="pcs" height="96" aria-label="Mean face and principal components shown as images"></canvas>
+  <div class="pair">
+    <canvas id="rec" height="200" aria-label="Original image and its reconstruction"></canvas>
+    <canvas id="err" height="200" aria-label="Reconstruction error versus number of components"></canvas>
+  </div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>average over 30 new faces</span><span><i style="background:var(--s2)"></i>current image</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="er">–</div><div class="l">error left at r: ‖x − x̂‖² / ‖x − μ‖²</div></div>
+    <div class="stat"><div class="v" id="ev">–</div><div class="l">variance explained by top r</div></div>
+    <div class="stat"><div class="v" id="nums">–</div><div class="l">numbers per image: r vs 256</div></div>
+  </div>
+  <p class="small" id="fTxt">Computing the principal components…</p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> Earlier lectures centre the data before PCA, and the demo does too by default: the mean face is subtracted, and $r=0$ reconstructs every image as the mean face. Untick the box to run PCA on raw pixels: then PC1 itself comes out close to the average face, the "faceness" template the lecture describes. The demo finds the top 32 components by orthogonal (subspace) iteration rather than a full $256\times256$ eigendecomposition.</div>
+
+<h2>4 · Issue 1: time complexity</h2>
+<p>The expensive step of PCA is finding the eigenvectors and eigenvalues of the $d\times d$ covariance matrix. Specialised numerical solvers exist, but a general rule is</p>
+$$\text{time}\;\approx\;O(d^3).$$
+<p>When $d$ is in the tens of thousands or millions this is a problem. In eigenfaces, $d\approx32{,}000$, larger than the number of images. Keep in mind that the number of data points was <b>smaller</b> than the number of features; L9 uses exactly that.</p>
+
+<h2>5 · Issue 2: non-linear structure</h2>
+<p>PCA searches for <b>linear</b> combinations of features: maybe weight + height, or 2·weight + 3·height. But features can be related non-linearly. Body mass index depends on weight divided by height squared; another dataset might have $f_3=f_1f_2+f_2^2$.</p>
+<ul>
+<li>Then the data lies on a <b>curved surface</b> (a manifold, like a curved blanket) inside $\mathbb R^3$. Its true structure is 2-dimensional, just not flat.</li>
+<li>PCA still returns an answer, the best plane, but the error relative to that plane stays large. It looks as though a third dimension matters, and with all 3 the error is 0, as it is for any dataset.</li>
+<li>PCA never discovers that the data is essentially 2-dimensional. The problem: data may lie in a low-dimensional space, but <b>not a low-dimensional linear subspace</b>.</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Each dataset is essentially <b>one</b>-dimensional: a single number (position along the curve) describes every point. Left: the data, PC1 (black) and the 1-component reconstructions (orange). Right: the share of variance per principal component.</p>
+  <div class="row"><button data-s="line" class="on">noisy line</button><button data-s="parab">parabola, f₂ = f₁²</button><button data-s="circle">circle</button><button id="newS">New data</button></div>
+  <div class="pair">
+    <canvas id="nl" height="250" aria-label="Dataset with its first principal component"></canvas>
+    <canvas id="nb" height="250" aria-label="Explained variance per component"></canvas>
+  </div>
+  <p class="small" id="nTxt"></p>
+</div>
+
+<h2>6 · One fix for both</h2>
+<p>The two issues look unrelated: one is about running time, the other about what structure PCA can find. The punchline of the lecture is that <b>the same idea solves both</b>. Solve issue 1 cleverly and the solution can be reused to solve issue 2. That begins in L9.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Images become vectors by flattening pixels; PCA's eigenvectors can be reshaped back into images ("eigenfaces").</li>
+<li>PC1 captures the common face template; later components add detail.</li>
+<li>A few hundred components recognise a face out of ~32,000 pixels. Images unlike the training data (a dog, random noise) need many more.</li>
+<li>Issue 1: eigendecomposition of the $d\times d$ covariance costs about $O(d^3)$, too slow for huge $d$.</li>
+<li>Issue 2: PCA finds only linear subspaces; non-linearly related features put data on curved surfaces that PCA misreads.</li>
+<li>One idea will fix both (L9 onwards).</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+/* ---------- eigenfaces toy ---------- */
+const S = 16, D = S * S, NT = 220, M = 32;
+const rp = () => ({fw: 0.62 + 0.07 * randn(), ey: -0.2 + 0.06 * randn(), es: 0.28 + 0.04 * randn(), er: 0.09 + 0.015 * randn(), my: 0.45 + 0.05 * randn(),
+  mc: 0.5 * randn(), mw: 0.3 + 0.06 * randn(), nl: 0.1 + 0.03 * randn(), br: 1 + 0.12 * randn(), lt: 0.3 * randn()});
+function face(p){ const img = new Float64Array(D);
+  for (let i = 0; i < S; i++) for (let j = 0; j < S; j++){ const x = (j + 0.5) / S * 2 - 1, y = (i + 0.5) / S * 2 - 1;
+    let v = 0.85 / (1 + Math.exp(((x / p.fw) ** 2 + ((y - 0.05) / 0.85) ** 2 - 1) * 12));
+    for (const sg of [-1, 1]) v -= 0.6 * Math.exp(-((x - sg * p.es) ** 2 + (y - p.ey) ** 2) / (2 * p.er ** 2));
+    const dy = y - (p.my + p.mc * x * x); v -= 0.5 * Math.exp(-dy * dy / 0.0072) * Math.exp(-((x / p.mw) ** 8));
+    v -= 0.15 * Math.exp(-(x * x / 0.005 + (y - 0.15) ** 2 / (2 * p.nl ** 2)));
+    img[i * S + j] = v * p.br * (1 + p.lt * x) + 0.02 * randn(); }
+  return img; }
+function house(){ const img = new Float64Array(D), h = 0.6 + 0.2 * Math.random();
+  for (let i = 0; i < S; i++) for (let j = 0; j < S; j++){ let v = 0.15;
+    if (i >= 8 && i <= 14 && j >= 3 && j <= 12) v = h; if (i >= 2 && i < 8 && Math.abs(j - 7.5) <= (i - 1.5) * 0.85) v = 0.35;
+    if (i >= 11 && i <= 14 && j >= 7 && j <= 8) v = 0.05; if (i >= 9 && i <= 10 && (j === 4 || j === 5 || j === 10 || j === 11)) v = 0.95;
+    img[i * S + j] = v; }
+  return img; }
+const noise = () => Float64Array.from({length: D}, () => Math.random());
+const train = Array.from({length: NT}, () => face(rp()));
+let model = null, test = face(rp()), kind = 'face';
+function fit(centre){ const mu = new Float64Array(D); if (centre) train.forEach(x => { for (let i = 0; i < D; i++) mu[i] += x[i] / NT; });
+  const X = train.map(x => x.map((v, i) => v - mu[i]));
+  const orth = Q => Q.forEach((q, a) => { for (let b = 0; b < a; b++){ let c = 0; for (let i = 0; i < D; i++) c += q[i] * Q[b][i]; for (let i = 0; i < D; i++) q[i] -= c * Q[b][i]; }
+    let n = 0; for (let i = 0; i < D; i++) n += q[i] * q[i]; n = Math.sqrt(n); for (let i = 0; i < D; i++) q[i] /= n; });
+  let Q = Array.from({length: M}, () => Float64Array.from({length: D}, randn)); orth(Q);
+  for (let it = 0; it < 40; it++){   // orthogonal iteration: Q ← orth(C Q), C = (1/n) Σ x xᵀ
+    const Z = Q.map(() => new Float64Array(D));
+    X.forEach(x => Q.forEach((q, a) => { let c = 0; for (let i = 0; i < D; i++) c += x[i] * q[i]; const z = Z[a]; for (let i = 0; i < D; i++) z[i] += c * x[i]; }));
+    orth(Z); Q = Z; }
+  const lam = Q.map(q => X.reduce((t, x) => { let c = 0; for (let i = 0; i < D; i++) c += x[i] * q[i]; return t + c * c; }, 0) / NT);
+  const tot = X.reduce((t, x) => t + x.reduce((s, v) => s + v * v, 0), 0) / NT;
+  model = {mu, Q, lam, tot}; }
+function recon(x, r){ const {mu, Q} = model, out = Float64Array.from(mu);
+  for (let a = 0; a < r; a++){ let c = 0; for (let i = 0; i < D; i++) c += (x[i] - mu[i]) * Q[a][i]; for (let i = 0; i < D; i++) out[i] += c * Q[a][i]; }
+  return out; }
+function tile(ctx, img, x0, y0, sz, signed){ const px = sz / S; let lo = Infinity, hi = -Infinity; img.forEach(v => { lo = Math.min(lo, v); hi = Math.max(hi, v); });
+  const m = Math.max(Math.abs(lo), Math.abs(hi)) || 1;
+  for (let i = 0; i < S; i++) for (let j = 0; j < S; j++){ const v = img[i * S + j];
+    const g = signed ? 0.5 + 0.5 * v / m : Math.max(0, Math.min(1, v)); const c = Math.round(255 * g);
+    ctx.fillStyle = `rgb(${c},${c},${c})`; ctx.fillRect(x0 + j * px, y0 + i * px, Math.ceil(px), Math.ceil(px)); } }
+function drawFaces(){
+  const r = +$('r').value; $('rV').textContent = r;
+  if (!model) return;
+  const [pc, W, H] = setupCanvas($('pcs')), n = 9, gap = 6, sz = Math.min(H - 18, (W - gap * (n - 1)) / n);
+  pc.font = '11px system-ui,sans-serif'; pc.fillStyle = cssv('--muted'); pc.textAlign = 'center'; pc.textBaseline = 'top';
+  const cen = $('cen').checked;
+  for (let k = 0; k < n; k++){ const x0 = k * (sz + gap);
+    if (k === 0) tile(pc, cen ? model.mu : new Float64Array(D).fill(0.5), x0, 0, sz, false); else tile(pc, model.Q[k - 1], x0, 0, sz, true);
+    pc.fillStyle = cssv('--muted'); pc.fillText(k === 0 ? (cen ? 'mean' : '(none)') : 'PC' + k, x0 + sz / 2, sz + 3); }
+  const xh = recon(test, r), nrm = test.reduce((s, v, i) => s + (v - model.mu[i]) ** 2, 0), e = test.reduce((s, v, i) => s + (v - xh[i]) ** 2, 0) / nrm;
+  $('er').textContent = (100 * e).toFixed(1) + '%'; $('nums').textContent = `${r} vs ${D}`;
+  $('ev').textContent = (100 * model.lam.slice(0, r).reduce((a, b) => a + b, 0) / model.tot).toFixed(1) + '%';
+  const [rc, W2, H2] = setupCanvas($('rec')), s2 = Math.min(H2 - 20, (W2 - 16) / 2);
+  tile(rc, test, 0, 0, s2, false); tile(rc, xh, s2 + 16, 0, s2, false);
+  rc.font = '12px system-ui,sans-serif'; rc.fillStyle = cssv('--muted'); rc.textAlign = 'center'; rc.textBaseline = 'top';
+  rc.fillText('original', s2 / 2, s2 + 4); rc.fillText(`from ${r} component${r === 1 ? '' : 's'}`, s2 * 1.5 + 16, s2 + 4);
+  // error curves: average over 30 fresh faces vs the current image
+  const [ec, W3, H3] = setupCanvas($('err')), pad = {l: 38, r: 8, t: 8, b: 28};
+  const X = k => pad.l + k / M * (W3 - pad.l - pad.r), Y = v => H3 - pad.b - v * (H3 - pad.t - pad.b);
+  ec.font = '12px system-ui,sans-serif'; ec.strokeStyle = cssv('--grid'); ec.fillStyle = cssv('--muted'); ec.lineWidth = 1;
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { ec.beginPath(); ec.moveTo(pad.l, Y(v)); ec.lineTo(W3 - pad.r, Y(v)); ec.stroke(); ec.textAlign = 'right'; ec.textBaseline = 'middle'; ec.fillText(100 * v + '%', pad.l - 5, Y(v)); });
+  [0, 8, 16, 24, 32].forEach(k => { ec.textAlign = 'center'; ec.textBaseline = 'top'; ec.fillText(k, X(k), H3 - pad.b + 4); });
+  ec.textBaseline = 'bottom'; ec.fillText('components kept r', (pad.l + W3) / 2, H3);
+  const curve = (arr, col) => { ec.strokeStyle = col; ec.lineWidth = 2.5; ec.beginPath(); arr.forEach((v, k) => k ? ec.lineTo(X(k), Y(Math.min(1, v))) : ec.moveTo(X(k), Y(Math.min(1, v)))); ec.stroke(); };
+  curve(model.faceCurve, cssv('--s1')); const cur = errCurve(test); curve(cur, cssv('--s2'));
+  ec.fillStyle = cssv('--s2'); ec.beginPath(); ec.arc(X(r), Y(Math.min(1, e)), 5, 0, 2 * Math.PI); ec.fill();
+  $('fTxt').innerHTML = {
+    face: `A new face (not in the training set). The error falls fast: with ${r < 8 ? 'a handful of' : r} components the reconstruction already shows this face's own eyes, mouth and lighting, using ${r} numbers instead of 256.`,
+    house: 'A house projected onto <b>face</b> components: it comes back as "the best face-shaped version of a house". Its error falls far more slowly than for faces, like the dog in the lecture.',
+    noise: 'Random pixels have no structure: no small set of directions explains them, and only the full 256-dimensional basis reproduces them exactly. The top 32 face components leave most of the image unexplained.'}[kind]
+    + (cen ? '' : ' <span class="muted">Without centring, PC1 looks like the average face: the "faceness" template.</span>');
+}
+function errCurve(x){ const {mu, Q} = model, nrm = x.reduce((s, v, i) => s + (v - mu[i]) ** 2, 0), out = []; let xh = Float64Array.from(mu);
+  for (let k = 0; k <= M; k++){ out.push(x.reduce((s, v, i) => s + (v - xh[i]) ** 2, 0) / nrm);
+    if (k < M){ let c = 0; for (let i = 0; i < D; i++) c += (x[i] - mu[i]) * Q[k][i]; for (let i = 0; i < D; i++) xh[i] += c * Q[k][i]; } }
+  return out; }
+function refit(){ $('fTxt').textContent = 'Computing the principal components…';
+  setTimeout(() => { fit($('cen').checked);
+    const F = Array.from({length: 30}, () => errCurve(face(rp()))); model.faceCurve = F[0].map((_, k) => F.reduce((s, c) => s + c[k], 0) / F.length);
+    drawFaces(); }, 30); }
+document.querySelectorAll('button[data-t]').forEach(b => b.onclick = () => { kind = b.dataset.t; document.querySelectorAll('button[data-t]').forEach(x => x.classList.toggle('on', x === b));
+  test = kind === 'face' ? face(rp()) : kind === 'house' ? house() : noise(); drawFaces(); });
+$('r').oninput = drawFaces; $('cen').onchange = refit;
+
+/* ---------- non-linear structure ---------- */
+let shape = 'line', SP = [];
+function makeS(){ SP = Array.from({length: 150}, () => { const t = 2 * Math.random() - 1;
+  if (shape === 'line') return [1.6 * t + 0.08 * randn(), 0.9 * t + 0.08 * randn()];
+  if (shape === 'parab') return [1.6 * t + 0.03 * randn(), 2.4 * t * t - 0.8 + 0.03 * randn()];
+  const a = Math.PI * (t + 1); return [1.5 * Math.cos(a) + 0.03 * randn(), 1.5 * Math.sin(a) + 0.03 * randn()]; });
+  const m = SP.reduce((s, [a, b]) => [s[0] + a / 150, s[1] + b / 150], [0, 0]); SP = SP.map(([a, b]) => [a - m[0], b - m[1]]); }
+function drawS(){
+  let a = 0, b = 0, d = 0; SP.forEach(([x, y]) => { a += x * x; b += x * y; d += y * y; }); a /= 150; b /= 150; d /= 150;
+  const rr = Math.sqrt(((a - d) / 2) ** 2 + b * b), l1 = (a + d) / 2 + rr, l2 = (a + d) / 2 - rr;
+  let w = Math.abs(b) > 1e-9 ? [b, l1 - a] : (a >= d ? [1, 0] : [0, 1]); const nw = Math.hypot(...w); w = [w[0] / nw, w[1] / nw];
+  const [ctx, W, H] = setupCanvas($('nl')), R = 2.2, side = Math.min(W, H) - 8, ox = (W - side) / 2, oy = 4;
+  const X = x => ox + (x + R) / (2 * R) * side, Y = y => oy + side - (y + R) / (2 * R) * side;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, side, side);
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, side, side); ctx.clip();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(-5 * w[0]), Y(-5 * w[1])); ctx.lineTo(X(5 * w[0]), Y(5 * w[1])); ctx.stroke();
+  SP.forEach(([x, y]) => { ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(X(x), Y(y), 2.8, 0, 2 * Math.PI); ctx.fill(); });
+  SP.forEach(([x, y]) => { const c = x * w[0] + y * w[1]; ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(c * w[0]), Y(c * w[1]), 2.2, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.restore();
+  const [g, W2, H2] = setupCanvas($('nb')), pad = {l: 40, r: 10, t: 10, b: 28}, sh = [l1 / (l1 + l2), l2 / (l1 + l2)];
+  const Y2 = v => H2 - pad.b - v * (H2 - pad.t - pad.b), bw = (W2 - pad.l - pad.r) / 2;
+  g.font = '12px system-ui,sans-serif'; g.strokeStyle = cssv('--grid'); g.fillStyle = cssv('--muted'); g.lineWidth = 1;
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { g.beginPath(); g.moveTo(pad.l, Y2(v)); g.lineTo(W2 - pad.r, Y2(v)); g.stroke(); g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillText(100 * v + '%', pad.l - 5, Y2(v)); });
+  sh.forEach((v, i) => { g.fillStyle = cssv(i ? '--faint' : '--s1'); g.fillRect(pad.l + i * bw + bw * 0.2, Y2(v), bw * 0.6, H2 - pad.b - Y2(v));
+    g.fillStyle = cssv('--ink'); g.textAlign = 'center'; g.textBaseline = 'bottom'; g.fillText((100 * v).toFixed(0) + '%', pad.l + i * bw + bw / 2, Y2(v) - 3);
+    g.fillStyle = cssv('--muted'); g.textBaseline = 'top'; g.fillText('PC' + (i + 1), pad.l + i * bw + bw / 2, H2 - pad.b + 5); });
+  $('nTxt').innerHTML = {
+    line: `Linear structure: PC1 explains ${(100 * sh[0]).toFixed(0)}% of the variance and the 1-component reconstructions sit right on top of the data. PCA correctly reports one dimension.`,
+    parab: `Every point satisfies f₂ ≈ f₁², so one number describes it, but the relationship is quadratic. PCA keeps only ${(100 * sh[0]).toFixed(0)}% of the variance with one component, and the orange reconstructions flatten the curve onto a line. By the 95% rule it would keep both dimensions.`,
+    circle: `A circle is one-dimensional (the angle), yet PCA splits the variance about ${(100 * sh[0]).toFixed(0)}/${(100 * sh[1]).toFixed(0)}: no line is better than any other. PCA has no way to see the curved structure.`}[shape];
+}
+document.querySelectorAll('button[data-s]').forEach(b => b.onclick = () => { shape = b.dataset.s; document.querySelectorAll('button[data-s]').forEach(x => x.classList.toggle('on', x === b)); makeS(); drawS(); });
+$('newS').onclick = () => { makeS(); drawS(); };
+
+function drawAll(){ drawFaces(); drawS(); }
+makeS(); drawS(); refit();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

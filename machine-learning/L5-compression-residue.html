@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Residues Carry Information: From One Line to Many</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 5 · Representation learning, part 3</div>
+<h1>Residues Carry Information: From One Line to Many</h1>
+<p class="lede">The best line gives a compression: one representative $w$ plus one coefficient $x^\top w$ per point. But are we done? If the data really lives on a <b>plane</b>, the "errors" left over after projecting onto the best line all point the same way, so they aren't noise; they hold structure. Fit a line to the <b>residues</b>, and repeat. Before that works, the data has to be <b>centred</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=t0bA3rsZ6qM">this lecture on YouTube</a> (≈16 min). Previous: <a href="L4-best-fit-line.html">L4</a> · Next: <a href="L6-pca-error-minimization.html">L6</a>.</p>
+
+<h2>1 · Are we done?</h2>
+<p>From L4: given $\{x_1,\dots,x_n\}\subset\mathbb R^d$, find the unit vector $w$ that minimises the total squared distance from each point to its <b>proxy</b> $(x_i^\top w)\,w$. Equivalently,</p>
+$$\max_{\lVert w\rVert^2=1}\;w^\top C\,w,\qquad C=\frac1n\sum_{i=1}^{n}x_ix_i^\top ,$$
+<p>and the answer happens to be an eigenvector of $C$. For now, treat the solver as a <b>black box</b>: data in, best line out. The question is whether one line is always a satisfying compression.</p>
+
+<h2>2 · When the structure is a plane, not a line</h2>
+<p>Take points in $\mathbb R^3$ that all lie on a <b>plane</b> through the origin. The best line must lie in that plane: any line poking out of it would cost extra projection error that could be avoided. Each point is then represented by its proxy on that line.</p>
+<ul>
+<li>That's a valid compression, but it misses the real structure: the data is two-dimensional.</li>
+<li>Look at the <b>error vectors</b> $e_i=x_i-(x_i^\top w)\,w$. They don't scatter in all directions. They all line up along one direction inside the plane (a point already on the line has $e_i=0$).</li>
+<li>If the leftovers were genuinely error, they'd point all over the place. Since they line up, <b>the "error" still carries information</b>.</li>
+</ul>
+<div class="callout"><b>Residue:</b> for a data point $x$ and a line $w$, the residue is what's left after removing the proxy,
+$$x-(x^\top w)\,w,$$
+which so far we have been calling "error". The new idea: it may not be error at all.</div>
+
+<h2>3 · A possible algorithm: fit lines to residues</h2>
+<p>We don't want to throw away the black box we already have, and we don't want to stop at one line. So reuse it:</p>
+<ol class="steps">
+<li><b>Input:</b> $\{x_1,\dots,x_n\}$, $x_i\in\mathbb R^d$.</li>
+<li>Find the best line $w_1$ (minimise error, or equivalently maximise $w^\top Cw$).</li>
+<li>Replace every point by its residue: $\;x_i\;\leftarrow\;x_i-(x_i^\top w_1)\,w_1$. This is a new, second-level dataset.</li>
+<li>Run the same procedure on the residues to get $w_2$. Why stop? Compute residues again and get $w_3$, and so on, up to the number of dimensions $d$.</li>
+</ol>
+
+<h2>4 · First fix: centre the data</h2>
+<p>Every line we search for passes through the <b>origin</b>, because a proxy is a coefficient times a representative, and coefficient 0 must give the origin. If the data is spread along some direction but sits far away from the origin, the best line through the origin can be pulled away from that direction. A line like the x-axis might even give smaller error than the line that matches the way the data is spread out.</p>
+<p>The fix is to translate the data so its mean sits at the origin:</p>
+$$\mu=\frac1n\sum_{i=1}^{n}x_i,\qquad x_i\;\leftarrow\;x_i-\mu\quad\text{for all }i .$$
+<p>After this, the mean of the dataset is exactly $0$, and a line through the origin can follow the direction the data is dispersed in. The demo shows both the centring problem and the residues.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">60 points spread along a 30° direction. Left: the best line through the origin (black), each point's proxy (orange) and residue (faint segment). Right: the residue dataset alone, with the best line fitted to it ($w_2$, dashed).</p>
+  <div class="row">
+    <label>shift data up by <b id="shV"></b> <input type="range" id="shift" min="0" max="50" value="35" aria-label="vertical shift of the data"></label>
+    <label><input type="checkbox" id="cen"> centre the data first (subtract the mean)</label>
+    <button id="newD">New data</button>
+  </div>
+  <div class="pair half">
+    <canvas id="dc" height="300" aria-label="Data, best line through the origin, proxies and residues"></canvas>
+    <canvas id="rc" height="300" aria-label="Residue vectors and the line fitted to them"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>data</span><span><i class="dot" style="background:var(--s2)"></i>proxy / residue</span><span><i class="dot" style="background:var(--s3)"></i>mean μ</span><span><i style="background:var(--ink)"></i>w₁ (left) · w₂ (right)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="ang">–</div><div class="l">direction of w₁ (data spread: 30°)</div></div>
+    <div class="stat"><div class="v" id="kept">–</div><div class="l">share of Σ‖xᵢ‖² kept by w₁</div></div>
+    <div class="stat"><div class="v" id="perp">–</div><div class="l">angle between w₁ and w₂</div></div>
+  </div>
+  <p class="small" id="dTxt"></p>
+</div>
+
+<h2>5 · Four questions for the next lectures</h2>
+<ol>
+<li>How do we actually solve $\max_{\lVert w\rVert^2=1}w^\top Cw$? (The hint: an eigenvector of $C$. This needs care.)</li>
+<li>How many times should we repeat the residue procedure?</li>
+<li>With several lines, <b>where is the compression happening</b>? With one line it was clear: one representative and one coefficient per point.</li>
+<li>With several lines and several coefficients, <b>what representation are we learning</b>?</li>
+</ol>
+<p>Answering these turns the procedure into the course's first representation-learning algorithm for unsupervised learning (L6–L7).</p>
+<div class="beyond"><b>Going beyond the video.</b> In two dimensions the residues of every point are perpendicular to $w_1$, so they all fall on the single line through the origin perpendicular to $w_1$; that's why the right panel always shows a perfect line and $w_2\perp w_1$. L6 makes this argument in general. For a linear-algebra take on the same algorithm, see <a href="../linear-algebra/00-pca-mlt-l5.html">the PCA prologue in the linear-algebra notes</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>One best line is a compression, but it can miss structure: data on a plane needs two directions.</li>
+<li>The residue $x-(x^\top w)w$ isn't necessarily error. If the residues line up, they carry information.</li>
+<li>Possible algorithm: find $w_1$, replace each point by its residue, find $w_2$, and repeat.</li>
+<li>Lines pass through the origin, so <b>centre the data</b> first: $x_i\leftarrow x_i-\mu$.</li>
+<li>Open questions: how to solve the maximisation, when to stop, where the compression is, and what the representation is.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const N = 60, DIR = Math.PI / 6;
+let base = [];
+function make(){ base = Array.from({length: N}, () => { const a = 2.2 * randn(), b = 0.45 * randn();
+  return [a * Math.cos(DIR) - b * Math.sin(DIR), a * Math.sin(DIR) + b * Math.cos(DIR)]; }); }
+// top eigenvector of (1/n) Σ x xᵀ for 2-D points (closed form)
+function topEig(P){ let a = 0, b = 0, d = 0; P.forEach(([x, y]) => { a += x * x; b += x * y; d += y * y; });
+  a /= P.length; b /= P.length; d /= P.length;
+  const l = (a + d) / 2 + Math.sqrt(((a - d) / 2) ** 2 + b * b);
+  const v = Math.abs(b) > 1e-12 ? [b, l - a] : (a >= d ? [1, 0] : [0, 1]), n = Math.hypot(...v) || 1; return [v[0] / n, v[1] / n]; }
+// square plotting area centred on the origin, half-width R
+function square(cv, R){ const [ctx, W, H] = setupCanvas(cv), side = Math.min(W, H) - 12, ox = (W - side) / 2, oy = (H - side) / 2;
+  const X = v => ox + (v + R) / (2 * R) * side, Y = v => oy + side - (v + R) / (2 * R) * side;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, side, side);
+  ctx.beginPath(); ctx.moveTo(X(0), oy); ctx.lineTo(X(0), oy + side); ctx.moveTo(ox, Y(0)); ctx.lineTo(ox + side, Y(0)); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, side, side); ctx.clip(); return {ctx, X, Y, R}; }
+function lineThrough(g, w, col, width, dash){ const {ctx, X, Y, R} = g, t = 3 * R;
+  ctx.strokeStyle = col; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.beginPath();
+  ctx.moveTo(X(-t * w[0]), Y(-t * w[1])); ctx.lineTo(X(t * w[0]), Y(t * w[1])); ctx.stroke(); ctx.setLineDash([]); }
+const dot = (g, p, col, r) => { g.ctx.fillStyle = col; g.ctx.beginPath(); g.ctx.arc(g.X(p[0]), g.Y(p[1]), r, 0, 2 * Math.PI); g.ctx.fill(); };
+function draw(){
+  const s = +$('shift').value / 10, cen = $('cen').checked; $('shV').textContent = s.toFixed(1);
+  let P = base.map(([x, y]) => [x, y + s]);
+  const mu = P.reduce((m, [x, y]) => [m[0] + x / N, m[1] + y / N], [0, 0]);
+  if (cen) P = P.map(([x, y]) => [x - mu[0], y - mu[1]]);
+  const w = topEig(P), proj = P.map(([x, y]) => { const c = x * w[0] + y * w[1]; return [c * w[0], c * w[1]]; });
+  const res = P.map((p, i) => [p[0] - proj[i][0], p[1] - proj[i][1]]), w2 = topEig(res);
+  const tot = P.reduce((t, [x, y]) => t + x * x + y * y, 0), err = res.reduce((t, [x, y]) => t + x * x + y * y, 0);
+  const deg = ((Math.atan2(w[1], w[0]) * 180 / Math.PI) % 180 + 180) % 180;
+  $('ang').textContent = deg.toFixed(0) + '°'; $('kept').textContent = (100 * (1 - err / tot)).toFixed(1) + '%';
+  $('perp').textContent = (Math.acos(Math.min(1, Math.abs(w[0] * w2[0] + w[1] * w2[1]))) * 180 / Math.PI).toFixed(1) + '°';
+  const g = square($('dc'), 8.5);
+  lineThrough(g, w, cssv('--ink'), 2.2);
+  g.ctx.strokeStyle = cssv('--faint'); g.ctx.lineWidth = 1;
+  P.forEach((p, i) => { g.ctx.beginPath(); g.ctx.moveTo(g.X(p[0]), g.Y(p[1])); g.ctx.lineTo(g.X(proj[i][0]), g.Y(proj[i][1])); g.ctx.stroke(); });
+  proj.forEach(p => dot(g, p, cssv('--s2'), 2.5)); P.forEach(p => dot(g, p, cssv('--s1'), 3.5));
+  if (!cen) { dot(g, mu, cssv('--s3'), 6); }
+  dot(g, [0, 0], cssv('--ink'), 3); g.ctx.restore();
+  const R2 = Math.max(1, 1.25 * Math.max(...res.map(([x, y]) => Math.max(Math.abs(x), Math.abs(y)))));
+  const h = square($('rc'), R2);
+  lineThrough(h, w, cssv('--grid'), 1.5); lineThrough(h, w2, cssv('--ink'), 2, [6, 5]);
+  res.forEach(p => dot(h, p, cssv('--s2'), 3)); h.ctx.restore();
+  const off = Math.abs(deg - 30) > 8;
+  $('dTxt').innerHTML = (!cen && s > 1.5 && off)
+    ? `The data has been shifted away from the origin, but every candidate line must pass through the origin. The best such line points at ${deg.toFixed(0)}°, dragged towards the shifted mean (green), not along the 30° direction the data is spread in. Tick <b>centre the data first</b>.`
+    : `The best line follows the spread of the data (${deg.toFixed(0)}°). On the right, the residues all fall on one line through the origin, perpendicular to w₁, so they still carry structure. Fitting a line to them gives w₂, at ${$('perp').textContent} to w₁.`;
+}
+$('shift').oninput = draw; $('cen').onchange = draw; $('newD').onclick = () => { make(); draw(); };
+make(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

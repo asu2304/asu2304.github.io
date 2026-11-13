@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>From Residues to an Orthonormal Basis</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 6 · Principal component analysis, part 1</div>
+<h1>From Residues to an Orthonormal Basis</h1>
+<p class="lede">Fitting a line to the residues gives a direction <b>orthogonal</b> to the first. Keep going and you get an orthonormal basis $w_1,\dots,w_d$: the residue procedure is a <b>change of basis</b>. The pay-off comes when the residues vanish (or nearly vanish) after $k\ll d$ rounds: store $k$ shared directions and $k$ numbers per point instead of $d$. How much each round captures tells you when to stop.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_GOADM-SdKU">this lecture on YouTube</a> (≈31 min). Previous: <a href="L5-compression-residue.html">L5</a> · Next: <a href="L7-pca-variance.html">L7</a>.</p>
+
+<h2>1 · Where we left off</h2>
+<p>Data $\{x_1,\dots,x_n\}\subset\mathbb R^d$, centred. Round 1 finds</p>
+$$w_1=\arg\max_{\lVert w\rVert^2=1}\;w^\top C\,w,\qquad C=\frac1n\sum_{i=1}^{n}x_ix_i^\top .$$
+<p>Round 2 replaces each point by its residue $x_i'=x_i-(x_i^\top w_1)\,w_1$ (still a vector in $\mathbb R^d$), builds $C'=\frac1n\sum_i x_i'x_i'^\top$, and finds $w_2=\arg\max_{\lVert w\rVert^2=1}w^\top C'w$. <b>How are $w_1$ and $w_2$ related?</b></p>
+
+<h2>2 · The second line is orthogonal to the first</h2>
+<ul>
+<li>Projections are perpendicular, so <b>every residue is orthogonal to $w_1$</b>: $\;(x_i')^\top w_1=x_i^\top w_1-(x_i^\top w_1)(w_1^\top w_1)=0$.</li>
+<li>In 2-D there's only one line through the origin perpendicular to $w_1$, so all the residues line up on it, and the best line for them is exactly that line. Any other line would cost extra error.</li>
+<li>In higher dimensions the residues lie in the hyperplane perpendicular to $w_1$, and any line that best fits them must also be orthogonal to $w_1$. (The lecture leaves this short proof as an exercise.)</li>
+</ul>
+$$\boxed{\;w_2^\top w_1=0\;}\qquad(-w_2\text{ is equally valid; the sign doesn't matter.})$$
+
+<h2>3 · Keep going: a new basis</h2>
+<p>Repeating in $\mathbb R^d$ produces $w_1,\dots,w_d$ with $\lVert w_k\rVert^2=1$ and $w_i^\top w_j=0$ for $i\neq j$: an <b>orthonormal</b> set. Watch what the residues look like:</p>
+<ol class="steps">
+<li>After round 1: $\;x_i-(x_i^\top w_1)\,w_1$.</li>
+<li>After round 2, subtract this vector's projection onto $w_2$: $\;x_i-(x_i^\top w_1)w_1-\big[x_i^\top w_2-(x_i^\top w_1)\underbrace{w_1^\top w_2}_{0}\big]w_2=x_i-(x_i^\top w_1)w_1-(x_i^\top w_2)w_2$.</li>
+<li>After $d$ rounds: $\;x_i-\sum_{k=1}^{d}(x_i^\top w_k)\,w_k$. There are only $d$ independent directions to remove, so this residue is the <b>zero vector</b>.</li>
+<li>Therefore $\;\boxed{x_i=\sum_{k=1}^{d}(x_i^\top w_k)\,w_k}$: every point written in the basis $w_1,\dots,w_d$ instead of the standard basis.</li>
+</ol>
+<p>On its own a change of basis gains nothing: any basis can express any point. The gain comes from <b>stopping early</b>.</p>
+
+<h2>4 · Where the compression happens</h2>
+<p>If the data lives in a low-dimensional <b>linear subspace</b>, the residues become zero after $k<d$ rounds and further lines add nothing. Example: $d=100$, and the residues vanish after 3 rounds. Then for every $i$</p>
+$$x_i=(x_i^\top w_1)\,w_1+(x_i^\top w_2)\,w_2+(x_i^\top w_3)\,w_3 .$$
+<table>
+<tr><th></th><th>What is stored</th><th>Count</th></tr>
+<tr><td><b>Representatives</b> (shared by the whole dataset)</td><td>$w_1,w_2,w_3\in\mathbb R^{100}$</td><td>$d\times k=300$</td></tr>
+<tr><td><b>Coefficients</b> (specific to each point)</td><td>$(x_i^\top w_1,\;x_i^\top w_2,\;x_i^\top w_3)\in\mathbb R^3$</td><td>$k\times n$</td></tr>
+<tr><td>Naive storage</td><td>every coordinate of every point</td><td>$d\times n$</td></tr>
+</table>
+<p>With $n=100$: $d\times n=10{,}000$ numbers versus $dk+kn=300+300=600$. Reconstruction is exact: take the linear combination of the representatives with the point's coefficients.</p>
+
+<h2>5 · Approximately low-dimensional data: when to stop</h2>
+<p>Real data rarely makes the residues exactly zero. A 2-D cloud around a line has no perfect 1-D fit, yet one line may be good enough; we have to choose a tolerance. Pythagoras gives a way to measure it. For any unit $w$ and any point,</p>
+$$\lVert x_i\rVert^2=\big\lVert x_i-(x_i^\top w)\,w\big\rVert^2+(x_i^\top w)^2 .$$
+<p>Average over $i$:</p>
+$$\underbrace{\frac1n\sum_i\lVert x_i\rVert^2}_{\text{fixed by the data}}=\underbrace{\frac1n\sum_i\big\lVert x_i-(x_i^\top w)\,w\big\rVert^2}_{\text{average error}}+\underbrace{\frac1n\sum_i(x_i^\top w)^2}_{\text{captured}} .$$
+<p>Minimising the error is the same as maximising the captured part (that's the equivalence from L4). Record the captured amount $\frac1n\sum_i(x_i^\top w_k)^2$ in each round $k$:</p>
+<ul>
+<li>It's largest in round 1. If a later round could capture more, round 1 would have found that line instead. So it <b>falls</b> round by round.</li>
+<li>Often it drops sharply at an <b>elbow</b>: the first $k$ directions are signal, the rest look like error.</li>
+<li><b>Rule of thumb:</b> keep the smallest $k$ whose rounds capture, say, <b>95%</b> of the total over all $d$ rounds. It's a rule of thumb, not a guarantee that this $k$ is "best"; that would need more assumptions about the data.</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">200 points in $\mathbb R^{10}$ that lie close to a hidden $k$-dimensional subspace. The demo runs the residue algorithm literally: in each round it finds the best line for the current residues, records how much it captures, and replaces the points by their new residues.</p>
+  <div class="row">
+    <label>hidden dimension k = <b id="kV"></b> <input type="range" id="k" min="1" max="6" value="3" aria-label="dimension of the hidden subspace"></label>
+    <label>off-subspace noise = <b id="nV"></b> <input type="range" id="ns" min="0" max="60" value="10" aria-label="noise level"></label>
+    <label>threshold = <b id="tV"></b> <input type="range" id="th" min="80" max="99" value="95" aria-label="fraction to retain"></label>
+    <button id="newD">New data</button>
+  </div>
+  <canvas id="bc" height="280" aria-label="Captured amount per round with the cumulative fraction"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>rounds kept</span><span><i class="dot" style="background:var(--faint)"></i>rounds dropped</span><span><i style="background:var(--s2)"></i>cumulative share captured</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="kk">–</div><div class="l">rounds to reach threshold</div></div>
+    <div class="stat"><div class="v" id="st">–</div><div class="l">numbers stored: dk + kn vs dn</div></div>
+    <div class="stat"><div class="v" id="orth">–</div><div class="l">largest |wᵢᵀwⱼ|, i ≠ j</div></div>
+    <div class="stat"><div class="v" id="res">–</div><div class="l">avg ‖residue‖² after all 10 rounds</div></div>
+  </div>
+  <p class="small" id="bTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The demo finds each round's line by power iteration on the residue matrix $C'$. When the residues are (numerically) zero there's no best line, so it also keeps the new direction orthogonal to the earlier ones, which is what the exact procedure would give. The "largest $|w_i^\top w_j|$" stat confirms the directions come out orthonormal (to rounding error), and the final residue confirms $x_i=\sum_k(x_i^\top w_k)w_k$.</div>
+
+<h2>6 · The algorithm so far</h2>
+<ol class="steps">
+<li>Centre the data.</li>
+<li>Find the best line for the current points, record how much it captures, and replace the points by their residues.</li>
+<li>Repeat until what a new round captures is too small relative to the total (e.g. the first $k$ rounds already capture 95%).</li>
+<li>Represent each point by its $k$ coefficients $x_i^\top w_1,\dots,x_i^\top w_k$.</li>
+</ol>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Residues are orthogonal to the line just found, so each new line is orthogonal to all earlier ones.</li>
+<li>Running all $d$ rounds yields an orthonormal basis, and $x_i=\sum_k(x_i^\top w_k)w_k$ exactly: a change of basis.</li>
+<li>Compression comes from stopping after $k$ rounds: store $dk+kn$ numbers instead of $dn$.</li>
+<li>Pythagoras: $\text{avg}\lVert x\rVert^2=\text{avg error}+\frac1n\sum_i(x_i^\top w)^2$, so the captured amount per round measures progress.</li>
+<li>It decreases with each round; stop at the elbow or once ~95% is captured (a rule of thumb).</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const D = 10, N = 200, dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+let Z = [], E = [], U = [], out = null;
+// fixed random ingredients, so the sliders change only k and the noise level
+function fresh(){ Z = Array.from({length: N}, () => Array.from({length: 6}, randn)); E = Array.from({length: N}, () => Array.from({length: D}, randn));
+  U = []; for (let j = 0; j < 6; j++){ let v = Array.from({length: D}, randn); U.forEach(u => { const c = dot(u, v); v = v.map((x, i) => x - c * u[i]); }); const n = Math.hypot(...v); U.push(v.map(x => x / n)); } }
+// best line for the current points: power iteration on C = (1/n) Σ x xᵀ, kept orthogonal to earlier lines
+function bestLine(P, prev){ const C = Array.from({length: D}, () => new Array(D).fill(0));
+  P.forEach(x => { for (let i = 0; i < D; i++) for (let j = 0; j < D; j++) C[i][j] += x[i] * x[j] / N; });
+  let w = Array.from({length: D}, randn);
+  for (let it = 0; it < 400; it++){
+    let z = C.map(r => dot(r, w)); prev.forEach(u => { const c = dot(u, z); z = z.map((x, i) => x - c * u[i]); });
+    let n = Math.hypot(...z);
+    if (n < 1e-14){ z = Array.from({length: D}, randn); prev.forEach(u => { const c = dot(u, z); z = z.map((x, i) => x - c * u[i]); }); n = Math.hypot(...z); }
+    const nw = z.map(x => x / n), ch = Math.min(Math.hypot(...nw.map((x, i) => x - w[i])), Math.hypot(...nw.map((x, i) => x + w[i]))); w = nw; if (ch < 1e-12) break; }
+  return w; }
+function run(){
+  const k = +$('k').value, s = +$('ns').value / 100, scale = j => 3 / (j + 1);
+  let X = Z.map((z, r) => { const x = E[r].map(e => s * e); for (let j = 0; j < k; j++) for (let i = 0; i < D; i++) x[i] += scale(j) * z[j] * U[j][i]; return x; });
+  const mu = new Array(D).fill(0); X.forEach(x => x.forEach((v, i) => mu[i] += v / N)); X = X.map(x => x.map((v, i) => v - mu[i]));
+  const W = [], V = []; let R = X;
+  for (let r = 0; r < D; r++){ const w = bestLine(R, W); V.push(R.reduce((t, x) => t + dot(x, w) ** 2, 0) / N); W.push(w);
+    R = R.map(x => { const c = dot(x, w); return x.map((v, i) => v - c * w[i]); }); }
+  let mx = 0; for (let i = 0; i < D; i++) for (let j = i + 1; j < D; j++) mx = Math.max(mx, Math.abs(dot(W[i], W[j])));
+  out = {k, s, V, mx, res: R.reduce((t, x) => t + dot(x, x), 0) / N}; draw(); }
+function draw(){
+  if (!out) return;
+  $('kV').textContent = $('k').value; $('nV').textContent = (+$('ns').value / 100).toFixed(2); $('tV').textContent = $('th').value + '%';
+  const th = +$('th').value / 100, tot = out.V.reduce((a, b) => a + b, 0); let cum = 0; const C = out.V.map(v => (cum += v) / tot);
+  const kk = C.findIndex(c => c >= th - 1e-12) + 1;
+  $('kk').textContent = kk; $('st').textContent = `${(D * kk + kk * N).toLocaleString()} vs ${(D * N).toLocaleString()}`;
+  $('orth').textContent = out.mx.toExponential(1); $('res').textContent = out.res.toExponential(1);
+  const [ctx, W, H] = setupCanvas($('bc')), pad = {l: 40, r: 40, t: 12, b: 30}, vmax = Math.max(...out.V) * 1.1;
+  const bw = (W - pad.l - pad.r) / D, X = i => pad.l + i * bw, Y = v => H - pad.b - v / vmax * (H - pad.t - pad.b), Yc = c => H - pad.b - c * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let q = 0; q <= 4; q++){ const v = vmax * q / 4; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v.toFixed(v < 1 ? 2 : 1), pad.l - 6, Y(v)); ctx.textAlign = 'left'; ctx.fillText(25 * q + '%', W - pad.r + 6, Yc(q / 4)); }
+  out.V.forEach((v, i) => { ctx.fillStyle = cssv(i < kk ? '--s1' : '--faint'); ctx.fillRect(X(i) + bw * 0.18, Y(v), bw * 0.64, H - pad.b - Y(v));
+    ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(i + 1, X(i) + bw / 2, H - pad.b + 5); });
+  ctx.textBaseline = 'bottom'; ctx.fillText('round k', (pad.l + W - pad.r) / 2, H);
+  ctx.strokeStyle = cssv('--s2'); ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pad.l, Yc(th)); ctx.lineTo(W - pad.r, Yc(th)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.lineWidth = 2.5; ctx.beginPath(); C.forEach((c, i) => i ? ctx.lineTo(X(i) + bw / 2, Yc(c)) : ctx.moveTo(X(i) + bw / 2, Yc(c))); ctx.stroke();
+  C.forEach((c, i) => { ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(i) + bw / 2, Yc(c), 3.5, 0, 2 * Math.PI); ctx.fill(); });
+  $('bTxt').innerHTML = out.s === 0
+    ? `With no noise the data lies exactly in a ${out.k}-dimensional subspace: rounds ${out.k + 1}–10 capture nothing, because the residues are already zero after ${out.k} rounds. Stop there and store ${D * out.k + out.k * N} numbers instead of ${D * N}.`
+    : `Round 1 captures the most and each later round captures less. After round ${out.k} the bars collapse to the noise level: that's the elbow. The first ${kk} round${kk > 1 ? 's' : ''} reach the ${Math.round(th * 100)}% threshold${kk !== out.k ? ` (the hidden dimension is ${out.k}; ${kk > out.k ? 'enough noise makes the rule keep extra rounds' : 'a lower threshold can stop before the last weak signal direction'})` : ''}.`;
+}
+['k', 'ns'].forEach(id => $(id).oninput = run); $('th').oninput = draw; $('newD').onclick = () => { fresh(); run(); };
+fresh(); run();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

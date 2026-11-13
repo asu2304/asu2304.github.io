@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Representation Learning: Comprehension Is Compression</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.rev{grid-template-columns:minmax(0,2fr) minmax(0,1fr)} .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+@media (max-width:600px){.pair.rev,.trio{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 3 · Unsupervised learning: representation learning, part 1</div>
+<h1>Representation Learning: Comprehension Is Compression</h1>
+<p class="lede">Unsupervised learning starts with a vague goal: understand something useful about a set of data points. The running theme of the course makes it concrete: to <b>comprehend</b> is to <b>compress</b>. If points lie on a line, store one <b>representative</b> plus one <b>coefficient</b> per point. When a point is off the line, give up exact reconstruction and store its best <b>proxy</b> on the line: its <b>projection</b> $(x^\top w)\,w$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=1V_M4JxygGk">this lecture on YouTube</a> (≈32 min). Previous: <a href="L2-paradigms.html">L2</a> · Next: <a href="L4-best-fit-line.html">L4</a>.</p>
+
+<h2>1 · Unsupervised learning: a vague goal</h2>
+<p>Given a set of data points, understand something useful about them. Three words need pinning down:</p>
+<ul>
+<li><b>Data points</b> (the easy one): vectors $x_1,\dots,x_n\in\mathbb R^d$. Collect height, weight and age from 100 people and each person is a point in $\mathbb R^3$; the $d$ coordinates are the <b>features</b>.</li>
+<li><b>Understand</b> and <b>useful</b>: harder. The course answers them with one running theme.</li>
+</ul>
+
+<h2>2 · The running theme</h2>
+<div class="callout" style="font-size:18px"><b>"Comprehension is compression."</b> <span class="small muted">(George Chaitin)</span></div>
+<p>Comprehending, understanding and learning are synonyms here. If you can compress information so that only the important part is kept, and that is enough to explain it to someone else, you have understood it. The lecture suggests asking of every algorithm in the course: <b>where is the compression happening?</b></p>
+<p>So the unsupervised problem becomes: <b>input</b> $\{x_1,\dots,x_n\}$, $x_i\in\mathbb R^d$; <b>output</b> a compressed representation of the dataset.</p>
+
+<h2>3 · An example: 8 numbers become 6</h2>
+<p>Four points in $\mathbb R^2$: $x_1=[-7,\,-14]$, $x_2=[2.5,\,5]$, $x_3=[0.5,\,1]$, $x_4=[0,\,0]$. How many real numbers are needed to store them? The naive answer is $4\times2=8$. But the second coordinate is always <b>twice</b> the first. So store:</p>
+<ul>
+<li>one <b>representative</b> for the whole dataset, $w=[1,\,2]$ ("second feature = twice the first");</li>
+<li>one <b>coefficient</b> per point: $-7,\;2.5,\;0.5,\;0$.</li>
+</ul>
+<p>That's 6 numbers, and the data comes back <b>exactly</b>: $x_i=c_i\,w$, e.g. $x_2=2.5\,[1,2]=[2.5,5]$. Geometrically, all four points lie on the line $y=2x$.</p>
+<div class="callout">The savings grow with $n$. Raw storage is $d\times n$ numbers; this representation needs $d+n$ ($d$ for the representative, one coefficient per point). A billion points in $\mathbb R^2$: about $1$ billion $+\,2$ numbers instead of $2$ billion, almost 50% compression.</div>
+<p><b>Any</b> nonzero vector on the line works as the representative, and the coefficients adjust. With $w=[1/\sqrt5,\;2/\sqrt5]$ the coefficients become $-7\sqrt5,\;2.5\sqrt5,\;0.5\sqrt5,\;0$. Only $[0,0]$ is forbidden: it can't reconstruct anything. This freedom becomes useful shortly.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">How many numbers to store $n$ points in $\mathbb R^d$ that all lie on one line through the origin?</p>
+  <div class="row">
+    <label>n = <b id="nV"></b> <input type="range" id="n" min="0" max="9" value="2" aria-label="number of points, log scale"></label>
+    <label>d = <b id="dV"></b> <input type="range" id="d" min="2" max="1000" value="2" aria-label="dimension"></label>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="raw">–</div><div class="l">raw: d × n</div></div>
+    <div class="stat"><div class="v" id="cmp">–</div><div class="l">representative + coefficients: d + n</div></div>
+    <div class="stat"><div class="v" id="sav">–</div><div class="l">saved</div></div>
+  </div>
+</div>
+
+<h2>4 · A point off the line</h2>
+<p>Now the points $[1,1]$, $[7,7]$, $[10,10]$, $[-5,-5]$ (on $y=x$) plus one more, $x_5=[5,6]$, which isn't. One representative with one coefficient each can no longer reproduce everything.</p>
+<ul>
+<li><b>Option 1: more representatives.</b> Use $\{[1,0],[0,1]\}$; then $x_5=5[1,0]+6[0,1]$, $[10,10]=10[1,0]+10[0,1]$, and so on. Exact, but now <b>two</b> coefficients per point plus 4 numbers for the representatives: $2n+4$, worse than the raw $2n$. No compression at all.</li>
+<li><b>Option 2: give up exact reconstruction.</b> Replace $x_5$ by a <b>proxy</b> on the line. Then all points are on the line and one representative plus one coefficient each works again.</li>
+</ul>
+<p>Exact reconstruction and few representatives can't both be had here. To compress, give up exactness.</p>
+
+<h2>5 · The best proxy is the projection</h2>
+<p>The best proxy is the point on the line where we <b>lose the least</b>: the error vector you'd have to add to the proxy to get back $x$ should be as short as possible. The line is all multiples of a representative $w=[w_1,w_2]\neq0$, so the proxy is $c\,w$ for some scalar $c$. Choose $c$ to minimise the squared length of the error:</p>
+$$\min_c\;(x_1-c\,w_1)^2+(x_2-c\,w_2)^2 .$$
+<p>Setting the derivative to zero (left as an exercise in the lecture; worked below) gives</p>
+$$c^\star=\frac{x_1w_1+x_2w_2}{w_1^2+w_2^2}=\frac{x^\top w}{\lVert w\rVert^2},\qquad\text{proxy}=c^\star w=\frac{x^\top w}{\lVert w\rVert^2}\,w .$$
+<p>The numerator is the dot product of $x$ and $w$; the denominator is the squared length of $w$ (Pythagoras). The same formula holds in $\mathbb R^d$. This is the <b>projection</b> of $x$ onto the line.</p>
+<div class="callout"><b>Use a unit representative.</b> Since any nonzero $w$ on the line works, pick one with $\lVert w\rVert=1$ (a point on the unit circle, $w_1^2+w_2^2=1$). Then the denominator disappears: $$\text{proxy}=(x^\top w)\,w,\qquad\text{coefficient}=x^\top w .$$</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The lecture's dataset: four points on $y=x$ and $x_5=[5,6]$ off it (drag $x_5$ anywhere). Slide $c$ to move a candidate proxy $c\,w$ along the line, with unit $w=[1/\sqrt2,\,1/\sqrt2]$. The orange segment is the error vector; its squared length is plotted on the right.</p>
+  <div class="row">
+    <label>c = <b id="cV"></b> <input type="range" id="c" min="-1600" max="1600" value="300" aria-label="coefficient c"></label>
+    <button id="snap">Use c* = xᵀw</button>
+  </div>
+  <div class="pair rev">
+    <canvas id="pc" height="320" aria-label="Line through the origin, the off-line point and a candidate proxy"></canvas>
+    <canvas id="ce" height="320" aria-label="Squared error as a function of c"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>points on the line</span><span><i class="dot" style="background:var(--ink)"></i>x₅ (drag me)</span><span><i class="dot" style="background:var(--s3)"></i>candidate proxy c·w</span><span><i style="background:var(--s2)"></i>error vector</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="err">–</div><div class="l">‖x₅ − c w‖²</div></div>
+    <div class="stat"><div class="v" id="cs">–</div><div class="l">c* = x₅ᵀw</div></div>
+    <div class="stat"><div class="v" id="emin">–</div><div class="l">smallest error</div></div>
+  </div>
+  <p class="small" id="pTxt"></p>
+</div>
+<div class="beyond"><b>The exercise, worked (beyond the video).</b> Let $f(c)=(x_1-cw_1)^2+(x_2-cw_2)^2$. Then $f'(c)=-2w_1(x_1-cw_1)-2w_2(x_2-cw_2)=-2(x^\top w)+2c\lVert w\rVert^2$. Setting $f'(c)=0$ gives $c^\star=x^\top w/\lVert w\rVert^2$, and $f''(c)=2\lVert w\rVert^2>0$, so it is a minimum. At $c^\star$ the error $x-c^\star w$ is <b>perpendicular</b> to $w$: $w^\top(x-c^\star w)=x^\top w-c^\star\lVert w\rVert^2=0$. That's the right angle you see in the demo.</div>
+
+<h2>6 · Where this leaves us</h2>
+<p>If we know the line, we can find a proxy for every off-line point by projecting it: coefficient $x^\top w$, proxy $(x^\top w)w$. But nobody tells us which line to use. Choosing the line is the next lecture.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Unsupervised learning: data points are vectors in $\mathbb R^d$; "understanding" is made precise as <b>compression</b> ("comprehension is compression").</li>
+<li>Points on a line through the origin: one representative $w$ plus one coefficient per point, $x_i=c_iw$. Storage drops from $dn$ to $d+n$, with exact reconstruction.</li>
+<li>Any nonzero $w$ on the line can be the representative; choosing $\lVert w\rVert=1$ is convenient.</li>
+<li>Points off the line: more representatives destroy the compression, so give up exact reconstruction and use a proxy.</li>
+<li>The best proxy is the projection: $c^\star=x^\top w/\lVert w\rVert^2$, which for unit $w$ is $(x^\top w)\,w$.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+
+/* ---- storage counter ---- */
+const fmt = v => v >= 1e9 ? (v / 1e9).toPrecision(4).replace(/\.?0+$/, '') + ' billion' : v >= 1e6 ? (v / 1e6).toPrecision(4).replace(/\.?0+$/, '') + ' million' : v.toLocaleString();
+function counter(){ const n = [4, 100, 1000, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10][+$('n').value], d = +$('d').value;
+  $('nV').textContent = fmt(n); $('dV').textContent = d; $('raw').textContent = fmt(d * n); $('cmp').textContent = fmt(d + n);
+  $('sav').textContent = (100 * (1 - (d + n) / (d * n))).toFixed(1) + '%'; }
+$('n').oninput = counter; $('d').oninput = counter; counter();
+
+/* ---- projection demo ---- */
+const ON = [[1, 1], [7, 7], [10, 10], [-5, -5]], W = [Math.SQRT1_2, Math.SQRT1_2], R = 12;
+let x5 = [5, 6], g = null, dragging = false;
+const cOf = () => +$('c').value / 100;
+const err = c => (x5[0] - c * W[0]) ** 2 + (x5[1] - c * W[1]) ** 2;
+function draw(){
+  const c = cOf(), cs = x5[0] * W[0] + x5[1] * W[1];
+  $('cV').textContent = c.toFixed(2); $('err').textContent = err(c).toFixed(2); $('cs').textContent = cs.toFixed(2); $('emin').textContent = err(cs).toFixed(2);
+  const [ctx, Wd, H] = setupCanvas($('pc')), side = Math.min(Wd, H) - 16, ox = (Wd - side) / 2, oy = (H - side) / 2;
+  const X = v => ox + (v + R) / (2 * R) * side, Y = v => oy + side - (v + R) / (2 * R) * side;
+  g = {inv: (px, py) => [(px - ox) / side * 2 * R - R, (oy + side - py) / side * 2 * R - R], X, Y};
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.font = '11px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted');
+  for (let v = -10; v <= 10; v += 5){ ctx.beginPath(); ctx.moveTo(X(v), Y(-R)); ctx.lineTo(X(v), Y(R)); ctx.moveTo(X(-R), Y(v)); ctx.lineTo(X(R), Y(v)); ctx.stroke();
+    if (v){ ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), Y(0) + 3); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, X(0) - 3, Y(v)); } }
+  ctx.strokeStyle = cssv('--muted'); ctx.beginPath(); ctx.moveTo(X(-R), Y(0)); ctx.lineTo(X(R), Y(0)); ctx.moveTo(X(0), Y(-R)); ctx.lineTo(X(0), Y(R)); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, side, side); ctx.clip();
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(-R), Y(-R)); ctx.lineTo(X(R), Y(R)); ctx.stroke();
+  // unit representative w as an arrow
+  const arrow = (a, b, col) => { ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(a[0]), Y(a[1])); ctx.lineTo(X(b[0]), Y(b[1])); ctx.stroke();
+    const ang = Math.atan2(Y(b[1]) - Y(a[1]), X(b[0]) - X(a[0])); ctx.beginPath(); ctx.moveTo(X(b[0]), Y(b[1])); ctx.lineTo(X(b[0]) - 9 * Math.cos(ang - 0.4), Y(b[1]) - 9 * Math.sin(ang - 0.4)); ctx.lineTo(X(b[0]) - 9 * Math.cos(ang + 0.4), Y(b[1]) - 9 * Math.sin(ang + 0.4)); ctx.fill(); };
+  arrow([0, 0], W, cssv('--ink'));
+  const p = [c * W[0], c * W[1]], ps = [cs * W[0], cs * W[1]];
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(x5[0]), Y(x5[1])); ctx.lineTo(X(ps[0]), Y(ps[1])); ctx.stroke(); ctx.setLineDash([]);
+  arrow(p, x5, cssv('--s2'));
+  const dot = (q, col, r) => { ctx.fillStyle = col; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(q[0]), Y(q[1]), r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); };
+  ON.forEach(q => dot(q, cssv('--s1'), 5)); dot(p, cssv('--s3'), 6); dot(x5, cssv('--ink'), 7);
+  ctx.fillStyle = cssv('--ink'); ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillText('x₅', X(x5[0]) + 8, Y(x5[1]) - 4); ctx.fillText('w', X(W[0]) + 4, Y(W[1]) + 16);
+  ctx.restore();
+  // error as a function of c
+  const [e2, EW, EH] = setupCanvas($('ce')), pad = {l: 34, r: 8, t: 8, b: 28}, CR = [-16, 16], eMax = Math.max(err(CR[0]), err(CR[1]));
+  const CX = v => pad.l + (v - CR[0]) / (CR[1] - CR[0]) * (EW - pad.l - pad.r), CY = v => EH - pad.b - v / eMax * (EH - pad.t - pad.b);
+  e2.font = '11px system-ui,sans-serif'; e2.fillStyle = cssv('--muted'); e2.strokeStyle = cssv('--grid'); e2.lineWidth = 1;
+  [0, eMax / 2, eMax].forEach(v => { e2.beginPath(); e2.moveTo(pad.l, CY(v)); e2.lineTo(EW - pad.r, CY(v)); e2.stroke(); e2.textAlign = 'right'; e2.textBaseline = 'middle'; e2.fillText(Math.round(v), pad.l - 4, CY(v)); });
+  [-15, 0, 15].forEach(v => { e2.textAlign = 'center'; e2.textBaseline = 'top'; e2.fillText(v, CX(v), EH - pad.b + 4); });
+  e2.textBaseline = 'bottom'; e2.fillText('c', (pad.l + EW) / 2, EH);
+  e2.strokeStyle = cssv('--ink'); e2.lineWidth = 2; e2.beginPath(); for (let i = 0; i <= 200; i++){ const v = CR[0] + (CR[1] - CR[0]) * i / 200; i ? e2.lineTo(CX(v), CY(err(v))) : e2.moveTo(CX(v), CY(err(v))); } e2.stroke();
+  const edot = (v, col) => { e2.fillStyle = col; e2.strokeStyle = cssv('--card'); e2.lineWidth = 2; e2.beginPath(); e2.arc(CX(v), CY(err(v)), 6, 0, 2 * Math.PI); e2.fill(); e2.stroke(); };
+  edot(cs, cssv('--faint')); edot(c, cssv('--s3'));
+  $('pTxt').innerHTML = Math.abs(c - cs) < 0.02
+    ? `At c* = xᵀw = ${cs.toFixed(2)} the error is as small as it gets, and the error vector meets the line at a <b>right angle</b>: the proxy is the projection (x₅ᵀw)w = [${(cs * W[0]).toFixed(2)}, ${(cs * W[1]).toFixed(2)}].`
+    : `This proxy loses ${err(c).toFixed(2)} (squared length of the orange vector). Moving c towards ${cs.toFixed(2)} shrinks it; the dashed line shows where the error is shortest.`;
+}
+$('c').oninput = draw;
+$('snap').onclick = () => { $('c').value = Math.round(100 * (x5[0] * W[0] + x5[1] * W[1])); draw(); };
+const pos = e => { const r = $('pc').getBoundingClientRect(), t = e.touches ? e.touches[0] : e; return g.inv(t.clientX - r.left, t.clientY - r.top); };
+const near = q => Math.hypot(g.X(q[0]) - g.X(x5[0]), g.Y(q[1]) - g.Y(x5[1])) < 18;
+$('pc').addEventListener('pointerdown', e => { const q = pos(e); if (near(q)) { dragging = true; $('pc').setPointerCapture(e.pointerId); } });
+$('pc').addEventListener('pointermove', e => { if (!dragging) return; const q = pos(e); x5 = [Math.max(-11, Math.min(11, q[0])), Math.max(-11, Math.min(11, q[1]))]; draw(); });
+$('pc').addEventListener('pointerup', () => { dragging = false; });
+$('pc').style.touchAction = 'none';
+draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

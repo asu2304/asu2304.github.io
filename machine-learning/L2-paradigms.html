@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paradigms of Machine Learning</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.rev{grid-template-columns:minmax(0,2fr) minmax(0,1fr)} .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+@media (max-width:600px){.pair.rev,.trio{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 2 · Course introduction, continued</div>
+<h1>Paradigms of Machine Learning</h1>
+<p class="lede">Three broad paradigms: <b>supervised</b> learning (data with labels), <b>unsupervised</b> learning (data alone) and <b>sequential</b> learning (decide, get feedback, update). Each splits into sub-problems. Building any learning algorithm needs three ingredients, <b>structure</b>, <b>uncertainty</b> and <b>decisions</b>, which is why the prerequisites are linear algebra, probability and optimisation.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=ipjggYk7zXs">this lecture on YouTube</a> (≈26 min). Previous: <a href="L1-introduction.html">L1</a> · Next: <a href="L3-representation-learning.html">L3</a>.</p>
+
+<h2>1 · Supervised learning</h2>
+<p>Besides the data you have <b>supervision</b>. A pile of emails is just data, but a teacher or labeler marks some as spam and others as non-spam. Now each data point (its <b>features</b>) comes with a <b>label</b>, and the task is to learn to tell one label from the other.</p>
+
+<h2>2 · Unsupervised learning</h2>
+<p>Only data points, no labels: "make sense of this". With a collection of animal pictures you could group animals vs. background, dogs vs. cats, four animals vs. six, white vs. black or brown animals… The problem isn't well posed until you fix a <b>notion of similarity</b>. Fix "cats vs. dogs" and you get three groups: only cats, only dogs, both. Automatically finding groups like this is one example of unsupervised learning.</p>
+
+<h2>3 · Sequential learning</h2>
+<p>You don't learn in one shot. You make a decision, observe <b>feedback</b> (a form of supervision), compare it with your prediction, update your model, and do better over time. Not all data and supervision are handed over at the start. This course won't cover it, but it's worth knowing it exists.</p>
+
+<h2>4 · The sub-problems</h2>
+<table>
+<tr><th>Paradigm</th><th>Sub-problem</th><th>What it means</th></tr>
+<tr><td rowspan="4">Supervised</td><td><b>Classification</b></td><td>Labels from a <b>finite</b> set: spam / non-spam (binary), digits 0–9 (10 labels).</td></tr>
+<tr><td><b>Regression</b></td><td>Predict a <b>continuous</b> output.</td></tr>
+<tr><td>Ranking</td><td>Output an ordering of objects, not just a prediction.</td></tr>
+<tr><td>Structured learning</td><td>Labels with structure of their own, e.g. trees. (Ranking and structured learning: not covered much.)</td></tr>
+<tr><td rowspan="2">Unsupervised</td><td><b>Clustering</b></td><td>Grouping objects.</td></tr>
+<tr><td><b>Representation learning</b></td><td>Represent each data point in the best way so a task becomes easier. Raw pixel values may not be the best way to represent an image for "is there a tree?". Can be supervised too; the course covers the unsupervised kind.</td></tr>
+<tr><td rowspan="3">Sequential<br><span class="small muted">(not covered)</span></td><td>Online learning</td><td><b>Full information</b>: experts advise you whether to invest; when the market reacts you learn how <i>every</i> expert's advice would have done.</td></tr>
+<tr><td>Multi-armed bandits</td><td><b>Partial feedback</b>: a doctor picks treatment 2 of 4 and sees only how that treatment worked, never what the others would have done. Harder.</td></tr>
+<tr><td>Reinforcement learning</td><td>A robot learns a <b>policy</b>, a map from <b>state</b> (location) to <b>action</b> (front/left/right/back), purely by acting and receiving feedback from the environment.</td></tr>
+</table>
+
+<h2>5 · Placing L1's examples</h2>
+<table>
+<tr><th>Problem</th><th>Type</th><th>Why</th></tr>
+<tr><td>Spam vs. non-spam</td><td>Supervised · binary classification</td><td>Labels given; only two of them.</td></tr>
+<tr><td>Forecasting rainfall</td><td>Supervised · regression</td><td>"How much": 2.23 cm or 100.82 cm, a continuous number.</td></tr>
+<tr><td>Recommending movies</td><td>Ordinal classification / ranking</td><td>Only ~5 slots on screen: the right movies <b>in the right order</b>. A movie you'd love at position 100 is useless.</td></tr>
+<tr><td>Friend suggestions</td><td>Link prediction</td><td>People are nodes, friendships are edges; how likely is a missing edge to exist?</td></tr>
+<tr><td>Voice/instrument separation</td><td>Unsupervised</td><td>Nobody labels every second as "voice" or "instrument": too tedious, and often both play at once.</td></tr>
+<tr><td>Grouping phone photos</td><td>Unsupervised · clustering</td><td>It knows these faces look alike, not whose face it is.</td></tr>
+<tr><td>Robot navigation</td><td>Reinforcement learning</td><td>Learns state → action by doing.</td></tr>
+<tr><td>Stock market with friends' advice</td><td>Online learning</td><td>At day's end you see how you <i>and</i> every friend did.</td></tr>
+</table>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Quick drill: which paradigm and sub-problem is each one? (Some are new; the options use the sub-problems from section 4.)</p>
+  <p id="qText" style="font-weight:600;margin:6px 0"></p>
+  <div class="row" id="qOpts"></div>
+  <p class="small" id="qFb"></p>
+  <div class="row"><button id="qNext">Next problem</button><span class="small muted" id="qScore"></span></div>
+</div>
+
+<h2>6 · Why the prerequisites? Three ingredients</h2>
+<p>Take the height and weight of 100 people and plot them. To predict height from weight, notice that on average height rises with weight, roughly <b>linearly</b>. So look for the best line. But there are infinitely many lines, even if you only allow lines through the origin, and none passes through all the points. Building the predictor needs three things:</p>
+<table>
+<tr><th>Ingredient</th><th>In the example</th><th>Mathematics</th></tr>
+<tr><td><b>Structure</b></td><td>Height and weight are linearly related, so we look for a line.</td><td>Linear algebra (lines and their "calculus"; the base for non-linear structure later)</td></tr>
+<tr><td><b>Uncertainty</b></td><td>No point lies on the line: noise from data collection, faulty equipment, missing data…</td><td>Probability</td></tr>
+<tr><td><b>Decisions</b></td><td>Define what "best" means, then pick the line that does best: data → decision.</td><td>Optimisation (maximise or minimise something)</td></tr>
+</table>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The three ingredients in one picture. Points are (weight, height) for 100 people, measured from the average person, so a line through the origin makes sense. <b>Structure</b>: the line (slope slider). <b>Uncertainty</b>: the noise slider. <b>Decision</b>: one criterion for "best" (average squared vertical gap), plotted on the right for every slope.</p>
+  <div class="row">
+    <label>slope = <b id="mV"></b> <input type="range" id="m" min="-100" max="300" value="40" aria-label="slope of the line"></label>
+    <label>noise = <b id="nV"></b> <input type="range" id="nz" min="0" max="150" value="60" aria-label="noise level"></label>
+    <button id="best">Pick the best line</button><button id="redraw">New people</button>
+  </div>
+  <div class="pair rev">
+    <canvas id="hw" height="280" aria-label="Height versus weight with a candidate line"></canvas>
+    <canvas id="ec" height="280" aria-label="Average squared error for each slope"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>person</span><span><i style="background:var(--ink)"></i>candidate line</span><span><i style="background:var(--s2)"></i>gaps to the line</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="eNow">–</div><div class="l">average squared gap, this line</div></div>
+    <div class="stat"><div class="v" id="eBest">–</div><div class="l">smallest possible</div></div>
+  </div>
+  <p class="small" id="hwTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> Measuring "best" by the average squared vertical gap is one choice; the lecture deliberately leaves the criterion open here. The course returns to exactly this problem in regression (<a href="L28-linear-regression.html">L28</a> onwards), and L3–L4 use a different criterion (perpendicular distance) for a different goal, compression.</div>
+
+<h2>7 · Course goals, roadmap and references</h2>
+<ul>
+<li><b>Goals:</b> a clear view of the paradigms; the ability to pose a new real-world problem as a machine learning problem; understand the key algorithms, how they differ, when each works and why; appreciate the mathematics, not treat them as black boxes; implement them from scratch and show results with plots.</li>
+<li><b>Roadmap:</b> unsupervised learning first (representation learning, clustering, estimation), then supervised learning (basic algorithms, advanced algorithms, advanced topics).</li>
+<li><b>References</b> (no single textbook; lecture notes suffice): Gilbert Strang, <i>Linear Algebra and its Applications</i>; Sheldon Ross, <i>A First Course in Probability</i>; Christopher Bishop, <i>Pattern Recognition and Machine Learning</i> (the go-to reference, a superset of the course, though notation and order differ); <i>Mathematics for Machine Learning</i> (free soft copy).</li>
+</ul>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Supervised = data + labels; unsupervised = data only; sequential = decide, get feedback, update.</li>
+<li>Supervised: classification (finite labels), regression (continuous), ranking, structured. Unsupervised: clustering, representation learning.</li>
+<li>Sequential (not in this course): online learning (full feedback), bandits (partial feedback), reinforcement learning (policy: state → action).</li>
+<li>Three ingredients of a learning algorithm: structure (linear algebra), uncertainty (probability), decisions (optimisation).</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+
+/* ---- quiz ---- */
+const OPTS = ['Classification', 'Regression', 'Ranking', 'Clustering', 'Representation learning', 'Online learning', 'Multi-armed bandit', 'Reinforcement learning'];
+const Q = [
+  ['Tag each incoming email as spam or not spam, learning from emails a labeler has marked.', 0, 'Supervised, finite labels (two of them): binary classification.'],
+  ['Read a handwritten digit and say which of 0–9 it is.', 0, 'Still a finite set of labels, just ten instead of two: (multi-class) classification.'],
+  ['Predict how many centimetres of rain will fall tomorrow from pressure, humidity, precipitation…', 1, 'The output is a continuous number: regression.'],
+  ['Choose which 5 movies to show on a user\'s home screen, and in what order.', 2, 'The order matters as much as the choice: ranking / ordinal classification.'],
+  ['Group the photos on a phone so that pictures of the same face end up together, with no names given.', 3, 'No labels; find groups by similarity: clustering.'],
+  ['Find a way to describe images that works better than raw pixel values, without any labels.', 4, 'Learning a better description of each data point: (unsupervised) representation learning.'],
+  ['Each morning ten friends say "invest" or "don\'t"; you decide; in the evening you see how you and every friend did.', 5, 'Sequential with feedback for every expert, not just your choice: online learning (full information).'],
+  ['A doctor picks one of four treatments for each patient and sees only how that treatment worked.', 6, 'Feedback only for the action taken: partial feedback, the multi-armed bandit setting.'],
+  ['A robot must learn which way to move from each spot in a room to reach the far end, by bumping into things.', 7, 'Learns a policy from states to actions through experience: reinforcement learning.'],
+];
+let qi = 0, order = [], score = 0, seen = 0, answered = false;
+function shuffle(){ order = [...Q.keys()].sort(() => Math.random() - 0.5); qi = 0; }
+function showQ(){
+  const [text] = Q[order[qi]]; answered = false; $('qText').textContent = text; $('qFb').textContent = '';
+  $('qOpts').innerHTML = OPTS.map((o, i) => `<button data-o="${i}">${o}</button>`).join('');
+  $('qOpts').querySelectorAll('button').forEach(b => b.onclick = () => answer(+b.dataset.o, b));
+}
+function answer(o, btn){
+  if (answered) return; answered = true; seen++;
+  const [, right, why] = Q[order[qi]], ok = o === right; if (ok) score++;
+  btn.classList.add('on'); if (!ok) $('qOpts').querySelector(`[data-o="${right}"]`).style.borderColor = cssv('--s3');
+  $('qFb').innerHTML = (ok ? '<b>Right.</b> ' : `<b>Not quite: ${OPTS[right]}.</b> `) + why;
+  $('qScore').textContent = `${score} / ${seen} correct`;
+}
+$('qNext').onclick = () => { qi++; if (qi >= order.length) shuffle(); showQ(); };
+shuffle(); showQ();
+
+/* ---- height vs weight ---- */
+const N = 100, XR = [-25, 25], YR = [-40, 40], SR = [-1, 3];
+let base = [];
+function people(){ base = Array.from({length: N}, () => [10 * randn(), randn()]); }   // weight offset (kg), unit noise
+const data = () => { const s = +$('nz').value / 10; return base.map(([w, e]) => [w, 1.2 * w + s * e]); };
+const mse = (D, m) => D.reduce((t, [x, y]) => t + (y - m * x) ** 2, 0) / D.length;
+const bestSlope = D => D.reduce((t, [x, y]) => t + x * y, 0) / D.reduce((t, [x]) => t + x * x, 0);
+function frame(cv, xr, yr, xl, yl, xs, ys){
+  const [ctx, W, H] = setupCanvas(cv), pad = {l: 38, r: 8, t: 8, b: 30};
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  ys.forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 5, Y(v)); });
+  xs.forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 4); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(xl, (pad.l + W) / 2, H);
+  ctx.save(); ctx.translate(10, (pad.t + H - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(yl, 0, 0); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  return {ctx, X, Y};
+}
+function drawHW(){
+  const m = +$('m').value / 100, D = data(), mb = bestSlope(D), e = mse(D, m), eb = mse(D, mb);
+  $('mV').textContent = m.toFixed(2); $('nV').textContent = (+$('nz').value / 10).toFixed(1);
+  $('eNow').textContent = e.toFixed(1); $('eBest').textContent = eb.toFixed(1);
+  let f = frame($('hw'), XR, YR, 'weight − average (kg)', 'height − avg (cm)', [-20, 0, 20], [-40, -20, 0, 20, 40]), {ctx, X, Y} = f;
+  ctx.strokeStyle = cssv('--s2'); ctx.globalAlpha = 0.6; ctx.lineWidth = 1;
+  D.forEach(([x, y]) => { ctx.beginPath(); ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(x), Y(m * x)); ctx.stroke(); }); ctx.globalAlpha = 1;
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(XR[0]), Y(m * XR[0])); ctx.lineTo(X(XR[1]), Y(m * XR[1])); ctx.stroke();
+  ctx.fillStyle = cssv('--s1'); D.forEach(([x, y]) => { ctx.beginPath(); ctx.arc(X(x), Y(y), 3.2, 0, 2 * Math.PI); ctx.fill(); }); ctx.restore();
+  const S = Array.from({length: 121}, (_, i) => SR[0] + (SR[1] - SR[0]) * i / 120), E = S.map(s => mse(D, s)), eMax = Math.min(Math.max(...E), Math.max(400, eb * 6));
+  const g = frame($('ec'), SR, [0, eMax], 'slope', 'avg squared gap', [-1, 0, 1, 2, 3], [0, Math.round(eMax / 2), Math.round(eMax)]);
+  g.ctx.strokeStyle = cssv('--ink'); g.ctx.lineWidth = 2; g.ctx.beginPath(); S.forEach((s, i) => i ? g.ctx.lineTo(g.X(s), g.Y(E[i])) : g.ctx.moveTo(g.X(s), g.Y(E[i]))); g.ctx.stroke();
+  const dot = (s, v, c) => { g.ctx.fillStyle = c; g.ctx.strokeStyle = cssv('--card'); g.ctx.lineWidth = 2; g.ctx.beginPath(); g.ctx.arc(g.X(s), g.Y(v), 6, 0, 2 * Math.PI); g.ctx.fill(); g.ctx.stroke(); };
+  dot(mb, eb, cssv('--s3')); dot(m, Math.min(e, eMax), cssv('--s2')); g.ctx.restore();
+  $('hwTxt').innerHTML = Math.abs(m - mb) < 0.02
+    ? `This is the best line under this criterion (slope ≈ ${mb.toFixed(2)}). It still misses every point: the leftover gap is the <b>uncertainty</b>. Set noise to 0 and the best line passes through every point.`
+    : `Every slope is a valid line (<b>structure</b>), but they're not equally good. The orange dot on the right is this line's error; the green dot is the minimum. Choosing it is the <b>decision</b> step.`;
+}
+$('m').oninput = drawHW; $('nz').oninput = drawHW;
+$('best').onclick = () => { $('m').value = Math.round(100 * bestSlope(data())); drawHW(); };
+$('redraw').onclick = () => { people(); drawHW(); };
+people(); drawHW();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawHW, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawHW);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawHW(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kernel Functions and Mercer's Theorem</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 11 · Computing dot products without the map</div>
+<h1>Kernel Functions and Mercer's Theorem</h1>
+<p class="lede">PCA in the mapped space only needs the dot products $\phi(x_i)^\top\phi(x_j)$, never $\phi(x)$ itself. Some functions compute that high-dimensional dot product <b>directly from the low-dimensional inputs</b>: $(x^\top x'+1)^2$ is a dot product in $\mathbb R^6$, and the Gaussian (RBF) function is one in an infinite-dimensional space. Such functions are <b>kernels</b>. Mercer's theorem says how to recognise one: it must be symmetric and give positive semi-definite kernel matrices.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=G6rMGLhw3IQ">this lecture on YouTube</a> (≈29 min). Previous: <a href="L10-feature-transformation.html">L10</a> · Next: <a href="L12-kernel-pca.html">L12</a>.</p>
+
+<h2>1 · The problem, restated</h2>
+<p>$\phi(x)\in\mathbb R^D$ may be too large to compute (L10: $D\approx d^p$). But L9 showed that PCA only needs the $n\times n$ matrix of pairwise dot products. In the mapped space that is</p>
+$$K_{ij}=\phi(x_i)^\top\phi(x_j).$$
+<p>The obvious route is $x_i,x_j\;\to\;\phi(x_i),\phi(x_j)\;\to$ dot product. Is there a <b>direct</b> route, from $x_i,x_j$ straight to the number, without ever forming $\phi$?</p>
+
+<h2>2 · An example that works</h2>
+<p>Let $x=(f_1,f_2)$ and $x'=(g_1,g_2)$, and consider $k(x,x')=(x^\top x'+1)^2$. Expand it:</p>
+$$(f_1g_1+f_2g_2+1)^2=f_1^2g_1^2+f_2^2g_2^2+1+2f_1g_1f_2g_2+2f_1g_1+2f_2g_2 .$$
+<p>Group the $f$-parts and the $g$-parts into two vectors of the <b>same form</b> (that's what the $\sqrt2$'s are for):</p>
+$$\phi\!\left(\begin{bmatrix}a\\b\end{bmatrix}\right)=\begin{bmatrix}a^2& b^2& 1& \sqrt2\,ab& \sqrt2\,a& \sqrt2\,b\end{bmatrix}^\top\in\mathbb R^6,\qquad (x^\top x'+1)^2=\phi(x)^\top\phi(x').$$
+<div class="callout"><b>The insight:</b> computing $(x^\top x'+1)^2$ is a cheap 2-D calculation, yet the number it produces is the dot product of $x$ and $x'$ after a 6-D transformation. We got $\phi(x)^\top\phi(x')$ without computing $\phi(x)$.</div>
+
+<div class="card">
+  <h3 style="margin:0 0 4px">Check it numerically</h3>
+  <p class="small muted" style="margin-top:0">Two random points in $\mathbb R^2$. The left column computes the kernel in 2-D; the right column builds the 6-D vectors explicitly and takes their dot product.</p>
+  <div class="row"><button id="pair">New pair of points</button></div>
+  <table>
+    <tr><th>Cheap route: (xᵀx′ + 1)²</th><th>Explicit route: φ(x)ᵀφ(x′)</th></tr>
+    <tr><td id="cheap"></td><td id="expl"></td></tr>
+  </table>
+</div>
+
+<h2>3 · More kernels</h2>
+<p>Mapping 2-D to 6-D isn't impressive on its own. What matters is that the trick extends to general $d$ and high powers.</p>
+<table>
+<tr><th>Kernel</th><th>Formula</th><th>Hidden feature space</th></tr>
+<tr><td><b>Polynomial</b>, power $p\ge1$</td><td>$k(x,x')=(x^\top x'+1)^p$</td><td>all monomials up to degree $p$: dimension grows like $d^p$, but the kernel costs only one $d$-dimensional dot product</td></tr>
+<tr><td><b>Gaussian / radial basis function (RBF)</b>, $\sigma&gt;0$</td><td>$k(x,x')=\exp\!\left(-\dfrac{\lVert x-x'\rVert^2}{2\sigma^2}\right)$</td><td><b>infinite-dimensional</b>: think of each point as mapped to a function, with dot products becoming integrals. The power series of $e^{(\cdot)}$ contains every polynomial power, with decreasing weights.</td></tr>
+</table>
+<p>For $(x^\top x'+1)^p$ the lecture leaves an exercise: write out $\phi$ explicitly for $p=3$ and $p=4$ (with general $d$) and watch how its dimension grows. Exhibiting a $\phi$ is a <b>certificate</b> that the function is a valid kernel.</p>
+
+<h2>4 · What is a kernel?</h2>
+<div class="callout"><b>Definition.</b> A function $k:\mathbb R^d\times\mathbb R^d\to\mathbb R$ is a (valid) <b>kernel</b> if there exists a map $\phi:\mathbb R^d\to\mathbb R^D$ (possibly $D=\infty$) with $k(x,x')=\phi(x)^\top\phi(x')$ for all $x,x'$.</div>
+<p>Not every function qualifies. If $k$ isn't a dot product in some space, its "kernel matrix" isn't a legitimate $\phi(X)^\top\phi(X)$, and PCA on it makes no sense. Two ways to check validity:</p>
+<ol>
+<li><b>Exhibit $\phi$ explicitly</b>, as for the quadratic kernel. Often hard.</li>
+<li><b>Mercer's theorem.</b></li>
+</ol>
+
+<h2>5 · Mercer's theorem (informal)</h2>
+<div class="callout">$k$ is a valid kernel <b>if and only if</b>
+<ol style="margin:6px 0 0">
+<li><b>$k$ is symmetric:</b> $k(x,x')=k(x',x)$ for all $x,x'$; and</li>
+<li><b>for any dataset</b> $x_1,\dots,x_n$, the $n\times n$ matrix $K_{ij}=k(x_i,x_j)$ is <b>positive semi-definite</b>: all its eigenvalues are $\ge0$.</li>
+</ol></div>
+<p>The theorem says these conditions are sufficient as well as necessary; sufficiency is the hard part and isn't proved in the course. Necessity is easy:</p>
+<ul>
+<li><b>Symmetry:</b> $k(x,x')=\phi(x)^\top\phi(x')=\phi(x')^\top\phi(x)=k(x',x)$. If you can find one pair where $k(x,x')\ne k(x',x)$, $k$ is not a kernel.</li>
+<li><b>Non-negative eigenvalues:</b> $K=\phi(X)^\top\phi(X)$. By L9's fact, its non-zero eigenvalues equal those of $\phi(X)\phi(X)^\top$, which is a (scaled) covariance matrix in the high-dimensional space. Its eigenvalues are variances along its eigenvectors, so they can't be negative.</li>
+</ul>
+
+<div class="card">
+  <h3 style="margin:0 0 4px">Test a function with Mercer's conditions</h3>
+  <p class="small muted" style="margin-top:0">30 random points in 2-D. The heatmap is the matrix $K_{ij}=k(x_i,x_j)$ (blue positive, orange negative). The bars are its eigenvalues, smallest on the right. A function passes if $K$ is symmetric and no eigenvalue is negative (one dataset can only <b>disprove</b> validity; it can't prove it).</p>
+  <div class="row">
+    <button data-k="lin">xᵀx′</button><button data-k="poly" class="on">(xᵀx′ + 1)ᵖ</button><button data-k="rbf">RBF</button><button data-k="dist">‖x − x′‖</button><button data-k="sub">xᵀx′ − 1</button><button data-k="asym">x₁·x′₂</button>
+  </div>
+  <div class="row">
+    <label id="pL">p = <b id="pV"></b> <input type="range" id="p" min="1" max="6" value="2" aria-label="polynomial power"></label>
+    <label id="sL">σ = <b id="sV"></b> <input type="range" id="s" min="10" max="300" value="80" aria-label="RBF width"></label>
+    <button id="nd">New points</button>
+  </div>
+  <div class="pair">
+    <canvas id="hm" height="260" aria-label="Heatmap of the kernel matrix"></canvas>
+    <canvas id="eg" height="260" aria-label="Eigenvalues of the kernel matrix"></canvas>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="sym">–</div><div class="l">symmetric?</div></div>
+    <div class="stat"><div class="v" id="minE">–</div><div class="l">smallest eigenvalue / largest</div></div>
+    <div class="stat"><div class="v" id="verdict">–</div><div class="l">verdict on this dataset</div></div>
+  </div>
+  <p class="small" id="kTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The last three functions are my counter-examples. $\lVert x-x'\rVert$ is symmetric but its matrix has a zero diagonal and positive off-diagonal entries, so its trace is 0 and some eigenvalue must be negative. $x^\top x'-1$ adds the constant $-1$ to a valid kernel, and a negative constant is not a dot product. $x_1x'_2$ fails symmetry. For a non-symmetric matrix the demo checks the eigenvalues of its symmetric part $(K+K^\top)/2$.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>PCA in the mapped space needs only $\phi(x_i)^\top\phi(x_j)$.</li>
+<li>A kernel computes that dot product directly: $(x^\top x'+1)^2=\phi(x)^\top\phi(x')$ with $\phi(x)\in\mathbb R^6$ for 2-D inputs.</li>
+<li>Polynomial kernel $(x^\top x'+1)^p$; Gaussian/RBF kernel $\exp(-\lVert x-x'\rVert^2/2\sigma^2)$, whose feature space is infinite-dimensional.</li>
+<li>Valid kernel ⇔ some $\phi$ exists with $k(x,x')=\phi(x)^\top\phi(x')$.</li>
+<li>Mercer: valid ⇔ symmetric and every kernel matrix is positive semi-definite. Necessity follows from dot-product symmetry and covariance eigenvalues being variances.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+function eigSym(A){ const n = A.length, a = A.map(r => r.slice());
+  let nrm = 0; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) nrm += a[i][j] ** 2;
+  for (let sweep = 0; sweep < 60; sweep++){ let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += a[i][j] ** 2; if (off < 1e-26 * nrm) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++){ if (a[p][q] === 0) continue;
+      const th = (a[q][q] - a[p][p]) / (2 * a[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++){ const akp = a[k][p], akq = a[k][q]; a[k][p] = c * akp - s * akq; a[k][q] = s * akp + c * akq; }
+      for (let k = 0; k < n; k++){ const apk = a[p][k], aqk = a[q][k]; a[p][k] = c * apk - s * aqk; a[q][k] = s * apk + c * aqk; } } }
+  return a.map((r, i) => r[i]).sort((x, y) => y - x); }
+// demo 1: quadratic kernel vs explicit 6-D map
+const phi2 = ([a, b]) => [a * a, b * b, 1, Math.SQRT2 * a * b, Math.SQRT2 * a, Math.SQRT2 * b];
+function pair(){ const x = [randn(), randn()].map(v => +v.toFixed(2)), y = [randn(), randn()].map(v => +v.toFixed(2));
+  const dot = x[0] * y[0] + x[1] * y[1], cheap = (dot + 1) ** 2, px = phi2(x), py = phi2(y), expl = px.reduce((s, v, i) => s + v * py[i], 0);
+  const vec = v => '(' + v.map(t => t.toFixed(3)).join(', ') + ')';
+  $('cheap').innerHTML = `x = (${x.join(', ')}), x′ = (${y.join(', ')})<br>xᵀx′ = ${dot.toFixed(4)}<br>(xᵀx′ + 1)² = <b>${cheap.toFixed(6)}</b><br><span class="muted">2 multiplications, 1 addition, 1 square</span>`;
+  $('expl').innerHTML = `φ(x) = ${vec(px)}<br>φ(x′) = ${vec(py)}<br>φ(x)ᵀφ(x′) = <b>${expl.toFixed(6)}</b><br><span class="muted">two 6-D vectors built, then 6 products</span>`; }
+// demo 2: Mercer check
+const N = 30;
+let pts = [], kind = 'poly';
+const KF = {lin: (x, y) => x[0] * y[0] + x[1] * y[1], poly: (x, y) => (x[0] * y[0] + x[1] * y[1] + 1) ** +$('p').value,
+  rbf: (x, y) => Math.exp(-((x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2) / (2 * (+$('s').value / 100) ** 2)),
+  dist: (x, y) => Math.hypot(x[0] - y[0], x[1] - y[1]), sub: (x, y) => x[0] * y[0] + x[1] * y[1] - 1, asym: (x, y) => x[0] * y[1]};
+function newPts(){ pts = Array.from({length: N}, () => [randn(), randn()]); }
+function draw(){
+  $('pV').textContent = $('p').value; $('sV').textContent = (+$('s').value / 100).toFixed(2);
+  $('pL').style.display = kind === 'poly' ? '' : 'none'; $('sL').style.display = kind === 'rbf' ? '' : 'none';
+  const k = KF[kind], K = pts.map(x => pts.map(y => k(x, y)));
+  let asym = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) asym = Math.max(asym, Math.abs(K[i][j] - K[j][i]));
+  const symm = K.map((r, i) => r.map((v, j) => (v + K[j][i]) / 2)), ev = eigSym(symm), top = Math.max(...ev.map(Math.abs)), mn = ev[ev.length - 1] / top;
+  const isSym = asym < 1e-9 * top, psd = mn > -1e-9;
+  $('sym').textContent = isSym ? 'yes' : 'no'; $('minE').textContent = Math.abs(mn) < 1e-9 ? '≈ 0' : mn.toExponential(2);
+  $('verdict').textContent = isSym && psd ? 'passes' : 'not a kernel';
+  // heatmap
+  { const [ctx, W, H] = setupCanvas($('hm')), S = Math.min(W, H) - 4, ox = (W - S) / 2, c = S / N, mx = Math.max(...K.flat().map(Math.abs)) || 1;
+    const pos = cssv('--s1'), neg = cssv('--s2');
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++){ const v = K[i][j] / mx; ctx.fillStyle = v >= 0 ? pos : neg; ctx.globalAlpha = Math.min(1, 0.05 + 0.95 * Math.abs(v) ** 0.6); ctx.fillRect(ox + j * c, 2 + i * c, c + 0.5, c + 0.5); }
+    ctx.globalAlpha = 1; ctx.strokeStyle = cssv('--grid'); ctx.strokeRect(ox, 2, S, S); }
+  // eigenvalue bars
+  { const [ctx, W, H] = setupCanvas($('eg')), pad = {l: 8, r: 8, t: 16, b: 16}, bw = (W - pad.l - pad.r) / N;
+    const mxA = Math.max(...ev.map(Math.abs)), lo = Math.min(0, ...ev) / mxA, span = 1 - lo, Y = v => pad.t + (1 - v / mxA) / span * (H - pad.t - pad.b);
+    ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, Y(0)); ctx.lineTo(W - pad.r, Y(0)); ctx.stroke();
+    ev.forEach((v, i) => { ctx.fillStyle = cssv(v < -1e-9 * mxA ? '--s2' : '--s1'); const y0 = Y(0), y1 = Y(v); ctx.fillRect(pad.l + i * bw + 1, Math.min(y0, y1), Math.max(1, bw - 2), Math.max(1.5, Math.abs(y1 - y0))); });
+    ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('eigenvalues of K, largest → smallest', pad.l, 0); }
+  $('kTxt').innerHTML = {
+    lin: 'The plain dot product: φ(x) = x. K = XᵀX has rank 2, so 28 eigenvalues are 0 and none is negative.',
+    poly: `The polynomial kernel with p = ${$('p').value}: symmetric, and every eigenvalue ≥ 0 (up to rounding). It's a dot product in a space of monomials up to degree ${$('p').value}.`,
+    rbf: 'The RBF kernel: symmetric, ones on the diagonal, and all eigenvalues positive. Narrow σ makes K close to the identity (each point is only similar to itself); wide σ makes it nearly all ones.',
+    dist: 'Distance is symmetric, but K has negative eigenvalues (orange), so it is not a dot product in any space.',
+    sub: 'Subtracting 1 breaks positive semi-definiteness: the smallest eigenvalue is negative.',
+    asym: 'k(x, x′) = x₁x′₂ is not symmetric, so it fails the first condition straight away; its symmetric part also has a negative eigenvalue.'}[kind];
+}
+document.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => { kind = b.dataset.k; document.querySelectorAll('button[data-k]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+$('p').oninput = draw; $('s').oninput = draw; $('nd').onclick = () => { newPts(); draw(); }; $('pair').onclick = pair;
+newPts(); pair(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

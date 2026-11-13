@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PCA When d ≫ n: Solving the Smaller Eigenproblem</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 9 · PCA, issue 1: too many features</div>
+<h1>PCA When d ≫ n: Solving the Smaller Eigenproblem</h1>
+<p class="lede">PCA needs the eigenvectors of the $d\times d$ covariance matrix, which costs about $O(d^3)$. When there are far more features than points, every eigenvector $w_k$ turns out to be a <b>combination of the data points</b>, $w_k=X\alpha_k$. The weights $\alpha_k$ come from the eigenvectors of the much smaller $n\times n$ matrix $K=X^\top X$, at a cost of $O(n^3)$. And $K$ only contains <b>dot products between data points</b>, a fact that unlocks the next three lectures.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=pwpDf2_Pytk">this lecture on YouTube</a> (≈36 min). Previous: <a href="L8-pca-issues.html">L8</a> · Next: <a href="L10-feature-transformation.html">L10</a>.</p>
+
+<h2>1 · Setting up the matrices</h2>
+<p>Stack the $n$ data points $x_1,\dots,x_n\in\mathbb R^d$ (centred, as PCA assumes) as <b>columns</b> of a matrix:</p>
+$$X=\begin{bmatrix}| & & |\\ x_1 & \cdots & x_n\\ | & & |\end{bmatrix}\in\mathbb R^{d\times n}.$$
+<p>The covariance matrix is a sum of outer products, and that sum is exactly one matrix product:</p>
+$$C=\frac1n\sum_{i=1}^{n}x_ix_i^\top=\frac1n XX^\top\in\mathbb R^{d\times d}.$$
+<p>(Dimension check: $d\times n$ times $n\times d$ gives $d\times d$. The course divides by $n$; dividing by $n-1$ wouldn't change any eigenvector.) PCA wants the eigenvectors $w_1,w_2,\dots$ of $C$, ordered by eigenvalue $\lambda_1\ge\lambda_2\ge\cdots$, each of unit length:</p>
+$$Cw_k=\lambda_kw_k,\qquad \lVert w_k\rVert=1 .$$
+<p>A general eigen-solver on a $d\times d$ matrix takes about $d^3$ operations. With a million features, that's $10^{18}$.</p>
+
+<h2>2 · Where do the eigenvectors live?</h2>
+<p>Substitute the definition of $C$ and move $\lambda_k$ across (assume $\lambda_k\ne0$):</p>
+$$\frac1n\sum_{i=1}^{n}x_i\,(x_i^\top w_k)=\lambda_kw_k\quad\Longrightarrow\quad w_k=\sum_{i=1}^{n}\underbrace{\frac{x_i^\top w_k}{n\lambda_k}}_{\text{a number}}\;x_i .$$
+<div class="callout"><b>Every eigenvector with a non-zero eigenvalue is a linear combination of the data points.</b> So $w_k=X\alpha_k$ for some weight vector $\alpha_k\in\mathbb R^n$: one weight per data point, and a different set of weights for each $k$.</div>
+<p>The formula above gives the weights, $\alpha_{ki}=x_i^\top w_k/(n\lambda_k)$, but it needs $w_k$, which is what we're trying to find. A chicken-and-egg problem. So look for another route to $\alpha_k$, one that avoids a $d^3$ computation.</p>
+
+<h2>3 · An eigen-equation for α</h2>
+<ol class="steps">
+<li>Start from $Cw_k=\lambda_kw_k$ with $C=\frac1nXX^\top$ and $w_k=X\alpha_k$: $\;XX^\top X\alpha_k=n\lambda_k\,X\alpha_k$.</li>
+<li>Pre-multiply both sides by $X^\top$ and regroup (matrix products are associative): $\;(X^\top X)(X^\top X)\,\alpha_k=n\lambda_k\,(X^\top X)\,\alpha_k$.</li>
+<li>Name the $n\times n$ matrix $K=X^\top X$. The equation reads $K^2\alpha_k=n\lambda_k\,K\alpha_k$.</li>
+<li>Any $\alpha_k$ with $\;\boxed{K\alpha_k=(n\lambda_k)\,\alpha_k}\;$ satisfies it (multiply both sides by $K$). That's an <b>eigen-equation for $K$</b>.</li>
+</ol>
+<p><b>The length matters.</b> If $u$ solves an eigen-equation, so does any multiple of $u$. But $w_k$ must have length 1, and that pins down the length of $\alpha_k$:</p>
+$$1=w_k^\top w_k=(X\alpha_k)^\top(X\alpha_k)=\alpha_k^\top X^\top X\alpha_k=\alpha_k^\top K\alpha_k .$$
+
+<h2>4 · The linear-algebra fact that links the two</h2>
+<div class="callout"><b>Fact.</b> The non-zero eigenvalues of $XX^\top$ ($d\times d$) and $X^\top X$ ($n\times n$) are exactly the same. Both have at most $\min(d,n)$ non-zero eigenvalues. (A two-line proof uses the singular value decomposition.)</div>
+<p>$XX^\top=nC$ has the same unit eigenvectors $w_1,\dots,w_\ell$ as $C$, with eigenvalues $n\lambda_1>\cdots>n\lambda_\ell$. So if $\beta_1,\dots,\beta_\ell$ are the <b>unit</b> eigenvectors of $K$, then $K\beta_k=n\lambda_k\beta_k$: right equation, but wrong length, because</p>
+$$\beta_k^\top K\beta_k=n\lambda_k\,\beta_k^\top\beta_k=n\lambda_k\ne1 .$$
+<p>Fix it by rescaling: $\;\alpha_k=\dfrac{\beta_k}{\sqrt{n\lambda_k}}$. Then $K\alpha_k=n\lambda_k\alpha_k$ still holds, and $\alpha_k^\top K\alpha_k=n\lambda_k/(n\lambda_k)=1$.</p>
+
+<h2>5 · The algorithm</h2>
+<p><b>Input:</b> $\{x_1,\dots,x_n\}$, $x_i\in\mathbb R^d$, with $d\gg n$.</p>
+<ol class="steps">
+<li>Compute $K=X^\top X\in\mathbb R^{n\times n}$.</li>
+<li>Eigen-decompose $K$: unit eigenvectors $\beta_1,\dots,\beta_\ell$, eigenvalues $n\lambda_1,\dots,n\lambda_\ell$. Cost $O(n^3)$ instead of $O(d^3)$.</li>
+<li>Set $\alpha_k=\beta_k/\sqrt{n\lambda_k}$ for $k=1,\dots,\ell$.</li>
+<li>If you want the principal directions themselves: $w_k=X\alpha_k$.</li>
+</ol>
+<p>This only helps when $d\gg n$; if $n>d$, decompose the covariance matrix directly. You can't avoid an eigen-decomposition altogether, but you get to choose the smaller of the two sizes.</p>
+
+<div class="card">
+  <h3 style="margin:0 0 4px">Two routes, same answer</h3>
+  <p class="small muted" style="margin-top:0">Random centred data with $d$ features and $n$ points. The demo eigen-decomposes both $XX^\top$ ($d\times d$) and $K=X^\top X$ ($n\times n$) in your browser, then rebuilds $w_1=X\alpha_1$ from the small problem and compares it with the eigenvector from the big one.</p>
+  <div class="row">
+    <label>d = <b id="dV"></b> <input type="range" id="d" min="5" max="90" value="60" aria-label="number of features d"></label>
+    <label>n = <b id="nV"></b> <input type="range" id="n" min="3" max="40" value="8" aria-label="number of points n"></label>
+    <button id="redo">New data</button>
+  </div>
+  <canvas id="ev" height="230" aria-label="Eigenvalues of XX transpose and X transpose X side by side"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>eigenvalues of XXᵀ (d×d)</span><span><i class="dot" style="background:var(--s2)"></i>eigenvalues of XᵀX (n×n)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="tBig">–</div><div class="l">time: d×d eigenproblem</div></div>
+    <div class="stat"><div class="v" id="tSmall">–</div><div class="l">time: n×n eigenproblem</div></div>
+    <div class="stat"><div class="v" id="cos">–</div><div class="l">|cos| between the two w₁'s</div></div>
+    <div class="stat"><div class="v" id="len">–</div><div class="l">‖Xα₁‖ (should be 1)</div></div>
+  </div>
+  <p class="small" id="evTxt"></p>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 4px">How big is the saving?</h3>
+  <p class="small muted" style="margin-top:0">Rough operation counts, $d^3$ vs $n^3$, at about $10^9$ operations per second (a back-of-envelope figure, not a benchmark).</p>
+  <div class="row">
+    <label>features d = <b id="bdV"></b> <input type="range" id="bd" min="1" max="7" step="0.1" value="5" aria-label="log10 of d"></label>
+    <label>points n = <b id="bnV"></b> <input type="range" id="bn" min="1" max="7" step="0.1" value="3" aria-label="log10 of n"></label>
+  </div>
+  <canvas id="cost" height="150" aria-label="Bar chart comparing d cubed and n cubed operation counts"></canvas>
+  <p class="small" id="costTxt"></p>
+</div>
+
+<h2>6 · A hint of what's next: only dot products matter</h2>
+<p>Look at the entries of $K$:</p>
+$$K_{ij}=x_i^\top x_j\qquad\text{for all }i,j .$$
+<p>Each entry is a dot product, a measure of <b>similarity</b> between two data points. Everything above (eigenvalues, the $\alpha$'s, even the projections $x_i^\top w_k=\sum_j\alpha_{kj}K_{ij}$) needs only these pairwise dot products, not the points themselves. That observation is what turns the solution to issue 1 into a solution for issue 2, non-linear relationships (L10–L12).</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>With data as columns, $C=\frac1nXX^\top$; PCA's eigen-solve on it costs $O(d^3)$.</li>
+<li>Each eigenvector with $\lambda_k\ne0$ is a combination of data points: $w_k=X\alpha_k$.</li>
+<li>$\alpha_k$ solves $K\alpha_k=n\lambda_k\alpha_k$ with $K=X^\top X$ ($n\times n$), normalised so $\alpha_k^\top K\alpha_k=1$, i.e. $\alpha_k=\beta_k/\sqrt{n\lambda_k}$.</li>
+<li>$XX^\top$ and $X^\top X$ share their non-zero eigenvalues, so solve whichever is smaller: $O(n^3)$ when $d\gg n$.</li>
+<li>$K_{ij}=x_i^\top x_j$: PCA needs only pairwise dot products.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// symmetric eigendecomposition (cyclic Jacobi); returns eigenvalues sorted descending with eigenvectors as columns of V
+function eigSym(A){ const n = A.length, a = A.map(r => r.slice()), V = A.map((_, i) => A.map((_, j) => +(i === j)));
+  let nrm = 0; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) nrm += a[i][j] ** 2;
+  for (let sweep = 0; sweep < 60; sweep++){ let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += a[i][j] ** 2; if (off < 1e-24 * nrm) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++){ if (a[p][q] === 0) continue;
+      const th = (a[q][q] - a[p][p]) / (2 * a[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++){ const akp = a[k][p], akq = a[k][q]; a[k][p] = c * akp - s * akq; a[k][q] = s * akp + c * akq; }
+      for (let k = 0; k < n; k++){ const apk = a[p][k], aqk = a[q][k]; a[p][k] = c * apk - s * aqk; a[q][k] = s * apk + c * aqk; }
+      for (let k = 0; k < n; k++){ const vkp = V[k][p], vkq = V[k][q]; V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq; } } }
+  const idx = a.map((_, i) => i).sort((i, j) => a[j][j] - a[i][i]);
+  return {vals: idx.map(i => a[i][i]), vecs: idx.map(i => V.map(r => r[i]))}; }
+let R = null;
+function compute(){
+  const d = +$('d').value, n = +$('n').value;
+  // columns x_i with a few strong directions, then centred
+  const dirs = [0, 1, 2].map(() => Array.from({length: d}, randn));
+  const X = Array.from({length: d}, () => new Array(n).fill(0));
+  for (let i = 0; i < n; i++){ const c = [3 * randn(), 2 * randn(), 1.2 * randn()];
+    for (let r = 0; r < d; r++) X[r][i] = c[0] * dirs[0][r] + c[1] * dirs[1][r] + c[2] * dirs[2][r] + 0.5 * randn(); }
+  X.forEach(row => { const m = row.reduce((s, v) => s + v, 0) / n; row.forEach((v, i) => row[i] = v - m); });
+  const XXt = X.map(ri => X.map(rj => ri.reduce((s, v, k) => s + v * rj[k], 0)));
+  const K = Array.from({length: n}, (_, i) => Array.from({length: n}, (_, j) => X.reduce((s, row) => s + row[i] * row[j], 0)));
+  let t0 = performance.now(); const big = eigSym(XXt); const tBig = performance.now() - t0;
+  t0 = performance.now(); const small = eigSym(K); const tSmall = performance.now() - t0;
+  const nl = small.vals[0], alpha = small.vecs[0].map(b => b / Math.sqrt(nl));
+  const w = X.map(row => row.reduce((s, v, i) => s + v * alpha[i], 0)), wBig = big.vecs[0];
+  const len = Math.hypot(...w), cos = Math.abs(w.reduce((s, v, i) => s + v * wBig[i], 0)) / len;
+  R = {d, n, big: big.vals, small: small.vals, tBig, tSmall, cos, len};
+  draw();
+}
+function draw(){
+  if (!R) return;
+  $('dV').textContent = $('d').value; $('nV').textContent = $('n').value;
+  $('tBig').textContent = R.tBig.toFixed(1) + ' ms'; $('tSmall').textContent = R.tSmall.toFixed(1) + ' ms';
+  $('cos').textContent = R.cos.toFixed(6); $('len').textContent = R.len.toFixed(6);
+  const [ctx, W, H] = setupCanvas($('ev')), pad = {l: 44, r: 10, t: 10, b: 26}, m = Math.min(R.d, 45);
+  const top = Math.max(R.big[0], 1e-9), X = i => pad.l + (i + 0.5) / m * (W - pad.l - pad.r), Y = v => H - pad.b - Math.max(0, v) / top * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(f => { ctx.beginPath(); ctx.moveTo(pad.l, Y(f * top)); ctx.lineTo(W - pad.r, Y(f * top)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(Math.round(f * top), pad.l - 6, Y(f * top)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(`eigenvalue index (first ${m} of ${R.d})`, (pad.l + W) / 2, H);
+  const dot = (x, y, col, r) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill(); };
+  for (let i = 0; i < m; i++) dot(X(i), Y(R.big[i]), cssv('--s1'), 5.5);
+  for (let i = 0; i < Math.min(R.n, m); i++) dot(X(i), Y(R.small[i]), cssv('--s2'), 3);
+  const nz = R.big.filter(v => v > 1e-6 * top).length;
+  $('evTxt').innerHTML = R.d > R.n
+    ? `XXᵀ has ${R.d} eigenvalues but only about ${nz} are non-zero (rank ≤ n − 1 after centring); the orange dots sit exactly on the first blue ones. The w₁ rebuilt as Xα₁ from the ${R.n}×${R.n} problem matches the eigenvector of the ${R.d}×${R.d} problem (|cos| = 1, up to sign) and has unit length.`
+    : `Now n ≥ d: the n×n problem is the bigger one, so the trick no longer saves anything. Decompose the covariance matrix directly.`;
+}
+function drawCost(){
+  const ld = +$('bd').value, ln = +$('bn').value, d = 10 ** ld, n = 10 ** ln, fmt = v => v < 1e4 ? Math.round(v).toLocaleString() : '10^' + Math.log10(v).toFixed(1);
+  $('bdV').textContent = fmt(d); $('bnV').textContent = fmt(n);
+  const [ctx, W, H] = setupCanvas($('cost')), pad = {l: 110, r: 10, t: 12, b: 22}, maxL = 21;
+  const X = l => pad.l + Math.max(0, l) / maxL * (W - pad.l - pad.r), bh = 34;
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.strokeStyle = cssv('--grid');
+  [0, 6, 12, 18].forEach(l => { ctx.beginPath(); ctx.moveTo(X(l), pad.t); ctx.lineTo(X(l), H - pad.b); ctx.stroke(); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('10^' + l, X(l), H - pad.b + 4); });
+  [['d×d: d³', 3 * ld, '--s1'], ['n×n: n³', 3 * ln, '--s2']].forEach(([lab, l, col], i) => { const y = pad.t + 8 + i * (bh + 12);
+    ctx.fillStyle = cssv(col); ctx.fillRect(X(0), y, X(l) - X(0), bh); ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(lab, pad.l - 8, y + bh / 2); });
+  const secs = v => { const s = v / 1e9; return s < 1 ? (s * 1000).toPrecision(2) + ' ms' : s < 3600 ? s.toPrecision(2) + ' s' : s < 86400 * 365 ? (s / 3600).toPrecision(2) + ' hours' : (s / 86400 / 365).toPrecision(2) + ' years'; };
+  $('costTxt').innerHTML = `d³ ≈ ${secs(d ** 3)}, n³ ≈ ${secs(n ** 3)}. ` + (d > n ? `Working with K = XᵀX is about 10^${(3 * (ld - ln)).toFixed(1)} times cheaper.` : 'Here n ≥ d, so stick with the covariance matrix.');
+}
+['d', 'n'].forEach(id => $(id).oninput = compute); $('redo').onclick = compute;
+['bd', 'bn'].forEach(id => $(id).oninput = drawCost);
+function drawAll(){ draw(); drawCost(); }
+compute(); drawCost();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

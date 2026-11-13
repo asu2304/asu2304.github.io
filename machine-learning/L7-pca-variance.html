@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PCA: Eigenvectors and Variance Maximisation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 7 · Principal component analysis, part 2</div>
+<h1>PCA: Eigenvectors and Variance Maximisation</h1>
+<p class="lede">The residue procedure has a linear-algebra shortcut: its lines are the <b>eigenvectors of the covariance matrix</b> $C$, in order of eigenvalue. Each eigenvalue is the <b>variance</b> of the data projected on that direction. So on centred data, minimising reconstruction error is the same as <b>maximising variance</b>, and the new coordinates are <b>de-correlated</b>. This is principal component analysis.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=o__dWBLqPhQ">this lecture on YouTube</a> (≈27 min). Previous: <a href="L6-pca-error-minimization.html">L6</a> · Next: <a href="L8-pca-issues.html">L8</a>.</p>
+
+<h2>1 · Enter linear algebra</h2>
+<p>The problem in each round is</p>
+$$\max_{\lVert w\rVert^2=1}\;w^\top C\,w,\qquad C=\frac1n\sum_{i=1}^{n}x_ix_i^\top\quad(\text{the covariance matrix, for centred data}).$$
+<ul>
+<li>Its solution $w_1$ is the <b>eigenvector of $C$ with the largest eigenvalue</b>. The lecture cites the <b>Hilbert min-max theorem</b> (a variant appears in linear-algebra courses).</li>
+<li>More is true: the eigenvectors of $C$ form an <b>orthonormal basis</b>, and that's exactly the basis the residue procedure builds.</li>
+<li>The line found in round $k$ is the eigenvector $w_k$ for the <b>$k$-th largest</b> eigenvalue. Equivalently: maximise $w^\top Cw$ over unit $w$ <b>orthogonal to the top $k-1$ eigenvectors</b>. That matches the residue view, because the residues in round $k$ are orthogonal to all earlier lines by construction.</li>
+</ul>
+
+<h2>2 · What does an eigenvalue mean?</h2>
+<p>Take $Cw_1=\lambda_1w_1$ with $\lVert w_1\rVert=1$. Then</p>
+$$\lambda_1=w_1^\top C\,w_1=w_1^\top\Big(\frac1n\sum_{i}x_ix_i^\top\Big)w_1=\frac1n\sum_{i=1}^{n}(x_i^\top w_1)^2 ,$$
+<p>the same quantity L6 recorded each round to decide when to stop. In general $\lambda_k=\frac1n\sum_i(x_i^\top w_k)^2$, so the round-by-round plot is just the eigenvalues in decreasing order, and the stopping rule becomes</p>
+$$\frac{\sum_{i=1}^{\ell}\lambda_i(C)}{\sum_{i=1}^{d}\lambda_i(C)}\;\ge\;0.95\qquad(\text{a rule of thumb: keep }\ell\text{ directions}).$$
+<p>The ratio makes sense because each $\lambda_k$ is an average of squares, so $\lambda_k\ge0$. That's also a proof that the covariance matrix is <b>positive semi-definite</b>.</p>
+
+<h2>3 · The eigenvalue is a variance</h2>
+<p>Fix <b>any</b> unit direction $w$ (not necessarily the best one) and collect the numbers $x_1^\top w,\dots,x_n^\top w$.</p>
+<ol class="steps">
+<li>Their mean: $\;\frac1n\sum_i x_i^\top w=\Big(\frac1n\sum_i x_i\Big)^{\!\top}w=0$, because the data is centred.</li>
+<li>Their variance: $\;\frac1n\sum_i\big(x_i^\top w-0\big)^2=\frac1n\sum_i(x_i^\top w)^2=w^\top Cw$.</li>
+<li>So $w^\top Cw$ is the <b>variance of the projected values</b>, and the best line maximises it.</li>
+</ol>
+<div class="callout"><b>On centred data, error minimisation ⇔ variance maximisation.</b> The line with the smallest average reconstruction error is the line along which the projections are most spread out. (Centring matters: without it, the mean of the projections isn't 0 and the equivalence breaks.)</div>
+
+<h2>4 · Why we want spread</h2>
+<p>Compress the data, but keep the ability to <b>tell points apart</b>, because the compressed representation will be used later (say, for supervised learning). Project onto a bad line and the proxies crowd together. In the extreme, data lying on one line projected onto the perpendicular line all lands on the zero vector, and every point looks the same. So we want directions where the projections <b>don't crowd</b>, measured by variance: as high as possible, keeping as much information as possible.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">80 centred (height, weight) pairs. Rotate the direction $w$: left, the projections (orange) on the line; right, how the variance of the projections and the average squared error change with the angle. Their sum never changes.</p>
+  <div class="row">
+    <label>angle of w = <b id="aV"></b> <input type="range" id="ang" min="0" max="179" value="100" aria-label="angle of the direction w"></label>
+    <button id="snap1">Snap to w₁</button><button id="snap2">Snap to w₂</button>
+    <label><input type="checkbox" id="rot"> plot in (w₁, w₂) coordinates</label>
+    <button id="newD">New data</button>
+  </div>
+  <div class="pair half">
+    <canvas id="sc" height="290" aria-label="Data and projections onto the chosen direction"></canvas>
+    <canvas id="vc" height="290" aria-label="Variance and error versus angle"></canvas>
+  </div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>variance of projections, wᵀCw</span><span><i style="background:var(--s2)"></i>average squared error</span><span><i style="background:var(--faint)"></i>average ‖x‖² (their sum)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="vv">–</div><div class="l">variance of projections</div></div>
+    <div class="stat"><div class="v" id="ee">–</div><div class="l">average squared error</div></div>
+    <div class="stat"><div class="v" id="ll">–</div><div class="l">eigenvalues λ₁, λ₂ of C</div></div>
+    <div class="stat"><div class="v" id="rr">–</div><div class="l">correlation of the two plotted coordinates</div></div>
+  </div>
+  <p class="small" id="sTxt"></p>
+</div>
+
+<h2>5 · Example: height and weight</h2>
+<p>For centred (height, weight) data, taller people tend to be heavier, so one number tells you something about the other. The best line is roughly $w_1=\big(\tfrac1{\sqrt2},\tfrac1{\sqrt2}\big)$ and the next is perpendicular, $w_2=\big(-\tfrac1{\sqrt2},\tfrac1{\sqrt2}\big)$ (either sign works). The new coordinates are</p>
+$$x^\top w_1=\frac{\text{height}+\text{weight}}{\sqrt2},\qquad x^\top w_2=\frac{\text{weight}-\text{height}}{\sqrt2}.$$
+<p>Plot the data in these coordinates and the axes have effectively rotated by 45°. Knowing $(\text{height}+\text{weight})/\sqrt2$ tells you nothing about which side of the axis $(\text{weight}-\text{height})/\sqrt2$ falls. The principal directions are <b>de-correlated</b>: each one adds information the previous ones didn't give. Tick "plot in (w₁, w₂) coordinates" above to see it.</p>
+
+<h2>6 · The algorithm: principal component analysis</h2>
+<ol class="steps">
+<li>Centre the data and form the covariance matrix $C=\frac1n\sum_i x_ix_i^\top$.</li>
+<li>Find its top $k$ eigenvectors $w_1,\dots,w_k$ and eigenvalues $\lambda_1\ge\dots\ge\lambda_k$, choosing $k$ so they explain ~95% of the variance.</li>
+<li>Represent each point by $\big(x_i^\top w_1,\dots,x_i^\top w_k\big)\in\mathbb R^k$.</li>
+</ol>
+<ul>
+<li>The $w_1,\dots,w_k$ are the <b>principal components</b>.</li>
+<li>Going from $\mathbb R^d$ to $\mathbb R^k$ with $k\ll d$ is <b>dimensionality reduction</b>; $k$ is the data's "essential" dimension.</li>
+<li>Each new feature $x_i^\top w_j$ is a <b>weighted combination of the original features</b>, and different components are de-correlated (loosely, "independent").</li>
+</ul>
+<div class="beyond"><b>Going beyond the video.</b> The theorem cited as "Hilbert min-max" is usually called the Courant–Fischer (or Rayleigh–Ritz) theorem: $\max_{\lVert w\rVert=1}w^\top Cw=\lambda_1$, reached at its eigenvector, and the $k$-th eigenvalue is the maximum over unit vectors orthogonal to the first $k-1$ eigenvectors. "De-correlated" can be checked directly: the sample covariance of the new coordinates is $\frac1n\sum_i(x_i^\top w_a)(x_i^\top w_b)=w_a^\top Cw_b=\lambda_b\,w_a^\top w_b=0$ for $a\ne b$.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The best line is the top eigenvector of $C$; round $k$ of the residue procedure gives the $k$-th eigenvector.</li>
+<li>$\lambda_k=w_k^\top Cw_k=\frac1n\sum_i(x_i^\top w_k)^2\ge0$, so $C$ is positive semi-definite.</li>
+<li>For centred data, $w^\top Cw$ is the variance of the projections, so error minimisation ⇔ variance maximisation.</li>
+<li>High variance means the projections don't crowd and points stay distinguishable.</li>
+<li>Choose $k$ by explained variance, $\sum_{i\le k}\lambda_i/\sum_i\lambda_i\ge0.95$; the components are de-correlated combinations of features.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const N = 80;
+let P = [], C = null;
+function make(){ P = Array.from({length: N}, () => { const h = randn(); return [h, 0.8 * h + 0.45 * randn()]; });
+  const m = P.reduce((s, [a, b]) => [s[0] + a / N, s[1] + b / N], [0, 0]); P = P.map(([a, b]) => [a - m[0], b - m[1]]);
+  let a = 0, b = 0, d = 0; P.forEach(([x, y]) => { a += x * x / N; b += x * y / N; d += y * y / N; });
+  const r = Math.sqrt(((a - d) / 2) ** 2 + b * b), l1 = (a + d) / 2 + r, l2 = (a + d) / 2 - r;
+  C = {a, b, d, l1, l2, th1: (Math.atan2(l1 - a, b) * 180 / Math.PI + 360) % 180}; }
+const varAt = t => { const c = Math.cos(t), s = Math.sin(t); return C.a * c * c + 2 * C.b * c * s + C.d * s * s; };
+const corr = Q => { let sx = 0, sy = 0, sxy = 0; Q.forEach(([x, y]) => { sx += x * x; sy += y * y; sxy += x * y; }); return sxy / Math.sqrt(sx * sy); };
+function draw(){
+  const deg = +$('ang').value, t = deg * Math.PI / 180, w = [Math.cos(t), Math.sin(t)], rot = $('rot').checked;
+  $('aV').textContent = deg + '°';
+  const v = varAt(t), tot = C.a + C.d;
+  $('vv').textContent = v.toFixed(3); $('ee').textContent = (tot - v).toFixed(3); $('ll').textContent = C.l1.toFixed(2) + ', ' + C.l2.toFixed(2);
+  const t1 = C.th1 * Math.PI / 180, u1 = [Math.cos(t1), Math.sin(t1)], u2 = [-u1[1], u1[0]];
+  const Q = rot ? P.map(([x, y]) => [x * u1[0] + y * u1[1], x * u2[0] + y * u2[1]]) : P;
+  $('rr').textContent = corr(Q).toFixed(3);
+  // left: scatter
+  const [ctx, W, H] = setupCanvas($('sc')), R = 1.15 * Math.max(...P.map(([x, y]) => Math.hypot(x, y)));
+  const side = Math.min(W, H) - 26, ox = (W - side) / 2 + 6, oy = 4;
+  const X = x => ox + (x + R) / (2 * R) * side, Y = y => oy + side - (y + R) / (2 * R) * side;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, side, side);
+  ctx.beginPath(); ctx.moveTo(X(0), oy); ctx.lineTo(X(0), oy + side); ctx.moveTo(ox, Y(0)); ctx.lineTo(ox + side, Y(0)); ctx.stroke();
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(rot ? 'x·w₁' : 'height (centred)', ox + side / 2, oy + side + 4);
+  ctx.save(); ctx.translate(ox - 8, oy + side / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'bottom'; ctx.fillText(rot ? 'x·w₂' : 'weight (centred)', 0, 0); ctx.restore();
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, side, side); ctx.clip();
+  const pt = (x, y, col, r) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(x), Y(y), r, 0, 2 * Math.PI); ctx.fill(); };
+  if (!rot){
+    ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(-3 * R * w[0]), Y(-3 * R * w[1])); ctx.lineTo(X(3 * R * w[0]), Y(3 * R * w[1])); ctx.stroke();
+    ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1;
+    P.forEach(([x, y]) => { const c = x * w[0] + y * w[1]; ctx.beginPath(); ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(c * w[0]), Y(c * w[1])); ctx.stroke(); });
+    P.forEach(([x, y]) => pt(x, y, cssv('--s1'), 3.2));
+    P.forEach(([x, y]) => { const c = x * w[0] + y * w[1]; pt(c * w[0], c * w[1], cssv('--s2'), 2.6); });
+  } else Q.forEach(([x, y]) => pt(x, y, cssv('--s1'), 3.2));
+  ctx.restore();
+  // right: variance and error versus angle
+  const [g, W2, H2] = setupCanvas($('vc')), pad = {l: 40, r: 10, t: 10, b: 30}, ym = tot * 1.08;
+  const A = d => pad.l + d / 180 * (W2 - pad.l - pad.r), B = v => H2 - pad.b - v / ym * (H2 - pad.t - pad.b);
+  g.font = '12px system-ui,sans-serif'; g.strokeStyle = cssv('--grid'); g.fillStyle = cssv('--muted'); g.lineWidth = 1;
+  for (let q = 0; q <= 4; q++){ const val = ym * q / 4; g.beginPath(); g.moveTo(pad.l, B(val)); g.lineTo(W2 - pad.r, B(val)); g.stroke(); g.textAlign = 'right'; g.textBaseline = 'middle'; g.fillText(val.toFixed(1), pad.l - 6, B(val)); }
+  [0, 45, 90, 135, 180].forEach(d => { g.textAlign = 'center'; g.textBaseline = 'top'; g.fillText(d + '°', A(d), H2 - pad.b + 5); });
+  g.textBaseline = 'bottom'; g.fillText('angle of w', (pad.l + W2) / 2, H2);
+  const curve = (f, col) => { g.strokeStyle = col; g.lineWidth = 2.5; g.beginPath(); for (let d = 0; d <= 180; d++){ const y = B(f(d * Math.PI / 180)); d ? g.lineTo(A(d), y) : g.moveTo(A(d), y); } g.stroke(); };
+  g.setLineDash([6, 5]); g.strokeStyle = cssv('--faint'); g.lineWidth = 1.5; g.beginPath(); g.moveTo(pad.l, B(tot)); g.lineTo(W2 - pad.r, B(tot)); g.stroke(); g.setLineDash([]);
+  curve(varAt, cssv('--s1')); curve(x => tot - varAt(x), cssv('--s2'));
+  g.strokeStyle = cssv('--ink'); g.lineWidth = 1; g.beginPath(); g.moveTo(A(deg), pad.t); g.lineTo(A(deg), H2 - pad.b); g.stroke();
+  [[v, '--s1'], [tot - v, '--s2']].forEach(([y, c]) => { g.fillStyle = cssv(c); g.beginPath(); g.arc(A(deg), B(y), 5, 0, 2 * Math.PI); g.fill(); });
+  const near = Math.min(Math.abs(deg - C.th1), 180 - Math.abs(deg - C.th1)), near2 = Math.min(Math.abs(deg - (C.th1 + 90) % 180), 180 - Math.abs(deg - (C.th1 + 90) % 180));
+  $('sTxt').innerHTML = rot
+    ? `In the (w₁, w₂) coordinates the cloud is axis-aligned: the correlation is ${corr(Q).toFixed(3)} (it was ${corr(P).toFixed(2)} for height vs weight). Knowing the first coordinate tells you nothing about the second. The spread along each axis is λ₁ and λ₂.`
+    : near < 2 ? `At w₁ (${C.th1.toFixed(0)}°) the projections are as spread out as possible (variance = λ₁ = ${C.l1.toFixed(2)}) and the average error is as small as possible. One direction does both.`
+    : near2 < 2 ? `At w₂, perpendicular to w₁, the projections crowd together (variance = λ₂ = ${C.l2.toFixed(2)}): the worst line, with the largest error.`
+    : `Variance + error = ${tot.toFixed(2)} at every angle (Pythagoras), so raising one lowers the other. Rotate towards ${C.th1.toFixed(0)}° to maximise the spread of the orange projections.`;
+}
+$('ang').oninput = draw; $('rot').onchange = draw;
+$('snap1').onclick = () => { $('ang').value = Math.round(C.th1) % 180; draw(); };
+$('snap2').onclick = () => { $('ang').value = Math.round(C.th1 + 90) % 180; draw(); };
+$('newD').onclick = () => { make(); draw(); };
+make(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

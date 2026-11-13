@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kernel PCA</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 12 · Putting it together · end of PCA</div>
+<h1>Kernel PCA</h1>
+<p class="lede">Combine the two fixes: the $n\times n$ trick from L9 and kernels from L11. Build the kernel matrix, <b>centre</b> it, take its eigenvectors, and rescale them into weights $\alpha_k$. We can never form the principal directions $w_k$ in the feature space, because that needs $\phi(x)$. But we don't have to: the <b>projection</b> of each point onto $w_k$ is $\sum_j\alpha_{kj}K_{ij}$, which uses only the kernel. Those projections are the new low-dimensional representation.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=K46tdjqxM0w">this lecture on YouTube</a> (≈21 min). Previous: <a href="L11-kernel-functions.html">L11</a> · Next: <a href="L13-clustering-notes.html">L13</a>.</p>
+
+<h2>1 · The algorithm, first attempt</h2>
+<p><b>Input:</b> data $\{x_1,\dots,x_n\}$, $x_i\in\mathbb R^d$, and a valid kernel $k:\mathbb R^d\times\mathbb R^d\to\mathbb R$ (checked with Mercer's theorem, L11).</p>
+<ol class="steps">
+<li>Compute the kernel matrix $K\in\mathbb R^{n\times n}$, $\;K_{ij}=k(x_i,x_j)$ for all $i,j$.</li>
+<li>Find its eigenvectors $\beta_1,\dots,\beta_\ell$ (unit length) and eigenvalues $n\lambda_1,\dots,n\lambda_\ell$, and normalise: $\;\alpha_u=\beta_u/\sqrt{n\lambda_u}$ (as in L9, so the corresponding $w_u$ has length 1). The lecture switches to the index $u$ here so it isn't confused with the kernel $k$.</li>
+<li><s>Recover the directions $w_u=\phi(X)\,\alpha_u$.</s> This needs $\phi(x)$, the very thing kernels let us avoid. For the RBF kernel, $\phi$ maps into an infinite-dimensional space, so it isn't merely expensive; it's impossible.</li>
+</ol>
+
+<h2>2 · We don't need $w$, only projections onto it</h2>
+<p>Why did we want principal directions? To <b>compress</b>: store each point's projection onto the top few directions. And that projection only needs dot products:</p>
+$$\phi(x_i)^\top w_u=\phi(x_i)^\top\sum_{j=1}^{n}\alpha_{uj}\,\phi(x_j)=\sum_{j=1}^{n}\alpha_{uj}\,\phi(x_i)^\top\phi(x_j)=\boxed{\;\sum_{j=1}^{n}\alpha_{uj}\,K_{ij}\;}$$
+<div class="callout"><b>Modified step 3.</b> Represent each point by its projections onto the top $\ell$ directions:
+$$x_i\;\longmapsto\;\left(\sum_{j}\alpha_{1j}K_{ij},\;\sum_{j}\alpha_{2j}K_{ij},\;\dots,\;\sum_{j}\alpha_{\ell j}K_{ij}\right)\in\mathbb R^{\ell}.$$
+Row $i$ of $K$ says how similar point $i$ is to every other point; each $\alpha_u$ weights those similarities differently.</div>
+<ul>
+<li><b>What we lose:</b> we can't reconstruct a proxy for a point (that needs the $w_u$'s, hence $\phi$).</li>
+<li><b>What we keep:</b> the projections, which are usually all you need as input to a <b>downstream task</b>, such as a supervised learner later in the course.</li>
+<li>$\ell$ can even be larger than $d$: we go up to a huge (non-linear) space and come back down to $\ell$ dimensions. Going from 2 features to 10 can be worthwhile if it captures non-linear structure.</li>
+</ul>
+
+<h2>3 · The missing detail: centre the kernel</h2>
+<p>Ordinary PCA centres the data before computing the covariance. Here the data is centred in $\mathbb R^d$, perhaps, but the mapped points $\phi(x_1),\dots,\phi(x_n)$ needn't be centred, and PCA's directions only make sense for centred data. We want the dot products of the centred mapped points $\phi(x_i)-\mu$, with $\mu=\frac1n\sum_i\phi(x_i)$. Expanding,</p>
+$$(\phi(x_i)-\mu)^\top(\phi(x_j)-\mu)=\phi(x_i)^\top\phi(x_j)-\mu^\top\phi(x_j)-\mu^\top\phi(x_i)+\mu^\top\mu ,$$
+<p>and each of the four terms is an average of kernel values, so the centred kernel needs <b>no $\phi$</b> either:</p>
+$$K^c_{ij}=K_{ij}-\frac1n\sum_{k}K_{ik}-\frac1n\sum_{k}K_{kj}+\frac1{n^2}\sum_{k,l}K_{kl},\qquad\text{i.e.}\quad K^c=K-\mathbf 1_nK-K\mathbf 1_n+\mathbf 1_nK\mathbf 1_n,$$
+<p>where $\mathbf 1_n$ is the $n\times n$ matrix with every entry $1/n$. (The lecture states this for completeness without the algebra: subtract the row average and column average, add back the overall average.)</p>
+
+<h2>4 · Kernel PCA, final version</h2>
+<ol class="steps">
+<li>Compute $K_{ij}=k(x_i,x_j)$.</li>
+<li>Centre it: $K^c=K-\mathbf 1_nK-K\mathbf 1_n+\mathbf 1_nK\mathbf 1_n$.</li>
+<li>Eigen-decompose $K^c$: unit eigenvectors $\beta_u$, eigenvalues $n\lambda_u$. Set $\alpha_u=\beta_u/\sqrt{n\lambda_u}$.</li>
+<li>Represent $x_i$ by $\big(\sum_j\alpha_{uj}K^c_{ij}\big)_{u=1}^{\ell}$.</li>
+</ol>
+
+<div class="card">
+  <h3 style="margin:0 0 4px">Linear PCA vs kernel PCA on non-linear data</h3>
+  <p class="small muted" style="margin-top:0">Left: the 2-D data. Right: every point's projections onto two of the top four kernel principal components, computed with the steps above (kernel matrix → centre → Jacobi eigen-decomposition → $\sum_j\alpha_{uj}K^c_{ij}$). Colours mark two groups (inner/outer ring; the two halves of the blob's long axis) for display only; kernel PCA never sees them, and it looks for <b>variance</b>, not for the groups.</p>
+  <div class="row">
+    <button data-d="rings" class="on">two rings</button><button data-d="blob">one tilted blob</button>
+  </div>
+  <div class="row">
+    <button data-k="lin">linear: xᵀx′</button><button data-k="p2">(xᵀx′ + 1)²</button><button data-k="rbf" class="on">RBF</button>
+    <label id="sL">σ = <b id="sV"></b> <input type="range" id="s" min="20" max="400" value="200" aria-label="RBF width"></label>
+    <label><input type="checkbox" id="cen" checked> centre the kernel</label>
+    <button id="nd">New data</button>
+  </div>
+  <div class="row">
+    <label>horizontal axis: component <select id="cx" style="font:inherit;font-size:14px"><option>1</option><option>2</option><option selected>3</option><option>4</option></select></label>
+    <label>vertical axis: component <select id="cy" style="font:inherit;font-size:14px"><option selected>1</option><option>2</option><option>3</option><option>4</option></select></label>
+  </div>
+  <div class="pair">
+    <canvas id="raw" height="280" aria-label="Original 2-D data"></canvas>
+    <canvas id="proj" height="280" aria-label="Projections onto the top two kernel principal components"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>group A</span><span><i class="dot" style="background:var(--s2)"></i>group B</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="ex1">–</div><div class="l">variance share, top 4 components</div></div>
+    <div class="stat"><div class="v" id="sep">–</div><div class="l">best single separating component</div></div>
+  </div>
+  <p class="small" id="pTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> With the linear kernel, kernel PCA is ordinary PCA: the projections equal $w_u^\top x_i$ (try "one tilted blob"). The "best single separating component" check sorts the points by each of the top four components in turn and finds the threshold that splits the two colours with the fewest mistakes. For the rings with a wide RBF, components 1 and 2 roughly reproduce the original $f_1,f_2$ (that's where most variance is), and the ring structure appears in component 3. Variance and usefulness for a downstream task are not the same thing. Unticking "centre the kernel" shows why centring matters: the top component then mostly captures the mean of the mapped points instead of the spread.</div>
+
+<h2>5 · The bigger picture</h2>
+<p>Kernel PCA solves both issues with PCA from L8. <b>High dimension</b>: work with the $n\times n$ matrix. <b>Non-linearity</b>: let the kernel compute dot products in a richer space. The same kernel matrix fixes both. The trick works because PCA depends on the data <b>only through pairwise dot products</b>. Whenever an algorithm has that property, it can be <b>kernelised</b>: solve the linear problem, then swap in a kernel. The course does this again for K-means (L16) and regression (L32).</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Kernel PCA: $K_{ij}=k(x_i,x_j)$ → centre → eigenvectors $\beta_u$, eigenvalues $n\lambda_u$ → $\alpha_u=\beta_u/\sqrt{n\lambda_u}$.</li>
+<li>Don't form $w_u=\phi(X)\alpha_u$ (needs $\phi$). Instead project: $\phi(x_i)^\top w_u=\sum_j\alpha_{uj}K_{ij}$.</li>
+<li>You lose reconstruction, but keep the low-dimensional representation for downstream tasks.</li>
+<li>Centre in feature space via $K^c=K-\mathbf 1_nK-K\mathbf 1_n+\mathbf 1_nK\mathbf 1_n$, still without $\phi$.</li>
+<li>Any algorithm that needs only dot products can be kernelised.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// symmetric eigendecomposition (cyclic Jacobi); eigenvalues descending, eigenvectors as arrays
+function eigSym(A){ const n = A.length, a = A.map(r => r.slice()), V = A.map((_, i) => A.map((_, j) => +(i === j)));
+  let nrm = 0; for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) nrm += a[i][j] ** 2;
+  for (let sweep = 0; sweep < 40; sweep++){ let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += a[i][j] ** 2; if (off < 1e-22 * nrm) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++){ if (Math.abs(a[p][q]) < 1e-300) continue;
+      const th = (a[q][q] - a[p][p]) / (2 * a[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++){ const akp = a[k][p], akq = a[k][q]; a[k][p] = c * akp - s * akq; a[k][q] = s * akp + c * akq; }
+      for (let k = 0; k < n; k++){ const apk = a[p][k], aqk = a[q][k]; a[p][k] = c * apk - s * aqk; a[q][k] = s * apk + c * aqk; }
+      for (let k = 0; k < n; k++){ const vkp = V[k][p], vkq = V[k][q]; V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq; } } }
+  const idx = a.map((_, i) => i).sort((i, j) => a[j][j] - a[i][i]);
+  return {vals: idx.map(i => a[i][i]), vecs: idx.map(i => V.map(r => r[i]))}; }
+const N = 100;
+let data = 'rings', kind = 'rbf', P = [], R = null;
+function make(){
+  if (data === 'rings') P = Array.from({length: N}, (_, i) => { const g = i % 2, r = g ? 2.2 : 0.8, t = 2 * Math.PI * Math.random(); return [r * Math.cos(t) + 0.12 * randn(), r * Math.sin(t) + 0.12 * randn(), g]; });
+  else P = Array.from({length: N}, (_, i) => { const a = 1.6 * randn(), b = 0.35 * randn(); return [0.8 * a - 0.6 * b, 0.6 * a + 0.8 * b, a > 0 ? 1 : 0]; });
+  // centre the inputs, as PCA assumes
+  const mx = P.reduce((s, p) => s + p[0], 0) / N, my = P.reduce((s, p) => s + p[1], 0) / N; P.forEach(p => { p[0] -= mx; p[1] -= my; });
+}
+const sig = () => +$('s').value / 100;
+const KF = {lin: (x, y) => x[0] * y[0] + x[1] * y[1], p2: (x, y) => (x[0] * y[0] + x[1] * y[1] + 1) ** 2, rbf: (x, y) => Math.exp(-((x[0] - y[0]) ** 2 + (x[1] - y[1]) ** 2) / (2 * sig() ** 2))};
+function compute(){
+  const k = KF[kind], K = P.map(x => P.map(y => k(x, y)));
+  let Kc = K;
+  if ($('cen').checked){ const row = K.map(r => r.reduce((s, v) => s + v, 0) / N), all = row.reduce((s, v) => s + v, 0) / N;
+    Kc = K.map((r, i) => r.map((v, j) => v - row[i] - row[j] + all)); }   // K symmetric, so column mean = row mean
+  const {vals, vecs} = eigSym(Kc), pos = vals.filter(v => v > 0).reduce((s, v) => s + v, 0);
+  const proj = [0, 1, 2, 3].map(u => { if (!(vals[u] > 1e-9 * vals[0])) return new Array(N).fill(0);   // zero-variance direction: nothing to project on
+    const al = vecs[u].map(b => b / Math.sqrt(vals[u]));
+    return Kc.map(r => r.reduce((s, v, j) => s + al[j] * v, 0)); });
+  // for each component: the fewest mistakes a single threshold makes in splitting the two groups
+  const errs = proj.map(v => { const order = v.map((x, i) => [x, P[i][2]]).sort((a, b) => a[0] - b[0]); let best = N;
+    for (let c = 0; c <= N; c++){ let e1 = 0; order.forEach(([, g], i) => { e1 += (i < c) === (g === 1) ? 1 : 0; }); best = Math.min(best, e1, N - e1); } return best / N; });
+  const bi = errs.indexOf(Math.min(...errs));
+  R = {proj, ex: vals.slice(0, 4).map(v => Math.max(v, 0) / pos), errs, bi};
+  draw();
+}
+function scatter(cv, pts, lab){
+  const [ctx, W, H] = setupCanvas(cv), pad = 22, xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const span = v => { const lo = Math.min(...v), hi = Math.max(...v), m = (hi - lo) || 1; return [lo - 0.08 * m, hi + 0.08 * m]; };
+  const xr = span(xs), yr = span(ys), X = v => pad + (v - xr[0]) / (xr[1] - xr[0]) * (W - 2 * pad), Y = v => H - pad - (v - yr[0]) / (yr[1] - yr[0]) * (H - 2 * pad);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(pad, pad, W - 2 * pad, H - 2 * pad);
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(lab[0], W / 2, H - 4);
+  ctx.save(); ctx.translate(10, H / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText(lab[1], 0, 0); ctx.restore();
+  pts.forEach(([x, y], i) => { ctx.fillStyle = cssv(P[i][2] ? '--s2' : '--s1'); ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(X(x), Y(y), 3.6, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.globalAlpha = 1;
+}
+function draw(){
+  if (!R) return;
+  $('sV').textContent = sig().toFixed(2); $('sL').style.display = kind === 'rbf' ? '' : 'none';
+  scatter($('raw'), P.map(p => [p[0], p[1]]), ['f₁', 'f₂']);
+  const cx = +$('cx').value - 1, cy = +$('cy').value - 1;
+  scatter($('proj'), R.proj[cx].map((v, i) => [v, R.proj[cy][i]]), ['component ' + (cx + 1), 'component ' + (cy + 1)]);
+  $('ex1').textContent = R.ex.map(v => Math.round(100 * v) + '%').join(' · ');
+  $('sep').textContent = `#${R.bi + 1} (${Math.round(100 * R.errs[R.bi])}% off)`;
+  const c = $('cen').checked;
+  $('pTxt').innerHTML = !c ? 'Without centring, the eigenvectors describe the mapped points measured from the origin of feature space, not from their mean. Component 1 mostly reflects how far each φ(xᵢ) is from the origin rather than the spread of the data. Tick the box again.'
+    : (R.errs[R.bi] <= 0.03 ? `Component ${R.bi + 1} alone splits the two groups with a single threshold (${Math.round(100 * R.errs[R.bi])}% mistakes). ` : '') + (kind === 'lin' ? (data === 'blob' ? 'Linear kernel = ordinary PCA: component 1 lines up with the long axis of the blob and captures most of the variance. With 2-D inputs there are only two non-zero components; 3 and 4 are flat.' : 'Linear kernel = ordinary PCA: it can only rotate the picture (components 3 and 4 are zero for 2-D data). The rings stay nested, because no straight direction separates them.')
+    : kind === 'p2' ? (data === 'rings' ? 'The quadratic kernel can see f₁² + f₂², the squared radius, but it competes for variance with other quadratic directions such as f₁² − f₂² and f₁f₂, so it gets mixed across components and the rings only partly separate. Try the RBF kernel.' : 'The quadratic kernel adds squares and products of the coordinates as extra directions of variance.')
+    : (data === 'rings' && R.errs[R.bi] <= 0.03 && sig() >= 1 ? 'RBF kernel: the first two components roughly recover the original coordinates (most of the variance), and a lower-variance component captures the radius, so the rings come apart. Linear PCA has no direction that does this.'
+      : sig() < 0.6 ? 'Narrow RBF: each point is similar only to close neighbours, so the variance spreads thinly over many components (see the small shares). For the rings, σ around 1.5–3 works most reliably.'
+      : data === 'rings' ? 'RBF kernel: no single component of the top four splits the rings cleanly on this draw. Try a different σ or new data, and look at components 3 and 4.'
+      : 'RBF kernel on a single blob: the components describe its shape in increasingly fine detail.'));
+}
+document.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => { kind = b.dataset.k; document.querySelectorAll('button[data-k]').forEach(x => x.classList.toggle('on', x === b)); compute(); });
+document.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => { data = b.dataset.d; document.querySelectorAll('button[data-d]').forEach(x => x.classList.toggle('on', x === b)); make(); compute(); });
+$('s').onchange = compute; $('s').oninput = () => { $('sV').textContent = sig().toFixed(2); }; $('cen').onchange = compute; $('cx').onchange = draw; $('cy').onchange = draw; $('nd').onclick = () => { make(); compute(); };
+make(); compute();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

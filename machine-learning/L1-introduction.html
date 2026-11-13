@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Introduction to Machine Learning</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.rev{grid-template-columns:minmax(0,2fr) minmax(0,1fr)} .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+@media (max-width:600px){.pair.rev,.trio{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 1 · Course introduction</div>
+<h1>Introduction to Machine Learning</h1>
+<p class="lede">Machine learning sits under most of today's technology trends. It is <b>not</b> a fixed procedure, <b>not</b> memorisation and <b>not</b> magic. It is algorithms that learn from <b>data</b>, aim to <b>generalise</b> to data they have never seen, and are built on <b>mathematics</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=KMcUe7GQnf0">this lecture on YouTube</a> (≈22 min). Next: <a href="L2-paradigms.html">L2</a>.</p>
+
+<h2>1 · Why study machine learning?</h2>
+<ul>
+<li><b>Applications.</b> A Forbes list of top digital-transformation trends included analytics, AI and machine learning, conversational AI and autonomous drones. All of them rely on machine learning algorithms one way or another.</li>
+<li><b>Popularity.</b> Google Trends for "machine learning", "deep learning" and "artificial intelligence" show a boom from about 2016. "Artificial intelligence" (the older, broader idea of a computer mimicking a human) was searched a lot in the early 2000s, faded as machine learning took over, and has picked up again with newer ideas such as causality. Deep learning is a subset of machine learning.</li>
+</ul>
+
+<h2>2 · Where can machine learning be applied?</h2>
+<p>Start from a prototypical human and the things that come naturally to us. If machines are to mimic humans, these are the abilities to copy:</p>
+<table>
+<tr><th>Human ability</th><th>Machine learning area</th><th>The challenge</th></tr>
+<tr><td>Seeing</td><td>Computer vision</td><td>Look at a picture and say "this is a tree": object recognition, mimicking an eye that evolved over millions of years.</td></tr>
+<tr><td>Hearing speech</td><td>Speech / natural language</td><td>Different people say the same thing in different ways; speech is unstructured, yet we extract meaning.</td></tr>
+<tr><td>Reading text</td><td>Text understanding</td><td>Billions of unstructured documents; understand their semantics, or even just read handwriting.</td></tr>
+<tr><td>Thinking</td><td>Understanding the brain</td><td>The "holy grail": how do interconnected neurons produce decisions? We are nowhere close, only baby steps.</td></tr>
+</table>
+<p>Beyond the senses, <b>any activity that generates a lot of data</b> is a candidate: stock markets (will a stock go up?), biology, chemistry and materials experiments, sports analytics (will Chennai or Bangalore win the next IPL match?), and e-commerce, where "people similar to you bought this" recommendations are chosen to maximise the chance you buy.</p>
+
+<h2>3 · What machine learning is not</h2>
+<div class="trio">
+<div class="card" style="margin:0"><b>Not procedural.</b><br><span class="small">Tax calculation takes salary and savings, applies fixed rules and outputs the tax. Input → steps → output, with nothing learnt.</span></div>
+<div class="card" style="margin:0"><b>Not memorisation.</b><br><span class="small">Memorise 1,000 pictures with trees and 1,000 without, and you still can't judge a <i>new</i> picture. Memorising every assignment solution aces an exam that only repeats them, but you haven't learnt the subject.</span></div>
+<div class="card" style="margin:0"><b>Not magic.</b><br><span class="small">"AI", "deep learning", "ML" are thrown around as buzzwords, and the results can feel like magic. They aren't.</span></div>
+</div>
+
+<h2>4 · What it is</h2>
+<table>
+<tr><th>It's not…</th><th>…because it has</th><th>Meaning</th></tr>
+<tr><td>procedural</td><td><b>data</b></td><td>The "secret sauce". It is still algorithmic, but the algorithm learns from data and uses what it learnt on test data.</td></tr>
+<tr><td>memorisation</td><td><b>generalisation</b></td><td>Doing well on <b>unseen</b> data. Being specific to the data you've seen is easy (just memorise); to be general you have to actually learn.</td></tr>
+<tr><td>magic</td><td><b>mathematics</b></td><td>Linear algebra, probability, statistics and optimisation (L2 explains why each is needed).</td></tr>
+</table>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Memorising vs generalising. 40 labelled training points: blue = "tree", orange = "no tree" (think of each point as a picture summarised by two numbers). The <b>memoriser</b> stores the training set and can only answer for a picture it has seen; for anything new it guesses. The <b>learner</b> extracts a simple rule (each class's average point; predict the closer one). Click the plot to show a new picture to both.</p>
+  <div class="row"><button id="test200">Test both on 200 unseen pictures</button><button id="newTrain">New training set</button></div>
+  <canvas id="mc" height="300" aria-label="Training points; click to classify a new point"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>tree</span><span><i class="dot" style="background:var(--s2)"></i>no tree</span><span><i style="background:var(--faint)"></i>learner's boundary</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="aTrM">–</div><div class="l">memoriser: training accuracy</div></div>
+    <div class="stat"><div class="v" id="aTeM">–</div><div class="l">memoriser: unseen accuracy</div></div>
+    <div class="stat"><div class="v" id="aTrL">–</div><div class="l">learner: training accuracy</div></div>
+    <div class="stat"><div class="v" id="aTeL">–</div><div class="l">learner: unseen accuracy</div></div>
+  </div>
+  <p class="small" id="probe"></p>
+  <p class="small" id="mTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The "learner" here is a nearest-mean classifier, chosen only because it is the simplest rule that generalises. The course builds much better ones (k-NN, decision trees, SVMs and more). The point is the contrast: the memoriser wins on the training set, but only the learner has learnt anything.</div>
+
+<h2>5 · Concrete machine learning problems</h2>
+<table>
+<tr><th>Problem</th><th>What has to be learnt</th></tr>
+<tr><td>Spam filtering (email or SMS)</td><td>From many emails known to be spam or not spam, learn to tell them apart. It occasionally makes mistakes but is mostly right.</td></tr>
+<tr><td>Forecasting rainfall</td><td>From 10–15 years of daily precipitation, pressure, humidity, … predict whether (or how much) it will rain tomorrow.</td></tr>
+<tr><td>Recommending movies</td><td>An OTT platform's "recommended for you" list, tailored to the genres you watch, different from your friend's.</td></tr>
+<tr><td>Friend suggestions</td><td>"People you may know" on social or professional networks: which non-connected people are likely to connect, as an ordered list.</td></tr>
+<tr><td>Voice/instrument separation</td><td>An mp3 mixes a singer and instruments. Given voice-only and instrument-only recordings, learn their structure and separate a new song.</td></tr>
+<tr><td>Grouping photos on a phone</td><td>Without being told who is in which photo, find that photos from different angles, places and times show the same face (then ask you to name the person).</td></tr>
+<tr><td>Robot navigation</td><td>Choose forward/left/right/back, get feedback (hit a wall?), and learn by mistakes which move is good <i>where</i>. Learning by experience.</td></tr>
+<tr><td>Stock market prediction</td><td>Predict in the morning, see the result in the evening, adjust for tomorrow. Learning over time, judged by money made or chances missed.</td></tr>
+</table>
+<p>L2 sorts these into the broad paradigms of machine learning.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Machine learning underlies vision, speech, text, recommendation, finance, sports and science: anywhere there's a lot of data.</li>
+<li>It is <b>not procedural</b>: the extra ingredient is <b>data</b>.</li>
+<li>It is <b>not memorisation</b>: the goal is to <b>generalise</b> to unseen data.</li>
+<li>It is <b>not magic</b>: it is <b>mathematics</b>.</li>
+<li>Typical problems: spam, rainfall, recommendations, friend suggestions, source separation, photo grouping, robot navigation, stock prediction.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const MU = [[-1, 0.6], [1, -0.6]], XR = [-3.5, 3.5], YR = [-3, 3];
+const sample = m => Array.from({length: m}, () => { const y = Math.random() < 0.5 ? 0 : 1; return [MU[y][0] + 0.9 * randn(), MU[y][1] + 0.9 * randn(), y]; });
+let train = [], probes = [], tested = null, means = null;
+function fit(){ means = [0, 1].map(c => { const P = train.filter(p => p[2] === c); return [P.reduce((s, p) => s + p[0], 0) / P.length, P.reduce((s, p) => s + p[1], 0) / P.length]; }); }
+const learner = (x, y) => (x - means[0][0]) ** 2 + (y - means[0][1]) ** 2 <= (x - means[1][0]) ** 2 + (y - means[1][1]) ** 2 ? 0 : 1;
+// memoriser: exact lookup; anything not stored gets a coin flip
+const memo = (x, y) => { const hit = train.find(p => p[0] === x && p[1] === y); return hit ? hit[2] : (Math.random() < 0.5 ? 0 : 1); };
+function newTrain(){ train = sample(40); probes = []; tested = null; $('probe').textContent = ''; fit(); stats(); draw(); }
+function stats(){
+  const acc = (f, D) => D.filter(p => f(p[0], p[1]) === p[2]).length / D.length;
+  $('aTrM').textContent = (100 * acc(memo, train)).toFixed(0) + '%'; $('aTrL').textContent = (100 * acc(learner, train)).toFixed(0) + '%';
+  $('aTeM').textContent = tested ? (100 * acc(memo, tested)).toFixed(0) + '%' : '–'; $('aTeL').textContent = tested ? (100 * acc(learner, tested)).toFixed(0) + '%' : '–';
+  $('mTxt').innerHTML = tested
+    ? 'The memoriser is perfect on what it memorised but no better than a coin toss on new pictures. The learner gives up a few training points yet carries over to unseen data: that is <b>generalisation</b>.'
+    : 'On the training data the memoriser is perfect and the learner gets most points right. Now test both on pictures neither has seen.';
+}
+let geo = null;
+function draw(){
+  const [ctx, W, H] = setupCanvas($('mc')), pad = 8;
+  const X = v => pad + (v - XR[0]) / (XR[1] - XR[0]) * (W - 2 * pad), Y = v => H - pad - (v - YR[0]) / (YR[1] - YR[0]) * (H - 2 * pad);
+  geo = {W, H, pad};
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(pad, pad, W - 2 * pad, H - 2 * pad);
+  // learner boundary: perpendicular bisector of the two means
+  const [a, b] = means, mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, dx = b[0] - a[0], dy = b[1] - a[1];
+  ctx.save(); ctx.beginPath(); ctx.rect(pad, pad, W - 2 * pad, H - 2 * pad); ctx.clip();
+  ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 2; ctx.setLineDash([6, 5]); ctx.beginPath(); ctx.moveTo(X(mx - 10 * dy), Y(my + 10 * dx)); ctx.lineTo(X(mx + 10 * dy), Y(my - 10 * dx)); ctx.stroke(); ctx.setLineDash([]);
+  const col = c => cssv(c ? '--s2' : '--s1');
+  if (tested) { ctx.globalAlpha = 0.25; tested.forEach(([x, y, c]) => { ctx.fillStyle = col(c); ctx.beginPath(); ctx.arc(X(x), Y(y), 2.5, 0, 2 * Math.PI); ctx.fill(); }); ctx.globalAlpha = 1; }
+  train.forEach(([x, y, c]) => { ctx.fillStyle = col(c); ctx.beginPath(); ctx.arc(X(x), Y(y), 5, 0, 2 * Math.PI); ctx.fill(); });
+  probes.forEach(([x, y]) => { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(X(x), Y(y), 8, 0, 2 * Math.PI); ctx.stroke(); });
+  ctx.restore();
+  geo.inv = (px, py) => [XR[0] + (px - pad) / (W - 2 * pad) * (XR[1] - XR[0]), YR[0] + (H - pad - py) / (H - 2 * pad) * (YR[1] - YR[0])];
+}
+$('mc').addEventListener('click', e => { const r = $('mc').getBoundingClientRect(), [x, y] = geo.inv(e.clientX - r.left, e.clientY - r.top);
+  const m = memo(x, y), l = learner(x, y), name = c => c ? '<b>no tree</b>' : '<b>tree</b>';
+  probes = [[x, y]]; $('probe').innerHTML = `New picture (circled). Memoriser: "never seen this one", so it guesses ${name(m)}. Learner: ${name(l)}, because it is closer to that class's average.`; draw(); });
+$('test200').onclick = () => { tested = sample(200); stats(); draw(); };
+$('newTrain').onclick = newTrain;
+newTrain();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

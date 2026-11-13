@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feature Transformation: Making Non-linear Relationships Linear</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 10 · PCA, issue 2: non-linear relationships</div>
+<h1>Feature Transformation: Making Non-linear Relationships Linear</h1>
+<p class="lede">PCA finds <b>linear</b> relationships. Points on a circle obey a perfectly exact rule, but it's quadratic, so PCA says both directions matter. Map each point to a higher-dimensional vector of monomials, $\phi(x)$, and the circle's rule becomes a <b>linear</b> equation: the mapped points lie in a linear subspace, which PCA can find. The catch: the number of monomial features explodes like $d^p$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=zcxnCyVSh70">this lecture on YouTube</a> (≈18 min). Previous: <a href="L9-pca-time-complexity.html">L9</a> · Next: <a href="L11-kernel-functions.html">L11</a>.</p>
+
+<h2>1 · Recap: issue 1 is solved</h2>
+<p>When $d\gg n$, L9 avoided the $O(d^3)$ eigen-solve of the covariance matrix by solving the $n\times n$ problem for $K=X^\top X$ and converting its eigenvectors into those of the covariance matrix. Issue 2 is different: what if the features are related, but <b>not linearly</b>?</p>
+
+<h2>2 · Points on a circle: what PCA sees</h2>
+<p>Take 2-D data lying on a circle centred at $(a,b)$. PCA first centres the data (moving the centre to the origin), then looks for the direction of largest variance. Around a circle, <b>no direction stands out</b>: every direction captures about the same variance. PCA picks some $w_1$ (which one depends on exactly where the points sit), and $w_2\perp w_1$ captures nearly the same amount.</p>
+<ul>
+<li>$w_1$ explains a little over 50% of the variance, $w_2$ a little under 50%.</li>
+<li>With the usual rule "keep enough directions for 95% of the variance", PCA says <b>both directions are needed</b>. No compression.</li>
+</ul>
+<p>But the points obey an exact relationship. With features $f_1,f_2$:</p>
+$$(f_1-a)^2+(f_2-b)^2=r^2\;\Longleftrightarrow\; f_1^2+f_2^2-2af_1-2bf_2+(a^2+b^2-r^2)=0 .$$
+<p>It has $f_1^2$ and $f_2^2$ terms, so it's not linear, and PCA can't see it.</p>
+
+<h2>3 · Lift the points: the relationship becomes linear</h2>
+<p>Map each 2-D point to a 6-D vector of monomials:</p>
+$$\phi\!\left(\begin{bmatrix}f_1\\f_2\end{bmatrix}\right)=\begin{bmatrix}1\\ f_1^2\\ f_2^2\\ f_1f_2\\ f_1\\ f_2\end{bmatrix}\in\mathbb R^6,\qquad u=\begin{bmatrix}a^2+b^2-r^2\\ 1\\ 1\\ 0\\ -2a\\ -2b\end{bmatrix}\in\mathbb R^6 .$$
+<p>The vector $u$ is built from the circle's parameters, not from any data point. Now the dot product $\phi(x)^\top u$ is exactly the left side of the circle equation, so <b>every data point satisfies</b></p>
+$$\phi(x_i)^\top u=0 .$$
+<div class="callout"><b>After the map, all the data points are orthogonal to one fixed vector $u$:</b> they lie in a linear subspace of $\mathbb R^6$. The non-linearity has been absorbed into $\phi$; in the mapped space, the relationship is linear, and finding linear structure is exactly what PCA does.</div>
+
+<div class="card">
+  <h3 style="margin:0 0 4px">A circle, before and after the map</h3>
+  <p class="small muted" style="margin-top:0">Left: points on a circle with PCA's two directions, and the share of variance each one explains. Right: $\phi(x_i)^\top u$ for every point (all ≈ 0), and the spectrum of PCA run on the mapped points (the constant coordinate dropped, then centred): one eigenvalue collapses to ≈ 0, revealing the hidden linear relationship.</p>
+  <div class="row">
+    <label>centre a = <b id="aV"></b> <input type="range" id="a" min="-20" max="20" value="8" aria-label="circle centre a"></label>
+    <label>radius r = <b id="rV"></b> <input type="range" id="r" min="5" max="25" value="14" aria-label="circle radius r"></label>
+    <label>noise = <b id="eV"></b> <input type="range" id="e" min="0" max="20" value="0" aria-label="noise level"></label>
+    <label>arc covered = <b id="cV"></b> <input type="range" id="c" min="30" max="100" value="100" aria-label="fraction of the circle covered"></label>
+    <button id="nd">New points</button>
+  </div>
+  <div class="pair">
+    <canvas id="circ" height="280" aria-label="Points on a circle with PCA directions"></canvas>
+    <canvas id="lift" height="280" aria-label="Values of phi(x) transpose u, and eigenvalues in the mapped space"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>data</span><span><i style="background:var(--s2)"></i>w₁</span><span><i style="background:var(--s3)"></i>w₂</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="v1">–</div><div class="l">variance along w₁ (2-D PCA)</div></div>
+    <div class="stat"><div class="v" id="mx">–</div><div class="l">max |φ(xᵢ)ᵀu| / ‖u‖</div></div>
+    <div class="stat"><div class="v" id="ratio">–</div><div class="l">smallest / largest eigenvalue in φ-space</div></div>
+  </div>
+  <p class="small" id="cTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The right-hand spectrum is my addition: it's PCA in the 5 non-constant coordinates of $\phi$. Because $f_1^2+f_2^2-2af_1-2bf_2$ is constant across the data, one combination of the centred features has zero variance, so one eigenvalue is ≈ 0 and its eigenvector is proportional to $(1,1,0,-2a,-2b)$, the non-constant part of $u$. Add noise and that eigenvalue becomes small rather than zero.</div>
+
+<h2>4 · The general recipe</h2>
+<ol class="steps">
+<li>Transform features from a low dimension to a high one: $x\in\mathbb R^d\mapsto\phi(x)\in\mathbb R^D$, with $D\gg d$.</li>
+<li>Hope that in $\mathbb R^D$ the mapped data lives in a low-dimensional <b>linear</b> subspace.</li>
+<li>Run PCA on the mapped points. Since $D$ may exceed $n$, use L9's trick: work with the $n\times n$ matrix $\phi(X)^\top\phi(X)$ instead of the $D\times D$ covariance. ($\phi(X)$ means $\phi$ applied to each column of $X$.)</li>
+</ol>
+
+<h2>5 · The catch: the number of features explodes</h2>
+<p>Suppose 4 features (say height, weight, age, …) and you want all relationships up to <b>cubic</b> ones, such as height × weight × age. The map needs a constant, every single feature, every product of two, every product of three. The lecture counts</p>
+$$1+\binom41+\binom42+\binom43=1+4+6+4=15,\qquad\text{and in general }\sum_{i=0}^{p}\binom di\;\approx\;d^{\,p}.$$
+<p>The lecture's rough figures: 10 features with relationships up to power 15 means on the order of $10^{15}$ mapped features, and 2 features up to power 20 on the order of $2^{20}$. The exact counts are smaller (see the note below), but the conclusion stands: for realistic numbers of features and powers, computing $\phi(x)$ explicitly becomes infeasible. L11 shows how to avoid computing it at all.</p>
+
+<div class="card">
+  <h3 style="margin:0 0 4px">How big does φ(x) get?</h3>
+  <div class="row">
+    <label>features d = <b id="fdV"></b> <input type="range" id="fd" min="1" max="100" value="4" aria-label="number of features"></label>
+    <label>max power p = <b id="fpV"></b> <input type="range" id="fp" min="1" max="20" value="3" aria-label="maximum power"></label>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="cnt1">–</div><div class="l">lecture's rough estimate dᵖ</div></div>
+    <div class="stat"><div class="v" id="cnt2">–</div><div class="l">all monomials of degree ≤ p: C(d + p, p)</div></div>
+    <div class="stat"><div class="v" id="mem">–</div><div class="l">memory for one φ(x) (8 bytes each)</div></div>
+  </div>
+</div>
+<div class="beyond"><b>A counting note, going beyond the video.</b> $\sum_{i\le p}\binom di$ counts products of <b>distinct</b> features ($f_1f_2f_3$). Allowing powers like $f_1^2f_2$ as well (the circle example needed $f_1^2$), the exact number of monomials of degree at most $p$ is $\binom{d+p}{p}$: 35 for 4 features up to cubic, about 3.3 million for $d=10,p=15$, and 231 for $d=2,p=20$. For a fixed power $p$ and many features this behaves like $d^p/p!$, a degree-$p$ polynomial in $d$, which is the sense in which it grows "like $d^p$". With $d=100$ and $p=5$ that's already about 96 million coordinates per point.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>PCA only captures linear relationships. On a circle it needs both directions, though one exact rule ties the features together.</li>
+<li>A feature map $\phi$ of monomials turns a polynomial relationship into a linear one: $\phi(x_i)^\top u=0$ for all points.</li>
+<li>Recipe: map to $\mathbb R^D$, then run PCA there, using the $n\times n$ trick from L9 because $D$ is huge.</li>
+<li>Problem: $D\approx d^p$ explodes, so $\phi(x)$ may be too expensive (or impossible) to compute. Next: kernels.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+function eigSym(A){ const n = A.length, a = A.map(r => r.slice()), V = A.map((_, i) => A.map((_, j) => +(i === j)));
+  for (let sweep = 0; sweep < 80; sweep++){ let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += a[i][j] ** 2; if (off < 1e-30 * a.reduce((s, r) => s + r.reduce((t, v) => t + v * v, 0), 0)) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++){ if (Math.abs(a[p][q]) < 1e-300) continue;
+      const th = (a[q][q] - a[p][p]) / (2 * a[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++){ const akp = a[k][p], akq = a[k][q]; a[k][p] = c * akp - s * akq; a[k][q] = s * akp + c * akq; }
+      for (let k = 0; k < n; k++){ const apk = a[p][k], aqk = a[q][k]; a[p][k] = c * apk - s * aqk; a[q][k] = s * apk + c * aqk; }
+      for (let k = 0; k < n; k++){ const vkp = V[k][p], vkq = V[k][q]; V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq; } } }
+  const idx = a.map((_, i) => i).sort((i, j) => a[j][j] - a[i][i]);
+  return {vals: idx.map(i => a[i][i]), vecs: idx.map(i => V.map(r => r[i]))}; }
+const cov = P => { const n = P.length, m = P[0].length, mu = new Array(m).fill(0); P.forEach(p => p.forEach((v, j) => mu[j] += v / n));
+  return Array.from({length: m}, (_, i) => Array.from({length: m}, (_, j) => P.reduce((s, p) => s + (p[i] - mu[i]) * (p[j] - mu[j]), 0) / n)); };
+const N = 60, B = -3;
+let angles = [], jit = [];
+function newPts(){ angles = Array.from({length: N}, () => Math.random()); jit = Array.from({length: N}, () => [randn(), randn()]); }
+function draw(){
+  const a = +$('a').value / 2, r = +$('r').value / 2, eps = +$('e').value / 40, cover = +$('c').value / 100;
+  $('aV').textContent = a.toFixed(1); $('rV').textContent = r.toFixed(1); $('eV').textContent = eps.toFixed(2); $('cV').textContent = Math.round(cover * 100) + '%';
+  const P = angles.map((t, i) => { const th = 2 * Math.PI * cover * t; return [a + r * Math.cos(th) + eps * jit[i][0], B + r * Math.sin(th) + eps * jit[i][1]]; });
+  // 2-D PCA
+  const e2 = eigSym(cov(P)), share = e2.vals[0] / (e2.vals[0] + e2.vals[1]);
+  // lift: phi without the constant coordinate, PCA there
+  const phi = ([f1, f2]) => [f1 * f1, f2 * f2, f1 * f2, f1, f2];
+  const Q = P.map(phi), e5 = eigSym(cov(Q));
+  const u = [a * a + B * B - r * r, 1, 1, 0, -2 * a, -2 * B], un = Math.hypot(...u);
+  const vals = P.map(p => [1, ...phi(p)].reduce((s, v, i) => s + v * u[i], 0) / un);
+  $('v1').textContent = (100 * share).toFixed(1) + '%';
+  $('mx').textContent = Math.max(...vals.map(Math.abs)).toExponential(1);
+  $('ratio').textContent = (Math.max(0, e5.vals[4]) / e5.vals[0]).toExponential(1);
+  // left canvas: the circle
+  { const [ctx, W, H] = setupCanvas($('circ')), pad = 18, R = Math.max(Math.abs(a), Math.abs(B)) + r + 1.5, S = Math.min(W, H) - 2 * pad, ox = (W - S) / 2, oy = (H - S) / 2;
+    const X = x => ox + (x + R) / (2 * R) * S, Y = y => oy + S - (y + R) / (2 * R) * S;
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(-R), Y(0)); ctx.lineTo(X(R), Y(0)); ctx.moveTo(X(0), Y(-R)); ctx.lineTo(X(0), Y(R)); ctx.stroke();
+    ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'top'; ctx.fillText('f₁', X(R) - 2, Y(0) + 3); ctx.textAlign = 'left'; ctx.fillText('f₂', X(0) + 4, Y(R));
+    const mu = [P.reduce((s, p) => s + p[0], 0) / N, P.reduce((s, p) => s + p[1], 0) / N];
+    ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, S, S); ctx.clip();
+    P.forEach(([x, y]) => { ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(X(x), Y(y), 3.5, 0, 2 * Math.PI); ctx.fill(); });
+    [[e2.vecs[0], e2.vals[0], '--s2'], [e2.vecs[1], e2.vals[1], '--s3']].forEach(([v, l, col]) => { const L = 2 * Math.sqrt(Math.max(l, 0));
+      ctx.strokeStyle = cssv(col); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(X(mu[0] - L * v[0]), Y(mu[1] - L * v[1])); ctx.lineTo(X(mu[0] + L * v[0]), Y(mu[1] + L * v[1])); ctx.stroke(); });
+    ctx.restore(); }
+  // right canvas: phi(x)^T u values (top) and eigenvalue spectrum (bottom)
+  { const [ctx, W, H] = setupCanvas($('lift')), pad = {l: 10, r: 10}, h1 = H * 0.42, top2 = h1 + 34;
+    ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('φ(xᵢ)ᵀu / ‖u‖ for each point (scale ±1)', pad.l, 0);
+    const mid = 18 + (h1 - 18) / 2, half = (h1 - 22) / 2, bw = (W - pad.l - pad.r) / N;
+    ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(pad.l, mid); ctx.lineTo(W - pad.r, mid); ctx.stroke();
+    vals.forEach((v, i) => { const hgt = Math.max(-1, Math.min(1, v)) * half; ctx.fillStyle = cssv('--s1'); ctx.fillRect(pad.l + i * bw + 1, mid - Math.max(hgt, 0), Math.max(1, bw - 2), Math.max(Math.abs(hgt), 1)); });
+    ctx.fillStyle = cssv('--muted'); ctx.fillText('eigenvalues of the covariance of φ(x) (log scale)', pad.l, h1 + 12);
+    const lv = e5.vals.map(v => Math.log10(Math.max(v, 1e-12))), lo = -12, hi = Math.ceil(Math.max(...lv)), ch = H - top2 - 8, cw = (W - pad.l - pad.r) / 5;
+    e5.vals.forEach((v, i) => { const t = (lv[i] - lo) / (hi - lo), bh = Math.max(2, t * ch); ctx.fillStyle = cssv(i === 4 ? '--s2' : '--faint'); ctx.fillRect(pad.l + i * cw + 6, top2 + ch - bh, cw - 12, bh);
+      ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(v < 1e-9 ? '≈0' : v.toPrecision(2), pad.l + i * cw + cw / 2, top2 + ch - bh - 2); }); }
+  $('cTxt').innerHTML = (Math.abs(share - 0.5) < 0.1
+    ? `2-D PCA: w₁ explains only ${(100 * share).toFixed(0)}% of the variance, so the 95% rule keeps both directions. `
+    : `With only part of the circle, w₁ explains ${(100 * share).toFixed(0)}%, but PCA still can't describe the curve with one straight direction. `)
+    + (eps === 0 ? 'After the map, every φ(xᵢ)ᵀu is exactly 0 and the smallest eigenvalue (orange) is 0 up to rounding: the lifted points lie in a subspace.'
+      : 'With noise the points are only near the circle, so φ(xᵢ)ᵀu is small but not 0, and the orange eigenvalue is small rather than 0.');
+}
+function binom(n, k){ let r = 1; for (let i = 1; i <= k; i++) r = r * (n - k + i) / i; return r; }
+function drawCount(){ const d = +$('fd').value, p = +$('fp').value; $('fdV').textContent = d; $('fpV').textContent = p;
+  const s = d ** p, t = binom(d + p, p);
+  const f = v => v < 1e7 ? Math.round(v).toLocaleString() : v.toExponential(2);
+  const bytes = 8 * t, m = bytes < 1e3 ? bytes + ' B' : bytes < 1e6 ? (bytes / 1e3).toPrecision(3) + ' kB' : bytes < 1e9 ? (bytes / 1e6).toPrecision(3) + ' MB' : bytes < 1e12 ? (bytes / 1e9).toPrecision(3) + ' GB' : bytes.toExponential(1) + ' B';
+  $('cnt1').textContent = f(s); $('cnt2').textContent = f(t); $('mem').textContent = m; }
+['a', 'r', 'e', 'c'].forEach(id => $(id).oninput = draw); $('nd').onclick = () => { newPts(); draw(); };
+['fd', 'fp'].forEach(id => $(id).oninput = drawCount);
+newPts(); draw(); drawCount();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+</body>
+</html>

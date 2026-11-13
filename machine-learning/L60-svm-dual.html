@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Dual of the SVM</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>
+.two{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px} @media (max-width:640px){.two{grid-template-columns:1fr}}
+.ar{display:grid;grid-template-columns:54px 1fr 44px;gap:6px;align-items:center;font-size:13px;margin:3px 0;font-variant-numeric:tabular-nums} .ar input{width:100%}
+.ar i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+</style>
+<div class="kicker">Lecture 60 · Support vector machines: the dual problem</div>
+<h1>The Dual of the SVM</h1>
+<p class="lede">Apply the Lagrangian machinery to $\min\tfrac12\lVert w\rVert^2$ s.t. $(w^\top x_i)y_i\ge1$. For fixed multipliers $\alpha$, the best $w$ is simply $w=\sum_i\alpha_i y_i x_i$. Substituting back leaves a problem in $\alpha$ alone: <b>$\max_{\alpha\ge0}\ \alpha^\top\mathbf 1-\tfrac12\alpha^\top Y^\top X^\top X\,Y\alpha$</b>. It has $n$ variables, trivial constraints, and touches the data only through <b>dot products</b> $X^\top X$, so it can be kernelised.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=85BxDKkiK4c">this lecture on YouTube</a> (≈22 min). Previous: <a href="L59-constrained-optimization.html">L59</a> · Next: <a href="L61-support-vectors.html">L61</a>.</p>
+
+<h2>1 · Set up the Lagrangian</h2>
+<p>The objective $\tfrac12\lVert w\rVert^2$ is quadratic and the constraints are linear in $w$: all convex, so the min-max swap of L59 applies. In standard form each constraint is $g_i(w)=1-(w^\top x_i)y_i\le0$, and with one multiplier $\alpha_i\ge0$ per data point:</p>
+$$L(w,\alpha)=\tfrac12\lVert w\rVert^2+\sum_{i=1}^n\alpha_i\big(1-(w^\top x_i)\,y_i\big),\qquad \min_w\max_{\alpha\ge0}L=\max_{\alpha\ge0}\min_w L .$$
+
+<h2>2 · The inner minimisation has a closed form</h2>
+<p>On the right, for a fixed $\alpha$ the minimisation over $w$ has <b>no constraints</b>. Set the gradient to zero:</p>
+$$\nabla_wL=w-\sum_{i=1}^n\alpha_i\,y_i\,x_i=0\qquad\Longrightarrow\qquad w^*_\alpha=\sum_{i=1}^n\alpha_i\,y_i\,x_i=XY\alpha .$$
+<p>Here $X=[x_1\ \cdots\ x_n]$ is $d\times n$, $Y=\operatorname{diag}(y_1,\dots,y_n)$ is $n\times n$, and $\alpha\in\mathbb R^n$. <b>The best $w$ for any $\alpha$ is a linear combination of the data points.</b></p>
+
+<h2>3 · Substitute back: the dual problem</h2>
+<p>Put $w=XY\alpha$ into $L$ and simplify (using $\lVert XY\alpha\rVert^2=\alpha^\top Y^\top X^\top XY\alpha$):</p>
+<div class="callout">$$\textbf{Dual:}\qquad\max_{\alpha\ge0}\ \ \alpha^\top\mathbf 1-\tfrac12\,\alpha^\top Y^\top X^\top X\,Y\,\alpha\qquad\qquad\textbf{Primal:}\qquad\min_w\ \tfrac12\lVert w\rVert^2\ \ \text{s.t.}\ (w^\top x_i)y_i\ge1 .$$
+Both have the same optimal value. $\mathbf 1$ is the all-ones vector, so $\alpha^\top\mathbf 1=\sum_i\alpha_i$.</div>
+<div class="card">
+  <h3 style="margin:0 0 4px">Build w out of the data points</h3>
+  <p class="small muted" style="margin-top:0">Eight points, one slider $\alpha_i$ each. The thin arrows are the pieces $\alpha_iy_ix_i$ laid tip to tail; their sum is $w$ (black). Raise the dual objective as high as you can, or let coordinate ascent do it.</p>
+  <div class="row"><button id="sweep">One sweep of coordinate ascent</button><button id="solve">Solve</button><button id="zero">Reset α = 0</button></div>
+  <div class="two">
+    <canvas id="dc" height="360" aria-label="Data points, the pieces alpha y x and their sum w with its margin lines"></canvas>
+    <div><div id="als"></div>
+      <div class="row"><span class="stat"><span class="v" id="sD">–</span><br><span class="l">dual objective Σαᵢ − ½‖w‖²</span></span><span class="stat"><span class="v" id="sP">–</span><br><span class="l">primal ½‖w‖² (if feasible)</span></span></div></div>
+  </div>
+  <p class="small" id="dTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>4 · What the dual buys</h2>
+<table>
+<tr><th></th><th>Primal</th><th>Dual</th></tr>
+<tr><td><b>Variable</b></td><td>$w\in\mathbb R^d$</td><td>$\alpha\in\mathbb R^n_+$. Smaller search space when $d\gg n$</td></tr>
+<tr><td><b>Constraints</b></td><td>$n$ linear constraints $(w^\top x_i)y_i\ge1$; projecting onto them is awkward</td><td>just $\alpha\ge0$; projection is trivial</td></tr>
+<tr><td><b>Data enters as</b></td><td>the points $x_i$ themselves</td><td>only $X^\top X$, the matrix of pairwise dot products</td></tr>
+</table>
+<p>The first two are side benefits. The third is the real prize: an objective that depends on the data only through $X^\top X$ <b>can be kernelised</b>. Replace $X^\top X$ by a kernel matrix $K$, and the same problem finds a maximum-margin separator in a high-dimensional feature space: quadratic, cubic, or Gaussian (RBF) boundaries, exactly as in kernel regression (L32). The primal gave no hint this was possible.</p>
+
+<h2>5 · The solution, and a question</h2>
+<p>If $\alpha^*$ solves the dual, then</p>
+$$w^*=\sum_{i=1}^n\alpha^*_i\,y_i\,x_i .$$
+<p>The optimal $w$ is a linear combination of the data points, and $\alpha^*_i$ is the <b>importance</b> of point $i$. If $\alpha^*_i=0$ the point contributes nothing. We know $\alpha^*_i\ge0$, but which points get $\alpha^*_i&gt;0$? Look at the solved demo above: most sliders end at exactly 0.</p>
+<div class="callout"><b>Next:</b> a property of optimal solutions, complementary slackness, says exactly where the important points are (<a href="L61-support-vectors.html">L61</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>$L(w,\alpha)=\tfrac12\lVert w\rVert^2+\sum_i\alpha_i(1-(w^\top x_i)y_i)$, $\alpha_i\ge0$.</li>
+<li>For fixed $\alpha$: $w^*_\alpha=\sum_i\alpha_iy_ix_i=XY\alpha$.</li>
+<li>Dual: $\max_{\alpha\ge0}\alpha^\top\mathbf1-\frac12\alpha^\top Y^\top X^\top XY\alpha$.</li>
+<li>$n$ variables, simple constraints, and only dot products of the data: kernelisable.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], len = a => Math.hypot(a[0], a[1]), f2 = v => (v < -0.004 ? '−' : '') + Math.abs(v).toFixed(2), vec = a => `(${f2(a[0])}, ${f2(a[1])})`;
+const YR = 3.6;
+function view(cv){ const [ctx, W, H] = setupCanvas(cv), sc = H / (2 * YR); return {ctx, W, H, sc, X: x => W / 2 + x * sc, Y: y => H / 2 - y * sc, xr: W / 2 / sc}; }
+function evPt(cv, e){ const r = cv.getBoundingClientRect(), sc = r.height / (2 * YR); return [(e.clientX - r.left - r.width / 2) / sc, (r.height / 2 - (e.clientY - r.top)) / sc]; }
+function axes(v){ const {ctx, W, H} = v; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); }
+function shade(v, fn, a = 0.14){ const {ctx, W, H, sc} = v, st = 8; for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const val = fn([(px + st / 2 - W / 2) / sc, (H / 2 - py - st / 2) / sc]); if (!val) continue;
+    ctx.fillStyle = cssv(val > 0 ? '--s1' : '--s2'); ctx.globalAlpha = a * Math.min(1, Math.abs(val)); ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1; }
+function sepLine(v, w, col, wd = 2.5, dash = [], off = 0){ const n = len(w); if (n < 1e-9) return; const {ctx, X, Y} = v, u = [w[0] / n, w[1] / n], c = [u[0] * off, u[1] * off], t = [-u[1], u[0]];
+  ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(c[0] - 30 * t[0]), Y(c[1] - 30 * t[1])); ctx.lineTo(X(c[0] + 30 * t[0]), Y(c[1] + 30 * t[1])); ctx.stroke(); ctx.setLineDash([]); }
+function arrow(v, a, b, col, wd = 2.5, label, dash = []){ const {ctx, X, Y} = v, x0 = X(a[0]), y0 = Y(a[1]), x1 = X(b[0]), y1 = Y(b[1]); if (Math.hypot(x1 - x0, y1 - y0) < 3) return; const ang = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 10 * Math.cos(ang - 0.4), y1 - 10 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 10 * Math.cos(ang + 0.4), y1 - 10 * Math.sin(ang + 0.4)); ctx.fill();
+  if (label){ ctx.font = 'italic 15px Georgia,serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x1 + 8 * Math.cos(ang) + 2, y1 + 8 * Math.sin(ang)); } }
+function pt(v, p, o = {}){ const {ctx, X, Y} = v, c = cssv(p[2] > 0 ? '--s1' : '--s2'), r = o.r || 5; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.stroke();
+  if (o.ring){ ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r + 5, 0, 2 * Math.PI); ctx.strokeStyle = o.ring; ctx.lineWidth = 2.2; ctx.stroke(); } }
+const pred = (w, p) => dot(w, p) >= 0 ? 1 : -1, wrong = (w, P) => P.filter(p => pred(w, p) !== p[2]);
+function makeData(seed, n, gap, wt = [0.86, 0.51]){ const r = rng(seed), P = []; let guard = 0; while (P.length < n && guard++ < 9000){ const p = [-4.2 + 8.4 * r(), -3 + 6 * r()], s = dot(wt, p); if (Math.abs(s) >= gap && len(p) > 0.4) P.push([p[0], p[1], s > 0 ? 1 : -1]); } return P; }
+function bestSep(P){ let best = {g: -Infinity, u: [1, 0]}; for (let i = 0; i < 1440; i++){ const a = i / 1440 * 2 * Math.PI, u = [Math.cos(a), Math.sin(a)]; let g = Infinity; for (const p of P){ const m = p[2] * dot(u, p); if (m < g) g = m; if (g < best.g) break; } if (g > best.g) best = {g, u}; } return best; }
+// SVM dual by coordinate ascent (no bias term, as in the lectures): max sum(a) - 0.5 a'Qa, 0 <= a <= C. Optional kernel K.
+function svmDual(P, C, opt = {}){ const n = P.length, a = opt.warm && opt.warm.length === n ? opt.warm.map(v => Math.min(v, C)) : new Array(n).fill(0), K = opt.K, sweeps = opt.sweeps || 800;
+  if (!K){ const w = [0, 0]; a.forEach((v, i) => { w[0] += v * P[i][2] * P[i][0]; w[1] += v * P[i][2] * P[i][1]; }); const q = P.map(p => dot(p, p) || 1e-9);
+    for (let s = 0; s < sweeps; s++){ let ch = 0; for (let i = 0; i < n; i++){ const p = P[i], na = Math.max(0, Math.min(C, a[i] + (1 - p[2] * dot(w, p)) / q[i])), d = na - a[i]; if (d){ a[i] = na; w[0] += d * p[2] * p[0]; w[1] += d * p[2] * p[1]; ch += Math.abs(d); } } if (ch < 1e-11) break; }
+    return {a, w}; }
+  const G = P.map(p => P.map(q => K(p, q))), f = new Array(n).fill(0); a.forEach((v, j) => { if (v) for (let i = 0; i < n; i++) f[i] += v * P[j][2] * G[i][j]; });
+  for (let s = 0; s < sweeps; s++){ let ch = 0; for (let i = 0; i < n; i++){ const na = Math.max(0, Math.min(C, a[i] + (1 - P[i][2] * f[i]) / (G[i][i] || 1e-9))), d = na - a[i]; if (d){ a[i] = na; for (let k = 0; k < n; k++) f[k] += d * P[i][2] * G[k][i]; ch += Math.abs(d); } } if (ch < 1e-9) break; }
+  return {a, f, score: x => { let s = 0; for (let i = 0; i < n; i++) if (a[i] > 1e-9) s += a[i] * P[i][2] * K(P[i], x); return s; }}; }
+function makeNoisy(seed, n, gap, flip){ const P = makeData(seed, n, gap), r = rng(seed + 7777); return P.map(p => r() < flip ? [p[0], p[1], -p[2]] : p); }
+function band(v, u, g, col = '--s3', a = 0.16){ const {ctx, X, Y} = v, t = [-u[1], u[0]]; ctx.fillStyle = cssv(col); ctx.globalAlpha = a; ctx.beginPath(); [[g, -40], [g, 40], [-g, 40], [-g, -40]].forEach(([o, k], i) => { const q = [u[0] * o + t[0] * k, u[1] * o + t[1] * k]; i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])); }); ctx.fill(); ctx.globalAlpha = 1; }
+// draw the separator w'x = 0 and the two margin lines w'x = +-1
+function svmLines(v, w, col, shadeBand = true){ const n = len(w); if (n < 1e-9) return; const u = [w[0] / n, w[1] / n]; if (shadeBand) band(v, u, 1 / n); sepLine(v, w, cssv('--s3'), 1.5, [6, 4], 1 / n); sepLine(v, w, cssv('--s3'), 1.5, [6, 4], -1 / n); sepLine(v, w, col || cssv('--ink'), 2.5); }
+
+const D = [[1.4, 1.3, 1], [2.7, 0.3, 1], [0.7, 2.7, 1], [3.1, 2.3, 1], [-1.3, -0.5, -1], [-2.5, 0.6, -1], [-0.4, -2.5, -1], [-2.9, -1.9, -1]], AMAX = 0.6;
+let al = D.map(() => 0);
+const wOf = a => a.reduce((w, v, i) => [w[0] + v * D[i][2] * D[i][0], w[1] + v * D[i][2] * D[i][1]], [0, 0]);
+function sweepOnce(){ let w = wOf(al); D.forEach((p, i) => { const na = Math.max(0, al[i] + (1 - p[2] * dot(w, p)) / dot(p, p)), d = na - al[i]; al[i] = na; w = [w[0] + d * p[2] * p[0], w[1] + d * p[2] * p[1]]; }); }
+function sliders(){ $('als').innerHTML = D.map((p, i) => `<div class="ar"><span><i style="background:var(${p[2] > 0 ? '--s1' : '--s2'})"></i>α<sub>${i + 1}</sub></span><input type="range" min="0" max="${AMAX * 1000}" value="${Math.round(Math.min(al[i], AMAX) * 1000)}" data-i="${i}" aria-label="alpha ${i + 1}"><b>${al[i].toFixed(3)}</b></div>`).join('');
+  document.querySelectorAll('#als input').forEach(s => s.oninput = () => { al[+s.dataset.i] = +s.value / 1000; s.parentElement.querySelector('b').textContent = al[+s.dataset.i].toFixed(3); draw(); }); }
+function draw(){ const v = view($('dc')), ink = cssv('--ink'), w = wOf(al), n = len(w), ext = al.reduce((m, a, i) => m + a * len(D[i]), 0), s = Math.min(1, 3.2 / Math.max(ext, n, 1e-9));
+  axes(v); if (n > 1e-6) svmLines(v, w, ink, true);
+  let tip = [0, 0]; D.forEach((p, i) => { if (al[i] > 1e-4){ const nt = [tip[0] + s * al[i] * p[2] * p[0], tip[1] + s * al[i] * p[2] * p[1]]; arrow(v, tip, nt, cssv(p[2] > 0 ? '--s1' : '--s2'), 1.8); tip = nt; } });
+  D.forEach((p, i) => { pt(v, p, {r: 6, ring: al[i] > 1e-4 ? cssv('--s3') : null}); v.ctx.fillStyle = ink; v.ctx.font = '12px system-ui,sans-serif'; v.ctx.textAlign = 'left'; v.ctx.fillText(i + 1, v.X(p[0]) + 9, v.Y(p[1]) - 9); });
+  arrow(v, [0, 0], [w[0] * s, w[1] * s], ink, 3, 'w');
+  const dual = al.reduce((a, b) => a + b, 0) - 0.5 * n * n, viol = D.filter(p => p[2] * dot(w, p) < 1 - 1e-4), feas = !viol.length && n > 0;
+  $('sD').textContent = dual.toFixed(4); $('sP').textContent = feas ? (0.5 * n * n).toFixed(4) : 'not feasible';
+  const used = al.filter(a => a > 1e-4).length;
+  $('dTxt').innerHTML = n < 1e-6 ? 'All α are 0, so w = 0 and the dual objective is 0. Raising an αᵢ adds 1 per unit to Σαᵢ, and also grows w, which costs ½‖w‖². The trick is to grow Σαᵢ faster than ½‖w‖².'
+    : feas && Math.abs(dual - 0.5 * n * n) < 2e-4 ? `<b style="color:var(--s3)">Optimal.</b> Dual objective = primal objective = ${dual.toFixed(4)}: the two problems meet. The band's edge rests on the closest points, and only <b>${used} of 8</b> points have αᵢ &gt; 0 (green rings). The rest ended at exactly 0. Which ones, and why? That's the next lecture.`
+    : `w = ${vec(w)}${s < 1 ? ' (arrows drawn scaled to fit)' : ''}. ` + (feas ? `This w is feasible, with primal value ${(0.5 * n * n).toFixed(4)} ≥ dual value ${dual.toFixed(4)}. Any feasible primal value sits above any dual value; they meet only at the optimum.`
+      : `${viol.length} point${viol.length > 1 ? 's' : ''} still inside the band or misclassified. For such a point, raising its own α increases the dual objective.`) + (dual < 0 ? ' The dual objective is negative: w has grown too long for the α you hold. Lower some.' : ''); }
+$('sweep').onclick = () => { sweepOnce(); sliders(); draw(); };
+$('solve').onclick = () => { for (let i = 0; i < 4000; i++) sweepOnce(); sliders(); draw(); };
+$('zero').onclick = () => { al = D.map(() => 0); sliders(); draw(); };
+sliders();
+onReady(draw);
+</script>
+</body>
+</html>

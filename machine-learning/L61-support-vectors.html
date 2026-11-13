@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Support Vectors and Complementary Slackness</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 61 · Support vector machines: which points matter</div>
+<h1>Support Vectors and Complementary Slackness</h1>
+<p class="lede">At the optimum, each multiplier times its constraint is zero: $\alpha^*_i\,\big(1-(w^{*\top}x_i)y_i\big)=0$. So a point with $\alpha^*_i&gt;0$ must lie <b>exactly on</b> a margin line, and every point beyond the margin has $\alpha^*_i=0$. The few points on the margin lines, the <b>support vectors</b>, determine $w^*$ completely. This sparsity, plus kernels, is the support vector machine.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=2LnQ2r7Q3-0">this lecture on YouTube</a> (≈22 min). Previous: <a href="L60-svm-dual.html">L60</a> · Next: <a href="L62-soft-margin-svm.html">L62</a>.</p>
+
+<h2>1 · Complementary slackness</h2>
+<p>Let $w^*$ solve the primal and $\alpha^*$ the dual of $\min f(w)$ s.t. $g(w)\le0$ (convex). Evaluate both sides of $\min_w\max_{\alpha\ge0}L=\max_{\alpha\ge0}\min_wL$ at these solutions:</p>
+$$f(w^*)\ =\ \min_w\big[f(w)+\alpha^*g(w)\big]\ \le\ f(w^*)+\alpha^*g(w^*)\qquad\Longrightarrow\qquad\alpha^*\,g(w^*)\ \ge\ 0 .$$
+<p>The left equality: $w^*$ is feasible, so the inner max gives $f(w^*)$. The inequality: a minimum over all $w$ is at most the value at the particular point $w^*$. But feasibility also says $\alpha^*\ge0$ and $g(w^*)\le0$, so $\alpha^*g(w^*)\le0$. Both can only hold if</p>
+<div class="callout">$$\alpha^*\,g(w^*)=0\qquad\text{and, with many constraints,}\qquad\alpha^*_i\,g_i(w^*)=0\ \ \text{for every } i .$$
+<b>Complementary slackness:</b> if one factor has slack (is strictly non-zero), the other must be zero. $\alpha^*_i&gt;0\Rightarrow g_i(w^*)=0$, and $g_i(w^*)&lt;0\Rightarrow\alpha^*_i=0$.</div>
+
+<h2>2 · What it means for the SVM</h2>
+<p>Here $g_i(w)=1-(w^\top x_i)y_i$, so $\alpha^*_i\,\big(1-(w^{*\top}x_i)y_i\big)=0$ for all $i$. Therefore:</p>
+$$\alpha^*_i&gt;0\quad\Longrightarrow\quad(w^{*\top}x_i)\,y_i=1 .$$
+<ul>
+<li>A point that contributes to $w^*=\sum_i\alpha^*_iy_ix_i$ lies <b>on</b> one of the two lines $w^{*\top}x=\pm1$, the <b>supporting hyperplanes</b>.</li>
+<li>Every point strictly beyond those lines has $\alpha^*_i=0$ and contributes <b>nothing</b>.</li>
+<li>The implication runs one way: a point on a supporting hyperplane <i>may</i> still have $\alpha^*_i=0$.</li>
+</ul>
+<p>The contributing points are called <b>support vectors</b>, and the algorithm, built around finding them, is the <b>support vector machine</b> (SVM; Vapnik and colleagues, 1990s). $w^*$ is a <b>sparse</b> combination of the data: with a billion points, perhaps only a hundred matter. The rest can be thrown away.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">Only the support vectors matter</h3>
+  <p class="small muted" style="margin-top:0"><b>Drag any point.</b> Green rings mark support vectors (ring size shows $\alpha^*_i$). Move a point that is beyond the margin and nothing changes; move a support vector, or push another point into the band, and the solution shifts.</p>
+  <div class="row"><button id="rm">Delete every non-support vector</button><button id="rst">Restore the data</button>
+    <span class="stat"><span class="v" id="sSV">–</span> <span class="l">support vectors</span></span><span class="stat"><span class="v" id="sN">–</span> <span class="l">points</span></span><span class="stat"><span class="v" id="sW">–</span> <span class="l">w*</span></span></div>
+  <canvas id="sv" height="380" style="touch-action:none;cursor:grab" aria-label="Hard-margin SVM with draggable points and highlighted support vectors"></canvas>
+  <p class="small" id="hov" style="min-height:22px;margin-bottom:4px"></p>
+  <p class="small" id="svTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>3 · Predicting with a kernel</h2>
+<p>For a test point we need $w^{*\top}x_{\text{test}}$. Using $w^*=\sum_i\alpha^*_iy_ix_i$:</p>
+$$w^{*\top}x_{\text{test}}=\sum_{i=1}^n\alpha^*_i\,y_i\,(x_i^\top x_{\text{test}})\qquad\xrightarrow{\ \text{kernel}\ }\qquad w^{*\top}\phi(x_{\text{test}})=\sum_{i=1}^n\alpha^*_i\,y_i\,k(x_i,x_{\text{test}}) .$$
+<p>In the kernel version $w^*$ lives in a high-dimensional space and is never built explicitly. Prediction needs only kernel evaluations against the points with $\alpha^*_i&gt;0$. Sparsity is what makes that cheap: keep the support vectors and their $\alpha^*_iy_i$, discard everything else.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">A kernel SVM on data no line can separate</h3>
+  <div class="row"><span class="small">kernel:</span><button data-k="lin">linear, xᵀx′</button><button data-k="quad" class="on">quadratic, (1 + xᵀx′)²</button><button data-k="rbf">Gaussian (RBF)</button><button id="kNew">New data</button></div>
+  <canvas id="ks" height="340" aria-label="Kernel SVM decision regions on ring-shaped data with support vectors highlighted"></canvas>
+  <p class="small" id="ksTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>4 · What's still missing: outliers</h2>
+<p>Everything so far assumes the data is separable (linearly, or in the kernel's feature space). With a stray $+$ among the $-$ points, no feasible $w$ exists and the algorithm gives up.</p>
+<div class="callout"><b>Can't a kernel fix that?</b> It's the wrong tool. Kernels address <b>structure</b>: the true boundary is non-linear (quadratic, cubic…). Outliers are <b>noise</b>: the structure is still linear, a few points are just on the wrong side. Bending the boundary around noise with a powerful kernel fits the noise and hurts accuracy.</div>
+<p><b>Next:</b> a small change to the primal problem that tolerates outliers, the soft-margin SVM (<a href="L62-soft-margin-svm.html">L62</a>).</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Complementary slackness: $\alpha^*_i\,g_i(w^*)=0$ for every constraint.</li>
+<li>For the SVM: $\alpha^*_i&gt;0\Rightarrow(w^{*\top}x_i)y_i=1$. Contributing points sit on the supporting hyperplanes.</li>
+<li>Those points are the support vectors; $w^*$ is a sparse combination of the data.</li>
+<li>Kernel prediction: $\sum_i\alpha^*_iy_ik(x_i,x_{\text{test}})$, over support vectors only.</li>
+<li>Outliers are noise, not structure; kernels are not the fix.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], len = a => Math.hypot(a[0], a[1]), f2 = v => (v < -0.004 ? '−' : '') + Math.abs(v).toFixed(2), vec = a => `(${f2(a[0])}, ${f2(a[1])})`;
+const YR = 3.6;
+function view(cv){ const [ctx, W, H] = setupCanvas(cv), sc = H / (2 * YR); return {ctx, W, H, sc, X: x => W / 2 + x * sc, Y: y => H / 2 - y * sc, xr: W / 2 / sc}; }
+function evPt(cv, e){ const r = cv.getBoundingClientRect(), sc = r.height / (2 * YR); return [(e.clientX - r.left - r.width / 2) / sc, (r.height / 2 - (e.clientY - r.top)) / sc]; }
+function axes(v){ const {ctx, W, H} = v; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); }
+function shade(v, fn, a = 0.14){ const {ctx, W, H, sc} = v, st = 8; for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const val = fn([(px + st / 2 - W / 2) / sc, (H / 2 - py - st / 2) / sc]); if (!val) continue;
+    ctx.fillStyle = cssv(val > 0 ? '--s1' : '--s2'); ctx.globalAlpha = a * Math.min(1, Math.abs(val)); ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1; }
+function sepLine(v, w, col, wd = 2.5, dash = [], off = 0){ const n = len(w); if (n < 1e-9) return; const {ctx, X, Y} = v, u = [w[0] / n, w[1] / n], c = [u[0] * off, u[1] * off], t = [-u[1], u[0]];
+  ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(c[0] - 30 * t[0]), Y(c[1] - 30 * t[1])); ctx.lineTo(X(c[0] + 30 * t[0]), Y(c[1] + 30 * t[1])); ctx.stroke(); ctx.setLineDash([]); }
+function arrow(v, a, b, col, wd = 2.5, label, dash = []){ const {ctx, X, Y} = v, x0 = X(a[0]), y0 = Y(a[1]), x1 = X(b[0]), y1 = Y(b[1]); if (Math.hypot(x1 - x0, y1 - y0) < 3) return; const ang = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 10 * Math.cos(ang - 0.4), y1 - 10 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 10 * Math.cos(ang + 0.4), y1 - 10 * Math.sin(ang + 0.4)); ctx.fill();
+  if (label){ ctx.font = 'italic 15px Georgia,serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x1 + 8 * Math.cos(ang) + 2, y1 + 8 * Math.sin(ang)); } }
+function pt(v, p, o = {}){ const {ctx, X, Y} = v, c = cssv(p[2] > 0 ? '--s1' : '--s2'), r = o.r || 5; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.stroke();
+  if (o.ring){ ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r + 5, 0, 2 * Math.PI); ctx.strokeStyle = o.ring; ctx.lineWidth = 2.2; ctx.stroke(); } }
+const pred = (w, p) => dot(w, p) >= 0 ? 1 : -1, wrong = (w, P) => P.filter(p => pred(w, p) !== p[2]);
+function makeData(seed, n, gap, wt = [0.86, 0.51]){ const r = rng(seed), P = []; let guard = 0; while (P.length < n && guard++ < 9000){ const p = [-4.2 + 8.4 * r(), -3 + 6 * r()], s = dot(wt, p); if (Math.abs(s) >= gap && len(p) > 0.4) P.push([p[0], p[1], s > 0 ? 1 : -1]); } return P; }
+function bestSep(P){ let best = {g: -Infinity, u: [1, 0]}; for (let i = 0; i < 1440; i++){ const a = i / 1440 * 2 * Math.PI, u = [Math.cos(a), Math.sin(a)]; let g = Infinity; for (const p of P){ const m = p[2] * dot(u, p); if (m < g) g = m; if (g < best.g) break; } if (g > best.g) best = {g, u}; } return best; }
+// SVM dual by coordinate ascent (no bias term, as in the lectures): max sum(a) - 0.5 a'Qa, 0 <= a <= C. Optional kernel K.
+function svmDual(P, C, opt = {}){ const n = P.length, a = opt.warm && opt.warm.length === n ? opt.warm.map(v => Math.min(v, C)) : new Array(n).fill(0), K = opt.K, sweeps = opt.sweeps || 800;
+  if (!K){ const w = [0, 0]; a.forEach((v, i) => { w[0] += v * P[i][2] * P[i][0]; w[1] += v * P[i][2] * P[i][1]; }); const q = P.map(p => dot(p, p) || 1e-9);
+    for (let s = 0; s < sweeps; s++){ let ch = 0; for (let i = 0; i < n; i++){ const p = P[i], na = Math.max(0, Math.min(C, a[i] + (1 - p[2] * dot(w, p)) / q[i])), d = na - a[i]; if (d){ a[i] = na; w[0] += d * p[2] * p[0]; w[1] += d * p[2] * p[1]; ch += Math.abs(d); } } if (ch < 1e-11) break; }
+    return {a, w}; }
+  const G = P.map(p => P.map(q => K(p, q))), f = new Array(n).fill(0); a.forEach((v, j) => { if (v) for (let i = 0; i < n; i++) f[i] += v * P[j][2] * G[i][j]; });
+  for (let s = 0; s < sweeps; s++){ let ch = 0; for (let i = 0; i < n; i++){ const na = Math.max(0, Math.min(C, a[i] + (1 - P[i][2] * f[i]) / (G[i][i] || 1e-9))), d = na - a[i]; if (d){ a[i] = na; for (let k = 0; k < n; k++) f[k] += d * P[i][2] * G[k][i]; ch += Math.abs(d); } } if (ch < 1e-9) break; }
+  return {a, f, score: x => { let s = 0; for (let i = 0; i < n; i++) if (a[i] > 1e-9) s += a[i] * P[i][2] * K(P[i], x); return s; }}; }
+function makeNoisy(seed, n, gap, flip){ const P = makeData(seed, n, gap), r = rng(seed + 7777); return P.map(p => r() < flip ? [p[0], p[1], -p[2]] : p); }
+function band(v, u, g, col = '--s3', a = 0.16){ const {ctx, X, Y} = v, t = [-u[1], u[0]]; ctx.fillStyle = cssv(col); ctx.globalAlpha = a; ctx.beginPath(); [[g, -40], [g, 40], [-g, 40], [-g, -40]].forEach(([o, k], i) => { const q = [u[0] * o + t[0] * k, u[1] * o + t[1] * k]; i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])); }); ctx.fill(); ctx.globalAlpha = 1; }
+// draw the separator w'x = 0 and the two margin lines w'x = +-1
+function svmLines(v, w, col, shadeBand = true){ const n = len(w); if (n < 1e-9) return; const u = [w[0] / n, w[1] / n]; if (shadeBand) band(v, u, 1 / n); sepLine(v, w, cssv('--s3'), 1.5, [6, 4], 1 / n); sepLine(v, w, cssv('--s3'), 1.5, [6, 4], -1 / n); sepLine(v, w, col || cssv('--ink'), 2.5); }
+
+/* ---------- draggable hard-margin SVM ---------- */
+const ORIG = makeData(6, 30, 0.6); let P = ORIG.map(p => [...p]), sol = null, drag = -1, hov = -1, sep = true;
+function solveIt(){ sep = bestSep(P).g > 0.02; sol = sep ? svmDual(P, Infinity, {sweeps: 5000, warm: sol && sol.a.length === P.length ? sol.a : null}) : null; }
+function svDraw(){ const v = view($('sv')), ink = cssv('--ink'); axes(v);
+  if (sol){ svmLines(v, sol.w, ink, true); const am = Math.max(...sol.a, 1e-9);
+    P.forEach((p, i) => { if (sol.a[i] > 1e-6){ v.ctx.strokeStyle = cssv('--s3'); v.ctx.lineWidth = 3; v.ctx.beginPath(); v.ctx.arc(v.X(p[0]), v.Y(p[1]), 9 + 9 * sol.a[i] / am, 0, 2 * Math.PI); v.ctx.stroke(); } pt(v, p, {r: 5.5, ring: i === hov ? ink : null}); });
+    arrow(v, [0, 0], [sol.w[0] / len(sol.w) * 1.2, sol.w[1] / len(sol.w) * 1.2], ink, 2.5, 'w*');
+    const k = sol.a.filter(a => a > 1e-6).length; $('sSV').textContent = k; $('sN').textContent = P.length; $('sW').textContent = vec(sol.w);
+    $('svTxt').innerHTML = `<b>${k} of ${P.length}</b> points have α* &gt; 0, and all of them sit exactly on a dashed line. The other ${P.length - k} have α* = 0: w* = Σ α*ᵢyᵢxᵢ doesn't involve them at all. ` + (P.length === k ? 'Only the support vectors are left, and w* is the same as before: they were all that mattered.' : 'Delete them and w* will not move.');
+    if (hov >= 0){ const p = P[hov], m = p[2] * dot(sol.w, p); $('hov').innerHTML = `Point ${hov + 1}: α* = <b>${sol.a[hov].toFixed(4)}</b>, (w*ᵀx)y = ${m.toFixed(3)}, so g = 1 − ${m.toFixed(3)} = ${f2(1 - m)}. Product α*·g = <b>${Math.abs(sol.a[hov] * (1 - m)) < 5e-4 ? '0' : (sol.a[hov] * (1 - m)).toFixed(3)}</b>` + (sol.a[hov] > 1e-6 ? ' (g is zero: on the margin).' : ' (α* is zero: beyond the margin).'); }
+    else $('hov').innerHTML = '<span class="muted">Hover a point to check complementary slackness for it.</span>'; }
+  else { P.forEach(p => pt(v, p, {r: 5.5})); $('sSV').textContent = '–'; $('sN').textContent = P.length; $('sW').textContent = 'none'; $('hov').innerHTML = '';
+    $('svTxt').innerHTML = '<b style="color:var(--s2)">No feasible w.</b> With that point where it is, no line through the origin separates the classes, so the hard-margin SVM has nothing to return. This is the outlier problem of section 4. Drag the point back.'; } }
+const cv = $('sv'), near = q => { let bi = -1, bd = 0.35; P.forEach((p, i) => { const d = Math.hypot(p[0] - q[0], p[1] - q[1]); if (d < bd){ bd = d; bi = i; } }); return bi; };
+cv.addEventListener('pointerdown', e => { drag = near(evPt(cv, e)); if (drag >= 0){ cv.setPointerCapture(e.pointerId); cv.style.cursor = 'grabbing'; } });
+cv.addEventListener('pointermove', e => { const q = evPt(cv, e); if (drag >= 0){ P[drag][0] = q[0]; P[drag][1] = q[1]; hov = drag; solveIt(); } else hov = near(q); svDraw(); });
+cv.addEventListener('pointerup', () => { drag = -1; cv.style.cursor = 'grab'; }); cv.addEventListener('pointerleave', () => { if (drag < 0){ hov = -1; svDraw(); } });
+$('rm').onclick = () => { if (!sol) return; P = P.filter((_, i) => sol.a[i] > 1e-6); sol = null; hov = -1; solveIt(); svDraw(); };
+$('rst').onclick = () => { P = ORIG.map(p => [...p]); sol = null; hov = -1; solveIt(); svDraw(); };
+
+/* ---------- kernel SVM ---------- */
+const KS = {lin: (a, b) => a[0] * b[0] + a[1] * b[1], quad: (a, b) => (1 + a[0] * b[0] + a[1] * b[1]) ** 2, rbf: (a, b) => Math.exp(-((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) / 2)};
+let kk = 'quad', kSeed = 3, KP = [], ksol = null;
+function ring(){ const r = rng(kSeed); KP = []; for (let i = 0; i < 22; i++){ const a = 2 * Math.PI * r(), d = 1.1 * Math.sqrt(r()); KP.push([d * Math.cos(a) * 1.2, d * Math.sin(a), 1]); } for (let i = 0; i < 34; i++){ const a = 2 * Math.PI * r(), d = 2.3 + 0.8 * r(); KP.push([d * Math.cos(a) * 1.2, d * Math.sin(a), -1]); } }
+function kSolve(){ ksol = svmDual(KP, 1e4, {K: KS[kk], sweeps: kk === 'lin' ? 60 : 2500}); }
+function ksDraw(){ const v = view($('ks')), ink = cssv('--ink'), ok = Math.max(...ksol.a) < 9999 && KP.every(p => p[2] * ksol.score(p) > 0);
+  shade(v, q => ksol.score(q) >= 0 ? 1 : -1, 0.16); axes(v);
+  KP.forEach((p, i) => pt(v, p, {r: 4.5, ring: ok && ksol.a[i] > 1e-6 ? cssv('--s3') : null}));
+  const k = ksol.a.filter(a => a > 1e-6).length;
+  $('ksTxt').innerHTML = ok ? `With the ${kk === 'quad' ? 'quadratic' : 'Gaussian'} kernel the classes are separable in feature space, and the boundary back in the plane is curved. <b>${k} of ${KP.length}</b> points are support vectors (green rings): to classify a new point, only those ${k} kernel values k(xᵢ, x) are needed.`
+    : `With the linear kernel this is the plain SVM of L58, and <b>no line through the origin separates a blob from the ring around it</b>: the problem is infeasible (the α's grow without limit). The structure is non-linear, which is exactly what kernels are for.`; }
+document.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => { kk = b.dataset.k; document.querySelectorAll('button[data-k]').forEach(x => x.classList.toggle('on', x === b)); kSolve(); ksDraw(); });
+$('kNew').onclick = () => { kSeed++; ring(); kSolve(); ksDraw(); };
+solveIt(); ring(); kSolve();
+onReady(() => { svDraw(); ksDraw(); });
+</script>
+</body>
+</html>

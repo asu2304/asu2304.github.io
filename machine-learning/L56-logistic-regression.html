@@ -48,7 +48,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 56 · Classification: learning the sigmoid model</div>
 <h1>Logistic Regression</h1>
 <p class="lede">With $P(y=1\mid x)=g(w^\top x)$, pick the $w$ that makes the observed labels most probable. The log-likelihood has <b>no closed-form maximiser</b>, so climb it with gradient ascent. The gradient is strikingly simple, $\sum_i x_i\,(y_i-g(w^\top x_i))$: every point pulls on $w$ in proportion to <b>how wrong the current probability is</b> for it. Unlike the perceptron, this works on any dataset and returns a confidence with each prediction.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=bb4yn4RssLs">this lecture on YouTube</a> (≈23 min). Previous: <a href="L55-sigmoid.html">L55</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=bb4yn4RssLs">this lecture on YouTube</a> (≈23 min). Previous: <a href="L55-sigmoid.html">L55</a> · Next: <a href="L57-perceptron-and-margin.html">L57</a>.</p>
 
 <h2>1 · The model and its name</h2>
 $$P(y=1\mid x)=g(w^\top x)=\frac{1}{1+e^{-w^\top x}},\qquad y\in\{0,1\}.$$

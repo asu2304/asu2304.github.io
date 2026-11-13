@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Complementary Slackness for the Soft-Margin SVM</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>.two{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:12px} @media (max-width:640px){.two{grid-template-columns:1fr}}</style>
+<div class="kicker">Lecture 64 · Support vector machines: reading the multipliers</div>
+<h1>Complementary Slackness for the Soft-Margin SVM</h1>
+<p class="lede">Solve the soft-margin dual, look at one $\alpha^*_i$, and you can tell where its point sits. <b>$\alpha^*_i=0$</b>: correctly classified, on or beyond its margin line. <b>$0&lt;\alpha^*_i&lt;C$</b>: exactly on the margin line. <b>$\alpha^*_i=C$</b>: on the line or on the wrong side of it, inside the band or misclassified, paying a bribe. Everything with $\alpha^*_i&gt;0$ is a support vector.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=jthjk2nboDM">this lecture on YouTube</a> (≈21 min). Previous: <a href="L63-soft-margin-dual.html">L63</a> · Next: <a href="L65-soft-margin-summary.html">L65</a>.</p>
+
+<h2>1 · The conditions</h2>
+<p>Let $(w^*,\xi^*)$ solve the primal and $(\alpha^*,\beta^*)$ the dual. Each term added to the Lagrangian vanishes at the optimum:</p>
+<div class="callout">$$\textbf{CS1:}\quad\alpha^*_i\,\big(1-(w^{*\top}x_i)y_i-\xi^*_i\big)=0\qquad\qquad\textbf{CS2:}\quad\beta^*_i\,\xi^*_i=0\qquad\qquad\text{for all } i .$$</div>
+<p>Three more facts are always available: $\alpha^*_i+\beta^*_i=C$, $\ \xi^*_i\ge0$, and $(w^{*\top}x_i)y_i+\xi^*_i\ge1$. In the hard-margin case there were two cases ($\alpha^*_i$ zero or positive). Now $\alpha^*_i\in[0,C]$, and the top value $C$ is special, so there are three.</p>
+
+<h2>2 · Three cases</h2>
+<table>
+<tr><th>If the dual gives</th><th>Chain of reasoning</th><th>Conclusion</th></tr>
+<tr><td><b>$\alpha^*_i=0$</b></td><td>$\beta^*_i=C&gt;0$ ⟹ (CS2) $\xi^*_i=0$ ⟹ (feasibility) $(w^{*\top}x_i)y_i\ge1$</td><td>correctly classified with margin ≥ 1: on the supporting hyperplane or beyond it. Pays no bribe, contributes nothing to $w^*$</td></tr>
+<tr><td><b>$0&lt;\alpha^*_i&lt;C$</b></td><td>$0&lt;\beta^*_i&lt;C$ ⟹ (CS2) $\xi^*_i=0$. And $\alpha^*_i&gt;0$ ⟹ (CS1) $1-(w^{*\top}x_i)y_i-\xi^*_i=0$</td><td>$(w^{*\top}x_i)y_i=1$: <b>exactly on</b> the supporting hyperplane. A support vector</td></tr>
+<tr><td><b>$\alpha^*_i=C$</b></td><td>$\beta^*_i=0$, so CS2 says nothing about $\xi^*_i$ (only $\xi^*_i\ge0$). $\alpha^*_i&gt;0$ ⟹ (CS1) $\xi^*_i=1-(w^{*\top}x_i)y_i\ge0$</td><td>$(w^{*\top}x_i)y_i\le1$: on the line, <b>inside the band</b> (right side, not enough margin), or <b>misclassified</b>. The most influential support vectors</td></tr>
+</table>
+<div class="card">
+  <h3 style="margin:0 0 4px">See the three groups</h3>
+  <div class="row"><label>C = <b id="cV"></b> <input type="range" id="c" min="-20" max="15" value="0" style="width:220px" aria-label="C on a log scale"></label>
+    <span class="small">highlight:</span><button data-g="all" class="on">all</button><button data-g="0">α = 0</button><button data-g="mid">0 &lt; α &lt; C</button><button data-g="C">α = C</button><button id="nd">New data</button></div>
+  <div class="two">
+    <canvas id="cs" height="360" style="cursor:crosshair" aria-label="Soft-margin SVM with points marked by the value of their multiplier"></canvas>
+    <canvas id="zz" height="360" aria-label="Each point's multiplier plotted against its margin"></canvas>
+  </div>
+  <div class="legend"><span>no ring: α = 0</span><span><i class="dot" style="background:var(--s3)"></i>green ring: 0 &lt; α &lt; C</span><span><i class="dot" style="background:var(--ink)"></i>dark ring: α = C</span><span>right: each point's α* against its margin (w*ᵀxᵢ)yᵢ</span></div>
+  <div class="row"><span class="stat"><span class="v" id="n0">–</span> <span class="l">α = 0</span></span><span class="stat"><span class="v" id="nm">–</span> <span class="l">0 &lt; α &lt; C</span></span><span class="stat"><span class="v" id="nc">–</span> <span class="l">α = C</span></span><span class="stat"><span class="v" id="nmis">–</span> <span class="l">misclassified</span></span></div>
+  <p class="small" id="hov" style="min-height:40px;margin-bottom:4px"></p>
+  <p class="small" id="csTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>3 · Who are the support vectors now?</h2>
+<p>A support vector is any point with $\alpha^*_i&gt;0$: it is needed to build $w^*=\sum_i\alpha^*_iy_ix_i$.</p>
+<ul>
+<li><b>Hard margin:</b> support vectors lie on the supporting hyperplanes, nowhere else.</li>
+<li><b>Soft margin:</b> they lie on a supporting hyperplane, <b>or</b> on the wrong side of it: in the "danger zone" between the hyperplane and the separator (correct but with margin below 1), or beyond the separator (misclassified, $(w^{*\top}x_i)y_i&lt;0$).</li>
+</ul>
+<p>The misclassified points are, in effect, the <b>outliers</b>: $w^*$ is being robust by leaving them on the wrong side, and they pay for it with $\xi^*_i&gt;0$ and the maximum weight $\alpha^*_i=C$. The cap is what stops any single outlier from dominating $w^*$.</p>
+<div class="callout"><b>Next:</b> the same facts read in the other direction (start from where a point is, deduce its $\alpha^*_i$), and the full summary (<a href="L65-soft-margin-summary.html">L65</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>CS1: $\alpha^*_i(1-(w^{*\top}x_i)y_i-\xi^*_i)=0$. CS2: $\beta^*_i\xi^*_i=0$. Also $\alpha^*_i+\beta^*_i=C$.</li>
+<li>$\alpha^*_i=0\Rightarrow$ margin $\ge1$, no bribe.</li>
+<li>$0&lt;\alpha^*_i&lt;C\Rightarrow$ margin exactly 1, no bribe.</li>
+<li>$\alpha^*_i=C\Rightarrow$ margin $\le1$, bribe $\xi^*_i=1-(w^{*\top}x_i)y_i$.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], len = a => Math.hypot(a[0], a[1]), f2 = v => (v < -0.004 ? '−' : '') + Math.abs(v).toFixed(2), vec = a => `(${f2(a[0])}, ${f2(a[1])})`;
+const YR = 3.6;
+function view(cv){ const [ctx, W, H] = setupCanvas(cv), sc = H / (2 * YR); return {ctx, W, H, sc, X: x => W / 2 + x * sc, Y: y => H / 2 - y * sc, xr: W / 2 / sc}; }
+function evPt(cv, e){ const r = cv.getBoundingClientRect(), sc = r.height / (2 * YR); return [(e.clientX - r.left - r.width / 2) / sc, (r.height / 2 - (e.clientY - r.top)) / sc]; }
+function axes(v){ const {ctx, W, H} = v; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); }
+function shade(v, fn, a = 0.14){ const {ctx, W, H, sc} = v, st = 8; for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const val = fn([(px + st / 2 - W / 2) / sc, (H / 2 - py - st / 2) / sc]); if (!val) continue;
+    ctx.fillStyle = cssv(val > 0 ? '--s1' : '--s2'); ctx.globalAlpha = a * Math.min(1, Math.abs(val)); ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1; }
+function sepLine(v, w, col, wd = 2.5, dash = [], off = 0){ const n = len(w); if (n < 1e-9) return; const {ctx, X, Y} = v, u = [w[0] / n, w[1] / n], c = [u[0] * off, u[1] * off], t = [-u[1], u[0]];
+  ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(c[0] - 30 * t[0]), Y(c[1] - 30 * t[1])); ctx.lineTo(X(c[0] + 30 * t[0]), Y(c[1] + 30 * t[1])); ctx.stroke(); ctx.setLineDash([]); }
+function arrow(v, a, b, col, wd = 2.5, label, dash = []){ const {ctx, X, Y} = v, x0 = X(a[0]), y0 = Y(a[1]), x1 = X(b[0]), y1 = Y(b[1]); if (Math.hypot(x1 - x0, y1 - y0) < 3) return; const ang = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 10 * Math.cos(ang - 0.4), y1 - 10 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 10 * Math.cos(ang + 0.4), y1 - 10 * Math.sin(ang + 0.4)); ctx.fill();
+  if (label){ ctx.font = 'italic 15px Georgia,serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x1 + 8 * Math.cos(ang) + 2, y1 + 8 * Math.sin(ang)); } }
+function pt(v, p, o = {}){ const {ctx, X, Y} = v, c = cssv(p[2] > 0 ? '--s1' : '--s2'), r = o.r || 5; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.stroke();
+  if (o.ring){ ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r + 5, 0, 2 * Math.PI); ctx.strokeStyle = o.ring; ctx.lineWidth = 2.2; ctx.stroke(); } }
+const pred = (w, p) => dot(w, p) >= 0 ? 1 : -1, wrong = (w, P) => P.filter(p => pred(w, p) !== p[2]);
+function makeData(seed, n, gap, wt = [0.86, 0.51]){ const r = rng(seed), P = []; let guard = 0; while (P.length < n && guard++ < 9000){ const p = [-4.2 + 8.4 * r(), -3 + 6 * r()], s = dot(wt, p); if (Math.abs(s) >= gap && len(p) > 0.4) P.push([p[0], p[1], s > 0 ? 1 : -1]); } return P; }
+function bestSep(P){ let best = {g: -Infinity, u: [1, 0]}; for (let i = 0; i < 1440; i++){ const a = i / 1440 * 2 * Math.PI, u = [Math.cos(a), Math.sin(a)]; let g = Infinity; for (const p of P){ const m = p[2] * dot(u, p); if (m < g) g = m; if (g < best.g) break; } if (g > best.g) best = {g, u}; } return best; }
+// SVM dual by coordinate ascent (no bias term, as in the lectures): max sum(a) - 0.5 a'Qa, 0 <= a <= C. Optional kernel K.
+function svmDual(P, C, opt = {}){ const n = P.length, a = opt.warm && opt.warm.length === n ? opt.warm.map(v => Math.min(v, C)) : new Array(n).fill(0), K = opt.K, sweeps = opt.sweeps || 800;
+  if (!K){ const w = [0, 0]; a.forEach((v, i) => { w[0] += v * P[i][2] * P[i][0]; w[1] += v * P[i][2] * P[i][1]; }); const q = P.map(p => dot(p, p) || 1e-9);
+    for (let s = 0; s < sweeps; s++){ let ch = 0; for (let i = 0; i < n; i++){ const p = P[i], na = Math.max(0, Math.min(C, a[i] + (1 - p[2] * dot(w, p)) / q[i])), d = na - a[i]; if (d){ a[i] = na; w[0] += d * p[2] * p[0]; w[1] += d * p[2] * p[1]; ch += Math.abs(d); } } if (ch < 1e-11) break; }
+    return {a, w}; }
+  const G = P.map(p => P.map(q => K(p, q))), f = new Array(n).fill(0); a.forEach((v, j) => { if (v) for (let i = 0; i < n; i++) f[i] += v * P[j][2] * G[i][j]; });
+  for (let s = 0; s < sweeps; s++){ let ch = 0; for (let i = 0; i < n; i++){ const na = Math.max(0, Math.min(C, a[i] + (1 - P[i][2] * f[i]) / (G[i][i] || 1e-9))), d = na - a[i]; if (d){ a[i] = na; for (let k = 0; k < n; k++) f[k] += d * P[i][2] * G[k][i]; ch += Math.abs(d); } } if (ch < 1e-9) break; }
+  return {a, f, score: x => { let s = 0; for (let i = 0; i < n; i++) if (a[i] > 1e-9) s += a[i] * P[i][2] * K(P[i], x); return s; }}; }
+function makeNoisy(seed, n, gap, flip){ const P = makeData(seed, n, gap), r = rng(seed + 7777); return P.map(p => r() < flip ? [p[0], p[1], -p[2]] : p); }
+function band(v, u, g, col = '--s3', a = 0.16){ const {ctx, X, Y} = v, t = [-u[1], u[0]]; ctx.fillStyle = cssv(col); ctx.globalAlpha = a; ctx.beginPath(); [[g, -40], [g, 40], [-g, 40], [-g, -40]].forEach(([o, k], i) => { const q = [u[0] * o + t[0] * k, u[1] * o + t[1] * k]; i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])); }); ctx.fill(); ctx.globalAlpha = 1; }
+// draw the separator w'x = 0 and the two margin lines w'x = +-1
+function svmLines(v, w, col, shadeBand = true){ const n = len(w); if (n < 1e-9) return; const u = [w[0] / n, w[1] / n]; if (shadeBand) band(v, u, 1 / n); sepLine(v, w, cssv('--s3'), 1.5, [6, 4], 1 / n); sepLine(v, w, cssv('--s3'), 1.5, [6, 4], -1 / n); sepLine(v, w, col || cssv('--ink'), 2.5); }
+
+let seed = 13, P = [], sol = null, grp = 'all', hov = -1; const TOL = 1e-6;
+const Cv = () => 10 ** (+$('c').value / 10), kind = (a, C) => a < TOL ? '0' : a > C - TOL ? 'C' : 'mid';
+function solveIt(){ P = makeNoisy(seed, 40, 0.25, 0.1); sol = svmDual(P, Cv(), {sweeps: 8000}); }
+function draw(){ const C = Cv(), v = view($('cs')), ink = cssv('--ink'), w = sol.w; $('cV').textContent = C < 0.1 ? C.toFixed(3) : C.toFixed(2);
+  axes(v); svmLines(v, w, ink, true); const ks = sol.a.map(a => kind(a, C)), ms = P.map(p => p[2] * dot(w, p));
+  P.forEach((p, i) => { const dim = grp !== 'all' && ks[i] !== grp; v.ctx.globalAlpha = dim ? 0.18 : 1; pt(v, p, {r: i === hov ? 7 : 5, ring: ks[i] === 'C' ? ink : ks[i] === 'mid' ? cssv('--s3') : null}); v.ctx.globalAlpha = 1; });
+  $('n0').textContent = ks.filter(k => k === '0').length; $('nm').textContent = ks.filter(k => k === 'mid').length; $('nc').textContent = ks.filter(k => k === 'C').length; $('nmis').textContent = ms.filter(m => m < 0).length;
+  const [ctx, W, H] = setupCanvas($('zz')), pad = {l: 40, r: 10, t: 14, b: 30}, xr = [-3, 5], X = m => pad.l + (Math.max(xr[0], Math.min(xr[1], m)) - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = a => H - pad.b - a / C * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [[0, '0'], [C, 'C']].forEach(([a, t]) => { ctx.beginPath(); ctx.moveTo(pad.l, Y(a)); ctx.lineTo(W - pad.r, Y(a)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(t, pad.l - 6, Y(a)); });
+  [-2, 0, 1, 2, 4].forEach(m => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(m, X(m), H - pad.b + 5); }); ctx.textBaseline = 'bottom'; ctx.fillText('margin (w*ᵀxᵢ)yᵢ', (pad.l + W) / 2, H + 1);
+  ctx.fillStyle = cssv('--s2'); ctx.globalAlpha = 0.1; ctx.fillRect(X(xr[0]), pad.t, X(0) - X(xr[0]), H - pad.t - pad.b); ctx.globalAlpha = 1;
+  ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 6; ctx.globalAlpha = 0.3; ctx.beginPath(); ctx.moveTo(X(xr[0]), Y(C)); ctx.lineTo(X(1), Y(C)); ctx.lineTo(X(1), Y(0)); ctx.lineTo(X(xr[1]), Y(0)); ctx.stroke(); ctx.globalAlpha = 1;
+  P.forEach((p, i) => { const dim = grp !== 'all' && ks[i] !== grp; ctx.globalAlpha = dim ? 0.18 : 1; ctx.fillStyle = cssv(p[2] > 0 ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(X(ms[i]), Y(sol.a[i]), i === hov ? 7 : 4.5, 0, 2 * Math.PI); ctx.fill(); if (i === hov){ ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke(); } ctx.globalAlpha = 1; });
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('misclassified', X(xr[0]) + 4, pad.t + 16);
+  if (hov >= 0){ const a = sol.a[hov], m = ms[hov], xi = Math.max(0, 1 - m), b = C - a, z = x => Math.abs(x) < 5e-4 ? '0' : x.toFixed(3);
+    $('hov').innerHTML = `<b>Point ${hov + 1}</b>: α* = ${z(a)}, β* = C − α* = ${z(b)}, margin (w*ᵀx)y = ${m.toFixed(3)}, bribe ξ* = ${z(xi)}. CS1: α*·(1 − margin − ξ*) = <b>${z(a * (1 - m - xi))}</b>. CS2: β*·ξ* = <b>${z(b * xi)}</b>. `
+      + (ks[hov] === '0' ? 'Case α* = 0: beyond its margin line, no bribe.' : ks[hov] === 'mid' ? 'Case 0 &lt; α* &lt; C: exactly on its margin line.' : m < 0 ? 'Case α* = C: misclassified, so it pays more than 1.' : m < 1 - 1e-3 ? 'Case α* = C: on the right side but inside the band.' : 'Case α* = C: on the margin line.'); }
+  else $('hov').innerHTML = '<span class="muted">Hover a point in the left panel to check both conditions for it.</span>';
+  $('csTxt').innerHTML = `The right-hand plot is the whole lecture in one picture: every point lies on the green "Z". α* = C for margins below 1, α* = 0 for margins above 1, and anything in between only at margin exactly 1. ${ks.filter(k => k !== '0').length} of ${P.length} points are support vectors at this C. Lower C and more points fall inside the widening band and join the α = C group.`; }
+$('c').oninput = () => { sol = svmDual(P, Cv(), {sweeps: 8000}); draw(); };
+document.querySelectorAll('button[data-g]').forEach(b => b.onclick = () => { grp = b.dataset.g; document.querySelectorAll('button[data-g]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+$('nd').onclick = () => { seed++; solveIt(); draw(); };
+const cv = $('cs');
+cv.addEventListener('pointermove', e => { const q = evPt(cv, e); let bi = -1, bd = 0.3; P.forEach((p, i) => { const d = Math.hypot(p[0] - q[0], p[1] - q[1]); if (d < bd){ bd = d; bi = i; } }); if (bi !== hov){ hov = bi; draw(); } });
+cv.addEventListener('pointerleave', () => { hov = -1; draw(); });
+solveIt();
+onReady(draw);
+</script>
+</body>
+</html>

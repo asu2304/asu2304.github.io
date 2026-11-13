@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Soft-Margin SVM</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 62 · Support vector machines: handling outliers</div>
+<h1>Soft-Margin SVM</h1>
+<p class="lede">With outliers, no $w$ satisfies every constraint $(w^\top x_i)y_i\ge1$. So make <b>every $w$ feasible</b>: let each point pay a <b>"bribe" $\xi_i\ge0$</b> to make up its shortfall, $(w^\top x_i)y_i+\xi_i\ge1$. Bribes must cost something, or the answer collapses to $w=0$. Charging $C$ per unit gives the soft-margin problem: $\min\ \tfrac12\lVert w\rVert^2+C\sum_i\xi_i$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=leolYGmaFLM">this lecture on YouTube</a> (≈14 min). Previous: <a href="L61-support-vectors.html">L61</a> · Next: <a href="L63-soft-margin-dual.html">L63</a>.</p>
+
+<h2>1 · The problem with the hard margin</h2>
+$$\min_w\ \tfrac12\lVert w\rVert^2\qquad\text{s.t.}\qquad(w^\top x_i)\,y_i\ge1\ \ \forall i .$$
+<p>Only $w$'s that classify <b>every</b> point with margin 1 are allowed. With outliers, the allowed set is empty, and the algorithm cannot run. A kernel is the wrong fix (L61): this is noise, not structure.</p>
+
+<h2>2 · The idea: let points pay a bribe</h2>
+<p>Take any $w$. It handles some points correctly and fails on others. Instead of rejecting $w$, let each failing point pay a non-negative amount $\xi_i$ that tops its constraint up to 1:</p>
+$$(w^\top x_i)\,y_i+\xi_i\ \ge\ 1,\qquad\xi_i\ge0 .$$
+<p>A point already satisfying its constraint pays 0. In the literature the $\xi_i$ are called <b>slack variables</b>.</p>
+<div class="callout"><b>A first attempt that fails.</b> Minimise $\tfrac12\lVert w\rVert^2$ over $w$ and $\xi$ with only those constraints. Now $w=0$ is feasible: every point simply pays $\xi_i=1$. Nothing is shorter than $w=0$, so that's the "solution". The flaw: bribes were <b>free</b>.</div>
+
+<h2>3 · The soft-margin formulation</h2>
+<p>Charge for bribes in the objective. Length and bribes are in different units, so weigh them with a constant $C\ge0$:</p>
+<div class="callout">$$\min_{w,\ \xi}\ \ \tfrac12\lVert w\rVert^2+C\sum_{i=1}^n\xi_i\qquad\text{s.t.}\qquad(w^\top x_i)\,y_i+\xi_i\ge1,\quad\xi_i\ge0\quad\forall i .$$
+"Soft" because the margin condition is no longer strict: some points may fall short, at a price. With $w=0$ the total bribe is $n$, which is now expensive.</div>
+<div class="card">
+  <h3 style="margin:0 0 4px">Trade length against bribes</h3>
+  <p class="small muted" style="margin-top:0"><b>Drag the tip of w.</b> Every point short of its margin line pays a bribe, drawn as a green bar from the point to the line it should be beyond. Find the w with the lowest total cost for the current $C$.</p>
+  <div class="row"><label>price of a bribe, C = <b id="cV"></b> <input type="range" id="c" min="-25" max="20" value="0" style="width:230px" aria-label="C on a log scale"></label><button id="opt">Show the optimum for this C</button><button id="zero">Try w ≈ 0</button></div>
+  <canvas id="sm" height="380" style="touch-action:none;cursor:grab" aria-label="Soft-margin SVM with a draggable weight vector and bribes drawn as bars"></canvas>
+  <div class="row"><span class="stat"><span class="v" id="sL">–</span><br><span class="l">½‖w‖² (band width <span id="sWd"></span>)</span></span><span class="stat"><span class="v" id="sX">–</span><br><span class="l">total bribe Σξᵢ (<span id="sK"></span> points pay)</span></span><span class="stat"><span class="v" id="sT">–</span><br><span class="l">cost ½‖w‖² + C·Σξᵢ</span></span><span class="stat"><span class="v" id="sO">–</span><br><span class="l">lowest possible cost</span></span></div>
+  <p class="small" id="smTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>4 · What C does</h2>
+<table>
+<tr><th>$C$</th><th>Meaning</th><th>Result</th></tr>
+<tr><td>$C=0$</td><td>bribes are free</td><td>$w=0$: only length is minimised</td></tr>
+<tr><td>small $C$</td><td>bribes are cheap</td><td>short $w$, wide band, many points paying</td></tr>
+<tr><td>large $C$</td><td>bribes are dear</td><td>long $w$, narrow band, few points paying</td></tr>
+<tr><td>$C=\infty$</td><td>bribes are unaffordable</td><td>back to the hard margin: a sensible answer only if the data is linearly separable</td></tr>
+</table>
+<p>$C$ interpolates between "care about the margin" and "care about fitting every point". We don't know beforehand how many outliers the data has, so $C$ is a <b>hyperparameter</b>, chosen by <b>cross-validation</b> (L35).</p>
+<div class="card">
+  <canvas id="cc" height="240" aria-label="Band width, total bribe and validation accuracy as C varies"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>band width 2/‖w‖ (scaled)</span><span><i style="background:var(--s2)"></i>total bribe (scaled)</span><span><i style="background:var(--s3)"></i>accuracy on held-out data</span><span><i class="dot" style="background:var(--ink)"></i>your C</span></div>
+  <p class="small" id="ccTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>5 · A question we must answer</h2>
+<p>The hard-margin dual was the source of everything good: kernels, simple constraints, sparsity. We have now changed the primal by adding the $\xi_i$. Did we keep those benefits? The only way to find out is to derive the dual again.</p>
+<div class="callout"><b>Next:</b> the dual of the soft-margin SVM (<a href="L63-soft-margin-dual.html">L63</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Outliers make the hard-margin problem infeasible.</li>
+<li>Slack ("bribe") $\xi_i\ge0$ lets any $w$ satisfy $(w^\top x_i)y_i+\xi_i\ge1$.</li>
+<li>Bribes must be penalised: $\min\tfrac12\lVert w\rVert^2+C\sum_i\xi_i$.</li>
+<li>$C=0$ gives $w=0$; $C=\infty$ is the hard margin; choose $C$ by cross-validation.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gs = r => Math.sqrt(-2 * Math.log(1 - r())) * Math.cos(2 * Math.PI * r());
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], len = a => Math.hypot(a[0], a[1]), f2 = v => (v < -0.004 ? '−' : '') + Math.abs(v).toFixed(2), vec = a => `(${f2(a[0])}, ${f2(a[1])})`;
+const YR = 3.6;
+function view(cv){ const [ctx, W, H] = setupCanvas(cv), sc = H / (2 * YR); return {ctx, W, H, sc, X: x => W / 2 + x * sc, Y: y => H / 2 - y * sc, xr: W / 2 / sc}; }
+function evPt(cv, e){ const r = cv.getBoundingClientRect(), sc = r.height / (2 * YR); return [(e.clientX - r.left - r.width / 2) / sc, (r.height / 2 - (e.clientY - r.top)) / sc]; }
+function axes(v){ const {ctx, W, H} = v; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, H / 2); ctx.lineTo(W, H / 2); ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H); ctx.stroke(); }
+function shade(v, fn, a = 0.14){ const {ctx, W, H, sc} = v, st = 8; for (let px = 0; px < W; px += st) for (let py = 0; py < H; py += st){ const val = fn([(px + st / 2 - W / 2) / sc, (H / 2 - py - st / 2) / sc]); if (!val) continue;
+    ctx.fillStyle = cssv(val > 0 ? '--s1' : '--s2'); ctx.globalAlpha = a * Math.min(1, Math.abs(val)); ctx.fillRect(px, py, st, st); } ctx.globalAlpha = 1; }
+function sepLine(v, w, col, wd = 2.5, dash = [], off = 0){ const n = len(w); if (n < 1e-9) return; const {ctx, X, Y} = v, u = [w[0] / n, w[1] / n], c = [u[0] * off, u[1] * off], t = [-u[1], u[0]];
+  ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(c[0] - 30 * t[0]), Y(c[1] - 30 * t[1])); ctx.lineTo(X(c[0] + 30 * t[0]), Y(c[1] + 30 * t[1])); ctx.stroke(); ctx.setLineDash([]); }
+function arrow(v, a, b, col, wd = 2.5, label, dash = []){ const {ctx, X, Y} = v, x0 = X(a[0]), y0 = Y(a[1]), x1 = X(b[0]), y1 = Y(b[1]); if (Math.hypot(x1 - x0, y1 - y0) < 3) return; const ang = Math.atan2(y1 - y0, x1 - x0);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x1 - 10 * Math.cos(ang - 0.4), y1 - 10 * Math.sin(ang - 0.4)); ctx.lineTo(x1 - 10 * Math.cos(ang + 0.4), y1 - 10 * Math.sin(ang + 0.4)); ctx.fill();
+  if (label){ ctx.font = 'italic 15px Georgia,serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(label, x1 + 8 * Math.cos(ang) + 2, y1 + 8 * Math.sin(ang)); } }
+function pt(v, p, o = {}){ const {ctx, X, Y} = v, c = cssv(p[2] > 0 ? '--s1' : '--s2'), r = o.r || 5; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r, 0, 2 * Math.PI); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.stroke();
+  if (o.ring){ ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), r + 5, 0, 2 * Math.PI); ctx.strokeStyle = o.ring; ctx.lineWidth = 2.2; ctx.stroke(); } }
+const pred = (w, p) => dot(w, p) >= 0 ? 1 : -1, wrong = (w, P) => P.filter(p => pred(w, p) !== p[2]);
+function makeData(seed, n, gap, wt = [0.86, 0.51]){ const r = rng(seed), P = []; let guard = 0; while (P.length < n && guard++ < 9000){ const p = [-4.2 + 8.4 * r(), -3 + 6 * r()], s = dot(wt, p); if (Math.abs(s) >= gap && len(p) > 0.4) P.push([p[0], p[1], s > 0 ? 1 : -1]); } return P; }
+function bestSep(P){ let best = {g: -Infinity, u: [1, 0]}; for (let i = 0; i < 1440; i++){ const a = i / 1440 * 2 * Math.PI, u = [Math.cos(a), Math.sin(a)]; let g = Infinity; for (const p of P){ const m = p[2] * dot(u, p); if (m < g) g = m; if (g < best.g) break; } if (g > best.g) best = {g, u}; } return best; }
+// SVM dual by coordinate ascent (no bias term, as in the lectures): max sum(a) - 0.5 a'Qa, 0 <= a <= C. Optional kernel K.
+function svmDual(P, C, opt = {}){ const n = P.length, a = opt.warm && opt.warm.length === n ? opt.warm.map(v => Math.min(v, C)) : new Array(n).fill(0), K = opt.K, sweeps = opt.sweeps || 800;
+  if (!K){ const w = [0, 0]; a.forEach((v, i) => { w[0] += v * P[i][2] * P[i][0]; w[1] += v * P[i][2] * P[i][1]; }); const q = P.map(p => dot(p, p) || 1e-9);
+    for (let s = 0; s < sweeps; s++){ let ch = 0; for (let i = 0; i < n; i++){ const p = P[i], na = Math.max(0, Math.min(C, a[i] + (1 - p[2] * dot(w, p)) / q[i])), d = na - a[i]; if (d){ a[i] = na; w[0] += d * p[2] * p[0]; w[1] += d * p[2] * p[1]; ch += Math.abs(d); } } if (ch < 1e-11) break; }
+    return {a, w}; }
+  const G = P.map(p => P.map(q => K(p, q))), f = new Array(n).fill(0); a.forEach((v, j) => { if (v) for (let i = 0; i < n; i++) f[i] += v * P[j][2] * G[i][j]; });
+  for (let s = 0; s < sweeps; s++){ let ch = 0; for (let i = 0; i < n; i++){ const na = Math.max(0, Math.min(C, a[i] + (1 - P[i][2] * f[i]) / (G[i][i] || 1e-9))), d = na - a[i]; if (d){ a[i] = na; for (let k = 0; k < n; k++) f[k] += d * P[i][2] * G[k][i]; ch += Math.abs(d); } } if (ch < 1e-9) break; }
+  return {a, f, score: x => { let s = 0; for (let i = 0; i < n; i++) if (a[i] > 1e-9) s += a[i] * P[i][2] * K(P[i], x); return s; }}; }
+function makeNoisy(seed, n, gap, flip){ const P = makeData(seed, n, gap), r = rng(seed + 7777); return P.map(p => r() < flip ? [p[0], p[1], -p[2]] : p); }
+function band(v, u, g, col = '--s3', a = 0.16){ const {ctx, X, Y} = v, t = [-u[1], u[0]]; ctx.fillStyle = cssv(col); ctx.globalAlpha = a; ctx.beginPath(); [[g, -40], [g, 40], [-g, 40], [-g, -40]].forEach(([o, k], i) => { const q = [u[0] * o + t[0] * k, u[1] * o + t[1] * k]; i ? ctx.lineTo(X(q[0]), Y(q[1])) : ctx.moveTo(X(q[0]), Y(q[1])); }); ctx.fill(); ctx.globalAlpha = 1; }
+// draw the separator w'x = 0 and the two margin lines w'x = +-1
+function svmLines(v, w, col, shadeBand = true){ const n = len(w); if (n < 1e-9) return; const u = [w[0] / n, w[1] / n]; if (shadeBand) band(v, u, 1 / n); sepLine(v, w, cssv('--s3'), 1.5, [6, 4], 1 / n); sepLine(v, w, cssv('--s3'), 1.5, [6, 4], -1 / n); sepLine(v, w, col || cssv('--ink'), 2.5); }
+
+const D = makeData(9, 32, 0.45).concat([[2.4, 1.3, -1], [-1.7, -1.5, 1], [0.9, 2.4, -1]]), VAL = makeNoisy(77, 400, 0.05, 0.08);
+let w = [1.4, 0.2], drag = false; const Cv = () => 10 ** (+$('c').value / 10);
+const cost = (w, C) => { const xi = D.map(p => Math.max(0, 1 - p[2] * dot(w, p))); return {xi, len2: 0.5 * dot(w, w), sx: xi.reduce((a, b) => a + b, 0), k: xi.filter(v => v > 1e-6).length}; };
+let optCache = {};
+const optW = C => optCache[C.toFixed(4)] || (optCache[C.toFixed(4)] = svmDual(D, C, {sweeps: 6000}).w);
+function smDraw(){ const C = Cv(), v = view($('sm')), ink = cssv('--ink'), n = len(w), cc = cost(w, C), wo = optW(C), co = cost(wo, C), tot = cc.len2 + C * cc.sx, best = co.len2 + C * co.sx; $('cV').textContent = C < 0.1 ? C.toFixed(3) : C < 10 ? C.toFixed(2) : C.toFixed(0);
+  axes(v); if (n > 1e-6){ svmLines(v, w, ink, true); const u = [w[0] / n, w[1] / n];
+    D.forEach((p, i) => { if (cc.xi[i] > 1e-6){ const d = cc.xi[i] / n * p[2]; v.ctx.strokeStyle = cssv('--s3'); v.ctx.lineWidth = 3; v.ctx.beginPath(); v.ctx.moveTo(v.X(p[0]), v.Y(p[1])); v.ctx.lineTo(v.X(p[0] + u[0] * d), v.Y(p[1] + u[1] * d)); v.ctx.stroke(); } }); }
+  D.forEach((p, i) => pt(v, p, {ring: p[2] * dot(w, p) < 0 ? cssv('--s2') : null})); arrow(v, [0, 0], n > 3.2 ? [w[0] / n * 3.2, w[1] / n * 3.2] : w, ink, 3, 'w');
+  $('sL').textContent = cc.len2.toFixed(3); $('sWd').textContent = n > 1e-6 ? (2 / n).toFixed(2) : '∞'; $('sX').textContent = cc.sx.toFixed(2); $('sK').textContent = cc.k; $('sT').textContent = tot.toFixed(3); $('sO').textContent = best.toFixed(3);
+  $('smTxt').innerHTML = n < 0.12 ? `w ≈ 0: the band is enormous and <b>every one of the ${D.length} points</b> pays about 1. Total cost ≈ C × ${D.length} = ${(C * D.length).toFixed(2)}. That's what the unpenalised version would have chosen.`
+    : tot < best * 1.01 + 1e-4 ? `<b style="color:var(--s3)">Optimal for C = ${$('cV').textContent}.</b> ${cc.k} points pay bribes; ${D.filter(p => p[2] * dot(w, p) < 0).length} of them (orange rings) are actually misclassified, the rest are just inside the band. Change C and the balance shifts.`
+    : `Your cost is ${tot.toFixed(3)}; the best possible is ${best.toFixed(3)}. ` + (cc.len2 > co.len2 * 1.3 ? 'w is longer than it needs to be: the narrow band saves little in bribes here.' : cc.sx > co.sx * 1.3 ? 'Too much is being paid in bribes: turn w, or lengthen it to narrow the band.' : 'Close. Fine-tune the direction and length.'); ccDraw(); }
+const cv = $('sm');
+cv.addEventListener('pointerdown', e => { drag = true; cv.setPointerCapture(e.pointerId); w = evPt(cv, e); cv.style.cursor = 'grabbing'; smDraw(); });
+cv.addEventListener('pointermove', e => { if (drag){ w = evPt(cv, e); smDraw(); } });
+cv.addEventListener('pointerup', () => { drag = false; cv.style.cursor = 'grab'; });
+$('c').oninput = smDraw; $('opt').onclick = () => { w = [...optW(Cv())]; smDraw(); }; $('zero').onclick = () => { w = [0.05, 0.02]; smDraw(); };
+
+/* ---------- C sweep ---------- */
+const SW = []; for (let e = -25; e <= 20; e++){ const C = 10 ** (e / 10), wo = optW(C), co = cost(wo, C); SW.push({e, C, wd: 2 / Math.max(len(wo), 1e-9), sx: co.sx, acc: VAL.filter(p => pred(wo, p) === p[2]).length / VAL.length}); }
+function ccDraw(){ const [ctx, W, H] = setupCanvas($('cc')), pad = {l: 44, r: 44, t: 12, b: 30}, X = e => pad.l + (e + 25) / 45 * (W - pad.l - pad.r), Y = t => H - pad.b - t * (H - pad.t - pad.b), mw = Math.min(8, Math.max(...SW.map(s => s.wd))), mx = Math.max(...SW.map(s => s.sx));
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++){ ctx.beginPath(); ctx.moveTo(pad.l, Y(i / 4)); ctx.lineTo(W - pad.r, Y(i / 4)); ctx.stroke(); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(50 + 12.5 * i + '%', W - pad.r + 5, Y(i / 4)); }
+  [-2, -1, 0, 1, 2].forEach(k => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(10 ** k, X(10 * k), H - pad.b + 5); }); ctx.textBaseline = 'bottom'; ctx.fillText('C (log scale)', (pad.l + W) / 2, H + 1);
+  [[s => Math.min(1, s.wd / mw), '--s1'], [s => s.sx / mx, '--s2'], [s => (s.acc - 0.5) / 0.5, '--s3']].forEach(([fn, c]) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = 2.5; ctx.beginPath(); SW.forEach((s, i) => i ? ctx.lineTo(X(s.e), Y(fn(s))) : ctx.moveTo(X(s.e), Y(fn(s)))); ctx.stroke(); });
+  const e = +$('c').value, cur = SW.find(s => s.e === e), bestS = SW.reduce((a, b) => b.acc > a.acc ? b : a); ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(X(e), pad.t); ctx.lineTo(X(e), H - pad.b); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(e), Y((cur.acc - 0.5) / 0.5), 5, 0, 2 * Math.PI); ctx.fill();
+  $('ccTxt').innerHTML = `For each C the problem is solved exactly. At your C = ${$('cV').textContent}: band width ${cur.wd.toFixed(2)}, total bribe ${cur.sx.toFixed(1)}, held-out accuracy <b>${(100 * cur.acc).toFixed(1)}%</b>. As C grows the band narrows and the bribes shrink. Held-out accuracy is best around C = ${bestS.C < 0.1 ? bestS.C.toFixed(3) : bestS.C.toFixed(2)} (${(100 * bestS.acc).toFixed(1)}%), and collapses when C is tiny and w heads to 0. Cross-validation picks C by reading this green curve.`; }
+onReady(smDraw);
+</script>
+</body>
+</html>

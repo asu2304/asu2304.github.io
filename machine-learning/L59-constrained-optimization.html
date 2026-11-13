@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Constrained Optimisation: Lagrangian and Duality</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<style>.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px} @media (max-width:640px){.two{grid-template-columns:1fr}}</style>
+<div class="kicker">Lecture 59 · Support vector machines: an optimisation detour</div>
+<h1>Constrained Optimisation: Lagrangian and Duality</h1>
+<p class="lede">To minimise $f(w)$ subject to $g(w)\le0$, fold the constraint into the objective: $L(w,\alpha)=f(w)+\alpha\,g(w)$. Maximising over $\alpha\ge0$ gives $f(w)$ when $w$ is feasible and $+\infty$ when it isn't, so the constrained problem equals $\min_w\max_{\alpha\ge0}L$. For <b>convex</b> $f$ and $g$ the min and max can be <b>swapped</b>, which gives the dual problem.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=7Th2YgPMnk0">this lecture on YouTube</a> (≈20 min). Previous: <a href="L58-maximum-margin.html">L58</a> · Next: <a href="L60-svm-dual.html">L60</a>.</p>
+
+<h2>1 · The setting</h2>
+<p>Our SVM problem (call it A) is $\min_w\tfrac12\lVert w\rVert^2$ s.t. $(w^\top x_i)y_i\ge1$. It has the general shape</p>
+$$\min_w\ f(w)\qquad\text{such that}\qquad g(w)\le0,$$
+<p>once each constraint is rewritten as "something $\le0$". Start with <b>one</b> constraint; many constraints work the same way.</p>
+
+<h2>2 · The Lagrangian</h2>
+$$L(w,\alpha)=f(w)+\alpha\,g(w),\qquad\alpha\in\mathbb R .$$
+<p>The objective stays intact and the constraint joins it, weighted by $\alpha$. Now fix a $w$ and ask: how large can $L$ be made using only $\alpha\ge0$?</p>
+<table>
+<tr><th>Case</th><th>Lecture's numbers</th><th>$\max_{\alpha\ge0}\ f(w)+\alpha\,g(w)$</th></tr>
+<tr><td>$g(w)&gt;0$ (infeasible)</td><td>$f=-100,\ g=5$: $-100+5\alpha$ gives $-95,\ -50,\ 400,\dots$ for $\alpha=1,10,100$</td><td>$+\infty$: keep raising $\alpha$</td></tr>
+<tr><td>$g(w)\le0$ (feasible)</td><td>$f=100,\ g=-5$: $100-5\alpha$ gives $95,\ 50,\dots$</td><td>$f(w)$: best is $\alpha=0$ (or any $\alpha$ if $g=0$)</td></tr>
+</table>
+<div class="card">
+  <h3 style="margin:0 0 4px">Play the α player</h3>
+  <p class="small muted" style="margin-top:0">Example: $f(w)=(w-3)^2$, constraint $g(w)=w-1\le0$. Pick a $w$, then push $\alpha$ to make $L$ as large as you can.</p>
+  <div class="row"><label>w = <b id="wV"></b> <input type="range" id="w" min="-10" max="50" value="22" style="width:220px" aria-label="w"></label><label>α = <b id="aV"></b> <input type="range" id="a" min="0" max="100" value="20" style="width:220px" aria-label="alpha"></label></div>
+  <div class="two">
+    <canvas id="la" height="240" aria-label="L as a function of alpha for the chosen w"></canvas>
+    <canvas id="pw" height="240" aria-label="The function max over alpha of L, as a function of w"></canvas>
+  </div>
+  <p class="small" id="laTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>3 · A constrained problem becomes a min-max</h2>
+<p>So the function $w\mapsto\max_{\alpha\ge0}L(w,\alpha)$ equals $f(w)$ on the feasible region and is $+\infty$ everywhere else (right-hand plot above). Minimising it can never pick an infeasible $w$, so its minimiser is the best feasible point:</p>
+$$\min_w\ \Big[\max_{\alpha\ge0}\ f(w)+\alpha\,g(w)\Big]\qquad\text{is equivalent to}\qquad\min_w f(w)\ \ \text{s.t.}\ \ g(w)\le0 .$$
+
+<h2>4 · Can min and max be swapped?</h2>
+$$\min_w\ \max_{\alpha\ge0}\ L(w,\alpha)\quad\overset{?}{=}\quad\max_{\alpha\ge0}\ \min_w\ L(w,\alpha)$$
+<ul>
+<li><b>In general, no.</b> The two sides can give different values.</li>
+<li><b>If $f$ and $g$ are convex, yes.</b> This is the convex duality result (not proved in the course). Quadratic and linear functions are convex, which is all the SVM needs.</li>
+</ul>
+<p>The left side is the <b>primal</b> problem. The right side is the <b>dual</b>: for each fixed $\alpha$, $\min_w L(w,\alpha)$ is an <b>unconstrained</b> minimisation, and then we maximise the result over $\alpha\ge0$.</p>
+<div class="card">
+  <h3 style="margin:0 0 4px">The dual function, and whether the swap is free</h3>
+  <div class="row"><button data-e="cvx" class="on">Convex example</button><button data-e="non">A non-convex example</button><label>α = <b id="a2V"></b> <input type="range" id="a2" min="0" max="100" value="20" style="width:220px" aria-label="alpha for the dual"></label><button id="aBest">Go to the best α</button></div>
+  <div class="two">
+    <canvas id="lw" height="250" aria-label="L as a function of w for the chosen alpha, with its unconstrained minimum"></canvas>
+    <canvas id="du" height="250" aria-label="The dual function of alpha compared with the primal optimum"></canvas>
+  </div>
+  <div class="legend"><span>left: <i style="background:var(--muted)"></i>f(w)</span><span><i style="background:var(--s1)"></i>L(w, α) for this α</span><span>shaded = infeasible w</span><span>right: <i style="background:var(--s1)"></i>dual function min<sub>w</sub> L(w, α)</span><span><i style="background:var(--s2)"></i>primal optimum</span></div>
+  <p class="small" id="duTxt"></p>
+  <p class="beyond" style="margin-bottom:0">The lecture only states that the swap can fail without convexity; the non-convex example ($f(w)=(w^2-4)^2-2w$ with $w\le0$) is mine, to show a gap.</p>
+</div>
+
+<h2>5 · Several constraints</h2>
+<p>For $\min_w f(w)$ s.t. $g_i(w)\le0$, $i=1,\dots,k$, use one multiplier per constraint:</p>
+$$\min_w\ \max_{\alpha_1,\dots,\alpha_k\ge0}\ f(w)+\sum_{i=1}^k\alpha_i\,g_i(w)\quad=\quad\max_{\alpha_1,\dots,\alpha_k\ge0}\ \min_w\ f(w)+\sum_{i=1}^k\alpha_i\,g_i(w)\quad\text{(if $f$ and all $g_i$ are convex).}$$
+<p>The same argument holds: if even <b>one</b> constraint is violated, its $\alpha_i$ can drive the max to $+\infty$; if all hold, the max is $f(w)$.</p>
+<div class="callout">So far this looks like an equivalent problem, not an easier one. <b>Next:</b> apply it to the SVM, where the inner unconstrained minimisation has a clean closed form and the payoff appears (<a href="L60-svm-dual.html">L60</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Lagrangian: $L(w,\alpha)=f(w)+\alpha g(w)$, with $\alpha\ge0$.</li>
+<li>$\max_{\alpha\ge0}L(w,\alpha)$ is $f(w)$ if $g(w)\le0$ and $+\infty$ otherwise, so $\min_w\max_{\alpha\ge0}L$ is the original constrained problem.</li>
+<li>For convex $f,g$: $\min_w\max_\alpha L=\max_\alpha\min_w L$ (duality). In general the swap is not allowed.</li>
+<li>With $k$ constraints, use $k$ multipliers $\alpha_i\ge0$.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// Gaussian elimination with partial pivoting: solve A x = b
+function solve(A, b){ const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < n; r++){ const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  const x = new Array(n).fill(0); for (let r = n - 1; r >= 0; r--){ let s = M[r][n]; for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k]; x[r] = s / M[r][r]; } return x; }
+function onReady(drawAll){ drawAll(); let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); }); }
+const f2 = v => (v < -0.004 ? '−' : '') + Math.abs(v).toFixed(2);
+const EX = {cvx: {f: w => (w - 3) ** 2, g: w => w - 1, wr: [-1, 5], fr: [-4, 22], amax: 10, name: 'f(w) = (w − 3)², g(w) = w − 1'},
+            non: {f: w => (w * w - 4) ** 2 - 2 * w, g: w => w, wr: [-3.2, 3.2], fr: [-12, 26], amax: 6, name: 'f(w) = (w² − 4)² − 2w, g(w) = w'}};
+function plot(cv, xr, yr, xl){ const [ctx, W, H] = setupCanvas(cv), pad = {l: 38, r: 10, t: 12, b: 28}, X = x => pad.l + (x - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = y => H - pad.b - (Math.max(yr[0], Math.min(yr[1], y)) - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++){ const y = yr[0] + (yr[1] - yr[0]) * i / 4; ctx.beginPath(); ctx.moveTo(pad.l, Y(y)); ctx.lineTo(W - pad.r, Y(y)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(Math.round(y), pad.l - 5, Y(y)); }
+  for (let i = 0; i <= 4; i++){ const x = xr[0] + (xr[1] - xr[0]) * i / 4; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(+x.toFixed(1), X(x), H - pad.b + 5); }
+  ctx.textBaseline = 'bottom'; ctx.fillText(xl, (pad.l + W) / 2, H + 1);
+  const curve = (fn, col, wd = 2.5, dash = []) => { ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash); ctx.beginPath(); for (let i = 0; i <= 240; i++){ const x = xr[0] + (xr[1] - xr[0]) * i / 240; i ? ctx.lineTo(X(x), Y(fn(x))) : ctx.moveTo(X(x), Y(fn(x))); } ctx.stroke(); ctx.setLineDash([]); };
+  const dotAt = (x, y, col, r = 6) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(x), Y(y), r, 0, 2 * Math.PI); ctx.fill(); };
+  return {ctx, W, H, pad, X, Y, curve, dotAt}; }
+
+/* ---------- 1. alpha player ---------- */
+function laDraw(){ const E = EX.cvx, w = +$('w').value / 10, a = +$('a').value / 10, fw = E.f(w), gw = E.g(w); $('wV').textContent = f2(w); $('aV').textContent = a.toFixed(1);
+  let p = plot($('la'), [0, 10], [-10, 40], 'α  (for the chosen w)'); p.curve(x => fw + x * gw, cssv('--s1')); p.dotAt(a, fw + a * gw, cssv('--s2'));
+  p.ctx.fillStyle = cssv('--muted'); p.ctx.textAlign = 'left'; p.ctx.textBaseline = 'top'; p.ctx.fillText('L(w, α) = f(w) + α·g(w)', p.pad.l + 6, p.pad.t + 2);
+  p = plot($('pw'), E.wr, E.fr, 'w'); p.ctx.fillStyle = cssv('--s2'); p.ctx.globalAlpha = 0.14; p.ctx.fillRect(p.X(1), p.pad.t, p.W - p.pad.r - p.X(1), p.H - p.pad.t - p.pad.b); p.ctx.globalAlpha = 1;
+  p.curve(E.f, cssv('--faint'), 1.5, [5, 4]); p.ctx.strokeStyle = cssv('--s1'); p.ctx.lineWidth = 3; p.ctx.beginPath(); for (let i = 0; i <= 100; i++){ const x = E.wr[0] + (1 - E.wr[0]) * i / 100; i ? p.ctx.lineTo(p.X(x), p.Y(E.f(x))) : p.ctx.moveTo(p.X(x), p.Y(E.f(x))); } p.ctx.stroke();
+  p.ctx.fillStyle = cssv('--s2'); p.ctx.font = 'bold 13px system-ui,sans-serif'; p.ctx.textAlign = 'center'; p.ctx.textBaseline = 'middle'; p.ctx.fillText('+∞ here', (p.X(1) + p.W - p.pad.r) / 2, p.pad.t + 16);
+  p.ctx.font = '12px system-ui,sans-serif'; p.ctx.fillStyle = cssv('--muted'); p.ctx.textAlign = 'left'; p.ctx.textBaseline = 'top'; p.ctx.fillText('max over α ≥ 0 of L(w, α)', p.pad.l + 6, p.pad.t + 2);
+  p.dotAt(1, E.f(1), cssv('--s3'), 5); if (gw <= 0) p.dotAt(w, fw, cssv('--s2')); else { p.ctx.strokeStyle = cssv('--s2'); p.ctx.lineWidth = 2; p.ctx.beginPath(); p.ctx.moveTo(p.X(w), p.pad.t); p.ctx.lineTo(p.X(w), p.H - p.pad.b); p.ctx.stroke(); }
+  $('laTxt').innerHTML = `At w = ${f2(w)}: f = ${f2(fw)}, g = ${f2(gw)}, so L = ${f2(fw)} ${gw >= 0 ? '+' : '−'} ${Math.abs(gw).toFixed(2)}·α = <b>${f2(fw + a * gw)}</b> at your α. `
+    + (gw > 1e-9 ? `<b style="color:var(--s2)">g &gt; 0: this w breaks the constraint</b>, and the line on the left slopes upward. Every increase in α raises L, with no ceiling: the max is +∞.`
+      : gw < -1e-9 ? `<b style="color:var(--s3)">g &lt; 0: w is feasible</b>, and the line slopes downward, so the α player does best at α = 0, where L = f(w) = ${f2(fw)}.` : 'g = 0 exactly: α has no effect, L = f(w) for every α.')
+    + ' Right: doing this for every w gives a function that is f inside the feasible region and +∞ outside. Its lowest point (green) is the constrained minimum, w = 1.'; }
+$('w').oninput = laDraw; $('a').oninput = laDraw;
+
+/* ---------- 2. dual function ---------- */
+let ek = 'cvx';
+const grid = E => Array.from({length: 1201}, (_, i) => E.wr[0] - 2 + (E.wr[1] - E.wr[0] + 4) * i / 1200);
+const dualAt = (E, a) => { let m = Infinity, wm = 0; for (const w of grid(E)){ const v = E.f(w) + a * E.g(w); if (v < m){ m = v; wm = w; } } return [m, wm]; };
+const primal = E => { let m = Infinity, wm = 0; for (const w of grid(E)) if (E.g(w) <= 1e-9 && E.f(w) < m){ m = E.f(w); wm = w; } return [m, wm]; };
+function duDraw(){ const E = EX[ek]; $('a2').max = E.amax * 10; const a = Math.min(+$('a2').value / 10, E.amax); $('a2V').textContent = a.toFixed(1);
+  const [d, wm] = dualAt(E, a), [ps, pw] = primal(E); let bestA = 0, bestD = -Infinity; for (let i = 0; i <= 400; i++){ const x = E.amax * i / 400, v = dualAt(E, x)[0]; if (v > bestD){ bestD = v; bestA = x; } }
+  let p = plot($('lw'), E.wr, E.fr, 'w'); const gz = ek === 'cvx' ? 1 : 0; p.ctx.fillStyle = cssv('--s2'); p.ctx.globalAlpha = 0.12; p.ctx.fillRect(p.X(gz), p.pad.t, p.W - p.pad.r - p.X(gz), p.H - p.pad.t - p.pad.b); p.ctx.globalAlpha = 1;
+  p.curve(E.f, cssv('--muted'), 1.5); p.curve(x => E.f(x) + a * E.g(x), cssv('--s1')); p.dotAt(wm, d, cssv('--s1')); p.dotAt(pw, ps, cssv('--s2'), 5);
+  p = plot($('du'), [0, E.amax], ek === 'cvx' ? [-2, 6] : [-10, 8], 'α'); p.ctx.strokeStyle = cssv('--s2'); p.ctx.lineWidth = 2; p.ctx.setLineDash([6, 4]); p.ctx.beginPath(); p.ctx.moveTo(p.pad.l, p.Y(ps)); p.ctx.lineTo(p.W - p.pad.r, p.Y(ps)); p.ctx.stroke(); p.ctx.setLineDash([]);
+  p.curve(x => dualAt(E, x)[0], cssv('--s1')); p.dotAt(a, d, cssv('--s1'));
+  $('duTxt').innerHTML = `<b>${E.name} ≤ 0.</b> For α = ${a.toFixed(1)} the unconstrained minimiser of L is w = ${f2(wm)} (blue dot, left), giving the dual value <b>${f2(d)}</b>. The primal optimum (orange) is f = <b>${f2(ps)}</b> at w = ${f2(pw)}. The dual value never exceeds it. `
+    + (ek === 'cvx' ? `Its highest point is ${f2(bestD)} at α = ${bestA.toFixed(1)}: <b>exactly the primal optimum</b>. Max-min equals min-max, and at that α the unconstrained minimiser is the constrained solution itself.`
+      : `But its highest point is only ${f2(bestD)} (at α = ${bestA.toFixed(1)}): a <b>gap of ${f2(ps - bestD)}</b>. With a non-convex f the swap changes the answer. Watch the blue dot on the left: it jumps between the two valleys and never lands on the constrained solution.`); }
+$('a2').oninput = duDraw;
+document.querySelectorAll('button[data-e]').forEach(b => b.onclick = () => { ek = b.dataset.e; document.querySelectorAll('button[data-e]').forEach(x => x.classList.toggle('on', x === b)); $('a2').value = 20; duDraw(); });
+$('aBest').onclick = () => { const E = EX[ek]; let bestA = 0, bestD = -Infinity; for (let i = 0; i <= 400; i++){ const x = E.amax * i / 400, v = dualAt(E, x)[0]; if (v > bestD){ bestD = v; bestA = x; } } $('a2').value = Math.round(bestA * 10); duDraw(); };
+onReady(() => { laDraw(); duDraw(); });
+</script>
+</body>
+</html>

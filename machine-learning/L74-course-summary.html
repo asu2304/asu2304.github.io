@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Course Summary and Future Directions</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+.chip{display:inline-flex;align-items:center;gap:4px;position:relative;font-size:13px;padding:4px 9px;border:1px solid var(--grid);border-radius:999px;background:var(--card);color:var(--ink);text-decoration:none;max-width:230px;transition:opacity .15s}
+.chip span{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip:hover{border-color:var(--s1)} .chip.lit{background:var(--tint);border-color:var(--s1);font-weight:600} .chip.dim{opacity:.3}
+.chip.lit::after{content:attr(data-k);position:absolute;top:-7px;right:-6px;background:var(--s1);color:#fff;font-size:10px;border-radius:999px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+@media (max-width:600px){.chip span{display:none}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 74 · The end of the course</div>
+<h1>Course Summary and Future Directions</h1>
+<p class="lede">The course in one sentence: <b>unsupervised learning</b> (representations, clusters, estimation) then <b>supervised learning</b> (regression, then classification), ending with ensembles and neural networks. This page maps all 74 lectures, traces the ideas that kept coming back, and lists what the course left out and the open problems of <b>deployable machine learning</b>: fairness, explainability, privacy, AI on the edge, and models that keep learning.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=06PP-3xUCs0">this lecture on YouTube</a> (≈16 min). Previous: <a href="L73-backpropagation.html">L73</a> · Back to the start: <a href="L1-introduction.html">L1</a> · <a href="index.html">all notes</a>.</p>
+
+<h2>1 · What the course covered</h2>
+<table>
+<tr><th>Paradigm</th><th>Problem</th><th>Algorithms</th></tr>
+<tr><td rowspan="3">Unsupervised</td><td>Representation learning</td><td>PCA, kernel PCA</td></tr>
+<tr><td>Clustering</td><td>K-means; its kernel version (the lecture calls it spectral clustering)</td></tr>
+<tr><td>Estimation</td><td>Maximum likelihood, Bayesian methods, mixture models and the EM algorithm</td></tr>
+<tr><td rowspan="2">Supervised</td><td>Regression</td><td>Ordinary least squares, ridge, lasso</td></tr>
+<tr><td>Classification</td><td>k-nearest neighbours, decision trees, logistic regression, perceptron, support vector machines, bagging, boosting, and (at a high level) neural networks</td></tr>
+</table>
+<p>The aim was a solid foundation: enough to implement these algorithms in practice (a machine learning practice course) and to appreciate a deep learning course much more than if you took it first.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">All 74 lectures. Click a lecture to open its notes. Pick a <b>thread</b> to light up the lectures where one idea reappears, in order, with a note on how it connects them.</p>
+  <div class="row" id="threads"></div>
+  <div id="map"></div>
+  <div class="callout small" id="threadTxt"></div>
+</div>
+
+<h2>2 · Ideas that kept coming back</h2>
+<ul>
+<li><b>Write the problem as an optimisation, then solve it.</b> Reconstruction error (PCA), the K-means objective, the likelihood, squared error, loss + regulariser. When the problem is convex we get a unique optimum; when it isn't (K-means, EM, neural networks) we settle for local optima and care about initialisation.</li>
+<li><b>Linear methods + kernels.</b> Whenever an algorithm only needs dot products between data points, a kernel buys a non-linear version for free.</li>
+<li><b>Probabilistic views explain the choices.</b> Gaussian noise ⇔ squared error, a Gaussian prior ⇔ ridge, logistic loss ⇔ maximum likelihood for a sigmoid model.</li>
+<li><b>Fit versus generalisation.</b> Memorising the training data is easy and useless; restricting the model, regularising, cross-validating and ensembling are all ways to generalise.</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A revision table of the main algorithms. Toggle filters to highlight the rows that match all of them, a quick way to test yourself ("which classifiers give probabilities?").</p>
+  <div class="row" id="filters"></div>
+  <div style="overflow-x:auto"><table id="algos"></table></div>
+  <p class="small muted" id="filterTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The lecture lists the algorithms; the table's columns are my summary of what each earlier lecture showed, with a link to where. "Convex" means the training problem as posed in the course has a unique optimum (or a closed form). "Explainable" follows the lecture's example: a decision tree can say why it decided, a large neural network cannot.</div>
+
+<h2>3 · What the course didn't cover</h2>
+<table>
+<tr><th>Topic</th><th>What it is</th></tr>
+<tr><td><b>Semi-supervised learning</b></td><td>Between the two paradigms: labels for some data points, none for the rest.</td></tr>
+<tr><td><b>Self-supervised learning</b></td><td>Especially in deep learning at scale: create new (supervised) data from the existing data itself.</td></tr>
+<tr><td><b>Sequential decision making</b></td><td>Data arrives one point at a time; you decide for the current point, get feedback on whether you were right, and learn a good strategy over time. Possibly a separate course in the programme.</td></tr>
+</table>
+<p>With the foundation from this course, you should be able to pick these up if you need them.</p>
+
+<h2>4 · Deployable AI / ML: what happens after training</h2>
+<p>This course covered the most important piece, the algorithm, but it's one piece of a practical pipeline. Deploying a model raises new questions; the lecture names them to make you curious rather than to solve them.</p>
+<ol class="steps">
+<li><b>Fairness.</b> A risk-score system in the US, predicting whether a convict would reoffend, gave scores favourable to one ethnicity and not another. Nothing in logistic regression or an SVM prefers a group: the <b>bias was in the data</b>, because earlier judgements were biased, and any algorithm trained on biased data produces biased outputs. Can we make fair algorithms? There are some solutions; it's still a research area.</li>
+<li><b>Explainability.</b> A doctor using a model to suggest a medication needs to know <b>why</b>. A decision tree can say: this feature was below a threshold, that one above, down to a leaf. A 100-hidden-layer network can't. If a self-driving car fails to brake and someone dies, who is accountable, and how can the model explain its decision? This is <b>explainable AI</b>.</li>
+<li><b>Privacy.</b> Training data can be confidential (salaries, health records). If a model might leak information about its training points, people won't want to contribute data. What does "private" even mean, and how do we build private algorithms?</li>
+<li><b>AI for the edge.</b> Networks with billions of parameters don't fit a phone's memory. Can we truncate precision, sub-sample, or train small networks that mimic large ones?</li>
+<li><b>Changing data: continual and transfer learning.</b> A model predicting IPL winners from past scores and players goes stale as players, teams and play change. You can't retrain from scratch for every new point, so how do you keep learning after deployment? And how do you transfer knowledge from one domain to another? (The lecture also mentions <b>distributed learning</b>.)</li>
+</ol>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A toy version of the fairness problem. Two groups have the <b>same</b> true distribution of risk, but the historical labels were biased: some low-risk people in group B were labelled "high risk" anyway. A logistic regression trained on those labels, using a group feature, learns the bias. Slide the bias and see.</p>
+  <div class="row">
+    <label>label bias against group B = <b id="bV"></b> <input type="range" id="bias" min="0" max="40" value="20" aria-label="label bias"></label>
+    <label><input type="checkbox" id="drop"> drop the group feature</label>
+    <button id="newF">New data</button>
+  </div>
+  <canvas id="fairc" height="220" aria-label="Predicted risk by true risk for two groups"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>group A: predicted risk</span><span><i style="background:var(--s2)"></i>group B: predicted risk</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="fA">–</div><div class="l">flagged high-risk, group A</div></div>
+    <div class="stat"><div class="v" id="fB">–</div><div class="l">flagged high-risk, group B</div></div>
+    <div class="stat"><div class="v" id="wg">–</div><div class="l">weight learned on "group"</div></div>
+  </div>
+  <p class="small" id="fTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> This demo is my illustration of the lecture's point that the algorithm isn't biased, the data is. It also shows a common trap: dropping the group feature helps only when no other feature acts as a proxy for it. Here a "neighbourhood" feature is correlated with group, so with the box ticked some of the bias still leaks through.</div>
+
+<h2>5 · Where to go next</h2>
+<p>This was an introductory course. Next steps the lecture suggests: a deep learning course for unstructured data, and research in the deployable-AI directions above (fairness, explainability, privacy, distributed learning, AI for the edge, transfer and continual learning).</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Unsupervised: PCA / kernel PCA, K-means / kernel K-means, estimation (ML, Bayesian, GMM + EM). Supervised: OLS, ridge, lasso; kNN, trees, logistic regression, perceptron, SVM, bagging, boosting, neural networks.</li>
+<li>Not covered: semi-supervised, self-supervised and sequential decision making.</li>
+<li>Deployment raises fairness (bias in the data), explainability (trees vs deep nets), privacy, edge constraints, and learning under change.</li>
+<li>The course is a foundation for deep learning and for these research directions.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const sig = z => 1 / (1 + Math.exp(-z));
+const esc = s => s.replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+
+/* ---- course map ---- */
+const LEC = [["L1-introduction.html", "Introduction to machine learning"], ["L2-paradigms.html", "Paradigms of machine learning"], ["L3-representation-learning.html", "Representation learning"], ["L4-best-fit-line.html", "The best line"], ["L5-compression-residue.html", "Residues and centring"], ["L6-pca-error-minimization.html", "PCA via residues"], ["L7-pca-variance.html", "PCA as eigenvectors"], ["L8-pca-issues.html", "Eigenfaces and PCA's limits"], ["L9-pca-time-complexity.html", "Time complexity of PCA"], ["L10-feature-transformation.html", "Feature transformation"], ["L11-kernel-functions.html", "Kernel functions"], ["L12-kernel-pca.html", "Kernel PCA"], ["L13-clustering-notes.html", "Introduction to clustering"], ["L14-kmeans-lloyd-notes.html", "K-means (Lloyd's algorithm)"], ["L15-kmeans-convergence-notes.html", "Convergence of K-means"], ["L16-kmeans-voronoi-notes.html", "Nature of K-means clusters"], ["L17-kmeans-initialization-notes.html", "Initialising K-means"], ["L18-kmeans-choice-of-K-notes.html", "Choosing K"], ["L19-estimation.html", "Introduction to estimation"], ["L20-maximum-likelihood.html", "Maximum likelihood"], ["L21-bayesian-estimation.html", "Bayesian estimation"], ["L22-gaussian-mixture-models.html", "Gaussian mixture models"], ["L23-gmm-likelihood.html", "Likelihood of a GMM"], ["L24-convexity-jensen.html", "Convexity and Jensen's inequality"], ["L25-gmm-lower-bound.html", "Estimating GMM parameters"], ["L26-em-algorithm.html", "The EM algorithm"], ["L27-supervised-learning.html", "Supervised learning"], ["L28-linear-regression.html", "Linear regression"], ["L29-optimizing-error.html", "Solving linear regression"], ["L30-geometric-interpretation.html", "Regression as projection"], ["L31-gradient-descent.html", "Gradient descent and SGD"], ["L32-kernel-regression.html", "Kernel regression"], ["L33-probabilistic-regression.html", "Probabilistic view of regression"], ["L34-goodness-of-ml-estimator.html", "Goodness of the ML estimator"], ["L35-cross-validation.html", "A better estimator and cross-validation"], ["L36-bayesian-ridge.html", "Ridge from a Gaussian prior"], ["L37-ridge-regression.html", "Ridge regression"], ["L38-ridge-geometry.html", "The geometry of ridge"], ["L39-lasso.html", "Lasso (L1 regularisation)"], ["L40-solving-lasso.html", "Solving lasso, and the regression wrap-up"], ["L41-binary-classification.html", "Binary classification"], ["L42-knn.html", "k-nearest neighbours"], ["L43-decision-trees.html", "Decision trees"], ["L44-building-trees.html", "Building a decision tree"], ["L45-generative-discriminative.html", "Generative and discriminative models"], ["L46-generative-spam-model.html", "A generative model for spam"], ["L47-coin-model.html", "One coin per word"], ["L48-naive-bayes.html", "Naive Bayes"], ["L49-naive-bayes-pitfalls.html", "Naive Bayes pitfalls"], ["L50-naive-bayes-decision-function.html", "Decision function of naive Bayes"], ["L51-gaussian-naive-bayes.html", "Gaussian naive Bayes"], ["L52-perceptron.html", "The perceptron algorithm"], ["L53-perceptron-update-rule.html", "Perceptron update rule and the margin"], ["L54-perceptron-convergence.html", "Perceptron convergence proof"], ["L55-sigmoid.html", "From scores to probabilities"], ["L56-logistic-regression.html", "Logistic regression"], ["L57-perceptron-and-margin.html", "Perceptrons and margin"], ["L58-maximum-margin.html", "Maximum margin, the formulation"], ["L59-constrained-optimization.html", "Constrained optimisation"], ["L60-svm-dual.html", "The dual of the SVM"], ["L61-support-vectors.html", "Support vectors"], ["L62-soft-margin-svm.html", "Soft-margin SVM"], ["L63-soft-margin-dual.html", "Dual of the soft-margin SVM"], ["L64-soft-margin-slackness.html", "Complementary slackness for the soft margin"], ["L65-soft-margin-summary.html", "Soft-margin summary"], ["L66-bias-variance.html", "Overfitting, underfitting and bias–variance"], ["L67-bagging.html", "Bagging and random forests"], ["L68-boosting.html", "Boosting"], ["L69-classification-losses.html", "Classification loss functions"], ["L70-hinge-logistic-loss.html", "Hinge and logistic loss"], ["L71-perceptron-boosting-loss.html", "Perceptron and boosting losses"], ["L72-neural-networks.html", "Neural networks"], ["L73-backpropagation.html", "Training by backpropagation"], ["L74-course-summary.html", "Course summary"]];
+const SECTIONS = [[1, 12, 'Representation learning: PCA and kernel PCA'], [13, 18, 'Clustering'], [19, 26, 'Estimation, GMMs and EM'], [27, 40, 'Regression'], [41, 65, 'Classification'], [66, 71, 'Ensembles and loss functions'], [72, 74, 'Neural networks and summary']];
+const THREADS = [
+  {id: 'kernel', name: 'The kernel trick', l: [10, 11, 12, 16, 32, 60, 61], t: 'Feature maps φ make non-linear structure linear (L10), but φ can be huge. If an algorithm needs only dot products, replace them with k(x, x′) (L11). That gave kernel PCA (L12), kernel K-means (L16), kernel regression with α = K⁻¹y (L32), and the SVM, whose dual depends only on XᵀX (L60) and predicts with support vectors (L61).'},
+  {id: 'eig', name: 'Eigenvectors and XXᵀ', l: [4, 7, 9, 12, 29, 34, 35], t: 'The top eigenvector of the covariance matrix is the best line (L4) and the direction of maximum variance (L7); the n×n matrix XᵀX gives the same answer when d ≫ n (L9, L12). The same matrix XXᵀ reappears in least squares (L29), its eigenvalues set the ML estimator\'s error (L34), and adding λI lifts them (L35).'},
+  {id: 'prob', name: 'Likelihood, priors and MAP', l: [19, 20, 21, 33, 36, 45, 48, 56], t: 'Estimation starts with a probabilistic model (L19), maximum likelihood (L20) and priors / MAP (L21). Then: Gaussian noise makes ML equal least squares (L33), a Gaussian prior makes MAP equal ridge (L36), generative classifiers model P(x, y) (L45, L48), and logistic regression is ML for a sigmoid model (L56).'},
+  {id: 'loss', name: 'Loss + regularisation', l: [28, 37, 39, 41, 69, 70, 71, 72], t: 'Squared error with a restricted model class (L28), plus λ‖w‖² (ridge, L37) or λ‖w‖₁ (lasso, L39). For classification the 0-1 loss is NP-hard (L41), so convex surrogates stand in: the unifying view (L69), hinge and logistic loss give SVM and logistic regression (L70), perceptron and boosting fit too (L71). Neural networks leave convexity behind (L72).'},
+  {id: 'gd', name: 'Gradient-based optimisation', l: [31, 40, 52, 56, 73], t: 'Gradient descent and SGD avoid the matrix inverse (L31); subgradients handle lasso\'s kink (L40); the perceptron updates on each mistake (L52); logistic regression uses gradient ascent (L56); backpropagation is gradient descent for neural networks, with the gradient from the chain rule (L73).'},
+  {id: 'convex', name: 'Convexity and local optima', l: [15, 17, 24, 26, 41, 59, 72, 73], t: 'K-means always converges (L15) but only to a local optimum, so initialisation matters (L17). Jensen\'s inequality for convex functions (L24) gives EM, which also finds local maxima (L26). The 0-1 loss is not convex and NP-hard (L41); convex duality makes SVMs work (L59); neural networks are non-convex again (L72, L73).'},
+  {id: 'gen', name: 'Fit vs generalisation', l: [18, 28, 35, 42, 44, 62, 66, 67, 68], t: 'An objective alone always wants more clusters (L18) and zero error by memorising (L28). Fixes: cross-validation (L35, L42), limiting tree depth (L44), slack in the SVM (L62). L66 frames it as bias vs variance; bagging averages away variance (L67) and boosting combines high-bias weak learners (L68).'}];
+let thread = null;
+function buildMap(){
+  $('threads').innerHTML = THREADS.map(t => `<button data-t="${t.id}">${esc(t.name)}</button>`).join('') + '<button data-t="">clear</button>';
+  $('map').innerHTML = SECTIONS.map(([a, b, name]) => `<div style="margin:12px 0 4px;font-size:13px;color:var(--muted);font-weight:600">${esc(name)} · L${a}–L${b}</div><div style="display:flex;flex-wrap:wrap;gap:6px">` +
+    LEC.slice(a - 1, b).map(([f, s], i) => `<a class="chip" data-n="${a + i}" href="${f}" title="L${a + i}: ${esc(s)}">L${a + i}<span> ${esc(s)}</span></a>`).join('') + '</div>').join('');
+  document.querySelectorAll('button[data-t]').forEach(b => b.onclick = () => { thread = b.dataset.t || null; paintMap(); });
+  paintMap();
+}
+function paintMap(){
+  const T = THREADS.find(t => t.id === thread);
+  document.querySelectorAll('button[data-t]').forEach(b => b.classList.toggle('on', (b.dataset.t || null) === thread && !!thread));
+  document.querySelectorAll('.chip').forEach(c => { const n = +c.dataset.n, on = T && T.l.includes(n);
+    c.classList.toggle('lit', !!on); c.classList.toggle('dim', !!T && !on); const k = on ? T.l.indexOf(n) + 1 : 0; c.dataset.k = k ? k : ''; });
+  $('threadTxt').innerHTML = T ? `<b>${esc(T.name)}:</b> ${T.t.replace(/L(\d+)/g, (m, n) => `<a href="${LEC[n - 1][0]}">L${n}</a>`)}` : 'No thread selected: every lecture is shown. Pick a thread above.';
+}
+
+/* ---- algorithm table ---- */
+const ALG = [
+  ['PCA', 'unsup', 1, 1, 0, 0, 'L4–L7', 'L4-best-fit-line.html', 'top eigenvectors of the covariance matrix'],
+  ['K-means', 'unsup', 0, 1, 0, 0, 'L13–L18', 'L14-kmeans-lloyd-notes.html', 'Lloyd\'s algorithm; local optimum'],
+  ['GMM + EM', 'unsup', 0, 0, 1, 0, 'L22–L26', 'L26-em-algorithm.html', 'soft K-means; local maxima'],
+  ['Least squares', 'reg', 1, 1, 1, 0, 'L28–L33', 'L29-optimizing-error.html', 'w* = (XXᵀ)⁺Xy; = ML with Gaussian noise'],
+  ['Ridge', 'reg', 1, 0, 1, 0, 'L35–L38', 'L37-ridge-regression.html', 'closed form; = MAP with a Gaussian prior'],
+  ['Lasso', 'reg', 1, 0, 0, 0, 'L39–L40', 'L39-lasso.html', 'sparse; no closed form (subgradients)'],
+  ['k-NN', 'cls', 0, 0, 0, 0, 'L42', 'L42-knn.html', 'no model learned; k by cross-validation'],
+  ['Decision tree', 'cls', 0, 0, 0, 1, 'L43–L44', 'L43-decision-trees.html', 'greedy splits by information gain'],
+  ['Naive Bayes', 'cls', 1, 0, 1, 0, 'L46–L51', 'L48-naive-bayes.html', 'generative; estimates by counting'],
+  ['Perceptron', 'cls', 0, 0, 0, 0, 'L52–L54', 'L52-perceptron.html', 'converges if separable (R²/γ² mistakes)'],
+  ['Logistic regression', 'cls', 1, 0, 1, 0, 'L55–L56', 'L56-logistic-regression.html', 'convex; gradient ascent on the likelihood'],
+  ['SVM', 'cls', 1, 1, 0, 0, 'L57–L65', 'L60-svm-dual.html', 'maximum margin; dual uses only dot products'],
+  ['Bagging / random forest', 'cls', 0, 0, 0, 0, 'L67', 'L67-bagging.html', 'averages to reduce variance'],
+  ['Boosting', 'cls', 0, 0, 0, 0, 'L68', 'L68-boosting.html', 'combines weak learners; exponential loss'],
+  ['Neural network', 'cls', 0, 0, 1, 0, 'L72–L73', 'L72-neural-networks.html', 'learns features; non-convex, local minima']];
+// columns: name, task, convex/unique optimum, kernel version in course, probabilistic, explainable
+const FIL = [['unsup', 'unsupervised', r => r[1] === 'unsup'], ['reg', 'regression', r => r[1] === 'reg'], ['cls', 'classification', r => r[1] === 'cls'],
+  ['cvx', 'convex / unique optimum', r => r[2]], ['ker', 'kernel version in course', r => r[3]], ['prob', 'probabilistic model', r => r[4]], ['exp', 'explainable', r => r[5]]];
+const on = new Set();
+function buildTable(){
+  $('filters').innerHTML = FIL.map(([k, l]) => `<button data-fl="${k}">${l}</button>`).join('');
+  document.querySelectorAll('button[data-fl]').forEach(b => b.onclick = () => { const k = b.dataset.fl; on.has(k) ? on.delete(k) : on.add(k); paintTable(); });
+  paintTable();
+}
+function paintTable(){
+  const tick = v => v ? '✓' : '<span class="muted">–</span>', task = {unsup: 'unsupervised', reg: 'regression', cls: 'classification'};
+  const match = r => [...on].every(k => FIL.find(f => f[0] === k)[2](r));
+  $('algos').innerHTML = '<tr><th>Algorithm</th><th>Task</th><th>Convex</th><th>Kernel</th><th>Probabilistic</th><th>Explainable</th><th>Key fact</th></tr>' +
+    ALG.map(r => `<tr style="${on.size && match(r) ? 'background:var(--tint)' : ''}${on.size && !match(r) ? ';opacity:.35' : ''}"><td><a href="${r[7]}">${r[0]}</a> <span class="small muted">${r[6]}</span></td><td>${task[r[1]]}</td><td>${tick(r[2])}</td><td>${tick(r[3])}</td><td>${tick(r[4])}</td><td>${tick(r[5])}</td><td class="small">${esc(r[8])}</td></tr>`).join('');
+  document.querySelectorAll('button[data-fl]').forEach(b => b.classList.toggle('on', on.has(b.dataset.fl)));
+  const m = ALG.filter(match).map(r => r[0]);
+  $('filterTxt').textContent = on.size ? (m.length ? `Matches: ${m.join(', ')}.` : 'Nothing matches all of these.') : 'No filter: all algorithms shown.';
+}
+
+/* ---- fairness toy ---- */
+let F = [];
+function makeF(){ F = Array.from({length: 1200}, (_, i) => { const g = i % 2, risk = randn(), hood = 0.9 * g + 0.5 * randn(); return {g, risk, hood, u: Math.random(), noise: randn()}; }); }
+function fitLR(X, y){ const d = X[0].length, w = new Array(d).fill(0);
+  for (let t = 0; t < 400; t++){ const g = new Array(d).fill(0); X.forEach((x, i) => { const e = sig(x.reduce((s, v, j) => s + v * w[j], 0)) - y[i]; x.forEach((v, j) => g[j] += e * v); }); w.forEach((_, j) => w[j] -= 0.5 * g[j] / X.length); }
+  return w; }
+function drawFair(){
+  const b = +$('bias').value / 100, drop = $('drop').checked; $('bV').textContent = (100 * b).toFixed(0) + '%';
+  // true label depends only on risk; historical label adds bias against group B
+  const y = F.map(p => { const truth = p.risk + 0.6 * p.noise > 0.4; return +(truth || (p.g === 1 && p.u < b)); });
+  const feats = p => drop ? [1, p.risk, p.hood] : [1, p.risk, p.hood, p.g];
+  const w = fitLR(F.map(feats), y), pr = p => sig(feats(p).reduce((s, v, j) => s + v * w[j], 0));
+  const fl = g => { const G = F.filter(p => p.g === g); return G.filter(p => pr(p) > 0.5).length / G.length; };
+  $('fA').textContent = (100 * fl(0)).toFixed(0) + '%'; $('fB').textContent = (100 * fl(1)).toFixed(0) + '%'; $('wg').textContent = drop ? 'dropped' : w[3].toFixed(2);
+  const [ctx, W, H] = setupCanvas($('fairc')), pad = {l: 40, r: 10, t: 10, b: 26}, xr = [-2.5, 2.5];
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - v * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('true underlying risk (same distribution in both groups)', (pad.l + W) / 2, H - pad.b + 6);
+  ctx.save(); ctx.translate(11, (pad.t + H - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = 'middle'; ctx.fillText('predicted P(high risk)', 0, 0); ctx.restore();
+  [0, 1].forEach(g => { ctx.fillStyle = cssv(g ? '--s2' : '--s1'); ctx.globalAlpha = 0.45; F.filter(p => p.g === g).forEach(p => { ctx.beginPath(); ctx.arc(X(p.risk), Y(pr(p)), 2, 0, 2 * Math.PI); ctx.fill(); }); });
+  ctx.globalAlpha = 1;
+  const gap = fl(1) - fl(0);
+  $('fTxt').innerHTML = b === 0 ? 'No label bias: both groups are flagged at about the same rate, because the true risk distribution is the same.'
+    : drop ? (gap < 0.04 ? `Without the group feature the gap almost closes at this bias level (${(100 * gap).toFixed(0)} points). Raise the bias: the neighbourhood feature is a <b>proxy</b> for group and lets part of it leak back in.`
+      : `Without the group feature the gap shrinks, but group B is still flagged ${(100 * gap).toFixed(0)} points more often: the neighbourhood feature is a <b>proxy</b> for group, so the model leans on it instead.`)
+    : `The labels, not the algorithm, are biased, yet the model learns a positive weight on "group B" and flags group B ${(100 * gap).toFixed(0)} percentage points more often at the same true risk (orange cloud sits above blue).`;
+}
+$('bias').oninput = drawFair; $('drop').onchange = drawFair; $('newF').onclick = () => { makeF(); drawFair(); };
+
+buildMap(); buildTable(); makeF(); drawFair();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawFair, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawFair);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawFair(); });
+</script>
+</body>
+</html>

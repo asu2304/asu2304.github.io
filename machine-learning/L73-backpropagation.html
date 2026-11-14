@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Training a Neural Network: Loss, Gradient Descent and Backpropagation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+.chip{display:inline-flex;align-items:center;gap:4px;position:relative;font-size:13px;padding:4px 9px;border:1px solid var(--grid);border-radius:999px;background:var(--card);color:var(--ink);text-decoration:none;max-width:230px;transition:opacity .15s}
+.chip span{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip:hover{border-color:var(--s1)} .chip.lit{background:var(--tint);border-color:var(--s1);font-weight:600} .chip.dim{opacity:.3}
+.chip.lit::after{content:attr(data-k);position:absolute;top:-7px;right:-6px;background:var(--s1);color:#fff;font-size:10px;border-radius:999px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+@media (max-width:600px){.chip span{display:none}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 73 · Neural networks: learning the parameters</div>
+<h1>Training a Neural Network: Loss, Gradient Descent and Backpropagation</h1>
+<p class="lede">Collect every weight into one parameter vector $\theta$, write down a loss (squared error for regression, cross-entropy for classification), and run <b>gradient descent</b>. <b>Backpropagation</b> is simply the efficient way to compute that gradient, using the chain rule layer by layer. Because the loss isn't convex in $\theta$, gradient descent finds a <b>local minimum</b>, which in practice is usually very good.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=LctgFHD_RN4">this lecture on YouTube</a> (≈22 min). Previous: <a href="L72-neural-networks.html">L72</a> · Next: <a href="L74-course-summary.html">L74</a>.</p>
+
+<h2>1 · The loss</h2>
+<p>Let $\theta$ stand for <b>all</b> the network's parameters ($w_1,\dots,w_k$ and $w_{\text{out}}$ in L72), and $\text{NN}(x;\theta)$ for the network's output on input $x$. For regression, use the usual squared loss:</p>
+$$L(\theta)=\sum_{i=1}^{n}\big(\text{NN}(x_i;\theta)-y_i\big)^2 .$$
+<p>This is the analogue of $\sum_i(w^\top x_i-y_i)^2$: with one hidden neuron and an identity activation, $\text{NN}(x_i;\theta)$ is just $w^\top x_i$.</p>
+
+<h2>2 · Gradient descent on θ</h2>
+<p>If the activation is differentiable, start from some initial $\theta$ and step against the gradient, exactly as in L31:</p>
+$$\theta_{t+1}=\theta_t-\eta\,\nabla_\theta L(\theta_t).$$
+<p>Changing any single weight changes the output in some way, and the gradient captures how. The catch is size: $\theta$ can be enormous.</p>
+
+<h2>3 · Deeper networks, many more parameters</h2>
+<ul>
+<li>Add more hidden layers: layer 2 combines layer 1's votes into new votes, and so on, each layer working one level above the previous. After $L$ such layers an output layer produces the prediction.</li>
+<li>Every neuron has its own weight vector. In layer 1 it lives in $\mathbb R^d$ (it reads the input); in later layers its size is the number of nodes in the previous layer, a design choice. Layers usually have the same width, but they don't have to.</li>
+<li>So the number of parameters can blow up, and computing the gradient looks complicated.</li>
+</ul>
+
+<h2>4 · Backpropagation = the chain rule, organised</h2>
+<div class="callout"><b>Backpropagation</b> is an algorithm that computes the gradient of a specified network at a given $\theta$, efficiently, using the <b>chain rule of differentiation</b>. Once you have the gradient, the update is standard gradient descent.</div>
+<p>Why the chain rule? The gradient asks: "if I change one weight, how does the output change?" A weight in layer 1 affects layer 2, which affects layer 3, and so on until the output. The network's <b>layer-wise structure</b> lets us reuse the intermediate derivatives instead of recomputing them for every weight. For the one-hidden-layer network with $z_j=w_j^\top x$, $h_j=a(z_j)$, $o=\sum_j w_{\text{out},j}h_j$ and loss $\ell(o,y)$:</p>
+$$\frac{\partial \ell}{\partial w_{\text{out},j}}=\underbrace{\frac{\partial \ell}{\partial o}}_{\delta_o}\,h_j,\qquad
+\frac{\partial \ell}{\partial w_{j,m}}=\underbrace{\frac{\partial \ell}{\partial o}\;w_{\text{out},j}\;a'(z_j)}_{\delta_j}\;x_m .$$
+<p>The output's error $\delta_o$ is computed once, passed <b>backwards</b> along each edge (multiplied by the edge weight and the local slope $a'$) to give each hidden unit's $\delta_j$, and each weight's gradient is "$\delta$ at its far end × value at its near end". The demo below shows these numbers live.</p>
+
+<h2>5 · Classification: same machinery, different last layer</h2>
+<p>For binary classification the output layer applies a sigmoid, $\hat p=\sigma(w_{\text{out}}^\top h)$, the probability of $y=1$ given $x$ (as in logistic regression, L56). Compare it with the actual label using the <b>cross-entropy loss</b>: if $\hat p=0.1$ the loss is small when $y=0$; if $\hat p=0.9$ but $y=0$ it's large. Everything else is unchanged: backpropagation computes the gradient of this new loss and gradient descent updates $\theta$. For a sigmoid output with cross-entropy, $\delta_o$ comes out as simply $\hat p-y$.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Train a one-hidden-layer classifier live. Left: data and the current decision regions. <b>Click a point</b> to inspect it. Right: the network for that point, with <b>forward values</b> inside the nodes and <b>backward errors δ</b> underneath (orange). Below: the loss curve.</p>
+  <div class="row">
+    <button data-d="xor" class="on">XOR</button><button data-d="rings">two rings</button><button data-d="spiral">spiral</button>
+    <label>hidden units = <b id="kV"></b> <input type="range" id="k" min="2" max="8" value="4" aria-label="hidden units"></label>
+    <label>activation <select id="act" aria-label="activation"><option value="tanh">tanh</option><option value="sig">sigmoid</option><option value="relu">ReLU</option></select></label>
+  </div>
+  <div class="row">
+    <label>learning rate η = <b id="lrV"></b> <input type="range" id="lr" min="0" max="100" value="60" aria-label="learning rate (log scale)"></label>
+    <button id="play">▶ Train</button><button id="step">Step</button><button id="reset">New random start</button>
+  </div>
+  <div class="pair half">
+    <canvas id="plot" height="300" aria-label="Data and decision regions during training"></canvas>
+    <canvas id="graph" height="300" aria-label="Network graph with forward values and backward errors for the selected point"></canvas>
+  </div>
+  <canvas id="lossc" height="150" aria-label="Training loss over iterations"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>y = 1</span><span><i class="dot" style="background:var(--s2)"></i>y = 0</span><span><i style="background:var(--ink)"></i>loss (cross-entropy)</span><span><i class="dot" style="background:var(--s3)"></i>selected point</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="it">0</div><div class="l">gradient steps</div></div>
+    <div class="stat"><div class="v" id="ls">–</div><div class="l">average loss</div></div>
+    <div class="stat"><div class="v" id="acc">–</div><div class="l">training accuracy</div></div>
+  </div>
+  <div class="row"><label>trace the chain rule for weight <select id="wsel" aria-label="weight to trace"></select></label></div>
+  <div class="callout small" id="chain" style="font-variant-numeric:tabular-nums"></div>
+</div>
+
+<h2>6 · Local minima</h2>
+<p>The output is <b>not a convex function</b> of the parameters; with many parameters it's a very high-dimensional, highly non-convex function. So gradient descent is <b>not guaranteed to reach the global optimum</b> $\theta_{\text{opt}}$ that minimises the training loss. It converges to a <b>local minimum</b>.</p>
+<p>At first glance that sounds bad. In practice it works very well, provided the algorithm is <b>initialised carefully</b> and gradient descent is modified with some clever tricks (rather than following the raw gradient). Those tricks are deep-learning-course material.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Non-convexity, measured. Train the same architecture on the same data from 12 different random starts (800 steps each) and plot where each run ends. A convex problem would put every dot at the same height.</p>
+  <div class="row"><button id="multi">Run 12 random starts</button><span class="small muted" id="multiTxt"></span></div>
+  <canvas id="multic" height="170" aria-label="Final loss of 12 training runs from different random starts"></canvas>
+</div>
+
+<h2>7 · What the layers learn: features, then a linear map</h2>
+<ul>
+<li>View the network in two parts: layers 1 to $L$ map the input non-linearly from $\mathbb R^d$ to $\mathbb R^m$ (if layer $L$ has $m$ nodes); the output layer then applies a <b>linear function</b> (plus a sigmoid for classification) to that learned representation.</li>
+<li>That should remind you of <b>kernel machines</b>: map to a higher-dimensional space, learn a linear function there. The difference: with a kernel you <b>specify</b> the map (a polynomial kernel means height², weight², height × weight, …); a neural network <b>learns the features and the weights jointly</b>.</li>
+<li>Different data types suggest different feature maps, so architectures are designed per modality: <b>convolutional</b> networks for images (edges, corners, simple shapes), <b>recurrent</b> networks and <b>LSTMs</b> for time series, <b>Transformers</b> and attention models, and more.</li>
+</ul>
+
+<h2>8 · When to use them</h2>
+<table>
+<tr><th>Data</th><th>Lecture's verdict</th></tr>
+<tr><td><b>Unstructured</b>: images, text, speech</td><td>Neural networks give state-of-the-art results; architectures that build modality-specific feature maps beat classical methods whose kernels aren't tuned to the modality.</td></tr>
+<tr><td><b>Structured</b> (tabular features)</td><td>Not necessarily the best. Boosting, support vector machines and logistic regression are still very good choices.</td></tr>
+</table>
+
+<div class="beyond"><b>Going beyond the video.</b> The demo trains on the average cross-entropy with plain full-batch gradient descent, biases on every unit, and Gaussian random initialisation. It uses no momentum or other optimiser tricks, so you can see the raw behaviour, including runs that get stuck (try ReLU with a large η, or 2 hidden units on the rings). The "check" in the chain-rule box compares backprop's value with a finite-difference slope, $(\ell(\theta+\epsilon e)-\ell(\theta-\epsilon e))/2\epsilon$: the chain rule gives the exact derivative, not an approximation. Real backpropagation runs the same backward pass for every point and sums the results, layer by layer, which costs only a small constant multiple of one forward pass.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Put all weights in $\theta$; minimise squared loss (regression) or cross-entropy with a sigmoid output (classification).</li>
+<li>Train by gradient descent. Backpropagation computes $\nabla_\theta L$ efficiently with the chain rule, exploiting the layered structure.</li>
+<li>The loss is non-convex in $\theta$, so gradient descent reaches a local minimum; good initialisation and optimiser tricks make this work well in practice.</li>
+<li>Layers 1…L learn a feature map; the last layer is linear on it. Like kernels, but the features are learned, not specified.</li>
+<li>Neural networks dominate unstructured data; for structured data, classical methods from this course remain strong.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const sig = z => 1 / (1 + Math.exp(-z));
+const ACT = {sig: [sig, z => { const s = sig(z); return s * (1 - s); }], tanh: [Math.tanh, z => 1 - Math.tanh(z) ** 2], relu: [z => Math.max(0, z), z => (z > 0 ? 1 : 0)]};
+const clampP = p => Math.min(1 - 1e-12, Math.max(1e-12, p));
+
+let dname = 'xor', D = [], N = null, iter = 0, hist = [], playing = false, sel = 0;
+function makeData(){
+  D = []; const n = 120;
+  for (let i = 0; i < n; i++){
+    if (dname === 'xor'){ const sx = Math.random() < 0.5 ? -1 : 1, sy = Math.random() < 0.5 ? -1 : 1; D.push([sx * 0.75 + 0.3 * randn(), sy * 0.75 + 0.3 * randn(), +(sx * sy > 0)]); }
+    else if (dname === 'rings'){ const c = i % 2, r = (c ? 0.5 : 1.3) + 0.12 * randn(), t = 2 * Math.PI * Math.random(); D.push([r * Math.cos(t), r * Math.sin(t), c]); }
+    else { const c = i % 2, t = (i >> 1) / (n / 2) * 3 * Math.PI * 0.85 + 0.4, r = 0.25 + 0.55 * t / Math.PI; D.push([(c ? 1 : -1) * r * Math.cos(t) + 0.06 * randn(), (c ? 1 : -1) * r * Math.sin(t) + 0.06 * randn(), c]); }
+  }
+  sel = 0;
+}
+function init(){ const k = +$('k').value;
+  N = {W: Array.from({length: k}, () => [randn(), randn()]), b: Array.from({length: k}, () => 0.5 * randn()), v: Array.from({length: k}, () => randn()), c: 0};
+  iter = 0; hist = []; fillSel(); }
+// forward and backward for one point; returns everything the graph needs
+function pass(M, x, y, t, act){ const [f, df] = ACT[act];
+  const z = M.W.map((w, j) => w[0] * x + w[1] * y + M.b[j]), h = z.map(f), o = h.reduce((s, v, j) => s + v * M.v[j], M.c), p = sig(o);
+  const loss = -(t ? Math.log(clampP(p)) : Math.log(clampP(1 - p))), dO = p - t, dH = M.v.map(v => dO * v), dZ = dH.map((d, j) => d * df(z[j]));
+  return {z, h, o, p, loss, dO, dH, dZ}; }
+function lossAll(M, act){ return D.reduce((s, [x, y, t]) => s + pass(M, x, y, t, act).loss, 0) / D.length; }
+function gdStep(M, act, lr){ const k = M.W.length, gW = M.W.map(() => [0, 0]), gb = new Array(k).fill(0), gv = new Array(k).fill(0); let gc = 0;
+  for (const [x, y, t] of D){ const P = pass(M, x, y, t, act); gc += P.dO; for (let j = 0; j < k; j++){ gv[j] += P.dO * P.h[j]; gW[j][0] += P.dZ[j] * x; gW[j][1] += P.dZ[j] * y; gb[j] += P.dZ[j]; } }
+  const n = D.length; for (let j = 0; j < k; j++){ M.W[j][0] -= lr * gW[j][0] / n; M.W[j][1] -= lr * gW[j][1] / n; M.b[j] -= lr * gb[j] / n; M.v[j] -= lr * gv[j] / n; } M.c -= lr * gc / n; }
+const lr = () => 10 ** (-2 + 2.5 * +$('lr').value / 100);   // 0.01 … ~3.2
+const actName = () => $('act').value;
+
+function fillSel(){ const k = N.W.length, s = $('wsel'), old = s.value; s.innerHTML = '';
+  for (let j = 0; j < k; j++) s.add(new Option(`w_out,${j + 1} (hidden ${j + 1} → output)`, 'v' + j));
+  for (let j = 0; j < k; j++) for (let m = 0; m < 2; m++) s.add(new Option(`w_${j + 1},${m + 1} (x${m + 1} → hidden ${j + 1})`, `w${j}_${m}`));
+  if ([...s.options].some(o => o.value === old)) s.value = old; }
+
+/* ---- drawing ---- */
+const R = 2;
+let geo = null;
+function drawPlot(){
+  const [ctx, W, H] = setupCanvas($('plot')), side = Math.min(W, H) - 4, ox = (W - side) / 2, oy = 2, act = actName();
+  geo = {side, ox, oy};
+  const X = v => ox + (v + R) / (2 * R) * side, Y = v => oy + side - (v + R) / (2 * R) * side, cell = 6, c1 = cssv('--s1'), c0 = cssv('--s2');
+  const f = ACT[act][0];
+  for (let px = 0; px < side; px += cell) for (let py = 0; py < side; py += cell){
+    const x = -R + (px + cell / 2) / side * 2 * R, y = R - (py + cell / 2) / side * 2 * R;
+    let o = N.c; for (let j = 0; j < N.W.length; j++) o += N.v[j] * f(N.W[j][0] * x + N.W[j][1] * y + N.b[j]);
+    const p = sig(o); ctx.fillStyle = p >= 0.5 ? c1 : c0; ctx.globalAlpha = 0.05 + 0.25 * Math.abs(2 * p - 1); ctx.fillRect(ox + px, oy + py, cell, cell); }
+  ctx.globalAlpha = 1;
+  D.forEach(([x, y, c], i) => { ctx.fillStyle = c ? c1 : c0; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X(x), Y(y), 3.5, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); });
+  const [sx, sy] = D[sel]; ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(X(sx), Y(sy), 8, 0, 2 * Math.PI); ctx.stroke();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, side, side);
+}
+function drawGraph(){
+  const [ctx, W, H] = setupCanvas($('graph')), k = N.W.length, act = actName(), [x, y, t] = D[sel], P = pass(N, x, y, t, act);
+  const xi = 26, xh = W * 0.5, xo = W - 30, iy = [H * 0.35, H * 0.62], hy = j => 26 + (H - 70) * (k === 1 ? 0.5 : j / (k - 1)), oyy = H * 0.48;
+  const ink = cssv('--ink'), c1 = cssv('--s1'), c0 = cssv('--s2'), wsel = $('wsel').value;
+  const wmax = Math.max(...N.W.flat().map(Math.abs), ...N.v.map(Math.abs), 1e-9);
+  const edge = (x1, y1, x2, y2, w, hl) => { ctx.strokeStyle = hl ? cssv('--s3') : (w >= 0 ? c1 : c0); ctx.globalAlpha = hl ? 1 : 0.45; ctx.lineWidth = hl ? 4 : 0.5 + 3 * Math.abs(w) / wmax; ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); ctx.globalAlpha = 1; };
+  for (let j = 0; j < k; j++){ for (let m = 0; m < 2; m++) edge(xi, iy[m], xh, hy(j), N.W[j][m], wsel === `w${j}_${m}`); edge(xh, hy(j), xo, oyy, N.v[j], wsel === 'v' + j || wsel.startsWith(`w${j}_`)); }
+  ctx.font = '11px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const r = Math.max(9, Math.min(16, (H - 70) / k / 2.4));
+  const node = (cx, cy, rr, val, delta) => { ctx.fillStyle = cssv('--card'); ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = ink; ctx.fillText(val, cx, cy); if (delta !== undefined){ ctx.fillStyle = c0; ctx.fillText('δ ' + delta, cx, cy + rr + 8); } };
+  node(xi, iy[0], 15, x.toFixed(2)); node(xi, iy[1], 15, y.toFixed(2));
+  for (let j = 0; j < k; j++) node(xh, hy(j), r, P.h[j].toFixed(2), P.dZ[j].toFixed(2));
+  node(xo, oyy, 18, P.p.toFixed(2), P.dO.toFixed(2));
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('x', xi, iy[0] - 24); ctx.fillText('h = a(z)', xh, 10); ctx.fillText('p̂', xo, oyy - 30);
+  ctx.fillText(`label y = ${t} · loss ℓ = ${P.loss.toFixed(3)}`, W / 2, H - 8);
+  // chain-rule trace
+  let txt, num;
+  const eps = 1e-5, bump = (s) => { const M = JSON.parse(JSON.stringify(N)); if (wsel[0] === 'v') M.v[+wsel.slice(1)] += s; else { const [j, m] = wsel.slice(1).split('_').map(Number); M.W[j][m] += s; } return pass(M, x, y, t, act).loss; };
+  num = (bump(eps) - bump(-eps)) / (2 * eps);
+  if (wsel[0] === 'v'){ const j = +wsel.slice(1), g = P.dO * P.h[j];
+    txt = `∂ℓ/∂w<sub>out,${j + 1}</sub> = δ<sub>o</sub> · h<sub>${j + 1}</sub> = (p̂ − y) · h<sub>${j + 1}</sub> = (${P.p.toFixed(3)} − ${t}) × ${P.h[j].toFixed(3)} = <b>${g.toFixed(4)}</b>`;
+    txt += `<br>check by finite differences: ${num.toFixed(4)}`; }
+  else { const [j, m] = wsel.slice(1).split('_').map(Number), xm = m ? y : x, dz = ACT[act][1](P.z[j]), g = P.dO * N.v[j] * dz * xm;
+    txt = `∂ℓ/∂w<sub>${j + 1},${m + 1}</sub> = δ<sub>o</sub> · w<sub>out,${j + 1}</sub> · a′(z<sub>${j + 1}</sub>) · x<sub>${m + 1}</sub> = ${P.dO.toFixed(3)} × ${N.v[j].toFixed(3)} × ${dz.toFixed(3)} × ${xm.toFixed(3)} = <b>${g.toFixed(4)}</b>`;
+    txt += `<br>check by finite differences: ${num.toFixed(4)}`;
+    if (Math.abs(dz) < 1e-3) txt += `<br><span class="muted">a′(z) ≈ 0 here: this unit is saturated${act === 'relu' ? ' (a "dead" ReLU for this point)' : ''}, so no gradient flows back through it.</span>`; }
+  $('chain').innerHTML = txt + '<br><span class="muted">The gradient of the total loss is the average of this over all points; gradient descent moves the weight by −η × that average.</span>';
+}
+function drawLoss(){
+  const [ctx, W, H] = setupCanvas($('lossc')), pad = {l: 40, r: 10, t: 8, b: 22};
+  const n = Math.max(50, hist.length), ymax = Math.max(0.8, ...hist.slice(0, 5)), X = i => pad.l + i / n * (W - pad.l - pad.r), Y = v => H - pad.b - Math.min(v, ymax) / ymax * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let q = 0; q <= 2; q++){ const v = ymax * q / 2; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v.toFixed(2), pad.l - 6, Y(v)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('gradient steps (' + iter + ')', (pad.l + W) / 2, H - pad.b + 5);
+  const ln2 = Math.log(2); ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--faint'); ctx.beginPath(); ctx.moveTo(pad.l, Y(ln2)); ctx.lineTo(W - pad.r, Y(ln2)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--faint'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('ln 2: a coin toss', W - pad.r, Y(ln2) - 2);
+  if (hist.length > 1){ ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); hist.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v))); ctx.stroke(); }
+}
+function stats(){ const act = actName(), l = lossAll(N, act), f = ACT[act][0];
+  const acc = D.filter(([x, y, t]) => (pass(N, x, y, t, act).p >= 0.5) === !!t).length / D.length;
+  $('it').textContent = iter; $('ls').textContent = isFinite(l) ? l.toFixed(3) : 'diverged'; $('acc').textContent = (100 * acc).toFixed(0) + '%'; return l; }
+function draw(){ $('kV').textContent = $('k').value; $('lrV').textContent = lr().toFixed(2); drawPlot(); drawGraph(); drawLoss(); stats(); }
+function steps(m){ const act = actName(), e = lr(); for (let s = 0; s < m; s++){ gdStep(N, act, e); iter++; if (iter % 2 === 0) hist.push(lossAll(N, act)); } }
+function loop(){ if (!playing) return; steps(6); draw(); if (iter > 6000){ toggle(false); return; } requestAnimationFrame(loop); }
+function toggle(on){ playing = on; $('play').textContent = on ? '❚❚ Pause' : '▶ Train'; if (on) requestAnimationFrame(loop); }
+$('play').onclick = () => toggle(!playing);
+$('step').onclick = () => { toggle(false); steps(1); hist.push(lossAll(N, actName())); draw(); };
+$('reset').onclick = () => { init(); hist.push(lossAll(N, actName())); draw(); };
+$('k').oninput = () => { init(); hist.push(lossAll(N, actName())); draw(); };
+$('act').onchange = () => { init(); hist.push(lossAll(N, actName())); draw(); };
+$('lr').oninput = () => { $('lrV').textContent = lr().toFixed(2); };
+$('wsel').onchange = drawGraph;
+document.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => { dname = b.dataset.d; document.querySelectorAll('button[data-d]').forEach(x => x.classList.toggle('on', x === b)); makeData(); init(); hist.push(lossAll(N, actName())); draw(); });
+$('plot').onclick = e => { if (!geo) return; const r = $('plot').getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const x = -R + (px - geo.ox) / geo.side * 2 * R, y = R - (py - geo.oy) / geo.side * 2 * R; let bi = 0, bd = Infinity;
+  D.forEach(([a, b], i) => { const d = (a - x) ** 2 + (b - y) ** 2; if (d < bd){ bd = d; bi = i; } }); sel = bi; drawPlot(); drawGraph(); };
+
+/* ---- restarts ---- */
+let runs = [];
+function drawMulti(){
+  const [ctx, W, H] = setupCanvas($('multic')), pad = {l: 40, r: 10, t: 10, b: 24};
+  const ymax = Math.max(0.75, ...runs.map(r => r.l).filter(isFinite)) * 1.05, X = i => pad.l + (i + 0.5) / 12 * (W - pad.l - pad.r), Y = v => H - pad.b - v / ymax * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let q = 0; q <= 2; q++){ const v = ymax * q / 2; ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v.toFixed(2), pad.l - 6, Y(v)); }
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('run (random start)', (pad.l + W) / 2, H - pad.b + 6);
+  if (!runs.length){ ctx.fillText('click "Run 12 random starts"', (pad.l + W) / 2, H / 2 - 8); return; }
+  const best = Math.min(...runs.map(r => r.l));
+  runs.forEach((r, i) => { ctx.fillStyle = r.l - best < 0.03 ? cssv('--s3') : cssv('--s2'); ctx.beginPath(); ctx.arc(X(i), Y(Math.min(r.l, ymax)), 6, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = cssv('--muted'); ctx.textBaseline = 'bottom'; ctx.fillText((100 * r.a).toFixed(0) + '%', X(i), Y(Math.min(r.l, ymax)) - 8); });
+}
+$('multi').onclick = () => {
+  const act = actName(), k = +$('k').value, e = lr(); runs = [];
+  for (let r = 0; r < 12; r++){ const M = {W: Array.from({length: k}, () => [randn(), randn()]), b: Array.from({length: k}, () => 0.5 * randn()), v: Array.from({length: k}, () => randn()), c: 0};
+    for (let s = 0; s < 800; s++) gdStep(M, act, e);
+    runs.push({l: lossAll(M, act), a: D.filter(([x, y, t]) => (pass(M, x, y, t, act).p >= 0.5) === !!t).length / D.length}); }
+  const ls = runs.map(r => r.l).filter(isFinite), spread = Math.max(...ls) - Math.min(...ls);
+  $('multiTxt').textContent = spread > 0.05 ? `Final losses range from ${Math.min(...ls).toFixed(3)} to ${Math.max(...ls).toFixed(3)}: different starts, different local minima (labels show accuracy).` : `All runs ended near ${Math.min(...ls).toFixed(3)} this time. Try fewer hidden units, the spiral, or ReLU to see the spread.`;
+  drawMulti(); };
+
+function drawAll(){ draw(); drawMulti(); }
+makeData(); init(); hist.push(lossAll(N, actName())); draw(); drawMulti();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

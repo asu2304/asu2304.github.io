@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why So Many Classifiers? The 0-1 Loss and Its Surrogates</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 69 · Classification through the lens of loss functions</div>
+<h1>Why So Many Classifiers? The 0-1 Loss and Its Surrogates</h1>
+<p class="lede">Regression had one loss (squared error) and essentially one algorithm. Classification has logistic regression, SVMs, the perceptron, boosting… Why? Because the loss we actually care about, <b>the number of mistakes</b>, is NP-hard to minimise. Every algorithm is a different way of dodging that hardness, and the way to see this is to plot each algorithm's <b>loss as a function of the margin</b> $g(x)\,y$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=1ok_K5EohoU">this lecture on YouTube</a> (≈23 min). Previous: <a href="L68-boosting.html">L68</a> · Next: <a href="L70-hinge-logistic-loss.html">L70</a>.</p>
+
+<h2>1 · The question</h2>
+<p>For regression we used the squared loss, added a regulariser, and got ridge and lasso. They're all variants of one idea. For binary classification we've met a whole zoo: decision trees, k-NN, generative models, the perceptron, logistic regression, SVMs, boosting. Today's question: <b>why so many, and can we see them in one framework?</b></p>
+
+<h2>2 · What we really want: few mistakes</h2>
+<p>Data $\{(x_1,y_1),\dots,(x_n,y_n)\}$ with $x_i\in\mathbb R^d$ and $y_i\in\{+1,-1\}$. We want $h:\mathbb R^d\to\{\pm1\}$, and the most natural score is the number of training mistakes:</p>
+$$\sum_{i=1}^{n}\mathbb 1\big(h(x_i)\ne y_i\big),\qquad \mathbb 1(z)=\begin{cases}1 & z\text{ true}\\ 0&\text{otherwise.}\end{cases}$$
+<p>Searching over <b>all</b> $h$ just memorises the data (L28), so restrict to linear classifiers $h(x)=\operatorname{sign}(w^\top x+b)$:</p>
+$$\min_{w\in\mathbb R^d,\ b}\ \sum_{i=1}^{n}\mathbb 1\big(\operatorname{sign}(w^\top x_i+b)\ne y_i\big).$$
+<div class="callout"><b>The bias trick.</b> Pad each point with a constant feature: $x'=(x,1)\in\mathbb R^{d+1}$ and $w'=(w,b)$. Then $w'^\top x'=w^\top x+b$, so a line <i>through the origin</i> in $d+1$ dimensions is a general line in $d$ dimensions. Nothing is lost by writing just $w^\top x$.</div>
+
+<h2>3 · The root cause: this problem is NP-hard</h2>
+<p>If the data is linearly separable, the perceptron or a hard-margin SVM finds a zero-mistake $w$. But in general, finding the $w$ that minimises the number of mistakes is <b>NP-hard</b>: we don't expect any polynomial-time algorithm for it.</p>
+<p>This is <b>the fundamental reason there's no single classification algorithm</b>. Since we can't solve the problem we want, each method deals with the hardness in its own way. Generative models make assumptions about how the data was produced; the perceptron assumes linear separability with a $\gamma$-margin (L53). The cleanest way to compare the rest is the <b>loss-function view</b>.</p>
+
+<h2>4 · The loss-function view</h2>
+<p>Ask how much loss a <b>single</b> point $(x,y)$ suffers under $h(x)=\operatorname{sign}(g(x))$, where $g$ is the real-valued function we learn ($g(x)=w^\top x$ for linear models, a quadratic for quadratic ones). It's 1 on a mistake and 0 otherwise, and</p>
+$$\mathbb 1\big(h(x)\ne y\big)=\mathbb 1\big(g(x)\,y<0\big).$$
+<p>Why: if $g(x)>0$ and $y=+1$, or $g(x)<0$ and $y=-1$, the signs agree and the product is positive (correct). The product is negative exactly when the signs disagree (a mistake). So the loss depends on one number, the <b>margin</b> $z=g(x)\,y$, and plotted against $z$ it's a step: 1 for $z<0$, 0 for $z\ge0$. The training objective is the sum $\sum_i\mathbb 1\big(g(x_i)y_i<0\big)$.</p>
+<p>The picture shows where the hardness comes from:</p>
+<ul>
+<li>The loss is <b>discontinuous</b>: it jumps from 0 to 1 at $z=0$.</li>
+<li>It is <b>not convex</b>. If each point's loss were convex, the sum of $n$ of them would be convex too, and convex functions are easy to minimise. That's not the case here.</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">What the 0-1 objective looks like as a function of the direction of $w$. Left: 50 points; the line is $w=(\cos\theta,\sin\theta)$ with the best bias for that $\theta$. Right: number of mistakes for every $\theta$ (bias optimised each time).</p>
+  <div class="row">
+    <label>direction θ = <b id="thV"></b> <input type="range" id="th" min="0" max="359" value="200" aria-label="direction of w"></label>
+    <button id="thBest">Jump to the best θ</button><button id="newA">New data</button>
+  </div>
+  <div class="pair">
+    <canvas id="ac" height="260" aria-label="Data with the classifier for the chosen direction"></canvas>
+    <canvas id="sc" height="260" aria-label="Number of mistakes versus direction"></canvas>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="mNow">–</div><div class="l">mistakes at this θ</div></div>
+    <div class="stat"><div class="v" id="mBest">–</div><div class="l">fewest mistakes (any θ)</div></div>
+  </div>
+  <p class="small">The objective is a <b>staircase</b>: flat almost everywhere, so its gradient is 0 and tells you nothing, with sudden jumps and several separate valleys. In 2-D we can afford to try every angle; in $d$ dimensions the number of genuinely different classifiers explodes, which is the intuition behind NP-hardness.</p>
+</div>
+
+<h2>5 · Algorithm 1: use regression for classification</h2>
+<p>A tempting (but bad) idea: ignore that $y$ is $\pm1$, run least squares to get $g$, then classify with $h(x)=\operatorname{sign}(g(x))$. The per-point loss is $(g(x)-y)^2$, and linear regression solves this efficiently (it's just matrix operations). To put it in the picture, rewrite it in terms of the margin:</p>
+<ol class="steps">
+<li>Expand: $\;(g(x)-y)^2=g(x)^2+y^2-2g(x)y.$</li>
+<li>Since $y\in\{\pm1\}$, $y^2=1$: $\;(g(x)-y)^2=g(x)^2+1-2g(x)y.$</li>
+<li>Also $(g(x)y-1)^2=g(x)^2y^2+1-2g(x)y=g(x)^2+1-2g(x)y.$</li>
+<li>So, <b>for $\pm1$ labels only</b>: $\;\boxed{(g(x)-y)^2=(g(x)\,y-1)^2}$, a parabola in the margin $z$ with its minimum at $z=1$.</li>
+</ol>
+<p>Least squares therefore replaces the 0-1 step with a <b>surrogate loss</b> $(z-1)^2$. It's easy to minimise, but it approximates the step badly: for $z>1$ the point is <b>correctly</b> classified, yet its loss keeps growing. A point that is "too correct" is punished as much as a mistake, and a far-away but correctly classified point (an outlier on the right side) can drag the whole boundary.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Least squares on $\pm1$ labels vs. the true 0-1 optimum (found by brute force over angles and biases). Slide the extra cluster of <b>correctly-labelled</b> blue points further away. Right: every training point placed on the margin axis at $z_i=y_i\,g(x_i)$ for the least-squares $g$, sitting on its loss curve.</p>
+  <div class="row">
+    <label>extra blue cluster distance = <b id="dV"></b> <input type="range" id="dist" min="0" max="90" value="0" aria-label="distance of the extra cluster"></label>
+    <button id="newB">New data</button>
+  </div>
+  <div class="pair">
+    <canvas id="bc" height="290" aria-label="Data with least-squares and 0-1 optimal boundaries"></canvas>
+    <canvas id="zc" height="290" aria-label="Points on the margin axis with squared and 0-1 losses"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>y = +1</span><span><i class="dot" style="background:var(--s2)"></i>y = −1</span><span><i style="background:var(--ink)"></i>least-squares boundary</span><span><i style="background:var(--s3)"></i>0-1 optimal boundary</span><span><i style="background:var(--faint)"></i>squared loss (z − 1)²</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="eLS">–</div><div class="l">least-squares mistakes</div></div>
+    <div class="stat"><div class="v" id="e01">–</div><div class="l">0-1 optimum mistakes</div></div>
+  </div>
+  <p class="small" id="bTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The brute-force 0-1 search tries 720 directions and, for each, every threshold between consecutive projected points. That's fine for 60 points in 2-D, but the number of distinct linear classifiers grows like $n^{d}$, so it is hopeless in high dimensions.</div>
+
+<h2>6 · Where this leaves us</h2>
+<p>The light-blue parabola is a bad stand-in for the dark-blue step: it is convex (good) but shaped for regression, not classification. We need surrogates that are still convex but look more like the step: small when $z$ is large and positive, large when $z$ is negative. The next lecture shows that the SVM and logistic regression are exactly such surrogates.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The natural classification objective is the number of mistakes, $\sum_i\mathbb 1(h(x_i)\ne y_i)$. Restricted to linear $h$, minimising it is <b>NP-hard</b> unless the data is separable.</li>
+<li>That hardness is why there are so many classification algorithms: each one dodges it differently.</li>
+<li>With $h=\operatorname{sign}(g)$, the per-point 0-1 loss is $\mathbb 1(g(x)y<0)$, a step in the margin $z=g(x)y$: discontinuous and non-convex.</li>
+<li>Regression for classification uses $(g(x)-y)^2=(g(x)y-1)^2$, a convex surrogate that wrongly penalises confidently-correct points.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// equal-aspect scatter frame that fits a box [x0,x1]×[y0,y1]
+function scatterFrame(cv, box){
+  const [ctx, W, H] = setupCanvas(cv), pad = 10, sx = (W - 2 * pad) / (box[1] - box[0]), sy = (H - 2 * pad) / (box[3] - box[2]), s = Math.min(sx, sy);
+  const ox = (W - s * (box[1] - box[0])) / 2, oy = (H - s * (box[3] - box[2])) / 2;
+  const X = v => ox + (v - box[0]) * s, Y = v => H - oy - (v - box[2]) * s;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(box[0]), Y(0)); ctx.lineTo(X(box[1]), Y(0)); ctx.moveTo(X(0), Y(box[2])); ctx.lineTo(X(0), Y(box[3])); ctx.stroke();
+  return {ctx, X, Y, W, H, box};
+}
+// draw the line w0 x + w1 y + b = 0 clipped to the box
+function boundary(f, w, b, col, width, dash){ const {ctx, X, Y, box} = f, pts = [];
+  if (Math.abs(w[1]) > 1e-9) [box[0], box[1]].forEach(x => pts.push([x, -(w[0] * x + b) / w[1]]));
+  else [box[2], box[3]].forEach(y => pts.push([-b / w[0], y]));
+  ctx.save(); ctx.beginPath(); ctx.rect(X(box[0]), Y(box[3]), X(box[1]) - X(box[0]), Y(box[2]) - Y(box[3])); ctx.clip();
+  ctx.strokeStyle = col; ctx.lineWidth = width; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(X(pts[0][0]), Y(pts[0][1])); ctx.lineTo(X(pts[1][0]), Y(pts[1][1])); ctx.stroke(); ctx.restore(); }
+const dots = (f, D) => D.forEach(([x, y]) => { f.ctx.fillStyle = cssv(y > 0 ? '--s1' : '--s2'); f.ctx.beginPath(); f.ctx.arc(f.X(x[0]), f.Y(x[1]), 3.6, 0, 2 * Math.PI); f.ctx.fill(); });
+const blob = (n, cx, cy, sx, sy, y) => Array.from({length: n}, () => [[cx + sx * randn(), cy + sy * randn()], y]);
+// best bias for a fixed direction: sweep thresholds between sorted projections
+function bestBias(D, w){ const p = D.map(([x, y]) => [w[0] * x[0] + w[1] * x[1], y]).sort((a, b) => a[0] - b[0]);
+  let err = p.filter(q => q[1] < 0).length, best = err, t = p[0][0] - 1;   // everything predicted +1
+  for (let i = 0; i < p.length; i++){ err += p[i][1] > 0 ? 1 : -1; if (err < best){ best = err; t = i + 1 < p.length ? (p[i][0] + p[i + 1][0]) / 2 : p[i][0] + 1; } }
+  return {b: -t, err: best}; }
+function best01(D, steps = 720){ let r = null;
+  for (let k = 0; k < steps; k++){ const a = 2 * Math.PI * k / steps, w = [Math.cos(a), Math.sin(a)], q = bestBias(D, w); if (!r || q.err < r.err) r = {w, b: q.b, err: q.err, a}; }
+  return r; }
+const mistakes = (D, w, b) => D.filter(([x, y]) => (w[0] * x[0] + w[1] * x[1] + b) * y <= 0).length;
+
+/* ---- demo A: the 0-1 staircase ---- */
+let A = [], stair = [];
+function newA(){ A = blob(25, 1, 0.6, 0.9, 0.9, 1).concat(blob(25, -1, -0.6, 0.9, 0.9, -1));
+  stair = Array.from({length: 360}, (_, k) => { const a = k * Math.PI / 180; return bestBias(A, [Math.cos(a), Math.sin(a)]).err; }); drawA(); }
+function drawA(){
+  const th = +$('th').value, a = th * Math.PI / 180, w = [Math.cos(a), Math.sin(a)], q = bestBias(A, w);
+  $('thV').textContent = th + '°'; $('mNow').textContent = q.err; $('mBest').textContent = Math.min(...stair);
+  const f = scatterFrame($('ac'), [-3.6, 3.6, -3.2, 3.2]); boundary(f, w, q.b, cssv('--ink'), 2.5); dots(f, A);
+  const cx = f.X(0), cy = f.Y(0); f.ctx.strokeStyle = cssv('--s3'); f.ctx.lineWidth = 2.5; f.ctx.beginPath(); f.ctx.moveTo(cx, cy); f.ctx.lineTo(f.X(1.2 * w[0]), f.Y(1.2 * w[1])); f.ctx.stroke();
+  const [ctx, W, H] = setupCanvas($('sc')), pad = {l: 34, r: 8, t: 10, b: 28}, ymax = Math.max(...stair) + 1;
+  const X = k => pad.l + k / 359 * (W - pad.l - pad.r), Y = v => H - pad.b - v / ymax * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1;
+  [0, Math.round(ymax / 2), Math.round(ymax)].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  [0, 90, 180, 270].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v + '°', X(v), H - pad.b + 5); });
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath();
+  stair.forEach((v, k) => { if (!k) ctx.moveTo(X(k), Y(v)); else { ctx.lineTo(X(k), Y(stair[k - 1])); ctx.lineTo(X(k), Y(v)); } }); ctx.stroke();
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(th), Y(stair[th]), 5, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('mistakes vs θ', (pad.l + W) / 2, pad.t + 12); }
+$('th').oninput = drawA; $('newA').onclick = newA;
+$('thBest').onclick = () => { let k = 0; stair.forEach((v, i) => { if (v < stair[k]) k = i; }); $('th').value = k; drawA(); };
+
+/* ---- demo B: least squares vs 0-1 optimum ---- */
+let B = [], far = [];
+function newB(){ B = blob(25, 1.0, 0, 0.6, 1.1, 1).concat(blob(25, -1.0, 0, 0.6, 1.1, -1)); far = Array.from({length: 14}, () => [0.4 * randn(), 0.4 * randn()]); drawB(); }
+function lsFit(D){ const A3 = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], v = [0, 0, 0];
+  D.forEach(([x, y]) => { const f = [x[0], x[1], 1]; for (let i = 0; i < 3; i++){ v[i] += f[i] * y; for (let j = 0; j < 3; j++) A3[i][j] += f[i] * f[j]; } });
+  const M = A3.map((r, i) => [...r, v[i]]);   // Gaussian elimination
+  for (let c = 0; c < 3; c++){ let p = c; for (let r = c + 1; r < 3; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r; [M[c], M[p]] = [M[p], M[c]];
+    for (let r = c + 1; r < 3; r++){ const k = M[r][c] / M[c][c]; for (let j = c; j < 4; j++) M[r][j] -= k * M[c][j]; } }
+  const s = [0, 0, 0]; for (let r = 2; r >= 0; r--){ let t = M[r][3]; for (let j = r + 1; j < 3; j++) t -= M[r][j] * s[j]; s[r] = t / M[r][r]; } return s; }
+function drawB(){
+  const d = +$('dist').value / 10; $('dV').textContent = d.toFixed(1);
+  const D = B.concat(d > 0 ? far.map(([a, b]) => [[1.0 + d + a, -d + b], 1]) : []);
+  const g = lsFit(D), w = [g[0], g[1]], o = best01(D), eL = mistakes(D, w, g[2]);
+  $('eLS').textContent = eL + ' / ' + D.length; $('e01').textContent = o.err + ' / ' + D.length;
+  const box = [-3.6, Math.max(3.6, 1.0 + d + 1.2), Math.min(-3.6, -d - 1.2), 3.6];
+  const f = scatterFrame($('bc'), box); boundary(f, o.w, o.b, cssv('--s3'), 2.5, [7, 5]); boundary(f, w, g[2], cssv('--ink'), 2.5); dots(f, D);
+  // margin axis
+  const [ctx, W, H] = setupCanvas($('zc')), pad = {l: 32, r: 8, t: 10, b: 28}, zr = [-2.5, 4.5], lr = [0, 6];
+  const X = z => pad.l + (z - zr[0]) / (zr[1] - zr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - lr[0]) / (lr[1] - lr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1;
+  [0, 2, 4, 6].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  [-2, 0, 1, 2, 4].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); });
+  ctx.textBaseline = 'bottom'; ctx.fillText('margin z = y·g(x)', (pad.l + W) / 2, H);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 2; ctx.beginPath(); for (let i = 0; i <= 200; i++){ const z = zr[0] + (zr[1] - zr[0]) * i / 200; i ? ctx.lineTo(X(z), Y((z - 1) ** 2)) : ctx.moveTo(X(z), Y((z - 1) ** 2)); } ctx.stroke();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(zr[0]), Y(1)); ctx.lineTo(X(0), Y(1)); ctx.lineTo(X(0), Y(0)); ctx.lineTo(X(zr[1]), Y(0)); ctx.stroke();
+  D.forEach(([x, y]) => { const z = y * (g[0] * x[0] + g[1] * x[1] + g[2]); ctx.fillStyle = cssv(y > 0 ? '--s1' : '--s2'); ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(X(Math.min(z, zr[1] - 0.05)), Y(Math.min((z - 1) ** 2, lr[1] - 0.1)), 3.6, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.globalAlpha = 1; ctx.restore();
+  $('bTxt').innerHTML = d < 2
+    ? 'Without the extra cluster, least squares and the 0-1 optimum make similar mistakes. Every point sits near z = 1 on the parabola. Now slide the cluster away.'
+    : `The extra blue points are on the <b>correct</b> side, so the 0-1 optimum barely notices them. But least squares wants g(x) = +1 for them, and they sit far up the right arm of the parabola (z ≫ 1). To reduce that "too correct" loss it tilts the boundary and now makes ${eL} mistakes, versus ${o.err} for the 0-1 optimum.`;
+}
+$('dist').oninput = drawB; $('newB').onclick = newB;
+function drawAll(){ drawA(); drawB(); }
+newA(); newB();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

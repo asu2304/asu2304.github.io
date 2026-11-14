@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Neural Networks: From the Perceptron to Hidden Layers</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+.chip{display:inline-flex;align-items:center;gap:4px;position:relative;font-size:13px;padding:4px 9px;border:1px solid var(--grid);border-radius:999px;background:var(--card);color:var(--ink);text-decoration:none;max-width:230px;transition:opacity .15s}
+.chip span{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip:hover{border-color:var(--s1)} .chip.lit{background:var(--tint);border-color:var(--s1);font-weight:600} .chip.dim{opacity:.3}
+.chip.lit::after{content:attr(data-k);position:absolute;top:-7px;right:-6px;background:var(--s1);color:#fff;font-size:10px;border-radius:999px;min-width:16px;height:16px;display:flex;align-items:center;justify-content:center;padding:0 3px}
+@media (max-width:600px){.chip span{display:none}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 72 · Beyond convex losses: neural networks</div>
+<h1>Neural Networks: From the Perceptron to Hidden Layers</h1>
+<p class="lede">Every classifier so far minimised a <b>convex</b> loss + regulariser, so it had a unique global optimum. A neural network gives that up. It stacks many perceptron-like units: a <b>hidden layer</b> of $k$ neurons each computes $a(w_j^\top x)$, and an <b>output layer</b> combines them. The <b>activation function</b> $a$ is what makes the map non-linear; without it the whole network is just another linear model.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Y6CNz0wRWpI">this lecture on YouTube</a> (≈24 min). Previous: <a href="L71-perceptron-boosting-loss.html">L71</a> · Next: <a href="L73-backpropagation.html">L73</a>.</p>
+
+<h2>1 · Where we are: loss + regularisation</h2>
+<p>The last few lectures put binary classifiers into one template,</p>
+$$\min_w\;\sum_{i=1}^{n}\ell\big(w^\top x_i,\;y_i\big)\;+\;R(w),$$
+<p>where the loss depends on the data and the regulariser on the model. Since minimising the 0-1 loss is NP-hard (L41), we used <b>convex surrogates</b>: hinge loss gives the SVM, logistic loss gives logistic regression, and the perceptron and boosting fit too, with a hinge-type and an exponential loss (L69–L71). Convexity was the point: a well-chosen convex loss and regulariser give a <b>unique</b> optimum that our optimisers actually reach.</p>
+<p>Neural networks are the second family of algorithms inspired by the perceptron, and they <b>don't</b> need a convex objective. The course only introduces them; a deep learning course starts here, because all of deep learning is variations on this idea.</p>
+
+<h2>2 · The perceptron, drawn as a picture</h2>
+<p>The perceptron predicts $\operatorname{sign}(w^\top x)$. Draw the features $x_1,\dots,x_d$ as input nodes, put weight $w_j$ on the edge from $x_j$, and let one node add them up into $w^\top x$. Nothing new is gained by the picture itself, but it extends naturally.</p>
+
+<h2>3 · One hidden layer</h2>
+<p>Instead of one weight vector, learn $k$ of them, one per <b>hidden neuron</b>. Every hidden neuron sees the same input but has its own weights $w_1,\dots,w_k\in\mathbb R^d$, and outputs an <b>activation</b> $a(w_j^\top x)$. An output layer with weights $w_{\text{out}}\in\mathbb R^k$ combines them:</p>
+$$\hat y(x)=\sum_{j=1}^{k} w_{\text{out},j}\;a\!\left(w_j^\top x\right)=w_{\text{out}}^\top\begin{bmatrix}a(w_1^\top x)\\ \vdots\\ a(w_k^\top x)\end{bmatrix}.$$
+<table>
+<tr><th>Part of the specification</th><th>Fixed in advance (design choices)</th><th>Learned from data</th></tr>
+<tr><td>Simple one-hidden-layer network</td><td>activation $a$, number of hidden layers, number of nodes $k$</td><td>$w_1,\dots,w_k\in\mathbb R^d$ and $w_{\text{out}}\in\mathbb R^k$</td></tr>
+</table>
+<p>Once the weights are fixed, the network is a fixed map from $\mathbb R^d$ to $\mathbb R$: for regression, $\hat y$ is the prediction itself.</p>
+
+<h2>4 · The intuition: hidden units vote</h2>
+<ul>
+<li>A linear model assumes $y$ is explained by $w^\top x$. Here we assume that's too simple and we need a non-linear model.</li>
+<li>SVMs and logistic regression got non-linearity from <b>kernels</b>. Neural networks get it from the <b>activation function</b>.</li>
+<li>Each hidden unit checks whether some <b>property</b> holds for the input, something a linear model can detect. For an image: "is there an edge here?", "is there a curve?".</li>
+<li>If the activation is a 0/1 threshold, $a(z)=\mathbb 1[z\ge 0]$, each hidden unit is a linear classifier saying which side of its own line $x$ is on. Together the units pinpoint where in $\mathbb R^d$ the point lies, and the <b>output layer takes a weighted vote</b> of their answers.</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A one-hidden-layer network trained on 2-D data (two inputs plus a bias, sigmoid output for the class probability; best of 3 random starts). Dashed lines are the hidden units' lines $w_j^\top x=0$: blue units vote <b>for</b> the blue class, orange units <b>against</b> it, thicker means a bigger output weight. <b>Click anywhere on the plot</b> to see how the units vote for that point.</p>
+  <div class="row">
+    <button data-d="xor" class="on">XOR (4 blobs)</button><button data-d="rings">two rings</button><button data-d="blobs">two blobs</button>
+    <label>hidden units k = <b id="kV"></b> <input type="range" id="k" min="1" max="8" value="4" aria-label="number of hidden units"></label>
+  </div>
+  <div class="row">
+    <span class="small muted">activation a(z):</span>
+    <button data-a="sig" class="on">sigmoid</button><button data-a="relu">ReLU</button><button data-a="step">0/1 step (hard votes)</button><button data-a="lin">linear (none)</button>
+    <button id="retrain">Retrain</button>
+  </div>
+  <div class="pair half">
+    <canvas id="plot" height="320" aria-label="Data, hidden-unit lines and the network's decision regions"></canvas>
+    <canvas id="net" height="320" aria-label="Network diagram and each hidden unit's vote for the clicked point"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>class 1</span><span><i class="dot" style="background:var(--s2)"></i>class 0</span><span><i style="background:var(--ink)"></i>decision boundary (p = 0.5)</span><span><i class="dot" style="background:var(--s3)"></i>clicked point</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="acc">–</div><div class="l">training accuracy</div></div>
+    <div class="stat"><div class="v" id="np">–</div><div class="l">parameters k(d+1) + k + 1</div></div>
+    <div class="stat"><div class="v" id="pp">–</div><div class="l">P(class 1) at clicked point</div></div>
+  </div>
+  <p class="small" id="msg"></p>
+</div>
+
+<h2>5 · Learning the weights, and why the activation must be smooth</h2>
+<p>Nobody gives us $w_1,\dots,w_k$ and $w_{\text{out}}$; they have to be learned from data, as $w$ was for the perceptron, SVM and logistic regression, only now there are many more of them. Whatever procedure we use (L73), it works much better if the activation isn't a discontinuous 0/1 step, which makes the optimisation very hard. So in practice we use smooth activations:</p>
+<table>
+<tr><th>Activation</th><th>Formula</th><th>Notes from the lecture</th></tr>
+<tr><td>Sigmoid</td><td>$a(z)=\dfrac{1}{1+e^{-z}}$</td><td>Seen before (L55). Differentiable; a <b>soft vote</b>: large positive $z$ votes close to 1, large negative close to 0.</td></tr>
+<tr><td>ReLU (rectified linear unit)</td><td>$a(z)=\max(0,z)$</td><td>Very popular in deep learning; why it's preferred is beyond this course.</td></tr>
+<tr><td>tanh, and others</td><td>$a(z)=\tanh z$</td><td>There are several more.</td></tr>
+</table>
+<div class="callout"><b>The price of smoothing:</b> the sigmoid removes the discontinuity of the 0/1 step, but the resulting network is <b>not convex</b> in its weights. So the loss we minimise is smooth but non-convex, and there may be no unique optimum.</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The activations side by side. Pick one to highlight; the dashed line is its slope $a'(z)$, which is what learning by gradients will need. The step function's slope is 0 everywhere except at the jump, so gradients carry no information.</p>
+  <div class="row"><button data-f="step">0/1 step</button><button data-f="sig" class="on">sigmoid</button><button data-f="tanh">tanh</button><button data-f="relu">ReLU</button><button data-f="lin">linear</button></div>
+  <canvas id="actc" height="220" aria-label="Activation functions and the slope of the selected one"></canvas>
+</div>
+
+<h2>6 · Why the non-linearity is essential</h2>
+<p>If $a$ were linear, $a(z)=z$, then $\hat y=\sum_j w_{\text{out},j}\,w_j^\top x=\big(\sum_j w_{\text{out},j}w_j\big)^\top x$: a linear combination of linear functions is again linear, and the network is no better than an SVM or perceptron. The activation is what lets the network learn a richer class of input-to-output maps. Try "linear (none)" in the demo: with any number of hidden units, the boundary stays a straight line.</p>
+
+<div class="beyond"><b>Going beyond the video.</b> The demo adds a bias to every unit (equivalently, a constant feature $x_0=1$), which the lecture's formulas leave out; without it every hidden line would pass through the origin. For classification it puts a sigmoid on the output and trains with the cross-entropy loss, which L73 introduces; the network is trained by gradient descent with the chosen smooth activation. The "0/1 step" button shows the same trained network with each sigmoid replaced by a hard threshold, so you can see the lecture's "hard votes" picture directly: the regions are carved out by the hidden lines. A step network can't be trained by gradients itself, which is the whole reason for smooth activations.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>A neural network stacks perceptron-like units: hidden neurons compute $a(w_j^\top x)$, the output layer combines them with $w_{\text{out}}$.</li>
+<li>Parameters: $w_1,\dots,w_k\in\mathbb R^d$ and $w_{\text{out}}\in\mathbb R^k$. Design choices: activation, number of layers, nodes per layer.</li>
+<li>Intuition: each hidden unit votes on whether a linearly detectable property holds; the output takes a weighted vote.</li>
+<li>Non-linearity comes from the activation (sigmoid, ReLU, tanh), not from kernels. A linear activation collapses the network to a linear model.</li>
+<li>Smooth activations make training possible, but the objective is no longer convex.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = (r = Math.random) => { let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const sig = z => 1 / (1 + Math.exp(-z));
+const ACT = {sig: [sig, z => { const s = sig(z); return s * (1 - s); }], relu: [z => Math.max(0, z), z => (z > 0 ? 1 : 0)], lin: [z => z, () => 1], tanh: [Math.tanh, z => 1 - Math.tanh(z) ** 2], step: [z => (z >= 0 ? 1 : 0), () => 0]};
+
+/* ---- data ---- */
+let dname = 'xor', act = 'sig', D = [], net = null, probe = [0.6, 0.6];
+function makeData(){
+  const n = 140; D = [];
+  for (let i = 0; i < n; i++){
+    if (dname === 'xor'){ const sx = Math.random() < 0.5 ? -1 : 1, sy = Math.random() < 0.5 ? -1 : 1; D.push([sx * 0.75 + 0.28 * randn(), sy * 0.75 + 0.28 * randn(), +(sx * sy > 0)]); }
+    else if (dname === 'rings'){ const c = i % 2, r = (c ? 0.45 : 1.25) + 0.13 * randn(), t = 2 * Math.PI * Math.random(); D.push([r * Math.cos(t), r * Math.sin(t), c]); }
+    else { const c = i % 2; D.push([(c ? 0.7 : -0.7) + 0.4 * randn(), (c ? 0.5 : -0.5) + 0.4 * randn(), c]); }
+  }
+}
+/* ---- network: z_j = W_j·x + b_j, a_j = act(z_j), o = v·a + c, p = sig(o) ---- */
+function forward(N, x, y, a = N.act){ const f = ACT[a][0], z = N.W.map((w, j) => w[0] * x + w[1] * y + N.b[j]), h = z.map(f);
+  return {z, h, o: h.reduce((s, v, j) => s + v * N.v[j], N.c)}; }
+function train(k, a, iters){
+  const r = Math.random, N = {W: Array.from({length: k}, () => [1.5 * randn(r), 1.5 * randn(r)]), b: Array.from({length: k}, () => 0.8 * randn(r)), v: Array.from({length: k}, () => randn(r)), c: 0, act: a};
+  const lr = a === 'relu' ? 0.15 : a === 'lin' ? 0.1 : 0.6, df = ACT[a][1], n = D.length;
+  for (let t = 0; t < iters; t++){
+    const gW = N.W.map(() => [0, 0]), gb = new Array(k).fill(0), gv = new Array(k).fill(0); let gc = 0;
+    for (const [x, y, c] of D){ const F = forward(N, x, y), d = sig(F.o) - c; gc += d;
+      for (let j = 0; j < k; j++){ gv[j] += d * F.h[j]; const dz = d * N.v[j] * df(F.z[j]); gW[j][0] += dz * x; gW[j][1] += dz * y; gb[j] += dz; } }
+    for (let j = 0; j < k; j++){ N.W[j][0] -= lr * gW[j][0] / n; N.W[j][1] -= lr * gW[j][1] / n; N.b[j] -= lr * gb[j] / n; N.v[j] -= lr * gv[j] / n; } N.c -= lr * gc / n;
+  }
+  N.loss = D.reduce((s, [x, y, c]) => { const p = Math.min(1 - 1e-9, Math.max(1e-9, sig(forward(N, x, y).o))); return s - (c ? Math.log(p) : Math.log(1 - p)); }, 0) / n;
+  return N;
+}
+function fit(){
+  const k = +$('k').value, a = act === 'step' ? 'sig' : act;   // the step view reuses the trained sigmoid net
+  let best = null; for (let s = 0; s < 3; s++){ const N = train(k, a, 1400); if (!best || N.loss < best.loss) best = N; }
+  net = best; draw();
+}
+const predict = (x, y) => sig(forward(net, x, y, act).o);
+
+/* ---- drawing ---- */
+const R = 2;
+function drawPlot(){
+  const [ctx, W, H] = setupCanvas($('plot')), side = Math.min(W, H) - 4, ox = (W - side) / 2, oy = 2;
+  const X = v => ox + (v + R) / (2 * R) * side, Y = v => oy + side - (v + R) / (2 * R) * side;
+  const cell = 5, c1 = cssv('--s1'), c0 = cssv('--s2');
+  for (let px = 0; px < side; px += cell) for (let py = 0; py < side; py += cell){
+    const x = -R + (px + cell / 2) / side * 2 * R, y = R - (py + cell / 2) / side * 2 * R, p = predict(x, y);
+    ctx.fillStyle = p >= 0.5 ? c1 : c0; ctx.globalAlpha = 0.06 + 0.22 * Math.abs(2 * p - 1); ctx.fillRect(ox + px, oy + py, cell, cell); }
+  ctx.globalAlpha = 1;
+  // boundary p = 0.5 by marching over the grid
+  ctx.fillStyle = cssv('--ink'); const g = 3;
+  for (let px = 0; px < side; px += g) for (let py = 0; py < side; py += g){
+    const x = -R + px / side * 2 * R, y = R - py / side * 2 * R, s = predict(x, y) >= 0.5;
+    if (s !== (predict(x + g / side * 2 * R, y) >= 0.5) || s !== (predict(x, y - g / side * 2 * R) >= 0.5)) ctx.fillRect(ox + px, oy + py, 1.6, 1.6); }
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, side, side); ctx.clip();
+  const vmax = Math.max(...net.v.map(Math.abs), 1e-9);
+  net.W.forEach((w, j) => { if (Math.hypot(w[0], w[1]) < 1e-6) return;
+    ctx.strokeStyle = net.v[j] >= 0 ? c1 : c0; ctx.lineWidth = 0.8 + 2.6 * Math.abs(net.v[j]) / vmax; ctx.setLineDash([6, 4]); ctx.beginPath();
+    if (Math.abs(w[1]) > Math.abs(w[0])){ const f = x => -(w[0] * x + net.b[j]) / w[1]; ctx.moveTo(X(-R), Y(f(-R))); ctx.lineTo(X(R), Y(f(R))); }
+    else { const f = y => -(w[1] * y + net.b[j]) / w[0]; ctx.moveTo(X(f(-R)), Y(-R)); ctx.lineTo(X(f(R)), Y(R)); }
+    ctx.stroke(); ctx.setLineDash([]);
+    // label each line near its point closest to the origin
+    const t = -net.b[j] / (w[0] * w[0] + w[1] * w[1]), lx = Math.max(-R + 0.2, Math.min(R - 0.2, t * w[0])), ly = Math.max(-R + 0.2, Math.min(R - 0.2, t * w[1]));
+    ctx.fillStyle = ctx.strokeStyle; ctx.font = 'bold 12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(j + 1, X(lx) + 8, Y(ly) - 8); });
+  D.forEach(([x, y, c]) => { ctx.fillStyle = c ? c1 : c0; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X(x), Y(y), 3.6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); });
+  ctx.fillStyle = cssv('--s3'); ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(probe[0]), Y(probe[1]), 7, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+  ctx.restore(); ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, side, side);
+  $('plot').onclick = e => { const r = $('plot').getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+    probe = [-R + (px - ox) / side * 2 * R, R - (py - oy) / side * 2 * R].map(v => Math.max(-R, Math.min(R, v))); draw(); };
+}
+function drawNet(){
+  const [ctx, W, H] = setupCanvas($('net')), k = net.W.length, F = forward(net, probe[0], probe[1], act), p = sig(F.o);
+  const top = H * 0.5, xi = 34, xh = W * 0.5, xo = W - 34, c1 = cssv('--s1'), c0 = cssv('--s2'), ink = cssv('--ink');
+  const hy = j => 18 + (top - 36) * (k === 1 ? 0.5 : j / (k - 1)), iy = [top * 0.33, top * 0.67], vmax = Math.max(...net.v.map(Math.abs), 1e-9);
+  const wmax = Math.max(...net.W.flat().map(Math.abs), 1e-9);
+  ctx.lineCap = 'round';
+  for (let j = 0; j < k; j++){ for (let i = 0; i < 2; i++){ const w = net.W[j][i]; ctx.strokeStyle = w >= 0 ? c1 : c0; ctx.globalAlpha = 0.55; ctx.lineWidth = 0.5 + 2.5 * Math.abs(w) / wmax; ctx.beginPath(); ctx.moveTo(xi, iy[i]); ctx.lineTo(xh, hy(j)); ctx.stroke(); }
+    ctx.strokeStyle = net.v[j] >= 0 ? c1 : c0; ctx.lineWidth = 0.5 + 3.5 * Math.abs(net.v[j]) / vmax; ctx.beginPath(); ctx.moveTo(xh, hy(j)); ctx.lineTo(xo, top / 2); ctx.stroke(); }
+  ctx.globalAlpha = 1; ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const node = (x, y, r, fill, label, lc) => { ctx.fillStyle = fill; ctx.strokeStyle = ink; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); ctx.fillStyle = lc || ink; ctx.fillText(label, x, y); };
+  node(xi, iy[0], 13, cssv('--card'), 'x₁'); node(xi, iy[1], 13, cssv('--card'), 'x₂');
+  const hmax = Math.max(1, ...F.h.map(Math.abs));
+  for (let j = 0; j < k; j++){ const t = Math.min(1, Math.abs(F.h[j]) / hmax); ctx.globalAlpha = 1; node(xh, hy(j), Math.min(13, (top - 30) / k / 2 + 3), cssv('--card'), ''); ctx.globalAlpha = 0.15 + 0.85 * t; ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(xh, hy(j), Math.min(13, (top - 30) / k / 2 + 3) - 2, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1; ctx.fillStyle = ink; ctx.fillText(j + 1, xh, hy(j)); }
+  node(xo, top / 2, 15, p >= 0.5 ? c1 : c0, p.toFixed(2), '#fff');
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui,sans-serif'; ctx.fillText('input', xi, top - 4); ctx.fillText('hidden a(wⱼᵀx)', xh, top - 4); ctx.fillText('output', xo, top - 4);
+  // votes: contribution v_j a_j of each hidden unit
+  const contrib = F.h.map((h, j) => net.v[j] * h), bars = [...contrib, net.c], labels = [...contrib.map((_, j) => 'unit ' + (j + 1)), 'bias'];
+  const m = Math.max(1, ...bars.map(Math.abs), Math.abs(F.o)), y0 = top + 26, bh = Math.min(16, (H - y0 - 30) / (bars.length + 1)), cx = W * 0.58, sc = (W - cx - 12) / m, lx = 58;
+  ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = cssv('--muted'); ctx.fillText('votes wₒᵤₜ,ⱼ · a(wⱼᵀx) for the clicked point', 4, top + 12);
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(cx, y0 - 4); ctx.lineTo(cx, y0 + (bars.length + 1) * bh + 2); ctx.stroke();
+  const s2 = Math.min(sc, (cx - lx - 4) / m);
+  bars.forEach((v, i) => { const y = y0 + i * bh; ctx.fillStyle = i === k ? cssv('--faint') : (v >= 0 ? c1 : c0); ctx.fillRect(v >= 0 ? cx : cx + v * s2, y + 2, Math.abs(v) * s2, bh - 4);
+    ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.fillText(labels[i], 4, y + bh / 2); });
+  const y = y0 + bars.length * bh; ctx.fillStyle = ink; ctx.fillRect(F.o >= 0 ? cx : cx + F.o * s2, y + 2, Math.abs(F.o) * s2, bh - 4); ctx.fillText('sum o', 4, y + bh / 2);
+  ctx.fillStyle = cssv('--muted'); ctx.fillText(`o = ${F.o.toFixed(2)}  →  sigmoid(o) = ${p.toFixed(2)}`, 4, Math.min(H - 8, y + bh + 14));
+  $('pp').textContent = p.toFixed(2);
+}
+function draw(){
+  if (!net) return;
+  $('kV').textContent = $('k').value;
+  drawPlot(); drawNet();
+  const k = net.W.length, acc = D.filter(([x, y, c]) => (predict(x, y) >= 0.5) === !!c).length / D.length;
+  $('acc').textContent = (100 * acc).toFixed(0) + '%'; $('np').textContent = k * 3 + k + 1;
+  let m;
+  if (act === 'lin') m = `<b>No non-linearity:</b> the network computes (Σⱼ w<sub>out,j</sub> wⱼ)ᵀx + const, a single linear function, so the boundary is a straight line whatever k is (${(100 * acc).toFixed(0)}% accuracy). ${dname === 'blobs' ? 'Fine here, because the blobs are linearly separable.' : 'That cannot solve this dataset.'}`;
+  else if (act === 'step') m = '<b>Hard votes:</b> each hidden unit now outputs 1 on one side of its line and 0 on the other, so the plane is cut into regions by the dashed lines and every region gets a weighted vote. The decision regions have straight edges along the hidden lines.';
+  else if (k === 1) m = 'One hidden unit is just a (squashed) linear classifier: one line. Add units to carve out more regions.';
+  else if (dname === 'xor' && k < 2) m = 'XOR needs at least two lines.';
+  else m = `Each dashed line is one hidden unit's linear test. The output adds the units' votes (bars on the right) and squashes the sum with a sigmoid. ${dname === 'rings' ? 'For the rings, several lines together enclose the inner ring, like a polygon.' : dname === 'xor' ? 'Two lines are enough for XOR in principle; more units make training more reliable.' : ''} Click different points to see which units change their vote.`;
+  $('msg').innerHTML = m;
+}
+/* ---- activation chart ---- */
+let fsel = 'sig';
+function drawAct(){
+  const [ctx, W, H] = setupCanvas($('actc')), pad = {l: 30, r: 10, t: 10, b: 24}, xr = [-4, 4], yr = [-1.2, 2.2];
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [-1, 0, 1, 2].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  [-4, -2, 0, 2, 4].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); });
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  const curve = (f, col, w, dash) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); for (let i = 0; i <= 400; i++){ const x = xr[0] + (xr[1] - xr[0]) * i / 400, y = f(x); i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); ctx.setLineDash([]); };
+  ['step', 'sig', 'tanh', 'relu', 'lin'].forEach(n => { if (n !== fsel) curve(ACT[n][0], cssv('--faint'), 1.2); });
+  curve(ACT[fsel][0], cssv('--s1'), 3); curve(ACT[fsel][1], cssv('--s2'), 2, [6, 4]); ctx.restore();
+}
+document.querySelectorAll('button[data-f]').forEach(b => b.onclick = () => { fsel = b.dataset.f; document.querySelectorAll('button[data-f]').forEach(x => x.classList.toggle('on', x === b)); drawAct(); });
+document.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => { dname = b.dataset.d; document.querySelectorAll('button[data-d]').forEach(x => x.classList.toggle('on', x === b)); makeData(); fit(); });
+document.querySelectorAll('button[data-a]').forEach(b => b.onclick = () => { const was = act; act = b.dataset.a; document.querySelectorAll('button[data-a]').forEach(x => x.classList.toggle('on', x === b));
+  if ((was === 'step' && act === 'sig') || (was === 'sig' && act === 'step')) draw(); else fit(); });
+let kt; $('k').oninput = () => { $('kV').textContent = $('k').value; clearTimeout(kt); kt = setTimeout(fit, 60); };
+$('retrain').onclick = fit;
+function drawAll(){ draw(); drawAct(); }
+makeData(); fit(); drawAct();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

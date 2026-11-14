@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SVMs and Logistic Regression as Convex Surrogates: Hinge and Logistic Loss</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 70 · Classification through the lens of loss functions, part 2</div>
+<h1>SVMs and Logistic Regression as Convex Surrogates: Hinge and Logistic Loss</h1>
+<p class="lede">Rewrite the soft-margin SVM and logistic regression so the data appears only through the margin $w^\top x_i\,y_i$. Then both turn into <b>"loss + regulariser"</b>, just like ridge regression. The SVM uses the <b>hinge loss</b> $\max(0,1-z)$ and logistic regression the <b>logistic loss</b> $\log(1+e^{-z})$. Both are convex and, unlike the squared loss, both shaped like the 0-1 step they replace.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=tXVelGBsIPI">this lecture on YouTube</a> (≈25 min). Previous: <a href="L69-classification-losses.html">L69</a> · Next: <a href="L71-perceptron-boosting-loss.html">L71</a>.</p>
+
+<h2>1 · The SVM, rewritten</h2>
+<p>The soft-margin SVM from L62:</p>
+$$\min_{w,\ \xi}\ \tfrac12\lVert w\rVert^2+C\sum_{i=1}^n\xi_i\qquad\text{s.t.}\qquad(w^\top x_i)\,y_i+\xi_i\ge1,\quad\xi_i\ge0 .$$
+<ol class="steps">
+<li>Move the margin term across: the constraints say $\xi_i\ge1-(w^\top x_i)y_i$ and $\xi_i\ge0$.</li>
+<li>Together: $\;\xi_i\ge\max\big(0,\ 1-(w^\top x_i)y_i\big)$. Recall $\xi_i$ is the "bribe" point $i$ pays to sit on the wrong side of its margin.</li>
+<li>We're minimising $\sum_i\xi_i$, so at the optimum no point pays more than it must: $\;\xi_i=\max\big(0,1-(w^\top x_i)y_i\big)$. It pays 0 if $w$ classifies it correctly with margin at least 1, and exactly the shortfall otherwise.</li>
+<li>Substitute and drop the constraints: $\;\displaystyle\min_{w\in\mathbb R^d}\ \underbrace{\tfrac12\lVert w\rVert^2}_{\text{depends on the model}}+\;C\sum_{i=1}^{n}\underbrace{\max\big(0,\ 1-(w^\top x_i)\,y_i\big)}_{\text{depends on the data}}.$</li>
+</ol>
+
+<h2>2 · Regulariser + loss</h2>
+<p>This now looks exactly like ridge regression (L37): a <b>loss</b> that measures how badly $w$ fits the data, plus a <b>regulariser</b> $\tfrac12\lVert w\rVert^2$ that depends only on $w$. In ridge the balance was $\frac\lambda2\lVert w\rVert^2$ on the regulariser; here the $C$ on the loss side plays the same role. So:</p>
+<div class="callout"><b>Ridge regression</b> = squared loss + L2 regularisation. <b>SVM</b> = hinge loss + L2 regularisation. Other regularisers are possible, but L2 keeps the problem easy to solve.</div>
+
+<h2>3 · The hinge loss in the picture</h2>
+<p>With $g(x)=w^\top x$ and margin $z=g(x)\,y$, the SVM's per-point loss is</p>
+$$\ell_{\text{hinge}}(z)=\max(0,\ 1-z).$$
+<ul>
+<li>$z\ge1$: correct with margin at least 1, <b>no loss</b>, however large $z$ gets. This is the key difference from the squared loss, which started climbing again for $z>1$ because it's tuned for regression.</li>
+<li>$z<1$: a positive loss growing linearly, $1-z$. It's 1 at $z=0$ and 0 at $z=1$.</li>
+</ul>
+<p>The lecturer calls it, in some sense, the <b>best convex approximation of the 0-1 loss</b>: convex, so easy to minimise, and close to the step in shape. That's why SVMs do much better than regression-for-classification.</p>
+
+<h2>4 · Logistic regression, rewritten</h2>
+<p>Logistic regression (L56) maximised the likelihood with $P(y=1\mid x)=\sigma(w^\top x)$, $\sigma(a)=\frac1{1+e^{-a}}$, and labels $z_i\in\{0,1\}$. To compare, switch to $y_i\in\{\pm1\}$ with $z_i=1\Leftrightarrow y_i=+1$ and $z_i=0\Leftrightarrow y_i=-1$. As a minimisation, the objective is</p>
+$$\min_w\ \sum_{i=1}^n\Big[-z_i\log\sigma(w^\top x_i)-(1-z_i)\log\big(1-\sigma(w^\top x_i)\big)\Big].$$
+<ol class="steps">
+<li><b>Case $z_i=1$ ($y_i=+1$):</b> only the first term survives: $-\log\sigma(w^\top x_i)=\log\big(1+e^{-w^\top x_i}\big)=\log\big(1+e^{-(w^\top x_i)y_i}\big)$.</li>
+<li><b>Case $z_i=0$ ($y_i=-1$):</b> only the second: $-\log\Big(1-\frac{1}{1+e^{-w^\top x_i}}\Big)=-\log\frac{e^{-w^\top x_i}}{1+e^{-w^\top x_i}}$. Divide top and bottom by $e^{-w^\top x_i}$: $=\log\big(1+e^{w^\top x_i}\big)=\log\big(1+e^{-(w^\top x_i)y_i}\big)$.</li>
+<li>Same expression in both cases, so logistic regression is $\;\displaystyle\min_w\sum_{i=1}^n\log\big(1+e^{-(w^\top x_i)\,y_i}\big)$, with per-point <b>logistic loss</b> $\ell_{\log}(z)=\log(1+e^{-z})$.</li>
+</ol>
+<p>It never reaches 0 (it's the log of something bigger than 1), but it keeps shrinking as $z$ grows. It's convex, so it's another efficient way around the NP-hardness.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">All the per-point losses as functions of the margin $z=y\,g(x)$. Drag on the plot (or use the slider) to move the marker; the table reads off each loss and its slope at that margin. The slope is how hard gradient descent pushes on a point sitting there.</p>
+  <div class="row" id="lossBtns"></div>
+  <label>margin z = <b id="zV"></b> <input type="range" id="zs" min="-300" max="400" value="-50" aria-label="margin value"></label>
+  <canvas id="lc" height="300" aria-label="Loss functions versus the margin" style="touch-action:none;cursor:ew-resize"></canvas>
+  <div id="ltab"></div>
+</div>
+
+<h2>5 · The conclusions</h2>
+<table>
+<tr><th>Loss</th><th>Per point, $z=g(x)\,y$</th><th>Algorithm</th><th>Convex?</th></tr>
+<tr><td>0-1</td><td>$\mathbb 1(z<0)$</td><td>what we want (NP-hard)</td><td>no</td></tr>
+<tr><td>squared</td><td>$(z-1)^2$</td><td>regression for classification</td><td>yes, but a poor fit to the step</td></tr>
+<tr><td>hinge</td><td>$\max(0,1-z)$</td><td>soft-margin SVM</td><td>yes</td></tr>
+<tr><td>logistic</td><td>$\log(1+e^{-z})$</td><td>logistic regression</td><td>yes</td></tr>
+</table>
+<ol>
+<li>The 0-1 loss is hard to minimise.</li>
+<li>Different algorithms use different <b>surrogate losses</b>. The surrogates are convex, hence easy to minimise, and how well each one represents the 0-1 loss shapes how the algorithm behaves.</li>
+<li>This is why classification has so many algorithms and regression doesn't: in regression the loss we care about (squared) is already convex.</li>
+<li>Any of these can be regularised. The SVM has it built in (maximising the margin); logistic regression has none in its derivation, but in practice it's almost always run with one, which is easy with gradient methods.</li>
+</ol>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Train a linear classifier by minimising $\frac1n\sum_i\ell(y_i\,g(x_i))+\frac\lambda2\lVert w\rVert^2$ ($g(x)=w^\top x+b$, with the bias folded into $w$ by the padding trick, so it's regularised too). Squared and logistic use gradient descent; hinge is solved exactly. <b>Drag any point</b> (try pulling one blue point deep into orange territory, or far out on its own correct side). Right: each point at its margin $z_i$ on the chosen loss curve. Ringed points are the ones pushing on the solution (non-zero slope).</p>
+  <div class="row">
+    <button data-l="sq">squared</button><button data-l="hinge" class="on">hinge (SVM)</button><button data-l="log">logistic</button>
+    <label>λ = <b id="lamV"></b> <input type="range" id="lam" min="-30" max="0" value="-15" aria-label="regularisation strength, log scale"></label>
+    <button id="resetT">Reset points</button>
+  </div>
+  <div class="pair">
+    <canvas id="tc" height="300" aria-label="Draggable data with the trained boundary and margin lines" style="touch-action:none"></canvas>
+    <canvas id="mc" height="300" aria-label="Points on the margin axis for the chosen loss"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>y = +1</span><span><i class="dot" style="background:var(--s2)"></i>y = −1</span><span><i style="background:var(--ink)"></i>g(x) = 0</span><span><i style="background:var(--faint)"></i>g(x) = ±1</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="tErr">–</div><div class="l">training mistakes (0-1)</div></div>
+    <div class="stat"><div class="v" id="tAct">–</div><div class="l">points with non-zero slope</div></div>
+    <div class="stat"><div class="v" id="tW">–</div><div class="l">‖w‖ (margin width = 2/‖w‖)</div></div>
+  </div>
+  <p class="small" id="tTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> (1) The ringed points under the hinge loss are exactly the points with $z_i\le1$: the <b>support vectors</b> of L61. Points beyond the margin have zero hinge slope, so moving them (without crossing the margin) leaves the SVM unchanged. Try it. Under the logistic loss every point keeps a little slope, so every point matters a little. (2) With the natural log, $\log(1+e^{0})=\log2\approx0.69$, so the logistic curve passes below the 0-1 step at $z=0$. Using $\log_2$ instead rescales it to pass through 1 there, making it an upper bound on the 0-1 loss; the minimiser is the same either way. (3) The demo solves the hinge problem exactly through the SVM dual (coordinate ascent on the $\alpha_i$ of L60, with $0\le\alpha_i\le C=1/(\lambda n)$), so its ringed points really are the support vectors.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Soft-margin SVM ⇔ $\min_w\frac12\lVert w\rVert^2+C\sum_i\max(0,1-(w^\top x_i)y_i)$: hinge loss + L2 regulariser.</li>
+<li>Logistic regression ⇔ $\min_w\sum_i\log(1+e^{-(w^\top x_i)y_i})$: the logistic loss, the same for $\pm1$ and $0/1$ labels.</li>
+<li>Hinge and logistic are convex surrogates for the 0-1 loss that, unlike the squared loss, don't punish confidently-correct points.</li>
+<li>Many classification algorithms exist because the true loss isn't convex; each algorithm picks its own convex surrogate.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const LOSSES = {
+  zo:    {name: '0-1', f: z => (z < 0 ? 1 : 0), d: z => 0, col: '--ink', on: true},
+  sq:    {name: 'squared', f: z => (z - 1) ** 2, d: z => 2 * (z - 1), col: '--faint', on: true},
+  hinge: {name: 'hinge', f: z => Math.max(0, 1 - z), d: z => (z < 1 ? -1 : 0), col: '--s2', on: true},
+  log:   {name: 'logistic', f: z => Math.log(1 + Math.exp(-z)), d: z => -1 / (1 + Math.exp(z)), col: '--s3', on: true},
+  perc:  {name: 'perceptron (L71)', f: z => Math.max(0, -z), d: z => (z <= 0 ? -1 : 0), col: '--s1', on: false},
+  exp:   {name: 'exponential (L71)', f: z => Math.exp(-z), d: z => -Math.exp(-z), col: '--muted', on: false}};
+
+/* ---- demo 1: the loss zoo ---- */
+const box = $('lossBtns');
+Object.entries(LOSSES).forEach(([k, L]) => { const b = document.createElement('button'); b.textContent = L.name; b.classList.toggle('on', L.on);
+  b.onclick = () => { L.on = !L.on; b.classList.toggle('on', L.on); drawZoo(); }; box.appendChild(b); });
+const ZR = [-3, 4], LR = [0, 4];
+let zooX = null;
+function drawZoo(){
+  const z0 = +$('zs').value / 100; $('zV').textContent = z0.toFixed(2);
+  const [ctx, W, H] = setupCanvas($('lc')), pad = {l: 30, r: 10, t: 10, b: 28};
+  const X = z => pad.l + (z - ZR[0]) / (ZR[1] - ZR[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - LR[0]) / (LR[1] - LR[0]) * (H - pad.t - pad.b);
+  zooX = {inv: px => ZR[0] + (px - pad.l) / (W - pad.l - pad.r) * (ZR[1] - ZR[0])};
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1;
+  [0, 1, 2, 3, 4].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 6, Y(v)); });
+  [-3, -2, -1, 0, 1, 2, 3, 4].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); });
+  ctx.beginPath(); ctx.moveTo(X(0), pad.t); ctx.lineTo(X(0), H - pad.b); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  Object.values(LOSSES).filter(L => L.on).forEach(L => { ctx.strokeStyle = cssv(L.col); ctx.lineWidth = L === LOSSES.zo ? 3 : 2.3; ctx.beginPath();
+    if (L === LOSSES.zo){ ctx.moveTo(X(ZR[0]), Y(1)); ctx.lineTo(X(0), Y(1)); ctx.lineTo(X(0), Y(0)); ctx.lineTo(X(ZR[1]), Y(0)); }
+    else for (let i = 0; i <= 400; i++){ const z = ZR[0] + (ZR[1] - ZR[0]) * i / 400; i ? ctx.lineTo(X(z), Y(L.f(z))) : ctx.moveTo(X(z), Y(L.f(z))); }
+    ctx.stroke(); });
+  ctx.strokeStyle = cssv('--muted'); ctx.setLineDash([4, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(z0), pad.t); ctx.lineTo(X(z0), H - pad.b); ctx.stroke(); ctx.setLineDash([]);
+  Object.values(LOSSES).filter(L => L.on && L !== LOSSES.zo).forEach(L => { ctx.fillStyle = cssv(L.col); ctx.beginPath(); ctx.arc(X(z0), Y(L.f(z0)), 4.5, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.restore();
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText('margin z = y·g(x)', (pad.l + W) / 2, H);
+  const rows = Object.values(LOSSES).filter(L => L.on).map(L => `<tr><td><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:var(${L.col});vertical-align:-1px;margin-right:6px"></span>${L.name}</td><td>${L.f(z0).toFixed(3)}</td><td>${L.d(z0).toFixed(3)}</td></tr>`).join('');
+  const verdict = z0 < 0 ? 'This point is <b>misclassified</b>.' : z0 < 1 ? 'Correct, but <b>inside the margin</b> (0 ≤ z < 1): hinge still charges it, squared and logistic too.' : 'Correct with margin ≥ 1: hinge charges nothing, logistic almost nothing, but squared charges it more the larger z gets.';
+  $('ltab').innerHTML = `<table><tr><th>loss</th><th>value at z</th><th>slope dℓ/dz</th></tr>${rows}</table><p class="small">${verdict}</p>`;
+}
+$('zs').oninput = drawZoo;
+(() => { const cv = $('lc'); let drag = false;
+  const set = e => { const r = cv.getBoundingClientRect(), z = zooX.inv(e.clientX - r.left); $('zs').value = Math.round(Math.max(-3, Math.min(4, z)) * 100); drawZoo(); };
+  cv.addEventListener('pointerdown', e => { drag = true; cv.setPointerCapture(e.pointerId); set(e); });
+  cv.addEventListener('pointermove', e => { if (drag) set(e); });
+  cv.addEventListener('pointerup', () => { drag = false; }); })();
+
+/* ---- demo 2: train with a chosen surrogate on draggable data ---- */
+let P = [], kind = 'hinge', W3 = [0, 0, 0], frame = null;
+function resetT(){ P = Array.from({length: 20}, () => [1.2 + 0.7 * randn(), 0.9 + 0.7 * randn(), 1]).concat(Array.from({length: 20}, () => [-1.2 + 0.7 * randn(), -0.9 + 0.7 * randn(), -1])); W3 = [0, 0, 0]; train(); }
+const lam = () => 10 ** (+$('lam').value / 10);
+// the bias is handled by the padding trick of L69: x → (x, 1), so b is regularised along with w
+function objective(w){ const L = LOSSES[kind]; return P.reduce((s, [a, b, y]) => s + L.f(y * (w[0] * a + w[1] * b + w[2])), 0) / P.length + lam() / 2 * (w[0] ** 2 + w[1] ** 2 + w[2] ** 2); }
+function train(){
+  const l = lam(), n = P.length;
+  if (kind === 'hinge'){   // exact SVM via dual coordinate descent: w = Σ αᵢ yᵢ xᵢ, 0 ≤ αᵢ ≤ C = 1/(λn)
+    const C = 1 / (l * n), al = new Array(n).fill(0); let w = [0, 0, 0];
+    for (let ep = 0; ep < 400; ep++){ let maxPG = 0;
+      for (let i = 0; i < n; i++){ const [a, b, y] = P[i], q = a * a + b * b + 1, G = y * (w[0] * a + w[1] * b + w[2]) - 1;
+        const PG = al[i] === 0 ? Math.min(G, 0) : al[i] === C ? Math.max(G, 0) : G; maxPG = Math.max(maxPG, Math.abs(PG));
+        if (PG !== 0){ const old = al[i]; al[i] = Math.min(Math.max(old - G / q, 0), C); const dl = (al[i] - old) * y; w = [w[0] + dl * a, w[1] + dl * b, w[2] + dl]; } }
+      if (maxPG < 1e-6) break; }
+    W3 = w; drawT(); return; }
+  const L = LOSSES[kind]; let w = W3.slice();
+  const eta = kind === 'sq' ? 0.08 : 1.0;
+  for (let t = 0; t < 1500; t++){
+    const g = [l * w[0], l * w[1], l * w[2]];
+    P.forEach(([a, b, y]) => { const d = L.d(y * (w[0] * a + w[1] * b + w[2])) * y / n; g[0] += d * a; g[1] += d * b; g[2] += d; });
+    w = [w[0] - eta * g[0], w[1] - eta * g[1], w[2] - eta * g[2]]; }
+  W3 = w; drawT();
+}
+function drawT(){
+  $('lamV').textContent = lam().toPrecision(2);
+  const [ctx, W, H] = setupCanvas($('tc')), bx = [-4, 4, -3.5, 3.5], pad = 8, s = Math.min((W - 2 * pad) / (bx[1] - bx[0]), (H - 2 * pad) / (bx[3] - bx[2]));
+  const ox = (W - s * (bx[1] - bx[0])) / 2, oy = (H - s * (bx[3] - bx[2])) / 2, X = v => ox + (v - bx[0]) * s, Y = v => H - oy - (v - bx[2]) * s;
+  frame = {ix: px => bx[0] + (px - ox) / s, iy: py => bx[2] + (H - oy - py) / s, s};
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(X(bx[0]), Y(bx[3]), s * (bx[1] - bx[0]), s * (bx[3] - bx[2]));
+  const [w0, w1, b] = W3, line = (c, col, wd, dash) => { if (Math.hypot(w0, w1) < 1e-9) return; const pts = Math.abs(w1) > 1e-9 ? [bx[0], bx[1]].map(x => [x, (c - b - w0 * x) / w1]) : [bx[2], bx[3]].map(y => [(c - b) / w0, y]);
+    ctx.save(); ctx.beginPath(); ctx.rect(X(bx[0]), Y(bx[3]), s * (bx[1] - bx[0]), s * (bx[3] - bx[2])); ctx.clip(); ctx.strokeStyle = col; ctx.lineWidth = wd; ctx.setLineDash(dash || []); ctx.beginPath(); ctx.moveTo(X(pts[0][0]), Y(pts[0][1])); ctx.lineTo(X(pts[1][0]), Y(pts[1][1])); ctx.stroke(); ctx.restore(); };
+  line(1, cssv('--faint'), 1.5, [6, 5]); line(-1, cssv('--faint'), 1.5, [6, 5]); line(0, cssv('--ink'), 2.5);
+  const L = LOSSES[kind], zs = P.map(([a, c, y]) => y * (w0 * a + w1 * c + b)), active = z => (kind === 'hinge' ? z <= 1 + 1e-6 : Math.abs(L.d(z)) > 0.05);
+  P.forEach(([a, c, y], i) => { ctx.fillStyle = cssv(y > 0 ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(X(a), Y(c), 4.5, 0, 2 * Math.PI); ctx.fill();
+    if (active(zs[i])){ ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(a), Y(c), 8, 0, 2 * Math.PI); ctx.stroke(); } });
+  // margin axis
+  const [m, MW, MH] = setupCanvas($('mc')), pd = {l: 30, r: 8, t: 10, b: 28}, zr = [-3, 5], lr = [0, kind === 'sq' ? 9 : 4];
+  const MX = z => pd.l + (z - zr[0]) / (zr[1] - zr[0]) * (MW - pd.l - pd.r), MY = v => MH - pd.b - (v - lr[0]) / (lr[1] - lr[0]) * (MH - pd.t - pd.b);
+  m.font = '12px system-ui,sans-serif'; m.fillStyle = cssv('--muted'); m.strokeStyle = cssv('--grid'); m.lineWidth = 1;
+  [0, lr[1] / 2, lr[1]].forEach(v => { m.beginPath(); m.moveTo(pd.l, MY(v)); m.lineTo(MW - pd.r, MY(v)); m.stroke(); m.textAlign = 'right'; m.textBaseline = 'middle'; m.fillText(v, pd.l - 6, MY(v)); });
+  [-2, 0, 1, 2, 4].forEach(v => { m.textAlign = 'center'; m.textBaseline = 'top'; m.fillText(v, MX(v), MH - pd.b + 5); });
+  m.textBaseline = 'bottom'; m.fillText('margin z', (pd.l + MW) / 2, MH);
+  m.save(); m.beginPath(); m.rect(pd.l, pd.t, MW - pd.l - pd.r, MH - pd.t - pd.b); m.clip();
+  m.strokeStyle = cssv('--ink'); m.lineWidth = 1.5; m.setLineDash([4, 4]); m.beginPath(); m.moveTo(MX(zr[0]), MY(1)); m.lineTo(MX(0), MY(1)); m.lineTo(MX(0), MY(0)); m.lineTo(MX(zr[1]), MY(0)); m.stroke(); m.setLineDash([]);
+  m.strokeStyle = cssv(L.col); m.lineWidth = 2.5; m.beginPath(); for (let i = 0; i <= 300; i++){ const z = zr[0] + (zr[1] - zr[0]) * i / 300; i ? m.lineTo(MX(z), MY(L.f(z))) : m.moveTo(MX(z), MY(L.f(z))); } m.stroke();
+  zs.forEach((z, i) => { const zc = Math.max(zr[0] + 0.05, Math.min(zr[1] - 0.05, z)); m.fillStyle = cssv(P[i][2] > 0 ? '--s1' : '--s2'); m.globalAlpha = 0.85; m.beginPath(); m.arc(MX(zc), MY(Math.min(L.f(z), lr[1] - 0.05)), 4, 0, 2 * Math.PI); m.fill(); });
+  m.globalAlpha = 1; m.restore();
+  const err = zs.filter(z => z <= 0).length, act = zs.filter(active).length, nw = Math.hypot(w0, w1);
+  $('tErr').textContent = err + ' / ' + P.length; $('tAct').textContent = act; $('tW').textContent = nw.toFixed(2);
+  $('tTxt').innerHTML = {
+    sq: 'Squared loss: drag a blue point far out to the top-right (on its correct side). It climbs the right arm of the parabola and drags the boundary towards itself.',
+    hinge: `Hinge loss: only the ${act} ringed points (z ≤ 1, on or inside the margin: the support vectors) affect the solution. Drag a point that's beyond the dashed line: the boundary doesn't move at all until the point crosses into the margin. Raise λ and the margin widens, so more points fall inside it.`,
+    log: 'Logistic loss: every point keeps some pull, strongest for misclassified ones, fading smoothly (never exactly 0) as z grows. A far-away correct point barely matters, unlike with squared loss.'}[kind];
+}
+document.querySelectorAll('button[data-l]').forEach(b => b.onclick = () => { kind = b.dataset.l; document.querySelectorAll('button[data-l]').forEach(x => x.classList.toggle('on', x === b)); W3 = [0, 0, 0]; train(); });
+$('lam').oninput = train; $('resetT').onclick = resetT;
+(() => { const cv = $('tc'); let idx = -1;
+  const pos = e => { const r = cv.getBoundingClientRect(); return [frame.ix(e.clientX - r.left), frame.iy(e.clientY - r.top)]; };
+  cv.addEventListener('pointerdown', e => { const [x, y] = pos(e); let best = 1e9; P.forEach((p, i) => { const d = Math.hypot(p[0] - x, p[1] - y); if (d < best){ best = d; idx = i; } });
+    if (best * frame.s > 22) idx = -1; else cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', e => { if (idx < 0) return; const [x, y] = pos(e); P[idx][0] = Math.max(-3.9, Math.min(3.9, x)); P[idx][1] = Math.max(-3.4, Math.min(3.4, y)); train(); });
+  cv.addEventListener('pointerup', () => { idx = -1; }); })();
+function drawAll(){ drawZoo(); drawT(); }
+drawZoo(); resetT();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

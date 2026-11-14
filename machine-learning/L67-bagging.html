@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bagging and Random Forests</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 67 · Ensembles: bootstrap aggregation</div>
+<h1>Bagging and Random Forests</h1>
+<p class="lede">Averaging independent estimates keeps the mean and shrinks the <b>variance</b>. Bagging applies this to classifiers: build many datasets from one by <b>sampling with replacement</b> (bootstrapping), train an overfit, low-bias learner on each, and take a <b>majority vote</b> (aggregation). Random forests add <b>feature bagging</b> so the trees disagree more and the vote cancels more of their noise.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=OXTu2vrsTjY">this lecture on YouTube</a> (≈31 min). Previous: <a href="L66-bias-variance.html">L66</a> · Next: <a href="L68-boosting.html">L68</a>.</p>
+
+<h2>1 · Why average? A lesson from estimating a mean</h2>
+<p>Take $x_1,\dots,x_n$ drawn i.i.d. from a Gaussian with unknown mean $\mu$ (say $5.5$) and variance 1. Consider the estimators</p>
+$$\hat\mu_1=x_1,\quad \hat\mu_2=x_2,\quad\dots,\quad\hat\mu_n=x_n,\qquad \hat\mu_{\text{ML}}=\frac1n\sum_{i=1}^n x_i .$$
+<ul>
+<li>Every one of them is <b>unbiased</b>: $\mathbb E[\hat\mu_1]=\mathbb E[x_1]=\mu$, and by linearity $\mathbb E[\hat\mu_{\text{ML}}]=\mu$ too. So unbiasedness alone can't tell them apart.</li>
+<li>But $\hat\mu_1$ jumps around a lot from one sample to the next, while the average barely moves. Fluctuation is measured by <b>variance</b>.</li>
+</ul>
+<div class="callout"><b>Averaging reduces variance</b>, provided the things being averaged are decorrelated (here they're independent samples). Bagging borrows exactly this idea for classifiers.</div>
+
+<h2>2 · If we had many independent datasets</h2>
+<p>Suppose someone handed us $m$ datasets $D_1,\dots,D_m$, each of $n$ labelled points $(x,y)$ with $x\in\mathbb R^d$, $y\in\{-1,+1\}$, drawn independently from the same distribution. Train a weak learner on each, for example a decision tree grown to full depth (it overfits: low bias, high variance), to get $h_1,\dots,h_m:\mathbb R^d\to\{\pm1\}$. Then aggregate:</p>
+$$h^\star(x)=\operatorname{sign}\!\Big(\frac1m\sum_{i=1}^m h_i(x)\Big),\qquad \operatorname{sign}(z)=\begin{cases}+1 & z\ge 0\\ -1 & z<0\end{cases}$$
+<p>That's a <b>majority vote</b>. The individual trees have low bias but high variance; averaging them should keep the bias low and bring the variance down, which is what lowers the error.</p>
+
+<h2>3 · We only have one dataset: bootstrapping</h2>
+<p>Nobody gives us $m$ datasets. Cutting our single dataset $D$ into $m$ pieces makes them independent, but each piece gets tiny, and a learner trained on very few points learns little. The only way to get many full-size datasets from one is to <b>allow repeats</b>:</p>
+<ol class="steps">
+<li><b>Bootstrap</b> (uniform sampling <b>with replacement</b>): to fill a bag, pick a point from $D$ uniformly at random, put it back, and repeat $n$ times. With $D=\{x_1,\dots,x_5\}$ one bag might be $\{x_3,x_4,x_5,x_3,x_5\}$ and another $\{x_1,x_1,x_5,x_4,x_1\}$.</li>
+<li>Make $m$ bags $D_1,\dots,D_m$, each with $n$ points, and train a learner $h_i$ on each bag.</li>
+<li><b>Aggregate</b>: $h^\star(x)=\operatorname{sign}\big(\frac1m\sum_i h_i(x)\big)$.</li>
+</ol>
+<p><b>Bootstrap</b> + <b>agg</b>regation = <b>bagging</b>.</p>
+
+<h2>4 · How much of the data lands in each bag?</h2>
+<p>A particular point $x_j$ is missed by one draw with probability $1-\frac1n$, so it's missed by all $n$ independent draws with probability $(1-\frac1n)^n$. Hence</p>
+$$P(x_j\in D_i)=1-\Big(1-\frac1n\Big)^{n}\;\xrightarrow{\;n\to\infty\;}\;1-\frac1e\approx 0.63 .$$
+<p>So each bag contains roughly two-thirds of the distinct points, and the rest of its slots are repeats. Each overfit tree fits the noise <b>specific to its own bag</b>, and different bags repeat different points. Their noise is different, so when the trees vote, the noise tends to average out: the variance goes down while the bias stays roughly where it was.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Each column is one of the $n$ original points; the dots above it count how many times it was drawn into the bag. Hollow orange circles are points the bag missed ("out of bag"). Left: the theoretical share of distinct points, $1-(1-1/n)^n$, against $n$.</p>
+  <div class="row">
+    <label>n = <b id="nV"></b> <input type="range" id="nB" min="5" max="60" value="20" aria-label="number of points"></label>
+    <button id="one">Draw a bag</button><button id="many">Draw 1,000 bags</button>
+  </div>
+  <div class="pair">
+    <canvas id="curve" height="190" aria-label="Share of distinct points versus n"></canvas>
+    <canvas id="bag" height="190" aria-label="How often each point appears in the bag"></canvas>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="uniq">–</div><div class="l">distinct points in this bag</div></div>
+    <div class="stat"><div class="v" id="avgU">–</div><div class="l">average over bags drawn</div></div>
+    <div class="stat"><div class="v" id="thU">–</div><div class="l">theory: 1 − (1 − 1/n)ⁿ</div></div>
+  </div>
+  <p class="small" id="bagTxt"></p>
+</div>
+<div class="beyond"><b>A small numeric note, beyond the video.</b> The lecture rounds the limit as "something like 67%"; the exact value is $1-1/e=0.632$, so about 37% of each bag's slots are repeats. Already at $n=20$ the share is $0.642$, so the limit kicks in fast. The points a bag misses are a free validation set for that tree: averaging each point's error over the trees that never saw it gives the <b>out-of-bag</b> error estimate, without a separate hold-out set.</div>
+
+<h2>5 · Random forests: decorrelating the trees</h2>
+<p>Variance drops most when the learners being averaged are <b>uncorrelated</b>. Bagged trees on similar bags still tend to pick the same strong features, so they stay correlated. A <b>random forest</b> pushes them apart:</p>
+<ul>
+<li>Bag decision trees, and grow each one to purity (zero training error, no cross-validation): low bias.</li>
+<li><b>Feature bagging</b>: at <b>every node</b>, instead of searching all $d$ features for the best "feature &lt; threshold" question, draw a random subset of features and pick the best split among those only (by information gain, Gini, or your favourite impurity measure). One node might choose among $\{f_1,f_5,f_{23},f_{40}\}$, the next among $\{f_1,f_{10},f_{20},f_{40}\}$.</li>
+<li>Rule of thumb: about $\sqrt d$ features per node for classification; for regression something of order $d$, like $d/3$. Tune if you have compute to spare.</li>
+<li>Variants randomise even more, for example sampling the candidate thresholds too.</li>
+</ul>
+<p>Random forests work for regression as well (use regression trees), and they are among the most widely used classifiers in practice: the variance goes down, the bias typically doesn't go up, so the error falls.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">120 training points; the true boundary is the wavy curve, and 10% of labels are flipped as noise. Every tree is grown to zero training error on its own bag. Shading shows the vote: strong colour where the trees agree, pale where they're split. Right: error on 1,000 fresh test points as trees are added.</p>
+  <div class="row">
+    <button data-m="bag" class="on">bagging</button><button data-m="rf">random forest (1 random feature per node)</button>
+    <button data-v="ens" class="on">show the vote</button><button data-v="one">show tree #1 alone</button>
+  </div>
+  <div class="row">
+    <label>trees B = <b id="bV"></b> <input type="range" id="B" min="1" max="100" value="25" aria-label="number of trees"></label>
+    <button id="newF">New data</button>
+  </div>
+  <div class="pair">
+    <canvas id="map" height="300" aria-label="Decision regions of the bagged trees"></canvas>
+    <canvas id="err" height="300" aria-label="Test error versus number of trees"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>y = +1</span><span><i class="dot" style="background:var(--s2)"></i>y = −1</span><span><i style="background:var(--s1)"></i>bagging error</span><span><i style="background:var(--s3)"></i>random-forest error</span><span><i style="background:var(--faint)"></i>one full tree on all data</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="e1">–</div><div class="l">test error: one deep tree</div></div>
+    <div class="stat"><div class="v" id="eAvg">–</div><div class="l">average error of the B trees</div></div>
+    <div class="stat"><div class="v" id="eB">–</div><div class="l">test error of the B-tree vote</div></div>
+  </div>
+  <p class="small" id="fTxt"></p>
+</div>
+
+<h2>6 · A practical bonus: it's parallel</h2>
+<p>The bags are independent, so the $m$ learners can be trained at the same time on different cores. You only need all of them at the aggregation step. That's a big reason bagging and random forests are popular in practice.</p>
+
+<h2>7 · Two choices we made, and a better way</h2>
+<p>Bagging made two design choices: <b>bootstrapping</b> by <b>uniform</b> sampling with replacement, and <b>aggregation</b> by a <b>plain average</b> (justified by "averaging reduces variance"). Are these the best choices? Could the bags be sampled in a more principled way, and the classifiers combined more cleverly? Yes. Doing both steps in a principled way leads to <b>boosting</b>, the next lecture.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Averaging decorrelated estimates keeps them unbiased and reduces variance.</li>
+<li>Bagging = bootstrap (sample $n$ points with replacement, $m$ times) + aggregate ($h^\star=\operatorname{sign}\frac1m\sum_i h_i$, a majority vote).</li>
+<li>Each bag holds about $1-(1-\frac1n)^n\approx 63\%$ of the distinct points; different bags repeat different points, so the overfit trees fit different noise.</li>
+<li>Bagging mainly <b>reduces variance</b>; use low-bias, high-variance learners such as fully grown trees.</li>
+<li>Random forest = bagged full trees + feature bagging (≈ $\sqrt d$ random features per node) to decorrelate the trees.</li>
+<li>Bagging parallelises; boosting will replace both of its steps with principled ones.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const rgba = (hex, a) => { const h = hex.replace('#', ''), v = parseInt(h.length === 3 ? h.replace(/./g, c => c + c) : h, 16); return `rgba(${v >> 16 & 255},${v >> 8 & 255},${v & 255},${a})`; };
+
+/* ---------- demo 1: bootstrap a bag ---------- */
+let cnt = [], seenU = 0, seenB = 0;
+const theory = n => 1 - (1 - 1 / n) ** n;
+function drawBag(k){ const n = +$('nB').value;
+  for (let r = 0; r < k; r++){ cnt = new Array(n).fill(0); for (let i = 0; i < n; i++) cnt[Math.floor(Math.random() * n)]++; seenU += cnt.filter(c => c > 0).length / n; seenB++; }
+  render1(); }
+function render1(){
+  const n = +$('nB').value; $('nV').textContent = n;
+  const u = cnt.filter(c => c > 0).length;
+  $('uniq').textContent = `${u} of ${n} (${(100 * u / n).toFixed(0)}%)`;
+  $('avgU').textContent = seenB ? `${(100 * seenU / seenB).toFixed(1)}% (${seenB.toLocaleString()} bags)` : '–';
+  $('thU').textContent = (100 * theory(n)).toFixed(1) + '%';
+  // curve
+  { const [ctx, W, H] = setupCanvas($('curve')), pad = {l: 34, r: 8, t: 10, b: 26}, X = v => pad.l + (v - 1) / 59 * (W - pad.l - pad.r), Y = v => H - pad.b - (v - 0.5) / 0.5 * (H - pad.t - pad.b);
+    ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+    [0.5, 0.632, 0.75, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v === 0.632 ? '1−1/e' : v, pad.l - 4, Y(v)); });
+    [1, 20, 40, 60].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); });
+    ctx.textBaseline = 'bottom'; ctx.fillText('n', (pad.l + W) / 2, H);
+    ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let m = 1; m <= 60; m++) m > 1 ? ctx.lineTo(X(m), Y(theory(m))) : ctx.moveTo(X(m), Y(theory(m))); ctx.stroke();
+    ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(n), Y(theory(n)), 5, 0, 2 * Math.PI); ctx.fill(); }
+  // bag
+  const [ctx, W, H] = setupCanvas($('bag')), pad = {l: 6, r: 6, t: 8, b: 22}, cw = (W - pad.l - pad.r) / n, r = Math.max(2, Math.min(7, cw * 0.36)), mx = Math.max(4, ...cnt);
+  const step = Math.min(2.3 * r, (H - pad.t - pad.b - 2 * r) / mx);
+  ctx.font = '11px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  cnt.forEach((c, i) => { const x = pad.l + (i + 0.5) * cw, base = H - pad.b - r;
+    if (n <= 30 || i % 5 === 0) ctx.fillText(i + 1, x, H - pad.b + 5);
+    if (!c){ ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(x, base, r, 0, 2 * Math.PI); ctx.stroke(); }
+    for (let k = 0; k < c; k++){ ctx.fillStyle = k ? cssv('--s3') : cssv('--s1'); ctx.beginPath(); ctx.arc(x, base - k * step, r, 0, 2 * Math.PI); ctx.fill(); } });
+  const rep = cnt.filter(c => c > 1).length;
+  $('bagTxt').innerHTML = `This bag has ${n} slots but only ${u} distinct points: ${rep} points appear more than once (green dots are the extra copies) and ${n - u} are out of bag. ` + (seenB > 50 ? `Averaged over many bags, the share settles near ${(100 * theory(n)).toFixed(1)}%.` : 'Draw a few more bags, then 1,000 at once.');
+}
+$('nB').oninput = () => { seenU = 0; seenB = 0; drawBag(1); }; $('one').onclick = () => drawBag(1); $('many').onclick = () => drawBag(1000);
+
+/* ---------- demo 2: bagging vs random forest of full-depth trees ---------- */
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const truth = (x, y) => (y > 0.45 * Math.sin(3 * x) + 0.15 * x ? 1 : -1);
+const sample = (m, noise) => Array.from({length: m}, () => { const p = [2 * Math.random() - 1, 2 * Math.random() - 1]; let y = truth(p[0], p[1]); if (Math.random() < noise) y = -y; return [p, y]; });
+const GX = 56, GY = 56, NT = 100;
+let TR = [], TE = [], G = [], F = null, mode = 'bag', view = 'ens';
+// grow a tree to purity; featBag picks one random feature per node (d = 2, so √d ≈ 1)
+function grow(idx, featBag, depth){
+  let s = 0; idx.forEach(i => s += TR[i][1]);
+  if (Math.abs(s) === idx.length || depth > 30) return {leaf: s >= 0 ? 1 : -1};
+  const feats = featBag ? (Math.random() < 0.5 ? [0, 1] : [1, 0]) : [0, 1];
+  let best = null;
+  for (const f of feats){
+    const ord = idx.slice().sort((a, b) => TR[a][0][f] - TR[b][0][f]), n = ord.length;
+    let lp = 0, ln = 0, tp = 0; ord.forEach(i => { if (TR[i][1] > 0) tp++; });
+    for (let k = 0; k < n - 1; k++){ TR[ord[k]][1] > 0 ? lp++ : ln++;
+      const a = TR[ord[k]][0][f], b = TR[ord[k + 1]][0][f]; if (a === b) continue;
+      const L = k + 1, R = n - L, rp = tp - lp, rn = R - rp, gini = L * (1 - (lp / L) ** 2 - (ln / L) ** 2) + R * (1 - (rp / R) ** 2 - (rn / R) ** 2);
+      if (!best || gini < best.g) best = {g: gini, f, t: (a + b) / 2}; }
+    if (featBag && best) break;   // feature bagging: only fall back to the other feature if this one can't split
+  }
+  if (!best) return {leaf: s >= 0 ? 1 : -1};
+  const l = idx.filter(i => TR[i][0][best.f] < best.t), r = idx.filter(i => TR[i][0][best.f] >= best.t);
+  return {f: best.f, t: best.t, l: grow(l, featBag, depth + 1), r: grow(r, featBag, depth + 1)};
+}
+const pred = (T, p) => { while (T.leaf === undefined) T = p[T.f] < T.t ? T.l : T.r; return T.leaf; };
+function forest(featBag){ const n = TR.length, trees = [];
+  for (let b = 0; b < NT; b++){ const bag = Array.from({length: n}, () => Math.floor(Math.random() * n)); trees.push(grow(bag, featBag, 0)); }
+  const te = trees.map(T => Int8Array.from(TE, ([p]) => pred(T, p))), gr = trees.map(T => Int8Array.from(G, p => pred(T, p)));
+  const curve = [], avg = [], vote = new Float32Array(TE.length); let errSum = 0;
+  te.forEach((row, b) => { let e = 0; row.forEach((v, i) => { vote[i] += v; if (v !== TE[i][1]) e++; }); errSum += e / TE.length; avg.push(errSum / (b + 1));
+    let ev = 0; vote.forEach((v, i) => { if ((v >= 0 ? 1 : -1) !== TE[i][1]) ev++; }); curve.push(ev / TE.length); });
+  return {te, gr, curve, avg};
+}
+function newForest(){
+  TR = sample(120, 0.1); TE = sample(1000, 0.1);
+  G = []; for (let j = 0; j < GY; j++) for (let i = 0; i < GX; i++) G.push([-1 + (i + 0.5) * 2 / GX, 1 - (j + 0.5) * 2 / GY]);
+  const full = grow(TR.map((_, i) => i), false, 0);
+  F = {bag: forest(false), rf: forest(true), fullErr: TE.filter(([p, y]) => pred(full, p) !== y).length / TE.length};
+  draw2();
+}
+function draw2(){
+  if (!F) return;
+  const B = +$('B').value, M = F[mode]; $('bV').textContent = B;
+  // map
+  { const [ctx, W, H] = setupCanvas($('map')), side = Math.min(W, H) - 4, ox = (W - side) / 2, oy = (H - side) / 2, cw = side / GX, ch = side / GY;
+    const P = (x, y) => [ox + (x + 1) / 2 * side, oy + (1 - y) / 2 * side], c1 = cssv('--s1'), c2 = cssv('--s2');
+    for (let g = 0; g < G.length; g++){ let v = 0; if (view === 'one') v = M.gr[0][g]; else { for (let b = 0; b < B; b++) v += M.gr[b][g]; v /= B; }
+      ctx.fillStyle = rgba(v >= 0 ? c1 : c2, 0.08 + 0.42 * Math.abs(v)); ctx.fillRect(ox + (g % GX) * cw, oy + Math.floor(g / GX) * ch, cw + 0.6, ch + 0.6); }
+    ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.8; ctx.setLineDash([5, 4]); ctx.beginPath();
+    for (let k = 0; k <= 120; k++){ const x = -1 + 2 * k / 120, y = 0.45 * Math.sin(3 * x) + 0.15 * x, [a, b] = P(x, y); k ? ctx.lineTo(a, b) : ctx.moveTo(a, b); } ctx.stroke(); ctx.setLineDash([]);
+    TR.forEach(([p, y]) => { const [a, b] = P(p[0], p[1]); ctx.fillStyle = y > 0 ? c1 : c2; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(a, b, 3.6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); }); }
+  // error curve
+  { const [ctx, W, H] = setupCanvas($('err')), pad = {l: 40, r: 10, t: 10, b: 30}, ymax = Math.max(0.4, F.fullErr + 0.05, ...F.bag.curve.slice(0, 3), ...F.rf.curve.slice(0, 3));
+    const X = b => pad.l + (b - 1) / (NT - 1) * (W - pad.l - pad.r), Y = v => H - pad.b - v / ymax * (H - pad.t - pad.b);
+    ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+    for (let v = 0; v <= ymax + 1e-9; v += 0.1){ ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(Math.round(v * 100) + '%', pad.l - 5, Y(v)); }
+    [1, 25, 50, 75, 100].forEach(b => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(b, X(b), H - pad.b + 5); });
+    ctx.textBaseline = 'bottom'; ctx.fillText('number of trees B', (pad.l + W) / 2, H);
+    const hl = (v, col, dash) => { ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.setLineDash([]); };
+    hl(F.fullErr, cssv('--faint'), [6, 5]); hl(0.1, cssv('--muted'), [2, 4]);
+    ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('label noise 10%', W - pad.r, Y(0.1) - 2);
+    const line = (a, col, w) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); a.forEach((v, i) => i ? ctx.lineTo(X(i + 1), Y(v)) : ctx.moveTo(X(1), Y(v))); ctx.stroke(); };
+    line(F.bag.curve, cssv('--s1'), mode === 'bag' ? 2.6 : 1.4); line(F.rf.curve, cssv('--s3'), mode === 'rf' ? 2.6 : 1.4);
+    ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(B), pad.t); ctx.lineTo(X(B), H - pad.b); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = mode === 'bag' ? cssv('--s1') : cssv('--s3'); ctx.beginPath(); ctx.arc(X(B), Y(M.curve[B - 1]), 5, 0, 2 * Math.PI); ctx.fill(); }
+  const pct = v => (100 * v).toFixed(1) + '%';
+  $('e1').textContent = pct(F.fullErr); $('eAvg').textContent = pct(M.avg[B - 1]); $('eB').textContent = pct(M.curve[B - 1]);
+  $('fTxt').innerHTML = view === 'one'
+    ? 'One tree grown to purity on one bag: it carves out little islands around noisy points. That is the high variance a single deep tree suffers from.'
+    : (B === 1 ? 'With B = 1 the "vote" is just one tree. Slide B up and watch the islands fade as different trees disagree about the noise.'
+      : `The vote of ${B} trees: each tree alone errs about ${pct(M.avg[B - 1])} of the time, but the vote errs ${pct(M.curve[B - 1])}. The isolated noisy points no longer get their own islands, because most trees never memorised them the same way. ` + (mode === 'rf' ? 'Feature bagging makes individual trees a little worse but more different from each other, which is what the vote needs.' : 'Try the random-forest button to decorrelate the trees further.'));
+}
+document.querySelectorAll('button[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; document.querySelectorAll('button[data-m]').forEach(x => x.classList.toggle('on', x === b)); draw2(); });
+document.querySelectorAll('button[data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; document.querySelectorAll('button[data-v]').forEach(x => x.classList.toggle('on', x === b)); draw2(); });
+$('B').oninput = draw2; $('newF').onclick = newForest;
+
+function drawAll(){ render1(); draw2(); }
+drawBag(1); newForest();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Boosting and AdaBoost</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Lecture 68 · Ensembles: turning weak learners into a strong one</div>
+<h1>Boosting and AdaBoost</h1>
+<p class="lede">Boosting keeps bagging's two steps but makes both principled. Instead of uniform bags, it keeps a <b>distribution over the data points</b> and, after each round, <b>raises the weight of the points the last learner got wrong</b>, so the next learner focuses on them. Instead of a plain average, it takes a <b>weighted vote</b>, with weight $\alpha_t$ growing as the learner's weighted error shrinks. With learners only slightly better than random, the training error provably reaches zero.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=-B534pLpnhk">this lecture on YouTube</a> (≈32 min). Previous: <a href="L67-bagging.html">L67</a> · Next: <a href="L69-classification-losses.html">L69</a>.</p>
+
+<h2>1 · The goal: weak learner in, strong learner out</h2>
+<p>A <b>weak learner</b> here may be an <b>underfit</b> classifier, which is easy and cheap to get. The standard example is a <b>decision stump</b>: a decision tree stopped after one question, "feature $f$ &lt; threshold?" (sometimes two levels). In 2-D it just cuts the plane into two half-planes with a vertical or horizontal line. Typical trees in practice have depth 10–15, so a stump is a big drop: <b>high bias, low variance</b>, and it won't reach 100% training accuracy on its own.</p>
+<p>The question boosting answers: given a black box that outputs such weak learners, can we feed it cleverly chosen inputs and combine its outputs into a <b>strong learner</b>, one with zero training error? Yes, and <b>AdaBoost</b> ("adaptive boosting", Freund and Schapire, 1990s, who won the Gödel Prize for it) gives the recipe.</p>
+
+<h2>2 · The AdaBoost algorithm</h2>
+<p>Input: $S=\{(x_1,y_1),\dots,(x_n,y_n)\}$, $x_i\in\mathbb R^d$, $y_i\in\{-1,+1\}$.</p>
+<ol class="steps">
+<li><b>Initialise</b> a distribution over the points: $D_1(i)=\frac1n$ for every $i$ (the lecture writes $D_0$). (Sampling a bag from it is exactly bagging's uniform sampling with replacement; the difference is that boosting will change it every round.)</li>
+<li><b>For</b> $t=1,\dots,T$: give $(S,D_t)$ to the weak learner and get $h_t:\mathbb R^d\to\{\pm1\}$. If the learner accepts weighted points, pass the weights directly; if not (vanilla decision trees), <b>sample a bag from $S$ according to $D_t$</b>, so a point with weight 0.7 has a 70% chance on each draw.</li>
+<li><b>Weighted error</b>: add up the weights of the points $h_t$ gets wrong, $\;\operatorname{err}(h_t)=\sum_{i:\,h_t(x_i)\ne y_i}D_t(i)$, and set $\;\alpha_t=\ln\sqrt{\dfrac{1-\operatorname{err}(h_t)}{\operatorname{err}(h_t)}}$.</li>
+<li><b>Re-weight multiplicatively</b> (mistakes go up, correct points go down): $$\hat D_{t+1}(i)=\begin{cases}D_t(i)\,e^{\alpha_t} & h_t(x_i)\ne y_i\\ D_t(i)\,e^{-\alpha_t} & h_t(x_i)=y_i\end{cases}$$</li>
+<li><b>Normalise</b> so the weights sum to 1 again: $\;D_{t+1}(i)=\dfrac{\hat D_{t+1}(i)}{\sum_j\hat D_{t+1}(j)}$.</li>
+<li><b>Output</b> the weighted vote $\;h^\star(x)=\operatorname{sign}\Big(\sum_{t=1}^{T}\alpha_t\,h_t(x)\Big)$.</li>
+</ol>
+<div class="callout"><b>Why raise the weights of the mistakes?</b> Say the first stump gets 600 of 1,000 points right and 400 wrong. Giving the 400 more weight makes them show up more often in the next bag, so the next learner, which is also better than random, has to find features that work for <b>them</b>. Each round corrects the previous round's mistakes.</div>
+<p><b>Bagging vs boosting:</b> bootstrapping becomes sampling from a carefully chosen distribution that pushes weight towards hard points; aggregation becomes a <b>weighted</b> average, with the learners' $\alpha_t$ as weights. The same $\alpha_t$ is used for both the re-weighting and the vote.</p>
+
+<h2>3 · The lecture's worked update</h2>
+<p>Three points with weights $D_1=(0.3,\,0.5,\,0.2)$. Suppose $h_1$ misclassifies $x_1$ and gets $x_2,x_3$ right. Then</p>
+$$D_2=\frac{\big(0.3\,e^{\alpha_1},\;0.5\,e^{-\alpha_1},\;0.2\,e^{-\alpha_1}\big)}{Z},\qquad Z=0.3\,e^{\alpha_1}+0.5\,e^{-\alpha_1}+0.2\,e^{-\alpha_1}.$$
+<p>Try it below: tick which points the learner gets wrong and watch $\operatorname{err}$, $\alpha$ and the new weights.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Bars: current weights $D_t$ (light) and new weights $D_{t+1}$ (dark). Click a point's name to mark it as a mistake. Right: $\alpha=\ln\sqrt{(1-\operatorname{err})/\operatorname{err}}$ as a function of the weighted error.</p>
+  <div class="row" id="pts"></div>
+  <div class="row"><button id="apply">Make the new weights current</button><button id="reset3">Back to (0.3, 0.5, 0.2)</button></div>
+  <div class="pair">
+    <canvas id="alc" height="200" aria-label="Alpha as a function of weighted error"></canvas>
+    <canvas id="wc" height="200" aria-label="Old and new weights"></canvas>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="er3">–</div><div class="l">err(hₜ) = weight of mistakes</div></div>
+    <div class="stat"><div class="v" id="al3">–</div><div class="l">αₜ</div></div>
+    <div class="stat"><div class="v" id="nw3">–</div><div class="l">weight of the same mistakes after update</div></div>
+  </div>
+  <p class="small" id="t3"></p>
+</div>
+<div class="beyond"><b>A neat consequence of this α, beyond the video.</b> After the update, the points $h_t$ got wrong carry total weight $\frac{\operatorname{err}\,e^{\alpha}}{\operatorname{err}\,e^{\alpha}+(1-\operatorname{err})e^{-\alpha}}$, and with $e^{\alpha}=\sqrt{(1-\operatorname{err})/\operatorname{err}}$ both terms equal $\sqrt{\operatorname{err}(1-\operatorname{err})}$, so the share is <b>exactly 1/2</b>. Under the new weights $h_t$ is no better than a coin toss, so the weak learner is forced to come up with something genuinely new. Check the third stat above: it's always 50%. Also note $\alpha=0$ when $\operatorname{err}=\frac12$ (a useless learner gets no vote) and $\alpha&lt;0$ if $\operatorname{err}&gt;\frac12$ (the vote flips it).</div>
+
+<h2>4 · The guarantee</h2>
+<p>Let $\gamma$ measure how much better than random the weak learner is: 60% accuracy means $\gamma=0.1$, 70% means $\gamma=0.2$, 90% means $\gamma=0.4$. The analysis of AdaBoost (not derived in the course) shows that with $\alpha_t$ set as above, the training error falls fast, and once the number of rounds passes a threshold that grows only <b>logarithmically in $n$</b> and like $1/\gamma^2$, the training error is <b>exactly zero</b>:</p>
+$$T>\frac{\ln n}{2\gamma^2}\quad\Longrightarrow\quad \text{training error of }h^\star=0 .$$
+<ul>
+<li>More data needs more rounds, but only logarithmically more.</li>
+<li>A weaker learner (51% accurate, $\gamma=0.01$) needs many more rounds than a 75% one ($\gamma=0.25$).</li>
+<li><b>The beautiful part:</b> AdaBoost never needs to know $\gamma$. Earlier boosting algorithms had to be told how weak the learner was; this one adapts.</li>
+</ul>
+<div class="beyond"><b>Where the threshold comes from, beyond the video.</b> The standard bound is: training error $\le\prod_t 2\sqrt{\operatorname{err}_t(1-\operatorname{err}_t)}\le e^{-2\gamma^2T}$ when every $\operatorname{err}_t\le\frac12-\gamma$. The training error is a multiple of $\frac1n$, so once $e^{-2\gamma^2T}&lt;\frac1n$ it must be 0, which is the condition $T&gt;\frac{\ln n}{2\gamma^2}$. The demo below draws the product bound alongside the actual training error.</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">AdaBoost with decision stumps on 80 training points; the stump learner uses the weights directly. Dot area ∝ current weight $D_t(i)$; ringed dots are the current stump's mistakes; the line is this round's stump; shading is the sign of $\sum_s\alpha_s h_s(x)$ so far. Right: training and test error (1,000 fresh points) of the vote, with each round's weighted error $\operatorname{err}_t$ as dots.</p>
+  <div class="row">
+    <button data-d="circle" class="on">disk</button><button data-d="diag">diagonal</button><button data-d="xor">XOR</button><button data-d="noisy">disk + 10% noise</button>
+  </div>
+  <div class="row">
+    <button id="next">Next round</button><button id="play">▶ Play</button><button id="ten">+10 rounds</button><button id="rst">Reset</button>
+  </div>
+  <div class="pair">
+    <canvas id="bm" height="300" aria-label="Weighted data, current stump and the boosted decision region"></canvas>
+    <canvas id="bc" height="300" aria-label="Training and test error versus boosting rounds"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>y = +1</span><span><i class="dot" style="background:var(--s2)"></i>y = −1</span><span><i style="background:var(--ink)"></i>training error</span><span><i style="background:var(--s3)"></i>test error</span><span><i style="background:var(--faint)"></i>bound ∏ 2√(errₜ(1 − errₜ))</span><span><i class="dot" style="background:var(--s2)"></i>errₜ</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="bt">–</div><div class="l">round t</div></div>
+    <div class="stat"><div class="v" id="be">–</div><div class="l">errₜ (weighted)</div></div>
+    <div class="stat"><div class="v" id="ba">–</div><div class="l">αₜ</div></div>
+    <div class="stat"><div class="v" id="btr">–</div><div class="l">training / test error of h*</div></div>
+  </div>
+  <p class="small" id="bTxt"></p>
+</div>
+
+<h2>5 · Training error zero ... and the test error?</h2>
+<p>What we really care about is the test error. You might expect that once the training error hits zero, adding more weak learners only fits noise, and the test error starts rising: overfitting. Surprisingly, on many datasets the <b>test error keeps going down</b> even after the training error is zero. It never reaches zero (the training data only carries so much information), and you can construct datasets where it does turn up, but typically it doesn't.</p>
+<p>The explanation (beyond the course's scope): even after every training point is classified correctly, new rounds keep <b>increasing the margin</b> of the combined classifier, and a larger margin means better generalisation, as with SVMs. Practical advice: don't stop the moment the training error is zero; watch a validation error and stop when its trend reverses.</p>
+
+<h2>6 · Pros and cons</h2>
+<table>
+<tr><th>Boosting</th><th>Bagging</th></tr>
+<tr><td>Weak learners can be <b>underfit</b> (stumps); boosting attacks bias.</td><td>Learners are usually <b>overfit</b> (deep trees); bagging attacks variance.</td></tr>
+<tr><td><b>Sequential</b>: round $t$ needs the mistakes of round $t-1$, so it can't be parallelised and takes longer.</td><td><b>Parallel</b>: bags are independent.</td></tr>
+<tr><td>Typically performs better in practice.</td><td>Faster to train.</td></tr>
+</table>
+<ul>
+<li>Boosting a <b>strong</b> learner (an SVM, say) usually brings no improvement; the gains come from boosting a quick-and-dirty learner like a stump. Boosted stumps and SVMs typically perform comparably, and each wins on some datasets.</li>
+<li>Both bagging and boosting are <b>off-the-shelf</b> classifiers: very little tuning, and they work extremely well in practice.</li>
+</ul>
+<p>Next: why are there so many classification algorithms when regression had essentially one? L69 starts unifying them under one theme, <b>loss + regularisation</b>.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Boosting turns weak learners (just better than random, e.g. stumps) into a strong learner.</li>
+<li>AdaBoost keeps weights $D_t$ over points: start uniform; multiply mistakes by $e^{\alpha_t}$ and correct points by $e^{-\alpha_t}$; normalise.</li>
+<li>$\alpha_t=\ln\sqrt{(1-\operatorname{err}_t)/\operatorname{err}_t}$, where $\operatorname{err}_t$ is the total weight of $h_t$'s mistakes; final classifier $\operatorname{sign}\sum_t\alpha_th_t(x)$.</li>
+<li>Training error reaches 0 once $T$ exceeds a threshold growing like $\ln n/\gamma^2$, and AdaBoost doesn't need to know $\gamma$.</li>
+<li>The test error often keeps falling after the training error is 0 (larger margins). Boosting is sequential; bagging is parallel.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const rgba = (hex, a) => { const h = hex.replace('#', ''), v = parseInt(h.length === 3 ? h.replace(/./g, c => c + c) : h, 16); return `rgba(${v >> 16 & 255},${v >> 8 & 255},${v & 255},${a})`; };
+const alphaOf = e => 0.5 * Math.log((1 - e) / e);
+
+/* ---------- demo 1: one re-weighting step ---------- */
+let W3 = [0.3, 0.5, 0.2], wrong = [true, false, false];
+function upd3(){ const e = W3.reduce((s, w, i) => s + (wrong[i] ? w : 0), 0), ec = Math.min(Math.max(e, 1e-6), 1 - 1e-6), a = alphaOf(ec);
+  const hat = W3.map((w, i) => w * Math.exp(wrong[i] ? a : -a)), Z = hat.reduce((s, v) => s + v, 0); return {e, a, nw: hat.map(v => v / Z), Z}; }
+function render3(){
+  $('pts').innerHTML = W3.map((w, i) => `<button data-i="${i}" class="${wrong[i] ? 'on' : ''}">x${'₁₂₃'[i]}: ${wrong[i] ? '✗ wrong' : '✓ right'}</button>`).join('');
+  document.querySelectorAll('#pts button').forEach(b => b.onclick = () => { wrong[+b.dataset.i] = !wrong[+b.dataset.i]; render3(); });
+  const {e, a, nw, Z} = upd3(), degenerate = e < 1e-9 || e > 1 - 1e-9;
+  $('er3').textContent = e.toFixed(3); $('al3').textContent = degenerate ? (e < 1e-9 ? '+∞' : '−∞') : a.toFixed(3);
+  $('nw3').textContent = degenerate ? '–' : (100 * nw.reduce((s, v, i) => s + (wrong[i] ? v : 0), 0)).toFixed(1) + '%';
+  // alpha curve
+  { const [ctx, W, H] = setupCanvas($('alc')), pad = {l: 34, r: 8, t: 10, b: 28}, X = v => pad.l + v * (W - pad.l - pad.r), Y = v => H - pad.b - (v + 2) / 4 * (H - pad.t - pad.b);
+    ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+    [-2, -1, 0, 1, 2].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 5, Y(v)); });
+    [0, 0.5, 1].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 5); });
+    ctx.textBaseline = 'bottom'; ctx.fillText('err', (pad.l + W) / 2, H);
+    ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+    ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let k = 1; k < 200; k++){ const v = k / 200; k > 1 ? ctx.lineTo(X(v), Y(alphaOf(v))) : ctx.moveTo(X(v), Y(alphaOf(v))); } ctx.stroke();
+    if (!degenerate){ ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(e), Y(a), 6, 0, 2 * Math.PI); ctx.fill(); } ctx.restore(); }
+  // weights
+  { const [ctx, W, H] = setupCanvas($('wc')), pad = {l: 34, r: 8, t: 14, b: 26}, gw = (W - pad.l - pad.r) / 3, Y = v => H - pad.b - v * (H - pad.t - pad.b);
+    ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+    [0, 0.25, 0.5, 0.75, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pad.l - 5, Y(v)); });
+    W3.forEach((w, i) => { const x0 = pad.l + i * gw + gw * 0.15, bw = gw * 0.32, col = wrong[i] ? cssv('--s2') : cssv('--s1');
+      ctx.fillStyle = rgba(col, 0.3); ctx.fillRect(x0, Y(w), bw, Y(0) - Y(w));
+      if (!degenerate){ ctx.fillStyle = col; ctx.fillRect(x0 + bw + 4, Y(nw[i]), bw, Y(0) - Y(nw[i])); ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(nw[i].toFixed(2), x0 + 1.5 * bw + 4, Y(nw[i]) - 2); }
+      ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(w.toFixed(2), x0 + bw / 2, Y(w) - 2);
+      ctx.textBaseline = 'top'; ctx.fillText('x' + '₁₂₃'[i], x0 + bw + 2, H - pad.b + 5); }); }
+  $('t3').innerHTML = degenerate
+    ? (e < 1e-9 ? 'A learner with zero weighted error would get α = ∞: it alone decides the vote. Mark at least one point wrong.' : 'Every point wrong means err = 1: flipping the learner\'s output would be perfect, so α = −∞.')
+    : `err = ${e.toFixed(2)}, so α = ln√(${(1 - e).toFixed(2)}/${e.toFixed(2)}) = ${a.toFixed(3)}. Mistakes are multiplied by e^α = ${Math.exp(a).toFixed(2)}, correct points by e^−α = ${Math.exp(-a).toFixed(2)}, then everything is divided by Z = ${Z.toFixed(3)}. Afterwards the mistakes hold exactly half the weight.`;
+}
+$('apply').onclick = () => { const {e, nw} = upd3(); if (e > 1e-9 && e < 1 - 1e-9){ W3 = nw; render3(); } };
+$('reset3').onclick = () => { W3 = [0.3, 0.5, 0.2]; wrong = [true, false, false]; render3(); };
+
+/* ---------- demo 2: AdaBoost with stumps ---------- */
+const MAXT = 200, GN = 60;
+let ds = 'circle', TR = [], TE = [], G = [], R = [], t = 0, timer = null;
+const lab = {circle: (x, y) => x * x + y * y < 0.45, diag: (x, y) => y > x * 0.8 + 0.1, xor: (x, y) => x * y > 0, noisy: (x, y) => x * x + y * y < 0.45};
+function gen(m){ return Array.from({length: m}, () => { const p = [2 * Math.random() - 1, 2 * Math.random() - 1]; let y = lab[ds](p[0], p[1]) ? 1 : -1; if (ds === 'noisy' && Math.random() < 0.1) y = -y; return [p, y]; }); }
+// best weighted stump: feature f, threshold th, polarity s (predict s if x_f > th, else -s)
+function stump(D){ let best = {e: 2};
+  for (let f = 0; f < 2; f++){ const ord = TR.map((_, i) => i).sort((a, b) => TR[a][0][f] - TR[b][0][f]);
+    let wPosLeft = 0, wNegLeft = 0; const wPos = TR.reduce((s, [, y], i) => s + (y > 0 ? D[i] : 0), 0), wNeg = 1 - wPos;
+    for (let k = -1; k < ord.length; k++){ if (k >= 0){ const i = ord[k]; TR[i][1] > 0 ? wPosLeft += D[i] : wNegLeft += D[i]; if (k < ord.length - 1 && TR[ord[k + 1]][0][f] === TR[i][0][f]) continue; }
+      const th = k < 0 ? -1.01 : k === ord.length - 1 ? 1.01 : (TR[ord[k]][0][f] + TR[ord[k + 1]][0][f]) / 2;
+      const ePlus = wPosLeft + (wNeg - wNegLeft);   // s = +1: left predicts -1, right predicts +1
+      if (ePlus < best.e) best = {e: ePlus, f, th, s: 1}; if (1 - ePlus < best.e) best = {e: 1 - ePlus, f, th, s: -1}; } }
+  return best; }
+const hs = (h, p) => (p[h.f] > h.th ? h.s : -h.s);
+function run(){
+  TR = gen(80); TE = gen(1000); R = []; let D = new Array(TR.length).fill(1 / TR.length), bound = 1;
+  const Ftr = new Float64Array(TR.length), Fte = new Float64Array(TE.length);
+  for (let k = 0; k < MAXT; k++){ const h = stump(D), e = Math.min(Math.max(h.e, 1e-10), 1 - 1e-10), a = alphaOf(e);
+    const miss = TR.map(([p, y]) => hs(h, p) !== y); bound *= 2 * Math.sqrt(e * (1 - e));
+    TR.forEach(([p], i) => Ftr[i] += a * hs(h, p)); TE.forEach(([p], i) => Fte[i] += a * hs(h, p));
+    const trE = TR.filter(([, y], i) => (Ftr[i] >= 0 ? 1 : -1) !== y).length / TR.length, teE = TE.filter(([, y], i) => (Fte[i] >= 0 ? 1 : -1) !== y).length / TE.length;
+    R.push({h, e, a, D: D.slice(), miss, trE, teE, bound});
+    const hat = D.map((d, i) => d * Math.exp(miss[i] ? a : -a)), Z = hat.reduce((s, v) => s + v, 0); D = hat.map(v => v / Z); }
+  G = []; for (let j = 0; j < GN; j++) for (let i = 0; i < GN; i++) G.push([-1 + (i + 0.5) * 2 / GN, 1 - (j + 0.5) * 2 / GN]);
+  t = 0; draw4();
+}
+function draw4(){
+  // map
+  { const [ctx, W, H] = setupCanvas($('bm')), side = Math.min(W, H) - 4, ox = (W - side) / 2, oy = (H - side) / 2, cw = side / GN;
+    const P = (x, y) => [ox + (x + 1) / 2 * side, oy + (1 - y) / 2 * side], c1 = cssv('--s1'), c2 = cssv('--s2');
+    ctx.strokeStyle = cssv('--grid'); ctx.strokeRect(ox, oy, side, side);
+    if (t > 0){ G.forEach((p, g) => { let F = 0; for (let k = 0; k < t; k++) F += R[k].a * hs(R[k].h, p); ctx.fillStyle = rgba(F >= 0 ? c1 : c2, 0.22); ctx.fillRect(ox + (g % GN) * cw, oy + Math.floor(g / GN) * cw, cw + 0.6, cw + 0.6); }); }
+    const D = t < MAXT ? R[t].D : R[MAXT - 1].D, cur = t > 0 ? R[t - 1] : null, n = TR.length;
+    TR.forEach(([p, y], i) => { const [a, b] = P(p[0], p[1]), r = Math.max(1.6, Math.min(16, 4.2 * Math.sqrt(D[i] * n)));
+      ctx.fillStyle = y > 0 ? c1 : c2; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.arc(a, b, r, 0, 2 * Math.PI); ctx.fill(); ctx.globalAlpha = 1;
+      if (cur && cur.miss[i]){ ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(a, b, r + 2.5, 0, 2 * Math.PI); ctx.stroke(); } });
+    if (cur){ const h = cur.h; ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+      if (h.f === 0){ const [a] = P(h.th, 0); ctx.moveTo(a, oy); ctx.lineTo(a, oy + side); } else { const [, b] = P(0, h.th); ctx.moveTo(ox, b); ctx.lineTo(ox + side, b); } ctx.stroke(); } }
+  // curves
+  { const [ctx, W, H] = setupCanvas($('bc')), pad = {l: 40, r: 10, t: 10, b: 30}, T = Math.max(20, Math.min(MAXT, Math.ceil((t + 5) / 20) * 20)), ymax = 0.55;
+    const X = k => pad.l + k / T * (W - pad.l - pad.r), Y = v => H - pad.b - Math.min(v, ymax) / ymax * (H - pad.t - pad.b);
+    ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+    [0, 0.1, 0.2, 0.3, 0.4, 0.5].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(Math.round(v * 100) + '%', pad.l - 5, Y(v)); });
+    [0, T / 4, T / 2, 3 * T / 4, T].forEach(k => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(k, X(k), H - pad.b + 5); });
+    ctx.textBaseline = 'bottom'; ctx.fillText('round t', (pad.l + W) / 2, H);
+    if (t > 0){ const S = R.slice(0, t), line = (f, col, w, dash) => { ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); S.forEach((r, k) => k ? ctx.lineTo(X(k + 1), Y(f(r))) : ctx.moveTo(X(1), Y(f(r)))); ctx.stroke(); ctx.setLineDash([]); };
+      line(r => r.bound, cssv('--faint'), 1.6, [5, 4]); line(r => r.teE, cssv('--s3'), 2.4); line(r => r.trE, cssv('--ink'), 2.4);
+      ctx.fillStyle = cssv('--s2'); S.forEach((r, k) => { ctx.beginPath(); ctx.arc(X(k + 1), Y(r.e), 2.4, 0, 2 * Math.PI); ctx.fill(); }); } }
+  const cur = t > 0 ? R[t - 1] : null;
+  $('bt').textContent = t; $('be').textContent = cur ? cur.e.toFixed(3) : '–'; $('ba').textContent = cur ? cur.a.toFixed(3) : '–';
+  $('btr').textContent = cur ? `${(100 * cur.trE).toFixed(1)}% / ${(100 * cur.teE).toFixed(1)}%` : '–';
+  const zeroAt = R.findIndex(r => r.trE === 0);
+  $('bTxt').innerHTML = !cur ? 'Round 0: every point has weight 1/80. Press "Next round" to fit the first stump.'
+    : t <= 3 ? `Stump ${t} cuts the plane once (weighted error ${cur.e.toFixed(2)}). The ringed points it gets wrong grow before the next round; the correct ones shrink. Keep stepping and watch the next stump go after the big dots.`
+    : ds === 'xor' ? `XOR is the cautionary tale: the training error creeps down (${(100 * cur.trE).toFixed(1)}%) but the test error stays high (${(100 * cur.teE).toFixed(1)}%) instead of following it down. A weighted sum of one-feature stumps is <b>additive</b>, g₁(x₁) + g₂(x₂), and no additive function has the sign pattern of x₁x₂. Boosting is only memorising quirks of the sample: the weak-learning assumption (better than random on every reweighting) fails here. Two-level stumps would fix it.`
+    : (cur.trE === 0 ?`Training error reached 0 at round ${zeroAt + 1}, combining stumps that are each only about ${(100 * (1 - Math.max(...R.slice(0, t).map(r => r.e)))).toFixed(0)}–${(100 * (1 - Math.min(...R.slice(0, t).map(r => r.e)))).toFixed(0)}% accurate on their own weights. ` : `The vote of ${t} axis-aligned stumps already bends around the data. `)
+      + (ds === 'noisy' ? 'With flipped labels the weights pile up on the noisy points, the "hard" examples boosting can\'t stop chasing; compare the test error with the 10% noise floor.' : 'Keep going after the training error hits 0: the test error often keeps drifting down.');
+}
+const step = k => { t = Math.min(MAXT, t + k); draw4(); if (t >= MAXT) stop(); };
+function stop(){ clearInterval(timer); timer = null; $('play').textContent = '▶ Play'; }
+$('next').onclick = () => step(1); $('ten').onclick = () => step(10); $('rst').onclick = () => { stop(); t = 0; draw4(); };
+$('play').onclick = () => { if (timer) return stop(); $('play').textContent = '❚❚ Pause'; timer = setInterval(() => step(1), 220); };
+document.querySelectorAll('button[data-d]').forEach(b => b.onclick = () => { stop(); ds = b.dataset.d; document.querySelectorAll('button[data-d]').forEach(x => x.classList.toggle('on', x === b)); run(); });
+
+function drawAll(){ render3(); draw4(); }
+render3(); run();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

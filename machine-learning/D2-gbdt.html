@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient-Boosted Decision Trees in Practice</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} .pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair,.pair.half{grid-template-columns:1fr}}
+.algo{font-size:15px;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:10px 16px;margin:14px 0}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+main{overflow-x:clip} .katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Detour 2 of 5 · Not in the DA5400 lectures · Gradient-boosted trees</div>
+<h1>Gradient-Boosted Decision Trees in Practice</h1>
+<p class="lede">D1 built gradient boosting for any loss. Here it becomes the classifier people actually use: <b>gradient-boosted decision trees (GBDT)</b> with the <b>logistic loss</b>. The model outputs log-odds, each tree is fitted to $y-p$, and each leaf's value comes from one <b>Newton step</b>. Then the knobs: number of rounds, learning rate, tree depth, leaf size, subsampling and early stopping, each read through the bias–variance lens of L66.</p>
+<p class="small muted">Not part of the DA5400 lectures. Main sources: J. H. Friedman, <i>Greedy function approximation: a gradient boosting machine</i>, Annals of Statistics 29(5), 2001 (<a href="https://doi.org/10.1214/aos/1013203451">doi:10.1214/aos/1013203451</a>); J. H. Friedman, <i>Stochastic gradient boosting</i>, Computational Statistics &amp; Data Analysis 38(4), 2002 (<a href="https://doi.org/10.1016/S0167-9473(01)00065-2">doi:10.1016/S0167-9473(01)00065-2</a>). Previous: <a href="D1-gradient-boosting.html">D1</a> · Next: <a href="D3-xgboost.html">D3</a>.</p>
+
+<h2>1 · Classification: boost the log-odds</h2>
+<p>Labels are $y\in\{0,1\}$. As in logistic regression (L56), the model produces a real-valued score $F(x)$ that is read as <b>log-odds</b>, and squashed by the sigmoid into a probability:</p>
+<div>$$p(x)=\sigma\big(F(x)\big)=\frac{1}{1+e^{-F(x)}},\qquad F(x)=\log\frac{p(x)}{1-p(x)} .$$</div>
+<p>The difference from L56: there, $F(x)=w^\top x$ was linear. Here $F=F_M$ is a <b>sum of trees</b>, so the boundary $F(x)=0$ can bend wherever the data needs it to. The loss is the usual negative log-likelihood (cross-entropy):</p>
+<div>$$\ell(y,F)=-\big[y\log p+(1-y)\log(1-p)\big],\qquad p=\sigma(F).$$</div>
+<p>Its derivatives with respect to the score $F$ are short, using $\sigma'(F)=p(1-p)$:</p>
+<div>$$g_i=\frac{\partial\ell}{\partial F}=p_i-y_i,\qquad h_i=\frac{\partial^2\ell}{\partial F^2}=p_i(1-p_i),$$</div>
+<p>evaluated at the current model, $p_i=\sigma(F_{m-1}(x_i))$. (Careful: in this detour $h_i$ is the <b>second derivative</b>, not L68's weak classifier $h_t$.) So the pseudo-residual is</p>
+<div>$$r_i=-g_i=y_i-p_i :$$</div>
+<p>"how far the predicted probability is from the label". A positive point predicted at $p=0.9$ sends $+0.1$; one predicted at $p=0.1$ sends $+0.9$. Unlike AdaBoost's $e^{-z}$, this can never exceed 1 in size, which is why logistic-loss boosting copes better with mislabelled points.</p>
+<div class="beyond"><b>Same loss as L70, different labels.</b> With $\tilde y=2y-1\in\{\pm1\}$ and margin $z=\tilde yF$, the cross-entropy above equals L70's $\log(1+e^{-z})$. Check: for $y=1$, $-\log\sigma(F)=\log(1+e^{-F})$; for $y=0$, $-\log(1-\sigma(F))=\log(1+e^{F})$. And the pseudo-residual in ±1 form, $\tilde y/(1+e^{\tilde yF})$, is $1-p$ when $y=1$ and $-p$ when $y=0$, that is, $y-p$ in both cases.</div>
+
+<h2>2 · The starting point and the leaf values</h2>
+<p><b>Start:</b> the best constant score $c$ minimises $\sum_i\ell(y_i,c)$. Setting the derivative $\sum_i(\sigma(c)-y_i)$ to zero gives $\sigma(c)=\bar y$, the fraction of positives, so</p>
+<div>$$F_0=\log\frac{\bar y}{1-\bar y},$$</div>
+<p>the log-odds of the base rate. A dataset with 30% positives starts every point at $p=0.3$.</p>
+<p><b>Leaf values.</b> D1's line search asks, for each leaf $j$ with points $I_j$, for the $w$ minimising $\sum_{i\in I_j}\ell(y_i,F_{m-1}(x_i)+w)$. There's no closed form, so take <b>one Newton step</b> from $w=0$: expand each loss to second order,</p>
+<div>$$\ell\big(y_i,F_{m-1}(x_i)+w\big)\approx\ell\big(y_i,F_{m-1}(x_i)\big)+g_iw+\tfrac12h_iw^2,$$</div>
+<p>sum over the leaf, and minimise the quadratic $G_jw+\frac12H_jw^2$, where $G_j=\sum_{i\in I_j}g_i$ and $H_j=\sum_{i\in I_j}h_i$:</p>
+<div>$$\boxed{\;w_j=-\frac{G_j}{H_j}=\frac{\sum_{i\in I_j}(y_i-p_i)}{\sum_{i\in I_j}p_i(1-p_i)}\;}$$</div>
+<ul>
+<li>The numerator is the total "pull" in the leaf; the denominator measures how <b>confident</b> the current predictions already are. Points with $p$ near 0 or 1 have tiny $h_i$, so a leaf full of confident points takes a big step for a small residual.</li>
+<li>For squared loss $h_i=1$, so $w_j=-G_j/n_j$, the mean residual: D1's answer is the special case where the Newton step is exact.</li>
+<li>For logistic loss a single Newton step can overshoot when $H_j$ is tiny (a leaf of very confident points). Shrinkage $\eta$ softens this; implementations also cap $|w_j|$ or require a minimum $H_j$ per leaf, and XGBoost adds $\lambda$ to the denominator (D3).</li>
+<li>This "first derivative over second derivative per leaf" is the seed of XGBoost (D3), which also uses $G_j$ and $H_j$ to <b>choose the splits</b>, not just the leaf values.</li>
+</ul>
+
+<div class="algo">
+<b>GBDT for binary classification</b>
+<ol class="steps">
+<li>$F_0=\log\frac{\bar y}{1-\bar y}$.</li>
+<li>For $m=1,\dots,M$: compute $p_i=\sigma(F_{m-1}(x_i))$ and pseudo-residuals $r_i=y_i-p_i$.</li>
+<li>Fit a regression tree (depth $\le d$, at least $n_{\min}$ points per leaf) to $(x_i,r_i)$ with SSE-reduction splits (D1 §3).</li>
+<li>Newton leaf values: $w_j=\sum_{I_j}(y_i-p_i)\,/\sum_{I_j}p_i(1-p_i)$.</li>
+<li>$F_m(x)=F_{m-1}(x)+\eta\,w_{j(x)}$.</li>
+</ol>
+Predict $p(x)=\sigma(F_M(x))$; classify as 1 if $p(x)>\tfrac12$ (or another threshold).
+</div>
+<div class="beyond"><b>More than two classes.</b> With $K$ classes, keep $K$ score functions $F^{(1)},\dots,F^{(K)}$, turn them into probabilities with the softmax $p^{(k)}=e^{F^{(k)}}/\sum_le^{F^{(l)}}$, and each round fit <b>$K$ trees</b>, the $k$-th to the pseudo-residuals $y^{(k)}_i-p^{(k)}_i$ (with $y^{(k)}_i=1$ if point $i$ is in class $k$). That's $K$ times the work of the binary case.</div>
+
+<h2>3 · Watch it learn</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">GBDT with logistic loss, trained in your browser on 200 points (8% of labels flipped). Left: shading is $p(x)=\sigma(F_m(x))$ (blue = class 1, orange = class 0, white near ½); dots are training points. Right: average log-loss on the training set and on 300 held-out validation points. The dashed line marks the round with the lowest validation loss: where <b>early stopping</b> would stop.</p>
+  <div class="row">
+    <button data-ds="ring" class="on">ring</button><button data-ds="xor">XOR</button><button data-ds="moons">moons</button>
+    <button id="g3Play">▶ Train</button><button id="g3Step">+1 round</button><button id="g3Reset">Reset</button><button id="g3New">New data</button>
+  </div>
+  <div class="row">
+    <label>depth d = <b id="g3DV"></b> <input type="range" id="g3D" min="1" max="4" value="2" aria-label="tree depth"></label>
+    <label>η = <b id="g3EV"></b> <input type="range" id="g3E" min="2" max="100" step="2" value="30" aria-label="learning rate"></label>
+    <label>row subsample = <b id="g3SV"></b> <input type="range" id="g3S" min="30" max="100" step="10" value="100" aria-label="row subsample fraction"></label>
+  </div>
+  <div class="pair half">
+    <canvas id="g3" height="300" aria-label="Predicted probability map and training points"></canvas>
+    <canvas id="g3l" height="300" aria-label="Training and validation log-loss by round"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>class 1</span><span><i class="dot" style="background:var(--s2)"></i>class 0</span><span><i style="background:var(--ink)"></i>training log-loss</span><span><i style="background:var(--s3)"></i>validation log-loss</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="g3M">0</div><div class="l">round m</div></div>
+    <div class="stat"><div class="v" id="g3Tr">–</div><div class="l">train log-loss · error</div></div>
+    <div class="stat"><div class="v" id="g3Va">–</div><div class="l">validation log-loss · error</div></div>
+    <div class="stat"><div class="v" id="g3Best">–</div><div class="l">early-stopping round</div></div>
+  </div>
+  <p class="small" id="g3Txt"></p>
+</div>
+<p>Things to try: <b>depth 1 on XOR</b> (stumps can only build an additive model $F(x)=f_1(x_1)+f_2(x_2)$, which can't express XOR, the same failure as L68's stump demo; depth 2 fixes it instantly); <b>η = 1</b> (fast, then the validation curve turns up: overfitting); <b>subsample 0.5</b> (noisier training curve, often a slightly lower validation minimum).</p>
+
+<h2>4 · The knobs, and what they do to bias and variance</h2>
+<p>L66 split error into <b>bias</b> (too simple, systematically wrong) and <b>variance</b> (too flexible, changes with the dataset). Boosting starts from a high-bias model (a constant) and lowers bias with every tree, so <b>more rounds always fit the training data better</b>: past some point the extra trees fit noise and variance takes over. Every knob below controls how fast that happens.</p>
+<table>
+<tr><th>Knob</th><th>What it controls</th><th>Turning it up…</th></tr>
+<tr><td>rounds $M$</td><td>how many trees are added</td><td>lowers bias; eventually overfits. Choose by early stopping.</td></tr>
+<tr><td>learning rate $\eta$</td><td>how much of each tree is used (shrinkage, D1 §9)</td><td>fewer rounds needed, but each tree overshoots more and overfitting comes sooner. Small $\eta$ + more rounds often generalises a little better, and is much less sensitive to the exact stopping round.</td></tr>
+<tr><td>depth $d$ (or number of leaves $T$)</td><td>how complex each tree is; a depth-$d$ tree can model interactions of up to $d$ features</td><td>each tree is less "weak": lower bias per round, higher variance. Typical: 3–8.</td></tr>
+<tr><td>min points (or min $H_j$) per leaf</td><td>smallest leaf allowed</td><td>(raising it) smoother, lower variance; stops leaves that fit one noisy point.</td></tr>
+<tr><td>row subsample $s$</td><td>each tree sees a random fraction $s$ of the rows</td><td>(lowering $s$) adds randomness that decorrelates trees, like bagging (L67); also faster.</td></tr>
+<tr><td>column subsample</td><td>each tree (or split) sees a random subset of features</td><td>(lowering it) decorrelates trees, like a random forest (L67).</td></tr>
+</table>
+<div class="callout"><b>Interaction order.</b> A model built from depth-1 trees (stumps) is a sum of one-variable functions, $F(x)=\sum_kf_k(x_k)$: an <b>additive model</b> with no interactions. Depth 2 lets a tree say "if $x_1$ is big <i>and</i> $x_2$ is small", a pairwise interaction. So depth is not just a size knob; it decides which kinds of patterns the ensemble can express at all.</div>
+
+<h2>5 · Stochastic gradient boosting: bagging inside boosting</h2>
+<p>Friedman (2002) added one line: at each round, fit the tree to a <b>random subsample</b> of the training rows (typically 50–80%, drawn without replacement). Two effects:</p>
+<ul>
+<li><b>Variance reduction.</b> Consecutive trees see different data, so their errors are less correlated, the same reason averaging bootstrapped trees helps in bagging (L67). It also acts as regularisation: no single noisy point influences every tree.</li>
+<li><b>Speed.</b> Each tree costs roughly a fraction $s$ of the full fit.</li>
+</ul>
+<p>The pseudo-residuals are still computed from the full current model; only the tree fit (and its leaf values) use the subsample. Column subsampling, borrowed from random forests, is the same trick across features. XGBoost and LightGBM expose both; LightGBM's GOSS (D4) is a smarter, gradient-aware version of row subsampling.</p>
+
+<h2>6 · Early stopping is cross-validation over $M$</h2>
+<p>L35 chose the ridge penalty $\lambda$ by holding out a validation set and picking the value with the lowest validation error. For boosting, the number of rounds $M$ is the regulariser, and it's free to tune: train once, track validation loss after every round, and keep $M^\star=\arg\min_m\text{val-loss}(m)$. In practice training stops when the validation loss hasn't improved for, say, 50 rounds ("patience"), and the model is truncated at $M^\star$. The $\eta$-vs-$M$ race below shows why people pair a small $\eta$ with early stopping.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Learning-rate race on the current dataset (depth 3, no subsampling, 400 rounds). Each curve is validation log-loss; the dot marks its minimum, the early-stopping point for that η.</p>
+  <div class="row"><button id="g4Run">Run the race on the current dataset</button></div>
+  <canvas id="g4" height="230" aria-label="Validation log-loss by round for four learning rates"></canvas>
+  <div class="legend" id="g4Leg"></div>
+  <p class="small" id="g4Txt"></p>
+</div>
+
+<h2>7 · Bagging vs boosting, side by side</h2>
+<table>
+<tr><th></th><th>Bagging / random forest (L67)</th><th>Gradient boosting (D1–D2)</th></tr>
+<tr><td>Base trees</td><td>deep, low bias, high variance</td><td>shallow, high bias, low variance</td></tr>
+<tr><td>What it mainly reduces</td><td>variance (averaging)</td><td>bias (each tree fixes what's left)</td></tr>
+<tr><td>How trees are built</td><td>independently, in parallel, on bootstrap samples</td><td>sequentially; tree $m$ depends on trees $1,\dots,m-1$</td></tr>
+<tr><td>Combining</td><td>plain average / majority vote</td><td>sum of shrunken trees, $F_0+\eta\sum_mf_m$</td></tr>
+<tr><td>More trees…</td><td>never hurts (error levels off)</td><td>eventually overfits; needs early stopping</td></tr>
+<tr><td>Tuning effort</td><td>low (works well out of the box)</td><td>higher ($\eta$, $M$, depth, subsampling), usually rewarded with better accuracy</td></tr>
+</table>
+
+<h2>8 · What's still slow, and where D3–D5 go</h2>
+<p>Plain GBDT has three practical weaknesses, each fixed by one of the next detours:</p>
+<ol>
+<li>Splits are chosen by fitting the pseudo-residuals with squared error, while leaf values use Newton steps: two different criteria. <b>XGBoost (D3)</b> derives both from one regularised second-order objective, with an explicit penalty on leaf values and on the number of leaves.</li>
+<li>Finding the best split means sorting every feature at every node: slow for millions of rows. <b>LightGBM (D4)</b> buckets features into histograms, grows trees leaf-wise, and subsamples rows by gradient size.</li>
+<li>Categorical features (city, product ID) don't fit "feature &lt; threshold", and naive fixes leak the label. <b>CatBoost (D5)</b> handles them with ordered target statistics and ordered boosting.</li>
+</ol>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>GBDT for classification boosts the log-odds $F$; $p=\sigma(F)$, starting from the base-rate log-odds.</li>
+<li>Logistic loss gives $g_i=p_i-y_i$ and $h_i=p_i(1-p_i)$; the trees fit the pseudo-residuals $y_i-p_i$, which are bounded, unlike AdaBoost's.</li>
+<li>Leaf values come from one Newton step, $w_j=-G_j/H_j$; for squared loss this is the mean residual.</li>
+<li>Rounds, learning rate, depth, leaf size and subsampling trade bias against variance; depth also sets the interaction order.</li>
+<li>Stochastic gradient boosting brings bagging's decorrelation into boosting; early stopping picks $M$ on a validation set, like L35.</li>
+<li>Bagging reduces variance of deep trees in parallel; boosting reduces bias of shallow trees in sequence.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const rgb = hex => { const h = hex.replace('#', ''), f = h.length === 3 ? h.split('').map(c => c + c).join('') : h; return [0, 2, 4].map(i => parseInt(f.slice(i, i + 2), 16)); };
+const sig = F => 1 / (1 + Math.exp(-F));
+const logloss = (y, F) => { const p = Math.min(1 - 1e-12, Math.max(1e-12, sig(F))); return -(y * Math.log(p) + (1 - y) * Math.log(1 - p)); };
+const R = 3.2;
+
+/* ---- datasets: points in [-3, 3]², labels in {0,1}, 8% flipped ---- */
+const GEN = {
+  ring:  () => { const x = [6 * Math.random() - 3, 6 * Math.random() - 3]; return [x, +(Math.hypot(...x) < 1.7)]; },
+  xor:   () => { const x = [6 * Math.random() - 3, 6 * Math.random() - 3]; return [x, +(x[0] * x[1] > 0)]; },
+  moons: () => { const c = Math.random() < 0.5, t = Math.PI * Math.random(), n = () => 0.25 * randn();
+    return c ? [[2 * Math.cos(t) - 0.9 + n(), 2 * Math.sin(t) - 0.6 + n()], 1] : [[0.9 - 2 * Math.cos(t) + n(), 0.6 - 2 * Math.sin(t) + n()], 0]; }};
+const sample = (ds, m) => Array.from({length: m}, () => { const [x, y] = GEN[ds](); return {x, y: Math.random() < 0.08 ? 1 - y : y}; });
+
+/* ---- regression tree on 2-D points: least-squares splits on r, Newton leaf values ---- */
+function fitTree(P, idx, r, p, depth, minLeaf){
+  function build(I, d){
+    const n = I.length; let s = 0; for (const i of I) s += r[i];
+    if (d > 0 && n >= 2 * minLeaf){
+      let best = null;
+      for (let f = 0; f < 2; f++){
+        const S = I.slice().sort((a, b) => P[a].x[f] - P[b].x[f]); let sL = 0;
+        for (let k = 0; k < n - 1; k++){ sL += r[S[k]]; const nL = k + 1, nR = n - nL;
+          if (nL < minLeaf || nR < minLeaf || P[S[k]].x[f] === P[S[k + 1]].x[f]) continue;
+          const gain = sL * sL / nL + (s - sL) ** 2 / nR - s * s / n;
+          if (!best || gain > best.gain) best = {gain, f, thr: (P[S[k]].x[f] + P[S[k + 1]].x[f]) / 2, L: S.slice(0, nL), R: S.slice(nL)}; } }
+      if (best && best.gain > 1e-12) return {f: best.f, thr: best.thr, L: build(best.L, d - 1), R: build(best.R, d - 1)};
+    }
+    let G = 0, H = 0; for (const i of I){ G -= r[i]; H += p[i] * (1 - p[i]); }   // G = Σ g_i = Σ (p_i − y_i)
+    return {leaf: true, v: Math.max(-6, Math.min(6, -G / Math.max(H, 1e-9)))};      // Newton step w = −G/H
+  }
+  return build(idx, depth);
+}
+const pred = (nd, x) => { while (!nd.leaf) nd = x[nd.f] < nd.thr ? nd.L : nd.R; return nd.v; };
+
+// one boosting run state over train / validation / an optional grid
+function makeRun(tr, va, grid){
+  const ybar = tr.reduce((s, q) => s + q.y, 0) / tr.length, F0 = Math.log(ybar / (1 - ybar));
+  const S = {tr, va, grid, F0, Ftr: tr.map(() => F0), Fva: va.map(() => F0), Fg: grid ? grid.map(() => F0) : null, m: 0, hist: []};
+  S.hist.push(evalRun(S)); return S; }
+function evalRun(S){ const L = (D, F) => D.reduce((s, q, i) => s + logloss(q.y, F[i]), 0) / D.length, E = (D, F) => D.reduce((s, q, i) => s + ((F[i] > 0 ? 1 : 0) !== q.y), 0) / D.length;
+  return {tr: L(S.tr, S.Ftr), va: L(S.va, S.Fva), etr: E(S.tr, S.Ftr), eva: E(S.va, S.Fva)}; }
+function boostRound(S, depth, eta, sub){
+  const n = S.tr.length, p = S.Ftr.map(sig), r = S.tr.map((q, i) => q.y - p[i]);   // pseudo-residuals y − p
+  let idx = [...Array(n).keys()];
+  if (sub < 1){ for (let i = n - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; } idx = idx.slice(0, Math.round(sub * n)); }
+  const t = fitTree(S.tr, idx, r, p, depth, 5);
+  S.Ftr = S.Ftr.map((F, i) => F + eta * pred(t, S.tr[i].x)); S.Fva = S.Fva.map((F, i) => F + eta * pred(t, S.va[i].x));
+  if (S.Fg) S.Fg = S.Fg.map((F, i) => F + eta * pred(t, S.grid[i]));
+  S.m++; S.hist.push(evalRun(S)); }
+
+/* ---- demo 3: live training ---- */
+const GN = 56, GRID = []; for (let a = 0; a < GN; a++) for (let b = 0; b < GN; b++) GRID.push([-R + (b + 0.5) * 2 * R / GN, R - (a + 0.5) * 2 * R / GN]);
+const MMAX = 300;
+let ds = 'ring', TR, VA, RUN, playing = false;
+const dep = () => +$('g3D').value, eta = () => +$('g3E').value / 100, sub = () => +$('g3S').value / 100;
+function newData(first){ TR = sample(ds, 200); VA = sample(ds, 300); reset(); if (first) setTimeout(runRace, 60); else runRace(); }
+function reset(){ RUN = makeRun(TR, VA, GRID); draw3(); }
+function bestRound(h){ let b = 0; h.forEach((v, i) => { if (v.va < h[b].va) b = i; }); return b; }
+function draw3(){
+  $('g3DV').textContent = dep(); $('g3EV').textContent = eta().toFixed(2); $('g3SV').textContent = sub().toFixed(1);
+  const [ctx, W, H] = setupCanvas($('g3')), side = Math.min(W, H), ox = (W - side) / 2, cell = side / GN;
+  const c1 = rgb(cssv('--s1')), c0 = rgb(cssv('--s2')), bg = rgb(cssv('--card'));
+  RUN.Fg.forEach((F, k) => { const p = sig(F), t = Math.min(1, Math.abs(p - 0.5) * 2) * 0.55, c = p > 0.5 ? c1 : c0;
+    ctx.fillStyle = `rgb(${c.map((v, j) => Math.round(bg[j] + (v - bg[j]) * t)).join(',')})`;
+    ctx.fillRect(ox + (k % GN) * cell, Math.floor(k / GN) * cell, cell + 0.6, cell + 0.6); });
+  const X = v => ox + (v + R) / (2 * R) * side, Y = v => (R - v) / (2 * R) * side;
+  TR.forEach(q => { ctx.fillStyle = q.y ? cssv('--s1') : cssv('--s2'); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X(q.x[0]), Y(q.x[1]), 3.4, 0, 7); ctx.fill(); ctx.stroke(); });
+  // loss curves
+  const [lc, LW, LH] = setupCanvas($('g3l')), pad = {l: 34, r: 8, t: 10, b: 24}, h = RUN.hist, M = Math.max(30, RUN.m), top = Math.max(0.75, h[0].tr * 1.05);
+  const XX = i => pad.l + i / M * (LW - pad.l - pad.r), YY = v => LH - pad.b - Math.min(v, top) / top * (LH - pad.t - pad.b);
+  lc.font = '12px system-ui,sans-serif'; lc.fillStyle = cssv('--muted'); lc.strokeStyle = cssv('--grid'); lc.lineWidth = 1;
+  [0, top / 2, top].forEach(v => { lc.beginPath(); lc.moveTo(pad.l, YY(v)); lc.lineTo(LW - pad.r, YY(v)); lc.stroke(); lc.textAlign = 'right'; lc.textBaseline = 'middle'; lc.fillText(v.toFixed(2), pad.l - 4, YY(v)); });
+  lc.textAlign = 'center'; lc.textBaseline = 'top'; lc.fillText('0', XX(0), LH - pad.b + 4); lc.fillText(M, XX(M), LH - pad.b + 4); lc.textAlign = 'right'; lc.textBaseline = 'bottom'; lc.fillText('round', LW - pad.r, LH - pad.b - 2);
+  const b = bestRound(h);
+  if (RUN.m > 0){ lc.setLineDash([4, 4]); lc.strokeStyle = cssv('--s3'); lc.beginPath(); lc.moveTo(XX(b), pad.t); lc.lineTo(XX(b), LH - pad.b); lc.stroke(); lc.setLineDash([]); }
+  const line = (k, col) => { lc.strokeStyle = col; lc.lineWidth = 2; lc.beginPath(); h.forEach((v, i) => i ? lc.lineTo(XX(i), YY(v[k])) : lc.moveTo(XX(i), YY(v[k]))); lc.stroke(); };
+  line('tr', cssv('--ink')); line('va', cssv('--s3'));
+  const cur = h[RUN.m];
+  $('g3M').textContent = RUN.m; $('g3Tr').textContent = `${cur.tr.toFixed(3)} · ${(100 * cur.etr).toFixed(0)}%`; $('g3Va').textContent = `${cur.va.toFixed(3)} · ${(100 * cur.eva).toFixed(0)}%`;
+  $('g3Best').textContent = RUN.m ? `${b} (val ${h[b].va.toFixed(3)})` : '–';
+  const over = RUN.m > b + 25 && cur.va > h[b].va + 0.02;
+  $('g3Txt').innerHTML = RUN.m === 0
+    ? `Round 0: every point starts at $p=\\bar y$ = ${sig(RUN.F0).toFixed(2)}, so the map is one flat colour. Press <b>Train</b>.`
+    : (ds === 'xor' && dep() === 1 && RUN.m > 20
+      ? 'Depth 1 on XOR: stumps give an additive model $f_1(x_1)+f_2(x_2)$, which cannot express "same sign". Validation loss stays near its starting value. Set depth to 2.'
+      : over ? `Validation loss bottomed out at round ${b} and has risen since: the later trees are fitting the flipped labels (variance). Early stopping would keep the model from round ${b}.`
+      : `Training loss falls every round (lower bias). Validation loss is still close to its best (round ${b}). The 8% flipped labels set a floor on validation error of about 8%.`);
+  if (window.renderMathInElement) renderMathInElement($('g3Txt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+function step(k = 1){ for (let i = 0; i < k && RUN.m < MMAX; i++) boostRound(RUN, dep(), eta(), sub()); }
+function tick(){ if (!playing) return; step(3); draw3(); if (RUN.m >= MMAX){ playing = false; $('g3Play').textContent = '▶ Train'; return; } requestAnimationFrame(tick); }
+$('g3Play').onclick = () => { playing = !playing; $('g3Play').textContent = playing ? '❚❚ Pause' : '▶ Train'; if (playing) tick(); };
+$('g3Step').onclick = () => { step(1); draw3(); };
+$('g3Reset').onclick = () => { playing = false; $('g3Play').textContent = '▶ Train'; reset(); };
+$('g3New').onclick = () => { playing = false; $('g3Play').textContent = '▶ Train'; newData(); };
+['g3D', 'g3E', 'g3S'].forEach(id => $(id).oninput = () => { playing = false; $('g3Play').textContent = '▶ Train'; reset(); });
+document.querySelectorAll('button[data-ds]').forEach(b => b.onclick = () => { ds = b.dataset.ds; document.querySelectorAll('button[data-ds]').forEach(x => x.classList.toggle('on', x === b)); playing = false; $('g3Play').textContent = '▶ Train'; newData(); });
+
+/* ---- demo 4: learning-rate race ---- */
+const ETAS = [1, 0.3, 0.1, 0.03], COLS = ['--s2', '--ink', '--s1', '--s3'];
+let race = null;
+function runRace(){
+  race = ETAS.map(e => { const S = makeRun(TR, VA, null); for (let m = 0; m < 400; m++) boostRound(S, 3, e, 1); return S.hist.map(v => v.va); });
+  draw4(); }
+function draw4(){
+  if (!race) return;
+  const [ctx, W, H] = setupCanvas($('g4')), pad = {l: 34, r: 8, t: 10, b: 24}, M = 400, top = Math.max(0.75, race[0][0] * 1.05);
+  const X = i => pad.l + i / M * (W - pad.l - pad.r), Y = v => H - pad.b - Math.min(v, top) / top * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1;
+  [0, top / 2, top].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v.toFixed(2), pad.l - 4, Y(v)); });
+  [0, 100, 200, 300, 400].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 4); });
+  const out = [];
+  race.forEach((h, k) => { const col = cssv(COLS[k]); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath(); h.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v))); ctx.stroke();
+    let b = 0; h.forEach((v, i) => { if (v < h[b]) b = i; }); ctx.fillStyle = col; ctx.strokeStyle = cssv('--card'); ctx.beginPath(); ctx.arc(X(b), Y(h[b]), 5, 0, 7); ctx.fill(); ctx.stroke(); out.push([ETAS[k], b, h[b]]); });
+  $('g4Leg').innerHTML = out.map(([e, b, v], k) => `<span><i style="background:var(${COLS[k]})"></i>η = ${e}: best ${v.toFixed(3)} at round ${b}</span>`).join('');
+  const bestK = out.reduce((a, o, k) => o[2] < out[a][2] ? k : a, 0);
+  $('g4Txt').innerHTML = `η = 1 reaches its best within a few rounds and then overfits quickly. Smaller η takes many more rounds to get there, but its minimum is much flatter, so the exact stopping round matters less. Whether it also goes lower depends on the data: on this draw the lowest validation loss came from η = ${out[bestK][0]}` + (out[3][1] >= 395 ? '; η = 0.03 was still improving at round 400, so it needs even more trees.' : '.');
+}
+$('g4Run').onclick = runRace;
+
+newData(true);
+function drawAll(){ draw3(); draw4(); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

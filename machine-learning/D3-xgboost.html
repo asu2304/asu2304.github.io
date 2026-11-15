@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>XGBoost: Second-Order Boosting</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+main{overflow-x:clip} .katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Detour 3 of 5 · Not in the DA5400 lectures · Gradient-boosted trees</div>
+<h1>XGBoost: Second-Order Boosting with a Regularised Objective</h1>
+<p class="lede">D1 and D2 built gradient boosting: each round fits a regression tree to the loss's negative gradient, and D2 set the leaf values with a Newton step. XGBoost makes the whole recipe follow from <b>one objective</b>: the training loss plus a <b>penalty on each tree</b> (a price $\gamma$ per leaf and a ridge penalty $\lambda$ on leaf values). A second-order Taylor expansion turns each round into independent 1-D quadratics, one per leaf. From those come a closed-form <b>leaf weight</b> $-G_j/(H_j+\lambda)$ and a closed-form <b>split gain</b> that replaces information gain. The rest is engineering that makes the split search fast.</p>
+<p class="small muted">Not part of the DA5400 lectures. Main source: T. Chen and C. Guestrin, <i>XGBoost: A Scalable Tree Boosting System</i>, KDD 2016 (<a href="https://arxiv.org/abs/1603.02754">arXiv:1603.02754</a>); parameter names from the <a href="https://xgboost.readthedocs.io/">XGBoost documentation</a>. Previous: <a href="D2-gbdt.html">D2</a> · Next: <a href="D4-lightgbm.html">D4</a>.</p>
+
+<h2>1 · Where we are</h2>
+<p>The detour so far, in the course's own terms:</p>
+<table>
+<tr><th>Step</th><th>Idea</th><th>What it leaves open</th></tr>
+<tr><td>AdaBoost (<a href="L68-boosting.html">L68</a>)</td><td>Re-weight the points the last learner got wrong; take a weighted vote.</td><td>Only for classification, and only for one loss.</td></tr>
+<tr><td>Boosting as a loss (<a href="L71-perceptron-boosting-loss.html">L71</a>)</td><td>AdaBoost greedily minimises the exponential loss $e^{-yH(x)}$.</td><td>Why that loss? Could we plug in any loss?</td></tr>
+<tr><td>Gradient boosting (<a href="D1-gradient-boosting.html">D1</a>)</td><td>Any differentiable loss: fit a tree to the negative gradients (pseudo-residuals), take a small step $\eta$.</td><td>Trees are grown with squared-error splits, not the actual loss; nothing penalises complexity.</td></tr>
+<tr><td>GBDT for classification (<a href="D2-gbdt.html">D2</a>)</td><td>Log-loss, with each leaf's value set by one Newton step; subsampling and early stopping.</td><td>The Newton step is used for the leaf <i>values</i> but not for choosing the <i>splits</i>.</td></tr>
+</table>
+<p><b>XGBoost</b> ("extreme gradient boosting") closes those gaps with four ideas:</p>
+<ol>
+<li><b>A regularised objective</b> that penalises tree complexity.</li>
+<li><b>A second-order approximation</b> of the loss, used for both the leaf values and the splits.</li>
+<li><b>A split gain derived from the loss itself</b>, so every twice-differentiable loss gets its own split criterion.</li>
+<li><b>Engineering:</b> pre-sorted column blocks, approximate quantile splits, sparsity-aware handling of missing values, and parallel split search.</li>
+</ol>
+
+<h2>2 · The regularised objective</h2>
+<p>After $M$ rounds the model is a sum of trees, $F_M(x)=\sum_{m=1}^{M}\eta\,f_m(x)$ (plus a constant start). A tree $f$ with $T$ leaves assigns every input to one leaf $q(x)\in\{1,\dots,T\}$ and outputs that leaf's <b>weight</b>: $f(x)=w_{q(x)}$. XGBoost minimises</p>
+<div>$$\mathcal L=\sum_{i=1}^{n}\ell\big(y_i,\hat y_i\big)+\sum_{m=1}^{M}\Omega(f_m),\qquad \Omega(f)=\gamma\,T+\tfrac12\,\lambda\sum_{j=1}^{T}w_j^2 .$$</div>
+<ul>
+<li>$\tfrac12\lambda\sum_j w_j^2$ is <b>ridge regression</b> on the leaf values (<a href="L37-ridge-regression.html">L37</a>, where $\lambda\lVert w\rVert^2$ pulled $w$ towards 0). It makes each leaf's output smaller, so no single tree can push predictions far.</li>
+<li>$\gamma\,T$ is a <b>price per leaf</b>, the same "objective + penalty" idea that chose $K$ in K-means (<a href="L18-kmeans-choice-of-K-notes.html">L18</a>): more leaves always fit the training data better, so each must pay for itself. (Not to be confused with $\gamma$ in <a href="L43-decision-trees.html">L43</a>, which was the fraction of points sent to one side.)</li>
+<li>An optional L1 term $\alpha\sum_j|w_j|$ (<code>reg_alpha</code>) adds a lasso penalty (<a href="L39-lasso.html">L39</a>) that can set leaf values exactly to 0. We'll keep $\alpha=0$ below.</li>
+</ul>
+<p>With $\gamma=\lambda=0$ this is just the training loss, the objective of D1 and D2.</p>
+
+<h2>3 · One round, to second order</h2>
+<p>The trees can't be optimised all at once (a tree has discrete structure, so there's no gradient with respect to "the tree"). Like AdaBoost and D1, XGBoost is <b>greedy and stage-wise</b>: keep the first $m-1$ trees fixed and choose only $f_m$. Write $\hat y_i^{(m-1)}=F_{m-1}(x_i)$ for the current prediction.</p>
+<ol class="steps">
+<li>The objective for round $m$ (constants from earlier trees dropped): $$\mathcal L^{(m)}=\sum_i \ell\big(y_i,\ \hat y_i^{(m-1)}+f_m(x_i)\big)+\Omega(f_m).$$</li>
+<li>Expand each loss term in a <b>Taylor series to second order</b> around the current prediction. With
+<div>$$g_i=\frac{\partial \ell(y_i,F)}{\partial F}\Big|_{F=\hat y_i^{(m-1)}},\qquad h_i=\frac{\partial^2 \ell(y_i,F)}{\partial F^2}\Big|_{F=\hat y_i^{(m-1)}},$$</div>
+we get $$\ell\big(y_i,\hat y_i^{(m-1)}+f\big)\approx \ell\big(y_i,\hat y_i^{(m-1)}\big)+g_i\,f+\tfrac12 h_i f^2.$$</li>
+<li>Drop $\ell(y_i,\hat y_i^{(m-1)})$, a constant in this round: $$\tilde{\mathcal L}^{(m)}=\sum_i\big[g_if_m(x_i)+\tfrac12h_if_m(x_i)^2\big]+\gamma T+\tfrac12\lambda\sum_j w_j^2.$$</li>
+<li>Every point in leaf $j$ gets the same output $w_j$. Let $I_j=\{i: q(x_i)=j\}$, $G_j=\sum_{i\in I_j}g_i$ and $H_j=\sum_{i\in I_j}h_i$. Grouping the sum by leaves:
+$$\tilde{\mathcal L}^{(m)}=\sum_{j=1}^{T}\Big[\,G_j\,w_j+\tfrac12\,(H_j+\lambda)\,w_j^2\,\Big]+\gamma\,T .$$</li>
+</ol>
+<p>Gradient descent (<a href="L31-gradient-descent.html">L31</a>) used only the first-order term $g$. Keeping $h$ as well is what <b>Newton's method</b> does: it fits a parabola to the loss instead of a straight line, so it knows how far to step, not just which way.</p>
+<table>
+<tr><th>Loss $\ell(y,F)$</th><th>$g_i$</th><th>$h_i$</th></tr>
+<tr><td>squared, $\tfrac12(y-F)^2$</td><td>$F-y$ (minus the residual)</td><td>$1$</td></tr>
+<tr><td>logistic, $y\in\{0,1\}$, $p=\sigma(F)$: $\;-y\log p-(1-y)\log(1-p)$</td><td>$p-y$</td><td>$p(1-p)$</td></tr>
+</table>
+
+<h2>4 · The best leaf weights, and the structure score</h2>
+<p>Once the tree's structure (which points go to which leaf) is fixed, the objective splits into $T$ <b>separate 1-D quadratics</b> in $w_1,\dots,w_T$. Each is minimised by setting its derivative $G_j+(H_j+\lambda)w_j$ to zero:</p>
+<div class="callout">
+<div>$$w_j^\star=-\frac{G_j}{H_j+\lambda},\qquad \tilde{\mathcal L}^{(m)}_\star=-\frac12\sum_{j=1}^{T}\frac{G_j^2}{H_j+\lambda}+\gamma\,T .$$</div>
+The second quantity, the best objective value for a given structure, is the <b>structure score</b>. Lower is better. It plays the role that impurity played for decision trees.</div>
+<ul>
+<li><b>It's a damped Newton step.</b> A Newton step for one leaf is $-G_j/H_j$. Adding $\lambda$ to the denominator is exactly how ridge stabilised $(XX^\top)^{-1}$ by using $(XX^\top+\lambda I)^{-1}$ (<a href="L35-cross-validation.html">L35</a>, <a href="L37-ridge-regression.html">L37</a>): it shrinks the step and avoids dividing by a tiny $H_j$.</li>
+<li><b>Squared loss:</b> $g_i=-r_i$ with $r_i=y_i-\hat y_i^{(m-1)}$ the residual and $h_i=1$, so
+<div>$$w_j^\star=\frac{\sum_{i\in I_j} r_i}{n_j+\lambda}.$$</div>
+That's the leaf's mean residual (D1's leaf value), shrunk towards 0, as if $\lambda$ extra points with residual 0 had joined the leaf.</li>
+<li><b>Logistic loss:</b>
+<div>$$w_j^\star=\frac{\sum_{i\in I_j}(y_i-p_i)}{\sum_{i\in I_j}p_i(1-p_i)+\lambda},$$</div>
+which with $\lambda=0$ is exactly D2's Newton leaf value.</li>
+<li>Shrinkage comes afterwards: $F_m(x)=F_{m-1}(x)+\eta\,f_m(x)$, with $\eta$ (<code>eta</code>, the learning rate) as in D1.</li>
+</ul>
+
+<h2>5 · Scoring a split</h2>
+<p>A tree is grown the way <a href="L44-building-trees.html">L44</a> grew one: start with all points in one leaf and repeatedly try "feature $k\le$ threshold $t$?" questions. Splitting a leaf with sums $(G,H)$ into children $(G_L,H_L)$ and $(G_R,H_R)$ changes the structure score by</p>
+<div class="callout">
+<div>$$\text{Gain}=\frac12\left[\frac{G_L^2}{H_L+\lambda}+\frac{G_R^2}{H_R+\lambda}-\frac{(G_L+G_R)^2}{H_L+H_R+\lambda}\right]-\gamma .$$</div>
+This is the decrease in $\tilde{\mathcal L}^{(m)}$ from the split: the children's scores, minus the parent's, minus the price of one extra leaf. Split only if $\text{Gain}>0$.</div>
+<ul>
+<li><b>Same shape as information gain</b> (<a href="L43-decision-trees.html">L43</a>): parent impurity minus children's impurity. But the "impurity" $-\tfrac12G^2/(H+\lambda)$ now comes from the loss being minimised, so squared error, log-loss or any other twice-differentiable loss each get the right criterion automatically.</li>
+<li><b>Squared loss with $\lambda=\gamma=0$:</b> $G^2/H=(\sum r)^2/n$. So the gain is half the reduction in the residuals' sum of squared deviations from their leaf mean: the classic regression-tree (variance-reduction) criterion D1 used.</li>
+<li><b>$\gamma$ is a minimum gain</b> (<code>gamma</code>, also called <code>min_split_loss</code>). XGBoost grows each tree to <code>max_depth</code>, then <b>prunes bottom-up</b>: a split whose children are both leaves is removed if its gain is negative. A weak split can therefore survive if a strong split was found beneath it, which is a little lookahead compared with stopping as soon as the gain is negative.</li>
+<li><b>$\lambda$ also discourages splits that isolate a few points:</b> a child with small $H$ has its score $G^2/(H+\lambda)$ heavily damped.</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0"><b>Split-gain lab.</b> 30 points on one feature $x$ and one leaf about to be split. Every point's $g_i$ (orange bars, signed) and $h_i$ (green) come from the loss and the current prediction. Drag on the plot, or use the slider, to move the threshold; the right panel shows the gain at every possible threshold. Here $\eta=1$, so the new leaf values are added in full.</p>
+  <div class="row">
+    <button data-loss="sq" class="on">squared loss</button><button data-loss="log">logistic loss</button>
+    <label>current prediction <span id="fLab">F</span> = <b id="fV"></b> <input type="range" id="fS" min="-30" max="40" value="0" aria-label="current prediction"></label>
+    <button id="newA">New data</button>
+  </div>
+  <div class="row">
+    <label>λ = <b id="lamV"></b> <input type="range" id="lamS" min="0" max="200" value="10" aria-label="lambda"></label>
+    <label>γ = <b id="gamV"></b> <input type="range" id="gamS" min="0" max="300" value="0" aria-label="gamma"></label>
+    <label>split after point <b id="kV"></b> <input type="range" id="kS" min="1" max="29" value="12" aria-label="split position"></label>
+    <button id="bestA">Jump to best split</button>
+  </div>
+  <div class="pair">
+    <canvas id="ca" height="300" aria-label="Data, gradients, Hessians and the chosen split"></canvas>
+    <canvas id="cb" height="300" aria-label="Gain at every threshold"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--ink)"></i>data</span><span><i style="background:var(--faint)"></i>current prediction</span><span><i style="background:var(--s1)"></i>after the split (leaf values added)</span><span><i style="background:var(--s2)"></i>$g_i$</span><span><i style="background:var(--s3)"></i>$h_i$</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="aGL">–</div><div class="l">G<sub>L</sub>, H<sub>L</sub></div></div>
+    <div class="stat"><div class="v" id="aGR">–</div><div class="l">G<sub>R</sub>, H<sub>R</sub></div></div>
+    <div class="stat"><div class="v" id="aW">–</div><div class="l">w<sub>L</sub>*, w<sub>R</sub>* (root alone: w*)</div></div>
+    <div class="stat"><div class="v" id="aG">–</div><div class="l">Gain</div></div>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="aQ">–</div><div class="l">change in 2nd-order objective (should be −Gain)</div></div>
+    <div class="stat"><div class="v" id="aT">–</div><div class="l">change in true regularised loss</div></div>
+  </div>
+  <p class="small" id="aTxt"></p>
+</div>
+<div class="beyond"><b>Why the two "change" numbers agree or differ.</b> Both compare "one leaf with its best weight $w^\star$" against "two leaves with $w_L^\star,w_R^\star$". The first uses the quadratic $\tilde{\mathcal L}^{(m)}$ from §3, and it equals $-\text{Gain}$ exactly (that's how the gain was derived). The second plugs the same weights into the real loss. For squared loss $\tfrac12(y-F)^2$ the Taylor expansion is exact, so the two agree to rounding. For logistic loss they differ, more so when the weights are large (small $\lambda$, prediction far from the labels): the gain is an approximation, and that's the price of the closed form.</div>
+
+<h2>6 · Finding the best split fast</h2>
+<p>The gain needs only the sums $G_L,H_L$, since $G_R=G-G_L$ and $H_R=H-H_L$. That makes the search a running sum.</p>
+<ol class="steps">
+<li><b>Exact greedy.</b> For each feature, visit the leaf's points in increasing order of that feature, accumulating $G_L$ and $H_L$. At every boundary between two distinct values, evaluate the gain. Keep the best (feature, threshold) over all features. After sorting this costs $O(n_{\text{leaf}})$ per feature.</li>
+<li><b>Sort once.</b> XGBoost stores the data in <b>column blocks</b>, each feature pre-sorted once before training. Every node of every tree reuses the order, so a whole level of the tree is found in one linear scan per feature. The scans over different features are independent, which is where the parallelism comes from. (Boosting rounds themselves are sequential, unlike bagging's trees in <a href="L67-bagging.html">L67</a>.)</li>
+<li><b>Approximate splits.</b> With huge data, propose only a few candidate thresholds per feature from its quantiles, put the points into the buckets between candidates, add up $g$ and $h$ per bucket, and scan the buckets. Candidates can be proposed once per tree (global) or again after each split (local).</li>
+<li><b>Weighted quantiles.</b> Which quantiles? Complete the square in §3's objective:
+<div>$$\sum_i\Big[g_if_i+\tfrac12h_if_i^2\Big]=\sum_i\tfrac12\,h_i\Big(f_i-\big(-\tfrac{g_i}{h_i}\big)\Big)^2+\text{const}.$$</div>
+Each round is a <b>weighted squared-error fit</b> to targets $-g_i/h_i$ with weights $h_i$. So candidate thresholds should split the total <b>$h$-mass</b> evenly, not the point count: each bucket holds about the same $\sum h_i$. XGBoost's <i>weighted quantile sketch</i> computes these quantiles approximately in one pass. With logistic loss, points the model is already sure of have $h_i=p_i(1-p_i)\approx0$ and barely count.</li>
+<li><b>Sparsity-aware splits.</b> Real data has missing values and many zeros (one-hot columns). Each node learns a <b>default direction</b>: send all missing entries left and compute the best gain, then send them all right, and keep the better. The scans visit only the non-missing entries, so the cost grows with the number of present values, not with $n\times d$.</li>
+</ol>
+<p>In the library, <code>tree_method</code> selects the search: <code>exact</code>, <code>approx</code>, or <code>hist</code>, which buckets every feature into fixed histogram bins once. <code>hist</code> is the same idea as LightGBM's histograms in <a href="D4-lightgbm.html">D4</a>.</p>
+
+<h2>7 · More brakes on overfitting</h2>
+<p>A boosted ensemble keeps cutting the training loss, so its variance has to be controlled (<a href="L66-bias-variance.html">L66</a>). XGBoost has a brake at every level:</p>
+<ul>
+<li><b>Shrinkage $\eta$</b> (<code>eta</code>): each tree contributes only $\eta f_m$, leaving room for later trees (D1).</li>
+<li><b>Row subsampling</b> (<code>subsample</code>): each tree sees a random fraction of the points, as in D2's stochastic gradient boosting.</li>
+<li><b>Column subsampling</b> (<code>colsample_bytree</code>, <code>colsample_bylevel</code>, <code>colsample_bynode</code>): each tree, level or node considers a random subset of features. That's the random forest's feature bagging (L67), and it also speeds up training.</li>
+<li><b><code>min_child_weight</code></b>: a lower bound on $H_j$ in every child. With squared loss $H_j=n_j$, so it's a minimum leaf size. With logistic loss $H_j=\sum p_i(1-p_i)$, which is tiny for points the model already classifies confidently. A split that isolates a handful of such points is refused even if their gradients are large, which is exactly the kind of split that chases noise.</li>
+<li><b><code>max_depth</code></b>: limits the order of feature interactions a single tree can express.</li>
+<li><b>Early stopping</b> (<code>early_stopping_rounds</code>): monitor a validation set and stop when its loss stops improving (<a href="L35-cross-validation.html">L35</a>, D2).</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0"><b>XGBoost from scratch, live.</b> Logistic loss on 2-D data: points inside a disc are class 1, plus 12% flipped labels. Each round grows a tree with the exact greedy gain to <code>max_depth</code>, prunes splits with negative gain, sets leaves to $-G_j/(H_j+\lambda)$ and adds $\eta f_m$. Left: the predicted probability. Right: average log-loss on the 160 training points and on 160 separate validation points. Changing a setting restarts training.</p>
+  <div class="row">
+    <label>η = <b id="etaV"></b> <input type="range" id="etaS" min="2" max="100" value="30" aria-label="learning rate eta"></label>
+    <label>max_depth = <b id="depV"></b> <input type="range" id="depS" min="1" max="4" value="3" aria-label="max depth"></label>
+    <label>λ = <b id="lam2V"></b> <input type="range" id="lam2S" min="0" max="200" value="10" aria-label="lambda"></label>
+    <label>γ = <b id="gam2V"></b> <input type="range" id="gam2S" min="0" max="200" value="0" aria-label="gamma"></label>
+    <label>min_child_weight = <b id="mcwV"></b> <input type="range" id="mcwS" min="0" max="300" value="100" aria-label="min child weight"></label>
+  </div>
+  <div class="row">
+    <button id="play" class="on">▶ Play</button><button id="one">+1 round</button><button id="twenty">+20 rounds</button><button id="reset">Reset</button><button id="newB">New data</button>
+  </div>
+  <div class="pair">
+    <canvas id="cc" height="300" aria-label="Predicted probability over the plane"></canvas>
+    <canvas id="cd" height="300" aria-label="Training and validation log-loss against rounds"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>class 1</span><span><i class="dot" style="background:var(--s2)"></i>class 0</span><span><i style="background:var(--s1)"></i>training loss</span><span><i style="background:var(--s2)"></i>validation loss</span><span><i class="dot" style="background:var(--s3)"></i>best validation round</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="bR">–</div><div class="l">rounds</div></div>
+    <div class="stat"><div class="v" id="bL">–</div><div class="l">leaves in the last tree (pruned)</div></div>
+    <div class="stat"><div class="v" id="bW">–</div><div class="l">largest |w<sub>j</sub>| in the last tree</div></div>
+    <div class="stat"><div class="v" id="bTr">–</div><div class="l">train / validation log-loss</div></div>
+    <div class="stat"><div class="v" id="bBest">–</div><div class="l">best validation round</div></div>
+  </div>
+  <p class="small" id="bTxt"></p>
+</div>
+<div class="beyond"><b>Things to try.</b> (1) With γ = 0, λ = 0, min_child_weight = 0 and depth 4, the training loss dives while the validation loss turns back up after a few dozen rounds: overfitting, as in L66. (2) Raise γ to 5–10: whole branches get pruned and the leaf count drops, and the validation curve flattens instead of rising. (3) Raise λ: the largest leaf value shrinks, so each round moves less. (4) Lower η to 0.05: you need many more rounds, but the best validation loss is usually as good or better, the same "small steps" lesson as D1.</div>
+
+<h2>8 · Hyperparameter cheat-sheet</h2>
+<table>
+<tr><th>XGBoost parameter</th><th>Symbol here</th><th>Default</th><th>Raising it…</th></tr>
+<tr><td><code>eta</code> (learning_rate)</td><td>$\eta$</td><td>0.3</td><td>bigger steps: fewer rounds needed, more variance; usually lower it and add rounds</td></tr>
+<tr><td><code>n_estimators</code> / num_boost_round</td><td>$M$</td><td>—</td><td>less bias, more variance; pick with early stopping</td></tr>
+<tr><td><code>max_depth</code></td><td>tree depth</td><td>6</td><td>richer trees with higher-order interactions: less bias, more variance</td></tr>
+<tr><td><code>min_child_weight</code></td><td>lower bound on $H_j$</td><td>1</td><td>refuses splits with little curvature: more bias, less variance</td></tr>
+<tr><td><code>gamma</code> (min_split_loss)</td><td>$\gamma$</td><td>0</td><td>higher price per leaf, more pruning: more bias, less variance</td></tr>
+<tr><td><code>lambda</code> (reg_lambda)</td><td>$\lambda$</td><td>1</td><td>smaller leaf values, damped Newton step: more bias, less variance</td></tr>
+<tr><td><code>alpha</code> (reg_alpha)</td><td>$\alpha$</td><td>0</td><td>L1 on leaf values: pushes small leaves to exactly 0</td></tr>
+<tr><td><code>subsample</code></td><td>row fraction</td><td>1</td><td>(lowering it) more randomness per tree: less variance, faster</td></tr>
+<tr><td><code>colsample_bytree / bylevel / bynode</code></td><td>feature fraction</td><td>1</td><td>(lowering it) de-correlates trees as in random forests</td></tr>
+<tr><td><code>tree_method</code></td><td>split search</td><td>auto</td><td><code>exact</code>, <code>approx</code> or <code>hist</code> (§6)</td></tr>
+</table>
+<p class="small muted">Defaults are as given in the XGBoost documentation; check the version you use. A practical starting point: <code>eta</code> 0.05–0.1 with early stopping, <code>max_depth</code> 4–8, then tune <code>min_child_weight</code>, <code>subsample</code> and <code>colsample_bytree</code> by cross-validation (L35).</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>XGBoost minimises loss + $\sum_m\Omega(f_m)$ with $\Omega(f)=\gamma T+\tfrac12\lambda\sum_jw_j^2$: a price per leaf and ridge on leaf values.</li>
+<li>Each round uses a second-order Taylor expansion with $g_i,h_i$. Grouped by leaves, it's $\sum_j[G_jw_j+\tfrac12(H_j+\lambda)w_j^2]+\gamma T$.</li>
+<li>The best leaf weight is $w_j^\star=-G_j/(H_j+\lambda)$, a ridge-damped Newton step. For squared loss that's the leaf's mean residual shrunk towards 0; for log-loss it's D2's Newton value.</li>
+<li>Split gain = (left score + right score − parent score)/2 − $\gamma$, with score $G^2/(H+\lambda)$: information gain with the impurity derived from the loss. Grow to <code>max_depth</code>, then prune negative-gain splits.</li>
+<li>Speed comes from pre-sorted column blocks, approximate splits at $h$-weighted quantiles, sparsity-aware default directions and parallel split search.</li>
+<li>Overfitting is controlled by $\eta$, $\gamma$, $\lambda$, <code>min_child_weight</code>, depth, row and column subsampling, and early stopping.</li>
+</ol>
+<p class="small muted">Next, <a href="D4-lightgbm.html">D4 · LightGBM</a> makes the split search cheaper still, with histograms, leaf-wise growth and gradient-based sampling.</p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const gauss = r => { let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const sig = z => 1 / (1 + Math.exp(-z));
+const fmt = (v, d = 3) => (Math.abs(v) < 5e-13 ? 0 : v).toFixed(d);
+function rgb(hex){ hex = hex.replace('#', ''); if (hex.length === 3) hex = hex.split('').map(c => c + c).join(''); const n = parseInt(hex, 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+// loss, gradient g = dℓ/dF and Hessian h = d²ℓ/dF²
+const LOSS = {
+  sq:  {l: (y, F) => 0.5 * (y - F) ** 2, g: (y, F) => F - y, h: () => 1},
+  log: {l: (y, F) => Math.log1p(Math.exp(-Math.abs(F))) + Math.max(F, 0) - y * F, g: (y, F) => sig(F) - y, h: (y, F) => { const p = sig(F); return p * (1 - p); }}
+};
+
+/* ---------------- demo 1: split-gain lab ---------------- */
+const NA = 30;
+let A = {loss: 'sq', seed: 7, xs: [], ys: {sq: [], log: []}};
+function makeA(){ const r = rng(A.seed); A.xs = Array.from({length: NA}, () => 10 * r()).sort((a, b) => a - b);
+  A.ys.sq = A.xs.map(x => (x < 4 ? 1 : x < 7 ? 3 : 2) + 0.5 * gauss(r));
+  A.ys.log = A.xs.map(x => +(r() < (x < 3 ? 0.15 : x < 6.5 ? 0.85 : 0.35))); }
+function statsA(){
+  const L = LOSS[A.loss], ys = A.ys[A.loss], F = +$('fS').value / 10, lam = +$('lamS').value / 10, gam = +$('gamS').value / 10;
+  const g = ys.map(y => L.g(y, F)), h = ys.map(y => L.h(y, F));
+  const pre = [[0, 0]]; for (let i = 0; i < NA; i++) pre.push([pre[i][0] + g[i], pre[i][1] + h[i]]);
+  const G = pre[NA][0], H = pre[NA][1], sc = (G_, H_) => G_ * G_ / (H_ + lam);
+  const gain = k => 0.5 * (sc(pre[k][0], pre[k][1]) + sc(G - pre[k][0], H - pre[k][1]) - sc(G, H)) - gam;
+  const gains = []; for (let k = 1; k < NA; k++) gains.push(gain(k));
+  return {L, ys, F, lam, gam, g, h, pre, G, H, gain, gains};
+}
+function drawA(){
+  const S = statsA(), k = +$('kS').value;
+  $('fV').textContent = S.F.toFixed(1) + (A.loss === 'log' ? ` (p = ${sig(S.F).toFixed(2)})` : '');
+  $('lamV').textContent = S.lam.toFixed(1); $('gamV').textContent = S.gam.toFixed(1); $('kV').textContent = k;
+  const GL = S.pre[k][0], HL = S.pre[k][1], GR = S.G - GL, HR = S.H - HL;
+  const wL = -GL / (HL + S.lam), wR = -GR / (HR + S.lam), w0 = -S.G / (S.H + S.lam), gain = S.gain(k);
+  // objective check: 2nd-order quadratic vs true regularised loss, one leaf vs two
+  let qSplit = 0, qRoot = 0, tSplit = 0, tRoot = 0;
+  for (let i = 0; i < NA; i++){ const w = i < k ? wL : wR;
+    qSplit += S.g[i] * w + 0.5 * S.h[i] * w * w; qRoot += S.g[i] * w0 + 0.5 * S.h[i] * w0 * w0;
+    tSplit += S.L.l(S.ys[i], S.F + w); tRoot += S.L.l(S.ys[i], S.F + w0); }
+  const reg2 = 0.5 * S.lam * (wL * wL + wR * wR) + 2 * S.gam, reg1 = 0.5 * S.lam * w0 * w0 + S.gam;
+  const dQ = qSplit + reg2 - (qRoot + reg1), dT = tSplit + reg2 - (tRoot + reg1);
+  $('aGL').textContent = `${fmt(GL, 2)}, ${fmt(HL, 2)}`; $('aGR').textContent = `${fmt(GR, 2)}, ${fmt(HR, 2)}`;
+  $('aW').textContent = `${fmt(wL, 2)}, ${fmt(wR, 2)} (${fmt(w0, 2)})`; $('aG').textContent = fmt(gain, 3);
+  $('aQ').textContent = fmt(dQ, 3); $('aT').textContent = fmt(dT, 3);
+  let best = 1; S.gains.forEach((v, i) => { if (v > S.gains[best - 1]) best = i + 1; });
+  const ink = cssv('--ink'), mut = cssv('--muted'), grid = cssv('--grid'), s1 = cssv('--s1'), s2 = cssv('--s2'), s3 = cssv('--s3'), faint = cssv('--faint');
+  // left: data (top) and g/h bars (bottom)
+  { const [ctx, W, Hh] = setupCanvas($('ca')), pl = 34, pr = 8, top = 8, mid = 196, bot = Hh - 18;
+    const X = x => pl + x / 10 * (W - pl - pr);
+    const yr = A.loss === 'sq' ? [Math.min(...S.ys, S.F + Math.min(wL, wR, 0)) - 0.4, Math.max(...S.ys, S.F + Math.max(wL, wR, 0)) + 0.4] : [-0.08, 1.08];
+    const Y = v => mid - 10 - (v - yr[0]) / (yr[1] - yr[0]) * (mid - 10 - top);
+    const val = F => A.loss === 'sq' ? F : sig(F);
+    ctx.font = '11px system-ui,sans-serif'; ctx.fillStyle = mut; ctx.strokeStyle = grid; ctx.lineWidth = 1;
+    const ticks = A.loss === 'sq' ? [Math.ceil(yr[0]), Math.floor(yr[1])].filter((v, i, a) => a.indexOf(v) === i) : [0, 0.5, 1];
+    ticks.forEach(v => { ctx.beginPath(); ctx.moveTo(pl, Y(v)); ctx.lineTo(W - pr, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v, pl - 4, Y(v)); });
+    ctx.save(); ctx.translate(10, (top + mid) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = 'center'; ctx.fillText(A.loss === 'sq' ? 'y' : 'y / p', 0, 0); ctx.restore();
+    const xt = (A.xs[k - 1] + A.xs[k]) / 2;
+    ctx.strokeStyle = faint; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pl, Y(val(S.F))); ctx.lineTo(W - pr, Y(val(S.F))); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = s1; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(pl, Y(val(S.F + wL))); ctx.lineTo(X(xt), Y(val(S.F + wL))); ctx.moveTo(X(xt), Y(val(S.F + wR))); ctx.lineTo(W - pr, Y(val(S.F + wR))); ctx.stroke();
+    A.xs.forEach((x, i) => { ctx.fillStyle = ink; ctx.globalAlpha = 0.8; ctx.beginPath(); ctx.arc(X(x), Y(S.ys[i]), 3.5, 0, 2 * Math.PI); ctx.fill(); }); ctx.globalAlpha = 1;
+    // bars: g signed around a zero line, h upward from the same line
+    const b0 = (mid + bot) / 2 + 4, gm = Math.max(...S.g.map(Math.abs), 1e-9), hm = Math.max(...S.h, 1e-9), bh = (bot - mid) / 2 - 4;
+    ctx.strokeStyle = grid; ctx.beginPath(); ctx.moveTo(pl, b0); ctx.lineTo(W - pr, b0); ctx.stroke();
+    ctx.fillStyle = mut; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText('g, h', pl - 4, b0);
+    A.xs.forEach((x, i) => { const bw = Math.max(1.5, (W - pl - pr) / NA * 0.28);
+      ctx.fillStyle = s2; const gh = S.g[i] / gm * bh; ctx.fillRect(X(x) - bw - 0.5, gh > 0 ? b0 - gh : b0, bw, Math.abs(gh));
+      ctx.fillStyle = s3; const hh = S.h[i] / hm * bh * 0.9; ctx.fillRect(X(x) + 0.5, b0 - hh, bw, hh); });
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(xt), top); ctx.lineTo(X(xt), bot); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = mut; ctx.textAlign = 'center'; ctx.textBaseline = 'top'; [0, 5, 10].forEach(v => ctx.fillText(v, X(v), bot + 3));
+    A.geom = {X, pl, pr, W}; }
+  // right: gain vs threshold
+  { const [ctx, W, Hh] = setupCanvas($('cb')), p = {l: 40, r: 8, t: 12, b: 26};
+    const lo = Math.min(0, ...S.gains), hi = Math.max(0, ...S.gains), span = (hi - lo) || 1;
+    const X = x => p.l + x / 10 * (W - p.l - p.r), Y = v => Hh - p.b - (v - lo + 0.06 * span) / (span * 1.12) * (Hh - p.t - p.b);
+    ctx.font = '11px system-ui,sans-serif'; ctx.fillStyle = mut; ctx.strokeStyle = grid; ctx.lineWidth = 1;
+    [lo, 0, hi].filter((v, i, a) => a.indexOf(v) === i).forEach(v => { ctx.beginPath(); ctx.moveTo(p.l, Y(v)); ctx.lineTo(W - p.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(+v.toPrecision(2), p.l - 4, Y(v)); });
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; [0, 5, 10].forEach(v => ctx.fillText(v, X(v), Hh - p.b + 4)); ctx.textBaseline = 'bottom'; ctx.fillText('threshold on x', (p.l + W) / 2, Hh);
+    ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(p.l, Y(0)); ctx.lineTo(W - p.r, Y(0)); ctx.stroke();
+    const mx = j => (A.xs[j - 1] + A.xs[j]) / 2;
+    ctx.strokeStyle = s1; ctx.lineWidth = 2.2; ctx.beginPath(); S.gains.forEach((v, i) => { const x = X(mx(i + 1)), y = Y(v); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+    const pt = (j, col, r) => { ctx.fillStyle = col; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(mx(j)), Y(S.gains[j - 1]), r, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); };
+    pt(best, s3, 7); pt(k, ink, 5); }
+  const bg = S.gains[best - 1];
+  $('aTxt').innerHTML = (gain > 0 ? `This split <b>is worth making</b>: it lowers the objective by ${fmt(gain, 3)}.` : `This split is <b>refused</b>: Gain ≤ 0${S.gam > 0 ? `, the improvement doesn't pay the leaf price γ = ${S.gam.toFixed(1)}` : ''}.`)
+    + ` Best threshold: x ≈ ${((A.xs[best - 1] + A.xs[best]) / 2).toFixed(2)} with Gain ${fmt(bg, 3)}${bg <= 0 ? ' (still negative, so this leaf stays a leaf)' : ''}. `
+    + (A.loss === 'sq' ? 'With squared loss every h_i = 1, so H counts points and w* is a shrunk mean residual; the two "change" numbers match exactly.'
+      : 'With logistic loss h_i = p(1 − p) is the same for all points here (one current prediction), but g_i = p − y_i flips sign with the label. The 2nd-order change is exactly −Gain; the true change differs a little because log-loss isn\'t a parabola.');
+}
+document.querySelectorAll('button[data-loss]').forEach(b => b.onclick = () => { A.loss = b.dataset.loss; document.querySelectorAll('button[data-loss]').forEach(x => x.classList.toggle('on', x === b)); $('fS').value = 0; drawA(); });
+['fS', 'lamS', 'gamS', 'kS'].forEach(id => $(id).oninput = drawA);
+$('newA').onclick = () => { A.seed = Math.floor(Math.random() * 1e9); makeA(); drawA(); };
+$('bestA').onclick = () => { const S = statsA(); let best = 1; S.gains.forEach((v, i) => { if (v > S.gains[best - 1]) best = i + 1; }); $('kS').value = best; drawA(); };
+function dragA(e){ if (!A.geom) return; const r = $('ca').getBoundingClientRect(), x = (e.clientX - r.left - A.geom.pl) / (A.geom.W - A.geom.pl - A.geom.pr) * 10;
+  let k = 1; for (let j = 1; j < NA; j++) if (Math.abs((A.xs[j - 1] + A.xs[j]) / 2 - x) < Math.abs((A.xs[k - 1] + A.xs[k]) / 2 - x)) k = j; $('kS').value = k; drawA(); }
+let downA = false; $('ca').addEventListener('pointerdown', e => { downA = true; dragA(e); }); $('ca').addEventListener('pointermove', e => { if (downA) dragA(e); }); window.addEventListener('pointerup', () => downA = false);
+makeA();
+
+/* ---------------- demo 2: XGBoost from scratch ---------------- */
+const NB = 160, GRID = 48, R2 = 1.25, MAXR = 300;
+let B = null, playing = false;
+function makeB(seed){ const r = rng(seed), mk = () => Array.from({length: NB}, () => { const x = [2 * R2 * r() - R2, 2 * R2 * r() - R2];
+  let y = +(x[0] * x[0] + 1.6 * x[1] * x[1] + 0.6 * x[0] * x[1] < 0.55); if (r() < 0.12) y = 1 - y; return {x, y}; });
+  return {seed, tr: mk(), va: mk()}; }
+let DB = makeB(11);
+function params(){ return {eta: +$('etaS').value / 100, dep: +$('depS').value, lam: +$('lam2S').value / 10, gam: +$('gam2S').value / 10, mcw: +$('mcwS').value / 100}; }
+function resetB(){ const P = params(), base = DB.tr.reduce((s, d) => s + d.y, 0) / NB, F0 = Math.log(base / (1 - base));
+  const order = [0, 1].map(f => DB.tr.map((_, i) => i).sort((a, b) => DB.tr[a].x[f] - DB.tr[b].x[f]));
+  const gridF = new Float64Array(GRID * GRID).fill(F0);
+  B = {P, F0, order, Ftr: new Float64Array(NB).fill(F0), Fva: new Float64Array(NB).fill(F0), gridF, trL: [], vaL: [], last: null};
+  B.trL.push(logloss(DB.tr, B.Ftr)); B.vaL.push(logloss(DB.va, B.Fva)); }
+const logloss = (D, F) => D.reduce((s, d, i) => s + LOSS.log.l(d.y, F[i]), 0) / D.length;
+function grow(g, h){ const P = B.P, mark = new Uint8Array(NB); let pruned = 0;
+  function build(idx, depth){ let G = 0, H = 0; idx.forEach(i => { G += g[i]; H += h[i]; });
+    const node = {G, H, w: -G / (H + P.lam), n: idx.length};
+    if (depth >= P.dep || idx.length < 2) return node;
+    idx.forEach(i => mark[i] = 1);
+    let best = {raw: 1e-12};
+    for (let f = 0; f < 2; f++){ let GL = 0, HL = 0; const ord = B.order[f].filter(i => mark[i]);
+      for (let a = 0; a < ord.length - 1; a++){ const i = ord[a]; GL += g[i]; HL += h[i];
+        const v = DB.tr[i].x[f], vn = DB.tr[ord[a + 1]].x[f]; if (vn === v) continue;
+        const GR = G - GL, HR = H - HL; if (HL < P.mcw || HR < P.mcw) continue;
+        const raw = 0.5 * (GL * GL / (HL + P.lam) + GR * GR / (HR + P.lam) - G * G / (H + P.lam));
+        if (raw > best.raw) best = {raw, f, t: (v + vn) / 2}; } }
+    idx.forEach(i => mark[i] = 0);
+    if (best.f === undefined) return node;
+    node.f = best.f; node.t = best.t; node.gain = best.raw - P.gam;
+    node.l = build(idx.filter(i => DB.tr[i].x[best.f] <= best.t), depth + 1); node.r = build(idx.filter(i => DB.tr[i].x[best.f] > best.t), depth + 1);
+    return node; }
+  // prune bottom-up: a split whose children are both leaves goes if its gain (after γ) is negative
+  function prune(nd){ if (nd.f === undefined) return; prune(nd.l); prune(nd.r);
+    if (nd.l.f === undefined && nd.r.f === undefined && nd.gain < 0){ delete nd.f; delete nd.l; delete nd.r; pruned++; } }
+  const root = build(DB.tr.map((_, i) => i), 0); prune(root); return {root, pruned}; }
+const pred = (nd, x) => nd.f === undefined ? nd.w : pred(x[nd.f] <= nd.t ? nd.l : nd.r, x);
+function leaves(nd, out = []){ if (nd.f === undefined) out.push(nd.w); else { leaves(nd.l, out); leaves(nd.r, out); } return out; }
+const gx = c => -R2 + (c + 0.5) / GRID * 2 * R2;
+function roundB(){ if (B.trL.length > MAXR) { if (playing) setPlay(false); return; }
+  const g = DB.tr.map((d, i) => LOSS.log.g(d.y, B.Ftr[i])), h = DB.tr.map((d, i) => LOSS.log.h(d.y, B.Ftr[i]));
+  const t = grow(g, h), e = B.P.eta;
+  DB.tr.forEach((d, i) => B.Ftr[i] += e * pred(t.root, d.x)); DB.va.forEach((d, i) => B.Fva[i] += e * pred(t.root, d.x));
+  for (let a = 0; a < GRID; a++) for (let b = 0; b < GRID; b++) B.gridF[a * GRID + b] += e * pred(t.root, [gx(b), gx(a)]);
+  B.trL.push(logloss(DB.tr, B.Ftr)); B.vaL.push(logloss(DB.va, B.Fva)); B.last = {lv: leaves(t.root), pruned: t.pruned}; }
+function drawB(){
+  if (!B) return; const P = params();
+  $('etaV').textContent = P.eta.toFixed(2); $('depV').textContent = P.dep; $('lam2V').textContent = P.lam.toFixed(1); $('gam2V').textContent = P.gam.toFixed(1); $('mcwV').textContent = P.mcw.toFixed(2);
+  const s1 = rgb(cssv('--s1')), s2 = rgb(cssv('--s2')), mut = cssv('--muted'), grid = cssv('--grid');
+  { const [ctx, W, H] = setupCanvas($('cc')), side = Math.min(W, H), ox = (W - side) / 2, cs = side / GRID;
+    for (let a = 0; a < GRID; a++) for (let b = 0; b < GRID; b++){ const p = sig(B.gridF[a * GRID + b]), c = p >= 0.5 ? s1 : s2, al = Math.min(1, Math.abs(p - 0.5) * 2) * 0.55;
+      ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${al.toFixed(3)})`; ctx.fillRect(ox + b * cs, H - (a + 1) * cs - (H - side) / 2, cs + 0.6, cs + 0.6); }
+    const X = v => ox + (v + R2) / (2 * R2) * side, Y = v => H - (H - side) / 2 - (v + R2) / (2 * R2) * side;
+    DB.tr.forEach(d => { const c = d.y ? cssv('--s1') : cssv('--s2'); ctx.fillStyle = c; ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X(d.x[0]), Y(d.x[1]), 3.2, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); }); }
+  { const [ctx, W, H] = setupCanvas($('cd')), p = {l: 40, r: 10, t: 10, b: 28}, n = B.trL.length, xmax = Math.max(40, n - 1);
+    const all = B.trL.concat(B.vaL), ymax = Math.max(0.75, ...all.filter(isFinite)), X = i => p.l + i / xmax * (W - p.l - p.r), Y = v => H - p.b - Math.min(v, ymax) / ymax * (H - p.t - p.b);
+    ctx.font = '11px system-ui,sans-serif'; ctx.fillStyle = mut; ctx.strokeStyle = grid; ctx.lineWidth = 1;
+    for (let k = 0; k <= 4; k++){ const v = ymax * k / 4; ctx.beginPath(); ctx.moveTo(p.l, Y(v)); ctx.lineTo(W - p.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v.toFixed(2), p.l - 4, Y(v)); }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top'; [0, Math.round(xmax / 2), xmax].forEach(v => ctx.fillText(v, X(v), H - p.b + 4)); ctx.textBaseline = 'bottom'; ctx.fillText('round m', (p.l + W) / 2, H);
+    const line = (arr, col) => { ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.beginPath(); arr.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v))); ctx.stroke(); };
+    line(B.trL, cssv('--s1')); line(B.vaL, cssv('--s2'));
+    let bi = 0; B.vaL.forEach((v, i) => { if (v < B.vaL[bi]) bi = i; }); B.best = bi;
+    ctx.fillStyle = cssv('--s3'); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(bi), Y(B.vaL[bi]), 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke(); }
+  const n = B.trL.length - 1;
+  $('bR').textContent = n; $('bTr').textContent = `${B.trL[n].toFixed(3)} / ${B.vaL[n].toFixed(3)}`; $('bBest').textContent = `${B.best} (${B.vaL[B.best].toFixed(3)})`;
+  $('bL').textContent = B.last ? `${B.last.lv.length} (${B.last.pruned})` : '–'; $('bW').textContent = B.last ? Math.max(...B.last.lv.map(Math.abs)).toFixed(3) : '–';
+  const over = n - B.best;
+  $('bTxt').innerHTML = n === 0 ? 'Round 0 is the constant log-odds of the training labels. Press Play.'
+    : over > 25 && B.vaL[n] > B.vaL[B.best] + 0.02 ? `The validation loss bottomed out at round ${B.best} and has risen since, while the training loss keeps falling: the trees are fitting the flipped labels. Early stopping would keep round ${B.best}. Try a larger γ or λ, a larger min_child_weight, or a smaller η.`
+    : B.last && B.last.lv.length === 1 ? 'The last tree is a single leaf: every candidate split had gain below γ (or a child below min_child_weight), so the tree was pruned to its root. Boosting has effectively stopped.'
+    : `Each tree has at most ${2 ** P.dep} leaves. The validation loss is still close to its best (round ${B.best}).`;
+}
+function loop(){ if (!playing) return; roundB(); drawB(); if (playing) requestAnimationFrame(loop); }
+function setPlay(v){ playing = v; $('play').textContent = playing ? '❚❚ Pause' : '▶ Play'; $('play').classList.toggle('on', playing); if (playing) requestAnimationFrame(loop); }
+$('play').onclick = () => setPlay(!playing);
+$('one').onclick = () => { roundB(); drawB(); };
+$('twenty').onclick = () => { for (let i = 0; i < 20; i++) roundB(); drawB(); };
+$('reset').onclick = () => { resetB(); drawB(); };
+$('newB').onclick = () => { DB = makeB(Math.floor(Math.random() * 1e9)); resetB(); drawB(); };
+['etaS', 'depS', 'lam2S', 'gam2S', 'mcwS'].forEach(id => $(id).oninput = () => { resetB(); drawB(); });
+resetB();
+
+function drawAll(){ drawA(); drawB(); }
+drawAll(); setPlay(true);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CatBoost: Categorical Features without Target Leakage</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+main{overflow-x:clip} .katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Detour 5 of 5 · Not in the DA5400 lectures · Gradient-boosted trees</div>
+<h1>CatBoost: Categorical Features without Target Leakage</h1>
+<p class="lede">Real tabular data is full of <b>categorical</b> features: city, product id, user id. The most effective encoding replaces each category by the average label seen with it, but done naively that leaks each row's own label into its features, so the model looks brilliant on training data and fails on new data. CatBoost's answer is one idea used twice: <b>only let a row see the labels of rows that come "before" it</b> in a random order. Applied to the encoding that gives <b>ordered target statistics</b>; applied to the boosting residuals, <b>ordered boosting</b>. It also grows <b>oblivious trees</b>: one question per level.</p>
+<p class="small muted">Not part of the DA5400 lectures. Main source: L. Prokhorenkova et al., <i>CatBoost: unbiased boosting with categorical features</i>, NeurIPS 2018 (<a href="https://arxiv.org/abs/1706.09516">arXiv:1706.09516</a>); documentation <a href="https://catboost.ai/docs/">catboost.ai/docs</a>. Previous: <a href="D4-lightgbm.html">D4</a> · Next: <a href="L72-neural-networks.html">L72</a> (back to the course).</p>
+
+<h2>1 · The categorical-feature problem</h2>
+<p>A tree (L43–L44) asks numeric questions like "is $x_f\le t$?". A categorical feature with values {Chennai, Delhi, Mumbai, …} has no order, so it has to be encoded first.</p>
+<table>
+<tr><th>Encoding</th><th>Idea</th><th>Problem</th></tr>
+<tr><td>Label encoding</td><td>Chennai = 1, Delhi = 2, Mumbai = 3, …</td><td>Invents an order; "≤ 2" groups Chennai with Delhi for no reason.</td></tr>
+<tr><td>One-hot</td><td>one 0/1 column per category</td><td>A user-id feature with 10⁶ values becomes 10⁶ columns. Each split isolates one category, so each has tiny gain, and rare categories are barely learnable. (CatBoost still one-hots features with only a few categories.)</td></tr>
+<tr><td><b>Target statistics</b> (TS)</td><td>replace category $c$ by an estimate of $\mathbb E[y\mid x=c]$</td><td>One numeric column, any cardinality, but must be computed carefully (sections 2–4).</td></tr>
+</table>
+
+<h2>2 · Target statistics, and why the obvious one leaks</h2>
+<p>For row $k$ with category $c=x_k$, the greedy TS averages the labels of all training rows in that category:</p>
+<div>$$\hat x_k=\frac{\sum_{j}\mathbb 1[x_j=c]\;y_j}{\sum_j\mathbb 1[x_j=c]}.$$</div>
+<p>The sum <b>includes $y_k$ itself</b>. So the feature of row $k$ contains part of its own label, which a test row never gets. Its distribution given $y$ is different at training and test time (the paper calls this a <b>target leakage</b>, leading to a <b>prediction shift</b>).</p>
+<div class="callout"><b>The extreme case</b> (from the paper): a feature that is unique for every row, like a transaction id, with no relation to $y$. Then each category has one row, $\hat x_k=y_k$, and a single split at $0.5$ classifies the <b>training</b> set perfectly. On test data, every id is new, so the feature is useless. The tree learned "the encoding equals the label", which is only true on the training set.</div>
+
+<h2>3 · Smoothing with a prior (the Beta-prior trick again)</h2>
+<p>Rare categories give noisy averages. Add $a$ pseudo-observations whose label is the prior value $p$ (for example, the overall mean of $y$):</p>
+<div>$$\hat x_k=\frac{\sum_j\mathbb 1[x_j=c]\,y_j\;+\;a\,p}{\sum_j\mathbb 1[x_j=c]\;+\;a}.$$</div>
+<p>This is exactly the posterior mean we met in <a href="L21-bayesian-estimation.html">L21</a>: with a $\text{Beta}(ap,\;a(1-p))$ prior on a category's probability of $y=1$, the posterior mean after $n_c$ observations with $s_c$ ones is $\frac{s_c+ap}{n_c+a}$. Laplace smoothing in <a href="L49-naive-bayes-pitfalls.html">L49</a> is the special case $a=2,\;p=\tfrac12$. A category seen once is pulled towards $p$; a category seen 1,000 times keeps its own average.</p>
+<p>But smoothing <b>does not remove the leak</b>. In the unique-id example, $\hat x_k=\frac{y_k+ap}{1+a}$: still two values, still perfectly separable on training data. Two other fixes and their problems:</p>
+<ul>
+<li><b>Hold-out TS</b>: compute the statistics on one part of the data, train on the other. No leak, but each part sees only some of the data.</li>
+<li><b>Leave-one-out TS</b>: use all rows except $k$. Sounds perfect, but it still leaks. If every row has the same category with $n^+$ positives, then $\hat x_k=\frac{n^+-y_k+ap}{n-1+a}$, which is <b>smaller exactly when $y_k=1$</b>, so the feature separates the labels perfectly (the paper's counter-example).</li>
+</ul>
+
+<h2>4 · Ordered target statistics</h2>
+<p>Borrow the idea of <b>time</b>: online algorithms only ever use the past. Draw a random permutation $\sigma$ of the training rows and let row $k$ use only the rows that come <b>before it</b>:</p>
+<div>$$\hat x_k=\frac{\sum_{j:\;\sigma(j)<\sigma(k)}\mathbb 1[x_j=x_k]\,y_j\;+\;a\,p}{\sum_{j:\;\sigma(j)<\sigma(k)}\mathbb 1[x_j=x_k]\;+\;a}.$$</div>
+<div class="callout"><b>Why it works.</b> $\hat x_k$ never uses $y_k$, so the relation between $\hat x_k$ and $y_k$ at training time is the same as for a test row, whose TS is computed from the training data. Unlike hold-out TS, every row is used both to train and (for later rows) to compute statistics.</div>
+<p>The cost: rows early in the permutation have little "history", so their statistics are noisy (the first row of a category gets just the prior $p$). CatBoost uses several random permutations, so that early, noisy rows differ from tree to tree. At test time, TS are computed from all training data.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">600 training rows with one weakly useful numeric feature $x_1$ and one categorical feature with $K$ categories that is <b>pure noise</b> (independent of $y$). Each encoding of the categorical feature is fed, with $x_1$, to the same small GBDT (30 depth-2 trees, $\eta=0.3$, logistic loss). Test: 3,000 fresh rows.</p>
+  <div class="row">
+    <label>categories K = <b id="kV"></b> <input type="range" id="K" min="10" max="600" step="10" value="300" aria-label="number of categories"></label>
+    <label>prior strength a = <b id="aV"></b> <input type="range" id="pa" min="0" max="6" value="2" aria-label="prior strength index"></label>
+    <button id="newL">New data</button>
+  </div>
+  <canvas id="lb" height="230" aria-label="Train and test accuracy for each encoding"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>training accuracy</span><span><i class="dot" style="background:var(--s2)"></i>test accuracy</span><span><i style="background:var(--faint)"></i>x₁ alone (no categorical feature)</span></div>
+  <div class="row" id="encBtns">
+    <span class="small muted">show the encoded training values for:</span>
+    <button data-e="naive" class="on">greedy TS</button><button data-e="smooth">smoothed TS</button><button data-e="loo">leave-one-out</button><button data-e="ordered">ordered TS</button>
+  </div>
+  <canvas id="ls" height="130" aria-label="Encoded values of training rows split by label"></canvas>
+  <table style="margin-top:8px"><tr><th>encoding</th><th>train log-loss</th><th>test log-loss</th></tr><tbody id="lt"></tbody></table>
+  <p class="small" id="lTxt"></p>
+</div>
+
+<h2>5 · The same leak inside boosting: ordered boosting</h2>
+<p>The paper's second observation: gradient boosting itself has the same kind of leak. At round $m$, the gradient $g_i$ of training row $i$ is computed from $F_{m-1}(x_i)$, but $F_{m-1}$ was itself fitted on row $i$. So training residuals are systematically smaller than the residuals a test row would have, which is the training-vs-test gap of L66 creeping into every round. The fitted trees are biased towards the training points (a <b>prediction shift</b>).</p>
+<p><b>Ordered boosting</b> applies the "only the past" rule again. Conceptually, keep supporting models $M_1,\dots,M_n$, where $M_i$ is trained only on the first $i$ rows of the permutation, and compute row $i$'s residual with $M_{i-1}$, a model that has never seen row $i$. Storing $n$ models is too expensive, so CatBoost uses an approximation: supporting predictions only for prefixes whose lengths grow by powers of two, shared tree structures, and the same permutations as the ordered TS. The library exposes the choice as <code>boosting_type</code> (<code>"Ordered"</code> or <code>"Plain"</code>); ordered mode matters most on small data sets, where the shift is largest.</p>
+
+<h2>6 · Oblivious (symmetric) trees</h2>
+<p>CatBoost's default trees are <b>oblivious</b>: every node at the same depth asks the <b>same question</b>. A depth-$D$ oblivious tree is a list of $D$ conditions $(f_1,t_1),\dots,(f_D,t_D)$ and a table of $2^D$ leaf values. A point's leaf is just the binary number formed by its answers:</p>
+<div>$$\text{leaf}(x)=\sum_{k=1}^{D}2^{k-1}\,\mathbb 1\big[x_{f_k}>t_k\big],\qquad f(x)=w_{\text{leaf}(x)}.$$</div>
+<ul>
+<li><b>Fast prediction:</b> $D$ comparisons and a table lookup, with no branching, which is fast on CPUs.</li>
+<li><b>Regularisation:</b> a level's question must help <b>all</b> leaves at once (it's chosen to maximise the summed gain over every current leaf), so the tree can't chase one corner of the data. That is the opposite philosophy to LightGBM's leaf-wise growth (D4).</li>
+<li><b>Cost:</b> less flexible per tree, so you may need more or deeper trees.</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The same 200 points fitted by one depth-3 tree of each kind (one Newton step from $F=0$: $g_i=\frac12-y_i$, $h_i=\frac14$, $\lambda=1$). <b>Click a point</b> (on either plot) to see how each tree finds its leaf.</p>
+  <div class="row"><button id="newO">New data</button></div>
+  <div class="pair half">
+    <div><p class="small muted" style="margin:0 0 4px">ordinary tree (each node picks its own question)</p><canvas id="oc" height="260" aria-label="Ordinary depth-3 tree partition"></canvas></div>
+    <div><p class="small muted" style="margin:0 0 4px">oblivious tree (one question per level)</p><canvas id="ob" height="260" aria-label="Oblivious depth-3 tree partition"></canvas></div>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>y = 1</span><span><i class="dot" style="background:var(--s2)"></i>y = 0</span><span><i class="dot" style="background:var(--ink)"></i>selected point</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="oAcc">–</div><div class="l">training accuracy: ordinary</div></div>
+    <div class="stat"><div class="v" id="bAcc">–</div><div class="l">training accuracy: oblivious</div></div>
+    <div class="stat"><div class="v" id="oQ">–</div><div class="l">distinct questions: ordinary vs oblivious</div></div>
+  </div>
+  <div class="pair half">
+    <div class="small" id="oPath"></div>
+    <div class="small" id="bPath"></div>
+  </div>
+</div>
+
+<h2>7 · Feature combinations</h2>
+<p>A single categorical feature's TS can miss interactions: "city" and "product" may matter mainly together. CatBoost builds <b>combinations</b> of categorical features greedily while growing a tree: when a split uses a categorical feature, combinations of the categorical features already used in the current tree with the remaining ones become candidates, each converted to its own ordered TS. Enumerating all combinations would explode, so this greedy rule keeps it manageable.</p>
+
+<h2>8 · XGBoost, LightGBM and CatBoost side by side</h2>
+<table>
+<tr><th></th><th>XGBoost (D3)</th><th>LightGBM (D4)</th><th>CatBoost (D5)</th></tr>
+<tr><td>Objective</td><td colspan="3">the same second-order objective: $\sum_i\big[g_if(x_i)+\tfrac12h_if(x_i)^2\big]+\gamma T+\tfrac12\lambda\lVert w\rVert^2$, with $w^\star=-G/(H+\lambda)$</td></tr>
+<tr><td>Tree growth</td><td>level-wise by default (loss-guided growth available)</td><td>leaf-wise, capped by <code>num_leaves</code></td><td>oblivious (symmetric) by default; other policies available</td></tr>
+<tr><td>Split finding</td><td>exact greedy, approximate (quantile sketch), or histogram</td><td>histograms, GOSS, EFB</td><td>quantised feature borders</td></tr>
+<tr><td>Categorical features</td><td>traditionally one-hot by the user; newer versions add native support</td><td>native: categories sorted by $\sum g/\sum h$</td><td>ordered target statistics, one-hot for few categories, feature combinations</td></tr>
+<tr><td>Missing values</td><td>learned default direction per split (sparsity-aware)</td><td>handled natively</td><td>handled natively for numeric features (mode set by <code>nan_mode</code>)</td></tr>
+<tr><td>Signature idea</td><td>Newton step + regularised gain</td><td>speed on large data</td><td>no target leakage (ordered TS, ordered boosting)</td></tr>
+<tr><td>Reach for it when…</td><td>you want a well-documented, widely deployed baseline</td><td>the data is large and mostly numeric or sparse</td><td>there are many (high-cardinality) categorical features, or the data set is small</td></tr>
+</table>
+<p class="small muted">In practice the three often end up within a small margin of each other once tuned, so the "when" row is a starting point, not a rule. Tune on a validation set and use early stopping (L35, D2).</p>
+
+<h2>9 · How it all connects</h2>
+<table>
+<tr><th>Step</th><th>Idea</th><th>Where</th></tr>
+<tr><td>Decision trees</td><td>greedy splits by a purity / gain score; depth controls bias vs variance</td><td><a href="L43-decision-trees.html">L43</a>–<a href="L44-building-trees.html">L44</a>, <a href="L66-bias-variance.html">L66</a></td></tr>
+<tr><td>Bagging</td><td>average many deep (high-variance) trees on bootstrap samples</td><td><a href="L67-bagging.html">L67</a></td></tr>
+<tr><td>AdaBoost</td><td>add shallow (high-bias) learners one at a time, re-weighting hard points</td><td><a href="L68-boosting.html">L68</a></td></tr>
+<tr><td>Loss view</td><td>AdaBoost = stagewise minimisation of the exponential loss</td><td><a href="L71-perceptron-boosting-loss.html">L71</a></td></tr>
+<tr><td>Gradient boosting</td><td>any differentiable loss: fit a tree to the negative gradient, $F_m=F_{m-1}+\eta f_m$</td><td><a href="D1-gradient-boosting.html">D1</a>–<a href="D2-gbdt.html">D2</a></td></tr>
+<tr><td>XGBoost</td><td>second-order (Newton) step, regularised leaves, gain formula</td><td><a href="D3-xgboost.html">D3</a></td></tr>
+<tr><td>LightGBM</td><td>the same objective, computed cheaply</td><td><a href="D4-lightgbm.html">D4</a></td></tr>
+<tr><td>CatBoost</td><td>the same objective, without leaking labels into features or residuals</td><td>D5</td></tr>
+</table>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Target statistics encode a categorical feature by the average label of its category; smoothing with $a$ pseudo-observations of value $p$ is the Beta-prior posterior mean (L21) and generalises Laplace smoothing (L49).</li>
+<li>Greedy TS uses a row's own label in its feature, so training and test distributions differ (target leakage). Smoothing and leave-one-out don't fix it.</li>
+<li>Ordered TS: compute row $k$'s statistic only from rows before it in a random permutation, so its own label is never used.</li>
+<li>Ordered boosting applies the same rule to residuals: a row's gradient comes from a model that hasn't seen it.</li>
+<li>Oblivious trees use one question per level: $2^D$ leaves indexed by $D$ bits, fast inference and built-in regularisation.</li>
+<li>XGBoost, LightGBM and CatBoost share one objective; they differ in how trees are grown, how splits are found, and how categorical features and leakage are handled.</li>
+</ol>
+<p class="small muted">End of the detour. <a href="L72-neural-networks.html">Back to the course: L72 Neural networks →</a></p>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const rgba = (hex, a) => { const h = hex.replace('#', ''), v = parseInt(h.length === 3 ? h.replace(/./g, c => c + c) : h, 16); return `rgba(${v >> 16 & 255},${v >> 8 & 255},${v & 255},${a})`; };
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const sig = z => 1 / (1 + Math.exp(-z));
+
+/* ---------- a tiny GBDT (logistic loss, Newton leaves) on 2 numeric features ---------- */
+function fitGBDT(X, y, rounds = 30, eta = 0.3, depth = 2, lam = 1, minL = 5){
+  const n = y.length, F = new Float64Array(n), trees = [];
+  for (let m = 0; m < rounds; m++){
+    const g = new Float64Array(n), h = new Float64Array(n);
+    for (let i = 0; i < n; i++){ const p = sig(F[i]); g[i] = p - y[i]; h[i] = Math.max(p * (1 - p), 1e-6); }
+    const build = (idx, d) => {
+      let G = 0, H = 0; idx.forEach(i => { G += g[i]; H += h[i]; });
+      const leaf = {w: -G / (H + lam)};
+      if (d === depth || idx.length < 2 * minL) return leaf;
+      let best = {gain: 1e-9};
+      for (let f = 0; f < X[0].length; f++){
+        const s = idx.slice().sort((p, q) => X[p][f] - X[q][f]); let GL = 0, HL = 0;
+        for (let k = 0; k < s.length - 1; k++){ GL += g[s[k]]; HL += h[s[k]];
+          if (k + 1 < minL || s.length - k - 1 < minL || X[s[k]][f] === X[s[k + 1]][f]) continue;
+          const gain = 0.5 * (GL * GL / (HL + lam) + (G - GL) ** 2 / (H - HL + lam) - G * G / (H + lam));
+          if (gain > best.gain) best = {gain, f, t: (X[s[k]][f] + X[s[k + 1]][f]) / 2}; } }
+      if (best.f === undefined) return leaf;
+      const L = idx.filter(i => X[i][best.f] <= best.t), R = idx.filter(i => X[i][best.f] > best.t);
+      return {f: best.f, t: best.t, l: build(L, d + 1), r: build(R, d + 1)};
+    };
+    const tree = build([...Array(n).keys()], 0); trees.push(tree);
+    for (let i = 0; i < n; i++) F[i] += eta * evalT(tree, X[i]);
+  }
+  return x => trees.reduce((s, t) => s + eta * evalT(t, x), 0);
+}
+const evalT = (t, x) => { while (t.f !== undefined) t = x[t.f] <= t.t ? t.l : t.r; return t.w; };
+
+/* ---------- demo 1: target-leakage lab ---------- */
+const A_VALS = [0, 0.5, 1, 2, 5, 10, 20], NTR = 600, NTE = 3000, ENC = ['naive', 'smooth', 'loo', 'ordered'];
+const ENAME = {naive: 'greedy TS', smooth: 'smoothed TS', loo: 'leave-one-out TS', ordered: 'ordered TS'};
+let LD = null, LR = null, showEnc = 'naive';
+function newLeak(){ const mk = (m, K) => Array.from({length: m}, () => { const x1 = randn(); return {x1, c: Math.floor(Math.random() * K), y: +(Math.random() < sig(1.5 * x1))}; });
+  const K = +$('K').value; LD = {K, tr: mk(NTR, K), te: mk(NTE, K)}; runLeak(); }
+function encode(kind, a){
+  const tr = LD.tr, p = tr.reduce((s, r) => s + r.y, 0) / tr.length, S = new Map(), C = new Map();
+  tr.forEach(r => { S.set(r.c, (S.get(r.c) || 0) + r.y); C.set(r.c, (C.get(r.c) || 0) + 1); });
+  const ts = (s, c, aa) => (c + aa > 0 ? (s + aa * p) / (c + aa) : p);
+  let enc;
+  if (kind === 'naive') enc = tr.map(r => ts(S.get(r.c), C.get(r.c), 0));
+  else if (kind === 'smooth') enc = tr.map(r => ts(S.get(r.c), C.get(r.c), a));
+  else if (kind === 'loo') enc = tr.map(r => ts(S.get(r.c) - r.y, C.get(r.c) - 1, a));
+  else { const perm = [...tr.keys()].sort(() => Math.random() - 0.5), s2 = new Map(), c2 = new Map(); enc = new Array(tr.length);
+    perm.forEach(i => { const r = tr[i]; enc[i] = ts(s2.get(r.c) || 0, c2.get(r.c) || 0, a); s2.set(r.c, (s2.get(r.c) || 0) + r.y); c2.set(r.c, (c2.get(r.c) || 0) + 1); }); }
+  // test rows: statistics from all training data (greedy TS has no prior; unseen categories get p)
+  const te = LD.te.map(r => C.has(r.c) ? ts(S.get(r.c), C.get(r.c), kind === 'naive' ? 0 : a) : p);
+  return {enc, te};
+}
+const metrics = (f, X, y) => { let ll = 0, acc = 0; X.forEach((x, i) => { const q = Math.min(1 - 1e-9, Math.max(1e-9, sig(f(x)))); ll -= y[i] ? Math.log(q) : Math.log(1 - q); acc += (q > 0.5) === !!y[i]; }); return [ll / y.length, acc / y.length]; };
+function runLeak(){
+  const a = A_VALS[+$('pa').value]; $('aV').textContent = a; $('kV').textContent = $('K').value;
+  const ytr = LD.tr.map(r => r.y), yte = LD.te.map(r => r.y);
+  const base = fitGBDT(LD.tr.map(r => [r.x1, 0]), ytr), res = {base: [metrics(base, LD.tr.map(r => [r.x1, 0]), ytr), metrics(base, LD.te.map(r => [r.x1, 0]), yte)]}, encs = {};
+  ENC.forEach(k => { const e = encode(k, a); encs[k] = e; const Xtr = LD.tr.map((r, i) => [r.x1, e.enc[i]]), Xte = LD.te.map((r, i) => [r.x1, e.te[i]]), f = fitGBDT(Xtr, ytr);
+    res[k] = [metrics(f, Xtr, ytr), metrics(f, Xte, yte)]; });
+  LR = {res, encs, a}; drawLeak();
+}
+function drawLeak(){
+  if (!LR) return;
+  const {res, encs, a} = LR, [ctx, W, H] = setupCanvas($('lb')), pad = {l: 36, r: 8, t: 10, b: 36}, lo = 0.4, hi = 1;
+  const Y = v => H - pad.b - (v - lo) / (hi - lo) * (H - pad.t - pad.b), gw = (W - pad.l - pad.r) / ENC.length;
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0.4, 0.6, 0.8, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v.toFixed(1), pad.l - 5, Y(v)); });
+  ctx.strokeStyle = cssv('--faint'); ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(pad.l, Y(res.base[1][1])); ctx.lineTo(W - pad.r, Y(res.base[1][1])); ctx.stroke(); ctx.setLineDash([]);
+  ENC.forEach((k, j) => { const x0 = pad.l + j * gw, bw = Math.min(34, gw * 0.32);
+    [[res[k][0][1], '--s1'], [res[k][1][1], '--s2']].forEach(([v, col], q) => { ctx.fillStyle = cssv(col); const xx = x0 + gw / 2 - bw - 2 + q * (bw + 4); ctx.fillRect(xx, Y(v), bw, Y(lo) - Y(v));
+      ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText((100 * v).toFixed(0), xx + bw / 2, Y(v) - 2); });
+    ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(W < 480 ? ENAME[k].replace(' TS', '').replace('leave-one-out', 'LOO') : ENAME[k], x0 + gw / 2, H - pad.b + 6); });
+  // strip of encoded training values by label
+  const e = encs[showEnc].enc, [c2, W2, H2] = setupCanvas($('ls')), p2 = {l: 44, r: 10, t: 6, b: 22}, X = v => p2.l + v * (W2 - p2.l - p2.r);
+  c2.font = '12px system-ui,sans-serif'; c2.fillStyle = cssv('--muted'); c2.textAlign = 'right'; c2.textBaseline = 'middle';
+  const rowY = [p2.t + (H2 - p2.t - p2.b) * 0.28, p2.t + (H2 - p2.t - p2.b) * 0.75]; c2.fillText('y = 0', p2.l - 6, rowY[0]); c2.fillText('y = 1', p2.l - 6, rowY[1]);
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { c2.textAlign = 'center'; c2.textBaseline = 'top'; c2.fillText(v.toFixed(2), X(v), H2 - p2.b + 4); });
+  LD.tr.forEach((r, i) => { c2.fillStyle = rgba(cssv(r.y ? '--s1' : '--s2'), 0.45); c2.beginPath(); c2.arc(X(e[i]), rowY[r.y] + (Math.random() - 0.5) * 18, 2.4, 0, 2 * Math.PI); c2.fill(); });
+  $('lt').innerHTML = [['x₁ alone', res.base], ...ENC.map(k => [ENAME[k], res[k]])].map(([nm, r]) => `<tr><td>${nm}</td><td>${r[0][0].toFixed(3)}</td><td>${r[1][0].toFixed(3)}</td></tr>`).join('');
+  const gap = k => res[k][0][1] - res[k][1][1];
+  $('lTxt').innerHTML = `The categorical feature carries <b>no</b> information, so honest training and test accuracy should both sit near the dashed line (x₁ alone, ${(100 * res.base[1][1]).toFixed(0)}%). `
+    + `Even x₁ alone has a train–test gap of ${(100 * (res.base[0][1] - res.base[1][1])).toFixed(0)} points (ordinary overfitting); compare the others with that. `
+    + `Greedy TS's gap is ${(100 * gap('naive')).toFixed(0)} points` + (NTR / LD.K < 5 ? `: with only about ${(NTR / LD.K).toFixed(1)} rows per category, a row's own label dominates its encoding (see the strip: y = 1 rows sit to the right). ` : ` (with about ${(NTR / LD.K).toFixed(0)} rows per category the leak is milder; raise K). `)
+    + `Ordered TS's gap is ${(100 * gap('ordered')).toFixed(0)} points. `
+    + (a === 0 ? 'With a = 0 the smoothed TS is the greedy TS. ' : `Smoothing with a = ${a} doesn't close the gap (${(100 * gap('smooth')).toFixed(0)} points). `)
+    + `Leave-one-out's gap is ${(100 * gap('loo')).toFixed(0)} points: it leaks in the opposite direction (a row's own label pushes its encoding <i>down</i>), which matters most with few, large categories. Try K = 30.`;
+}
+document.querySelectorAll('button[data-e]').forEach(b => b.onclick = () => { showEnc = b.dataset.e; document.querySelectorAll('button[data-e]').forEach(x => x.classList.toggle('on', x === b)); drawLeak(); });
+// training 5 small GBDTs takes a moment, so refit when the slider is released
+$('K').oninput = () => { $('kV').textContent = $('K').value; }; $('pa').oninput = () => { $('aV').textContent = A_VALS[+$('pa').value]; };
+$('K').onchange = newLeak; $('pa').onchange = runLeak; $('newL').onclick = newLeak;
+
+/* ---------- demo 2: ordinary vs oblivious depth-3 tree ---------- */
+const LAM = 1, D = 3;
+let OD = [], OT = null, BT = null, sel = null;
+function newObl(){
+  OD = Array.from({length: 200}, () => { const a = Math.random(), b = Math.random(); const inside = (a - 0.35) ** 2 + (b - 0.62) ** 2 < 0.06 || (a > 0.72 && b < 0.3);
+    return [a, b, +(Math.random() < (inside ? 0.88 : 0.12))]; });
+  const g = OD.map(p => 0.5 - p[2]), h = 0.25;
+  const sc = (G, H) => G * G / (H + LAM), lw = (G, H) => -G / (H + LAM);
+  // ordinary: each node chooses its own best split
+  const build = (idx, d) => { let G = 0; idx.forEach(i => G += g[i]); const H = h * idx.length, node = {w: lw(G, H), n: idx.length};
+    if (d === D || idx.length < 6) return node; let best = {gain: 1e-9};
+    for (let f = 0; f < 2; f++){ const s = idx.slice().sort((p, q) => OD[p][f] - OD[q][f]); let GL = 0;
+      for (let k = 0; k < s.length - 1; k++){ GL += g[s[k]]; if (k < 2 || s.length - k - 1 < 3) continue; const HL = h * (k + 1);
+        const gain = 0.5 * (sc(GL, HL) + sc(G - GL, H - HL) - sc(G, H)); if (gain > best.gain) best = {gain, f, t: (OD[s[k]][f] + OD[s[k + 1]][f]) / 2}; } }
+    if (best.f === undefined) return node;
+    return {f: best.f, t: best.t, l: build(idx.filter(i => OD[i][best.f] <= best.t), d + 1), r: build(idx.filter(i => OD[i][best.f] > best.t), d + 1)}; };
+  OT = build([...OD.keys()], 0);
+  // oblivious: one (feature, threshold) per level, maximising the summed gain over all current leaves
+  const conds = [], leafOf = OD.map(() => 0);
+  for (let lev = 0; lev < D; lev++){ let best = {gain: -Infinity};
+    for (let f = 0; f < 2; f++){ const ts = [...new Set(OD.map(p => p[f]))].sort((p, q) => p - q);
+      for (let k = 2; k < ts.length - 3; k += 2){ const t = (ts[k] + ts[k + 1]) / 2, nl = 1 << lev, GL = new Array(nl).fill(0), GA = new Array(nl).fill(0), NL = new Array(nl).fill(0), NA = new Array(nl).fill(0);
+        OD.forEach((p, i) => { const l = leafOf[i]; GA[l] += g[i]; NA[l]++; if (p[f] <= t){ GL[l] += g[i]; NL[l]++; } });
+        let gain = 0; for (let l = 0; l < nl; l++) gain += 0.5 * (sc(GL[l], h * NL[l]) + sc(GA[l] - GL[l], h * (NA[l] - NL[l])) - sc(GA[l], h * NA[l]));
+        if (gain > best.gain) best = {gain, f, t}; } }
+    conds.push(best); OD.forEach((p, i) => { if (p[best.f] > best.t) leafOf[i] += 1 << lev; }); }
+  const G8 = new Array(1 << D).fill(0), N8 = new Array(1 << D).fill(0); OD.forEach((p, i) => { G8[leafOf[i]] += g[i]; N8[leafOf[i]]++; });
+  BT = {conds, w: G8.map((G, l) => lw(G, h * N8[l])), n: N8};
+  sel = OD[Math.floor(Math.random() * OD.length)]; drawObl();
+}
+const oblLeaf = x => BT.conds.reduce((s, c, k) => s + (x[c.f] > c.t ? 1 << k : 0), 0);
+const fn = f => f === 0 ? 'x₁' : 'x₂';
+function cells(node, box, out){ if (node.f === undefined){ out.push([box, node.w]); return; } const bl = box.slice(), br = box.slice(); bl[2 * node.f + 1] = node.t; br[2 * node.f] = node.t; cells(node.l, bl, out); cells(node.r, br, out); }
+function drawPart(cv, rects, lines){
+  const [ctx, W, H] = setupCanvas(cv), s = Math.min(W, H) - 4, ox = (W - s) / 2, oy = 2, X = a => ox + a * s, Y = b => oy + (1 - b) * s;
+  rects.forEach(([[a0, a1, b0, b1], w]) => { ctx.fillStyle = rgba(cssv(w > 0 ? '--s1' : '--s2'), Math.min(0.45, Math.abs(w) * 0.25)); ctx.fillRect(X(a0), Y(b1), X(a1) - X(a0), Y(b0) - Y(b1)); });
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.2; lines.forEach(([a0, b0, a1, b1]) => { ctx.beginPath(); ctx.moveTo(X(a0), Y(b0)); ctx.lineTo(X(a1), Y(b1)); ctx.stroke(); });
+  OD.forEach(p => { ctx.fillStyle = cssv(p[2] ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 2.6, 0, 2 * Math.PI); ctx.fill(); });
+  if (sel){ ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(X(sel[0]), Y(sel[1]), 7, 0, 2 * Math.PI); ctx.stroke(); }
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, s, s);
+  cv._map = {ox, oy, s};
+}
+function drawObl(){
+  if (!OT) return;
+  // ordinary tree: rectangles and split segments
+  const rects = []; cells(OT, [0, 1, 0, 1], rects); const segs = [];
+  (function walk(n, b){ if (n.f === undefined) return; segs.push(n.f === 0 ? [n.t, b[2], n.t, b[3]] : [b[0], n.t, b[1], n.t]); const bl = b.slice(), br = b.slice(); bl[2 * n.f + 1] = n.t; br[2 * n.f] = n.t; walk(n.l, bl); walk(n.r, br); })(OT, [0, 1, 0, 1]);
+  drawPart($('oc'), rects, segs);
+  // oblivious tree: every condition cuts the whole square
+  const xs = [0, 1], ys = [0, 1]; BT.conds.forEach(c => (c.f === 0 ? xs : ys).push(c.t)); xs.sort((p, q) => p - q); ys.sort((p, q) => p - q);
+  const orects = []; for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++){ const m = [(xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2]; orects.push([[xs[i], xs[i + 1], ys[j], ys[j + 1]], BT.w[oblLeaf(m)]]); }
+  drawPart($('ob'), orects, BT.conds.map(c => c.f === 0 ? [c.t, 0, c.t, 1] : [0, c.t, 1, c.t]));
+  const accO = OD.reduce((s, p) => s + ((evalT(OT, p) > 0) === !!p[2]), 0) / OD.length, accB = OD.reduce((s, p) => s + ((BT.w[oblLeaf(p)] > 0) === !!p[2]), 0) / OD.length;
+  let nq = 0; (function cnt(n){ if (n.f !== undefined){ nq++; cnt(n.l); cnt(n.r); } })(OT);
+  $('oAcc').textContent = (100 * accO).toFixed(1) + '%'; $('bAcc').textContent = (100 * accB).toFixed(1) + '%'; $('oQ').textContent = `${nq} vs ${D}`;
+  if (!sel) return;
+  // paths for the selected point
+  let n = OT, path = [];
+  while (n.f !== undefined){ const go = sel[n.f] > n.t; path.push(`${fn(n.f)} ≤ ${n.t.toFixed(2)}? <b>${go ? 'no → right' : 'yes → left'}</b>`); n = go ? n.r : n.l; }
+  $('oPath').innerHTML = `<b>Ordinary tree</b>: a walk down the branches.<br>` + path.map((s, k) => `${k + 1}. ${s}`).join('<br>') + `<br>leaf value w = ${n.w.toFixed(2)}`;
+  const bits = BT.conds.map(c => +(sel[c.f] > c.t)), leaf = oblLeaf(sel);
+  $('bPath').innerHTML = `<b>Oblivious tree</b>: ${D} comparisons give ${D} bits.<br>` + BT.conds.map((c, k) => `level ${k + 1}: ${fn(c.f)} &gt; ${c.t.toFixed(2)}? bit = <b>${bits[k]}</b>`).join('<br>')
+    + `<br>leaf index = ${bits.map((b, k) => `${b}·${1 << k}`).join(' + ')} = <b>${leaf}</b><br>`
+    + `<span style="font-variant-numeric:tabular-nums">` + BT.w.map((w, l) => `<span style="display:inline-block;min-width:44px;padding:1px 4px;margin:2px;border-radius:4px;border:1px solid ${l === leaf ? cssv('--ink') : cssv('--grid')};${l === leaf ? 'font-weight:700' : ''}">${l}: ${BT.n[l] ? w.toFixed(1) : '–'}</span>`).join('') + `</span>`;
+}
+['oc', 'ob'].forEach(id => $(id).addEventListener('click', ev => { const m = $(id)._map; if (!m) return; const r = $(id).getBoundingClientRect(), a = (ev.clientX - r.left - m.ox) / m.s, b = 1 - (ev.clientY - r.top - m.oy) / m.s;
+  if (a < 0 || a > 1 || b < 0 || b > 1) return; let bi = 0, bd = Infinity; OD.forEach((p, i) => { const d = (p[0] - a) ** 2 + (p[1] - b) ** 2; if (d < bd){ bd = d; bi = i; } }); sel = OD[bi]; drawObl(); }));
+$('newO').onclick = newObl;
+
+function drawAll(){ drawLeak(); drawObl(); }
+newLeak(); newObl();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

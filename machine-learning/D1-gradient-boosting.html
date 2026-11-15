@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient Boosting</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} .pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair,.pair.half{grid-template-columns:1fr}}
+.algo{font-size:15px;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:10px 16px;margin:14px 0}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+main{overflow-x:clip} .katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Detour 1 of 5 · Not in the DA5400 lectures · Gradient-boosted trees</div>
+<h1>Gradient Boosting: Gradient Descent in Function Space</h1>
+<p class="lede">L71 showed that AdaBoost is secretly minimising the exponential loss, one weak learner at a time. <b>Gradient boosting</b> keeps that recipe and swaps in <b>any differentiable loss</b>: at every round, compute how the loss wants each training prediction to move (the <b>negative gradient</b>), fit a small <b>regression tree</b> to those numbers, and take a small step along it. For squared error this is just "fit a tree to the residuals"; for other losses it's gradient descent (L31) where the thing being optimised is the function itself.</p>
+<p class="small muted">Not part of the DA5400 lectures. Main source: J. H. Friedman, <i>Greedy function approximation: a gradient boosting machine</i>, Annals of Statistics 29(5), 2001 (<a href="https://doi.org/10.1214/aos/1013203451">doi:10.1214/aos/1013203451</a>). Previous: <a href="L71-perceptron-boosting-loss.html">L71</a> · Next: <a href="D2-gbdt.html">D2</a>.</p>
+
+<h2>1 · Where we are, and why go further</h2>
+<p>Three ideas from the course meet here:</p>
+<ul>
+<li><b>Ensembles of weak learners</b> (L66–L68). Bagging (L67) averages <b>deep, high-variance</b> trees to cut variance. Boosting (L68) combines <b>shallow, high-bias</b> learners, each one aimed at what the previous ones got wrong, to cut bias. AdaBoost's output is an <b>additive model</b>:
+$$H(x)=\sum_{t=1}^{T}\alpha_t\,h_t(x),\qquad \text{prediction }=\operatorname{sign}H(x).$$</li>
+<li><b>Algorithms are loss minimisers</b> (L69–L71). Over the margin $z=y\,H(x)$, the perceptron, logistic regression and the SVM each minimise a convex surrogate of the 0-1 loss. L71 §4: boosting minimises the <b>exponential loss</b> $e^{-yH(x)}$, adding one learner per round.</li>
+<li><b>Gradient descent</b> (L31): when there's no closed form, step against the gradient, $w\leftarrow w-\eta\,\nabla f(w)$.</li>
+</ul>
+<p>AdaBoost has two limits that the loss view makes obvious:</p>
+<ol>
+<li>The exponential loss is only defined for <b>±1 classification</b>. There's no AdaBoost for predicting a house price.</li>
+<li>Its slope is $e^{-z}$: a badly misclassified point (very negative margin) gets an <b>exponentially large</b> weight. Mislabelled points end up dominating later rounds (you saw this in L68's noisy dataset and L71's slope bars).</li>
+</ol>
+<div class="callout"><b>The question for this detour:</b> keep boosting's "add one weak learner at a time to an additive model", but let us plug in <b>any</b> loss: squared error for regression, absolute or Huber error for robustness, logistic loss for classification (D2). Then make it fast and well regularised (XGBoost D3, LightGBM D4, CatBoost D5).</div>
+
+<h2>2 · Forward stagewise additive modelling</h2>
+<p>Write the model after $m$ rounds as a sum of small functions, each scaled by a <b>learning rate</b> (shrinkage) $\eta\in(0,1]$:</p>
+<div>$$F_m(x)=F_{m-1}(x)+\eta\,f_m(x)=F_0(x)+\eta\sum_{k=1}^{m}f_k(x).$$</div>
+<p>This is exactly AdaBoost's shape, with $f_m$ playing the role of $\alpha_t h_t$. Training is <b>greedy and stagewise</b>: the past is frozen, and round $m$ only asks</p>
+<div>$$f_m\;\approx\;\arg\min_{f\in\mathcal F}\;\sum_{i=1}^{n}\ell\big(y_i,\;F_{m-1}(x_i)+f(x_i)\big),$$</div>
+<p>where $\ell(y,F)$ is the loss of predicting $F$ when the truth is $y$, and $\mathcal F$ is the family of weak learners. "Stagewise" (rather than "stepwise") means earlier terms are never revisited, just like AdaBoost never changes an old $\alpha_t$.</p>
+<p>Two things are left to choose: the weak-learner family $\mathcal F$, and a way to solve that arg-min for a general loss.</p>
+
+<h2>3 · The weak learner: regression trees</h2>
+<p>L43–L44 built <b>classification</b> trees: split on "feature $<$ threshold?", score a question by <b>information gain</b> (drop in entropy), recurse, stop at a depth chosen by cross-validation. A <b>regression tree</b> is the same machine with real-valued targets:</p>
+<ul>
+<li>A tree with $T$ leaves partitions the input space into regions; leaf $j$ holds the training points $I_j$ and predicts a <b>single number</b> $w_j$, its <b>leaf value</b> (or leaf weight). So $f(x)=w_{j(x)}$, a piecewise-constant function.</li>
+<li><b>Best leaf value under squared error:</b> the mean of the targets in the leaf. This is L15's fact that the mean minimises the sum of squared distances.</li>
+<li><b>Impurity becomes spread.</b> Replace entropy with the sum of squared errors $\text{SSE}(S)=\sum_{i\in S}(t_i-\bar t_S)^2$. A split of $S$ into $L$ and $R$ is scored by how much it lowers the SSE, the regression analogue of information gain:</li>
+</ul>
+<div>$$\text{gain}=\text{SSE}(S)-\text{SSE}(L)-\text{SSE}(R)=\frac{n_Ln_R}{n_L+n_R}\,\big(\bar t_L-\bar t_R\big)^2 .$$</div>
+<p>So a good split separates points whose targets have very different means, and gets more credit when both sides are large. Trying every threshold on a sorted feature with running sums makes this one pass per feature.</p>
+<div class="beyond"><b>Why the closed form holds.</b> $$\text{SSE}(S)=\text{SSE}(L)+\text{SSE}(R)+n_L(\bar t_L-\bar t)^2+n_R(\bar t_R-\bar t)^2$$ (split each point's deviation from $\bar t$ into deviation from its side's mean plus the side mean's deviation; cross terms vanish because deviations from a mean sum to zero). With $\bar t=(n_L\bar t_L+n_R\bar t_R)/n$, the last two terms simplify to $\frac{n_Ln_R}{n}(\bar t_L-\bar t_R)^2$. The same "squared sum over count" form, $$\frac{\big(\sum_L t\big)^2}{n_L}+\frac{\big(\sum_R t\big)^2}{n_R}-\frac{\big(\sum_S t\big)^2}{n},$$ is what the demo code computes, and is exactly the shape XGBoost's gain will take in D3.</div>
+
+<h2>4 · Squared loss: fit a tree to the residuals</h2>
+<p>Take $\ell(y,F)=\tfrac12(y-F)^2$. With the past fixed, round $m$ minimises</p>
+<div>$$\sum_{i=1}^{n}\tfrac12\big(y_i-F_{m-1}(x_i)-f(x_i)\big)^2=\sum_{i=1}^{n}\tfrac12\big(r_i-f(x_i)\big)^2,\qquad r_i=y_i-F_{m-1}(x_i).$$</div>
+<p>That's an ordinary least-squares regression of the <b>residuals</b> $r_i$ on $x_i$, so: <b>fit a regression tree to the residuals and add it.</b> Each new tree corrects what the current model still gets wrong, the same "focus on the mistakes" idea as AdaBoost's reweighting (L68), but now the mistakes are measured by how far off each prediction is, not just whether it's wrong.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Boosting regression trees by hand. Top: 80 training points (blue), the true curve (dashed) and the current model $F_m$ (black). Bottom left: the residuals $r_i=y_i-F_m(x_i)$ as bars, and the tree that will be fitted to them next (orange). Bottom right: training and test mean squared error (MSE) after each round.</p>
+  <div class="row">
+    <button id="b1Next" class="on">Next round</button><button id="b1Play">▶ Play</button><button id="b1Ten">+10 rounds</button><button id="b1Reset">Reset</button><button id="b1New">New data</button>
+  </div>
+  <div class="row">
+    <label>tree depth = <b id="b1DV"></b> <input type="range" id="b1D" min="1" max="4" value="1" aria-label="tree depth"></label>
+    <label>learning rate η = <b id="b1EV"></b> <input type="range" id="b1E" min="5" max="100" step="5" value="50" aria-label="learning rate"></label>
+  </div>
+  <canvas id="c1" height="240" aria-label="Training data, true curve and current boosted model"></canvas>
+  <div class="pair half">
+    <canvas id="c1r" height="180" aria-label="Residuals and the next tree fitted to them"></canvas>
+    <canvas id="c1e" height="180" aria-label="Training and test error against rounds"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>training points</span><span><i style="background:var(--ink)"></i>model F<sub>m</sub></span><span><i style="background:var(--faint)"></i>true curve</span><span><i style="background:var(--s2)"></i>next tree f<sub>m+1</sub></span><span><i style="background:var(--s3)"></i>test MSE</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="b1M">0</div><div class="l">round m</div></div>
+    <div class="stat"><div class="v" id="b1Tr">–</div><div class="l">training MSE</div></div>
+    <div class="stat"><div class="v" id="b1Te">–</div><div class="l">test MSE (300 fresh points)</div></div>
+  </div>
+  <p class="small" id="b1Txt"></p>
+</div>
+
+<h2>5 · The key step: residuals are negative gradients</h2>
+<p>Here's the observation that turns "fit the residuals" into a method for any loss. Collect the model's predictions on the training set into one vector $\mathbf F=(F(x_1),\dots,F(x_n))\in\mathbb R^n$ and treat the total training loss as a function of that vector:</p>
+<div>$$\mathcal L(\mathbf F)=\sum_{i=1}^{n}\ell\big(y_i,F(x_i)\big),\qquad g_i=\frac{\partial\,\ell(y_i,F)}{\partial F}\Big|_{F=F_{m-1}(x_i)} .$$</div>
+<p>For squared loss, $g_i=F_{m-1}(x_i)-y_i$, so the residual is exactly $r_i=-g_i$. Fitting the residuals <b>is</b> a gradient-descent step (L31) on $\mathbf F$:</p>
+<div>$$\mathbf F_m=\mathbf F_{m-1}-\eta\,\mathbf g .$$</div>
+<p>Gradient descent in "function space" has one problem: $\mathbf g$ only says how to move the predictions at the $n$ <b>training</b> points. It doesn't define a function we can evaluate on a new $x$. The fix is to <b>project</b> the step onto the weak-learner family: fit a regression tree to the pairs $(x_i,\,-g_i)$ by least squares. The tree is the member of $\mathcal F$ closest to the negative gradient, and, being a function of $x$, it generalises the step to unseen points.</p>
+<div class="callout"><b>Gradient boosting in one line:</b> for any differentiable loss, compute the <b>pseudo-residuals</b> $r_i=-g_i$ at the current model, fit a regression tree to $(x_i,r_i)$, and add a small multiple of it. For squared loss the pseudo-residuals are the ordinary residuals; for other losses they're whatever direction the loss says each prediction should move.</div>
+<p>Comparison with L31: there, the parameters were the weights $w$ of a fixed linear model, and the gradient was computed with respect to $w$. Here the "parameters" are the predictions themselves, and each step adds a whole new function. The learning rate $\eta$ plays the same role in both: small, safe steps.</p>
+
+<h2>6 · Leaf values: a line search per leaf</h2>
+<p>The tree fitted to the pseudo-residuals gives a good <b>shape</b>: its leaves $I_1,\dots,I_T$ group together points that want to move in a similar way. But for a general loss, the tree's own leaf values (means of pseudo-residuals) aren't the best step size. Friedman's refinement keeps the leaves and re-chooses each leaf's value to minimise the actual loss, a separate 1-D <b>line search</b> in each leaf:</p>
+<div>$$w_j=\arg\min_{w}\sum_{i\in I_j}\ell\big(y_i,\;F_{m-1}(x_i)+w\big).$$</div>
+<ul>
+<li><b>Squared loss:</b> $w_j$ = mean of the residuals in the leaf, the same as the tree's own values.</li>
+<li><b>Absolute loss</b> $|y-F|$: $w_j$ = <b>median</b> of the residuals in the leaf (the median minimises a sum of absolute deviations).</li>
+<li><b>Logistic loss</b> (D2): no closed form; one Newton step gives $w_j=-G_j/H_j$, the idea XGBoost builds on (D3).</li>
+</ul>
+
+<div class="algo">
+<b>Gradient boosting (Friedman, 2001)</b>
+<ol class="steps">
+<li>Start with the best constant: $F_0(x)=\arg\min_c\sum_i\ell(y_i,c)$. (Mean for squared loss, median for absolute loss, log-odds of the base rate for logistic loss.)</li>
+<li>For $m=1,\dots,M$: compute pseudo-residuals $r_i=-g_i$, the negative derivative of $\ell(y_i,F)$ at $F=F_{m-1}(x_i)$.</li>
+<li>Fit a regression tree to $\{(x_i,r_i)\}_{i=1}^n$ by least squares (SSE-reduction splits, §3), giving leaves $I_1,\dots,I_T$.</li>
+<li>For each leaf, line-search its value: $w_j=\arg\min_w\sum_{i\in I_j}\ell(y_i,F_{m-1}(x_i)+w)$.</li>
+<li>Update with shrinkage: $F_m(x)=F_{m-1}(x)+\eta\,w_{j(x)}$, where $j(x)$ is the leaf $x$ falls into.</li>
+</ol>
+Output $F_M$. (For classification, predict with $\operatorname{sign}$ or a threshold on $\sigma(F_M)$; see D2.)
+</div>
+
+<h2>7 · Choosing the loss: robustness for free</h2>
+<p>The loss enters only through $g_i$ and the leaf line search, so swapping losses is a one-line change:</p>
+<table>
+<tr><th>Loss $\ell(y,F)$</th><th>Pseudo-residual $r_i=-g_i$ (with $u=y-F$)</th><th>Leaf value $w_j$</th><th>Noise it assumes (L33)</th></tr>
+<tr><td>squared $\tfrac12u^2$</td><td>$u$</td><td>mean of $u$ in leaf</td><td>Gaussian</td></tr>
+<tr><td>absolute $|u|$</td><td>$\operatorname{sign}(u)$</td><td>median of $u$ in leaf</td><td>Laplacian</td></tr>
+<tr><td>Huber with threshold $\delta$</td><td>$u$ if $|u|\le\delta$, else $\delta\operatorname{sign}(u)$</td><td>1-D convex minimisation</td><td>Gaussian centre, Laplacian tails</td></tr>
+<tr><td>logistic, $y\in\{0,1\}$</td><td>$y-p$, with $p=\sigma(F)$</td><td>Newton step (D2)</td><td>Bernoulli</td></tr>
+<tr><td>exponential $e^{-yF}$, $y=\pm1$</td><td>$y\,e^{-yF}$</td><td>closed form (below)</td><td>AdaBoost</td></tr>
+</table>
+<p>L33 showed that the loss you pick is the noise you assume. With squared loss an outlier's pseudo-residual is its full (huge) residual, so it gets to pull the next tree hard, every round. With absolute loss every pseudo-residual is $\pm1$: an outlier can say "go up", but not "go up by 50". Huber is the compromise: squared near zero, absolute in the tails.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Same data, three losses. 60 points from the curve plus a few corrupted labels (pushed far up). Left: the final model after 150 rounds (η = 0.1, depth 2) for each loss; the selected one is drawn thick. Right: the pseudo-residuals $r_i$ each point sends to the <b>first</b> tree under the selected loss. Test error is on clean points.</p>
+  <div class="row">
+    <button data-loss="sq" class="on">squared</button><button data-loss="abs">absolute</button><button data-loss="hub">Huber</button>
+    <label>outliers = <b id="b2OV"></b> <input type="range" id="b2O" min="0" max="8" value="4" aria-label="number of outliers"></label>
+    <label>Huber δ = <b id="b2HV"></b> <input type="range" id="b2H" min="10" max="300" step="10" value="50" aria-label="Huber threshold"></label>
+    <button id="b2New">New data</button>
+  </div>
+  <div class="pair">
+    <canvas id="c2" height="250" aria-label="Final fits for squared, absolute and Huber loss"></canvas>
+    <canvas id="c2r" height="250" aria-label="Pseudo-residuals sent to the first tree"></canvas>
+  </div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>squared</span><span><i style="background:var(--s2)"></i>absolute</span><span><i style="background:var(--s3)"></i>Huber</span><span><i style="background:var(--faint)"></i>true curve</span><span><i class="dot" style="background:var(--ink)"></i>outlier</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="b2Sq">–</div><div class="l">test MSE, squared</div></div>
+    <div class="stat"><div class="v" id="b2Ab">–</div><div class="l">test MSE, absolute</div></div>
+    <div class="stat"><div class="v" id="b2Hu">–</div><div class="l">test MSE, Huber</div></div>
+  </div>
+  <p class="small" id="b2Txt"></p>
+</div>
+
+<h2>8 · AdaBoost falls out as a special case</h2>
+<p>Take labels $y_i=\pm1$, the exponential loss $\ell(y,F)=e^{-yF}$, weak learners that output $h(x)=\pm1$, a step of size $\alpha$ instead of $\eta$, and do the arg-min of §2 exactly. Write $v_i=e^{-y_iF_{m-1}(x_i)}$ for each point's current loss.</p>
+<ol class="steps">
+<li>Factor out the past: $$\sum_i e^{-y_i(F_{m-1}(x_i)+\alpha h(x_i))}=\sum_i v_i\,e^{-\alpha y_ih(x_i)}.$$</li>
+<li>$y_ih(x_i)=+1$ on correct points and $-1$ on mistakes, so the sum is $e^{-\alpha}\sum_{\text{correct}}v_i+e^{\alpha}\sum_{\text{wrong}}v_i$.</li>
+<li>Normalise $D(i)=v_i/\sum_kv_k$ and let $\operatorname{err}=\sum_{\text{wrong}}D(i)$. Up to a positive constant the objective is $e^{-\alpha}(1-\operatorname{err})+e^{\alpha}\operatorname{err}$. For any $\alpha>0$ this is minimised by the $h$ with the <b>smallest weighted error</b>: train the weak learner on the weights $D$.</li>
+<li>Set the derivative in $\alpha$ to zero: $e^{\alpha}\operatorname{err}=e^{-\alpha}(1-\operatorname{err})$, so $e^{2\alpha}=\frac{1-\operatorname{err}}{\operatorname{err}}$ and $\alpha=\ln\sqrt{\frac{1-\operatorname{err}}{\operatorname{err}}}$, L68's formula.</li>
+<li>The next round's weights are $v_i\,e^{-\alpha y_ih(x_i)}$: multiplied by $e^{\alpha}$ for mistakes and $e^{-\alpha}$ for correct points, L68's re-weighting.</li>
+</ol>
+<div class="callout"><b>So AdaBoost = forward stagewise additive modelling with the exponential loss</b>, an exact line search for the step, and $\eta=1$. Its "point weights" are just each point's current loss $e^{-y_iF(x_i)}$, which is also $-g_i/y_i$ (since $g_i=-y_ie^{-y_iF(x_i)}$ and $y_i^2=1$). Gradient boosting generalises every piece: any loss, regression trees on pseudo-residuals, and a shrunken step.</div>
+<div class="beyond"><b>A subtlety.</b> In the gradient view, the weak learner for exponential loss would be fitted to pseudo-residuals $y_iv_i$; maximising the correlation $\sum_iv_iy_ih(x_i)$ over ±1 classifiers is the same as minimising the weighted error, so both views pick the same $h$. AdaBoost's step $\alpha$ is a full line search, not a small shrunken step, which is one reason it can overfit noisy data faster than shrunken gradient boosting.</div>
+
+<h2>9 · Shrinkage: why take small steps?</h2>
+<p>With $\eta=1$ each tree tries to fix all remaining error at once, and on noisy data the later trees mostly fit noise. With $\eta=0.1$ each tree fixes only a tenth of it; the model needs about ten times more trees but each one is a cautious nudge, and test error is usually lower. In the first demo, compare $\eta=1$ (the training error crashes, test error bottoms out early and creeps up) with $\eta=0.1$ (both fall slowly and the test curve stays lower for longer). How to pick $\eta$, the number of rounds and the tree size together is the subject of D2.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Gradient boosting builds $F_m=F_{m-1}+\eta f_m$, one regression tree at a time, the same additive form as AdaBoost's $\sum_t\alpha_th_t$.</li>
+<li>Regression trees split by SSE reduction $\frac{n_Ln_R}{n}(\bar t_L-\bar t_R)^2$ and predict a constant per leaf.</li>
+<li>For squared loss each tree fits the residuals; residuals are the negative gradient of the loss with respect to the predictions.</li>
+<li>For any loss: fit a tree to the pseudo-residuals $-g_i$, then line-search each leaf's value. That's gradient descent in function space, with the tree generalising the step to new points.</li>
+<li>The loss is a design choice: absolute or Huber loss caps an outlier's pull, and the exponential loss with exact steps gives back AdaBoost.</li>
+<li>Small learning rates need more trees but generalise better.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const truth = x => 1.6 * Math.sin(0.9 * x) + 0.25 * x;
+const mean = (a, lo = 0, hi = a.length) => { let s = 0; for (let i = lo; i < hi; i++) s += a[i]; return s / Math.max(1, hi - lo); };
+const median = arr => { const s = arr.slice().sort((a, b) => a - b), k = s.length >> 1; return s.length % 2 ? s[k] : (s[k - 1] + s[k]) / 2; };
+
+// regression tree on 1-D sorted inputs xs, least-squares fit to targets t (SSE-reduction splits)
+function fitTree(xs, t, depth, minLeaf){
+  function build(lo, hi, d){
+    const n = hi - lo; let s = 0; for (let i = lo; i < hi; i++) s += t[i];
+    if (d === 0 || n < 2 * minLeaf) return {leaf: true, lo, hi};
+    let best = null, sL = 0;
+    for (let k = lo; k < hi - 1; k++){ sL += t[k]; const nL = k - lo + 1, nR = n - nL;
+      if (nL < minLeaf || nR < minLeaf || xs[k] === xs[k + 1]) continue;
+      const gain = sL * sL / nL + (s - sL) ** 2 / nR - s * s / n;   // = SSE(S) − SSE(L) − SSE(R)
+      if (!best || gain > best.gain) best = {gain, k}; }
+    if (!best || best.gain <= 1e-12) return {leaf: true, lo, hi};
+    return {thr: (xs[best.k] + xs[best.k + 1]) / 2, L: build(lo, best.k + 1, d - 1), R: build(best.k + 1, hi, d - 1)};
+  }
+  return build(0, xs.length, depth);
+}
+function setLeaves(nd, val){ if (nd.leaf) nd.v = val(nd.lo, nd.hi); else { setLeaves(nd.L, val); setLeaves(nd.R, val); } return nd; }
+const pred = (nd, x) => { while (!nd.leaf) nd = x < nd.thr ? nd.L : nd.R; return nd.v; };
+function frame(cv, xr, yr, opts = {}){
+  const [ctx, W, H] = setupCanvas(cv), pad = {l: 36, r: 10, t: 10, b: 24};
+  const X = v => pad.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - pad.l - pad.r), Y = v => H - pad.b - (v - yr[0]) / (yr[1] - yr[0]) * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  (opts.yt || []).forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(+v.toPrecision(3), pad.l - 5, Y(v)); });
+  (opts.xt || []).forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v, X(v), H - pad.b + 4); });
+  if (opts.xl){ ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText(opts.xl, W - pad.r, H - pad.b - 2); }
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b); ctx.clip();
+  return {ctx, X, Y, W, H, pad, done: () => ctx.restore()};
+}
+const curve = (f, fn, xr, col, w, dash) => { const {ctx, X, Y} = f; ctx.strokeStyle = col; ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath();
+  for (let i = 0; i <= 300; i++){ const x = xr[0] + (xr[1] - xr[0]) * i / 300, y = fn(x); i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); ctx.setLineDash([]); };
+
+/* ---------- demo 1: boosting regression trees on residuals ---------- */
+const XR = [0, 10], N1 = 80;
+let D1 = null, playing = false;
+function newData1(){
+  const xs = Array.from({length: N1}, () => 10 * Math.random()).sort((a, b) => a - b);
+  const te = Array.from({length: 300}, () => { const x = 10 * Math.random(); return [x, truth(x) + 0.45 * randn()]; });
+  D1 = {xs, ys: xs.map(x => truth(x) + 0.45 * randn()), te}; reset1(); }
+function reset1(){
+  const f0 = mean(D1.ys);
+  D1.f0 = f0; D1.trees = []; D1.F = D1.xs.map(() => f0); D1.Fte = D1.te.map(() => f0);
+  D1.hist = [[mse(D1.ys, D1.F), mse(D1.te.map(p => p[1]), D1.Fte)]]; refit1(); draw1(); }
+const mse = (y, F) => y.reduce((s, v, i) => s + (v - F[i]) ** 2, 0) / y.length;
+const depth1 = () => +$('b1D').value, eta1 = () => +$('b1E').value / 100;
+function refit1(){   // the tree that the next round will add: least squares on the current residuals
+  const r = D1.ys.map((y, i) => y - D1.F[i]);
+  D1.r = r; D1.next = setLeaves(fitTree(D1.xs, r, depth1(), 3), (lo, hi) => mean(r, lo, hi)); }
+function step1(){
+  if (D1.trees.length >= 300) return;
+  const t = D1.next, e = eta1(); D1.trees.push({t, e});
+  D1.F = D1.F.map((F, i) => F + e * pred(t, D1.xs[i])); D1.Fte = D1.Fte.map((F, i) => F + e * pred(t, D1.te[i][0]));
+  D1.hist.push([mse(D1.ys, D1.F), mse(D1.te.map(p => p[1]), D1.Fte)]); refit1(); }
+const model1 = x => D1.trees.reduce((s, {t, e}) => s + e * pred(t, x), D1.f0);
+function draw1(){
+  $('b1DV').textContent = depth1(); $('b1EV').textContent = eta1().toFixed(2);
+  const m = D1.trees.length, h = D1.hist[m];
+  $('b1M').textContent = m; $('b1Tr').textContent = h[0].toFixed(3); $('b1Te').textContent = h[1].toFixed(3);
+  // top: data, truth, model
+  let f = frame($('c1'), [-0.2, 10.2], [-3.2, 5.2], {yt: [-2, 0, 2, 4], xt: [0, 2, 4, 6, 8, 10], xl: 'x'});
+  curve(f, truth, XR, cssv('--faint'), 2, [6, 5]);
+  f.ctx.fillStyle = cssv('--s1'); f.ctx.globalAlpha = 0.8; D1.xs.forEach((x, i) => { f.ctx.beginPath(); f.ctx.arc(f.X(x), f.Y(D1.ys[i]), 3.5, 0, 7); f.ctx.fill(); }); f.ctx.globalAlpha = 1;
+  curve(f, model1, XR, cssv('--ink'), 2.5); f.done();
+  // residuals + next tree
+  const rmax = Math.max(1, ...D1.r.map(Math.abs)) * 1.1;
+  f = frame($('c1r'), [-0.2, 10.2], [-rmax, rmax], {yt: [-rmax / 1.1, 0, rmax / 1.1].map(v => +v.toFixed(1)), xl: 'residual r = y − F'});
+  f.ctx.strokeStyle = cssv('--s1'); f.ctx.lineWidth = 2; f.ctx.globalAlpha = 0.6;
+  D1.xs.forEach((x, i) => { f.ctx.beginPath(); f.ctx.moveTo(f.X(x), f.Y(0)); f.ctx.lineTo(f.X(x), f.Y(D1.r[i])); f.ctx.stroke(); }); f.ctx.globalAlpha = 1;
+  curve(f, x => pred(D1.next, x), XR, cssv('--s2'), 2.5); f.done();
+  // error curves
+  const top = Math.max(...D1.hist.map(v => v[1]), ...D1.hist.map(v => v[0])) * 1.05, M = Math.max(20, m);
+  f = frame($('c1e'), [0, M], [0, top], {yt: [0, top / 2, top].map(v => +v.toFixed(2)), xt: [0, M], xl: 'round'});
+  const line = (k, col) => { f.ctx.strokeStyle = col; f.ctx.lineWidth = 2; f.ctx.beginPath(); D1.hist.forEach((v, i) => i ? f.ctx.lineTo(f.X(i), f.Y(v[k])) : f.ctx.moveTo(f.X(i), f.Y(v[k]))); f.ctx.stroke(); };
+  f.ctx.setLineDash([4, 4]); f.ctx.strokeStyle = cssv('--faint'); f.ctx.beginPath(); f.ctx.moveTo(f.X(0), f.Y(0.2025)); f.ctx.lineTo(f.X(M), f.Y(0.2025)); f.ctx.stroke(); f.ctx.setLineDash([]);
+  line(0, cssv('--s1')); line(1, cssv('--s3')); f.done();
+  let best = 0; D1.hist.forEach((v, i) => { if (v[1] < D1.hist[best][1]) best = i; });
+  $('b1Txt').innerHTML = m === 0
+    ? 'Round 0: the model is the constant $F_0$ = mean of the labels. The orange tree is a least-squares fit to the blue residual bars. Press <b>Next round</b> to add η × that tree.'
+    : `After ${m} round${m > 1 ? 's' : ''}: training MSE ${h[0].toFixed(3)}, test MSE ${h[1].toFixed(3)} (the dashed line, 0.20, is the noise variance: no model can beat it on average). Lowest test error so far was at round ${best}.`
+      + (eta1() >= 0.9 && m > 15 ? ' With η near 1 each tree chases the remaining noise, so training error keeps falling while test error stalls or rises.' : '')
+      + (depth1() === 1 && m < 6 ? ' Each stump adds one step to the curve.' : '');
+  if (window.renderMathInElement) renderMathInElement($('b1Txt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+$('b1Next').onclick = () => { step1(); draw1(); };
+$('b1Ten').onclick = () => { for (let k = 0; k < 10; k++) step1(); draw1(); };
+$('b1Reset').onclick = reset1; $('b1New').onclick = newData1;
+$('b1D').oninput = () => { refit1(); draw1(); }; $('b1E').oninput = draw1;
+$('b1Play').onclick = () => { playing = !playing; $('b1Play').textContent = playing ? '❚❚ Pause' : '▶ Play'; if (playing) tick(); };
+function tick(){ if (!playing) return; step1(); draw1(); if (D1.trees.length >= 300){ playing = false; $('b1Play').textContent = '▶ Play'; return; } setTimeout(() => requestAnimationFrame(tick), 120); }
+
+/* ---------- demo 2: the loss decides how hard an outlier pulls ---------- */
+const N2 = 60, M2 = 150, ETA2 = 0.1;
+let D2 = null, loss2 = 'sq';
+const delta = () => +$('b2H').value / 100;
+const LOSS = {
+  sq:  {r: u => u,                                                     leaf: u => mean(u),  f0: y => mean(y)},
+  abs: {r: u => Math.sign(u),                                          leaf: u => median(u), f0: y => median(y)},
+  hub: {r: u => Math.max(-delta(), Math.min(delta(), u)), leaf: u => huberMin(u),          f0: y => huberMin(y)}};
+// argmin_w Σ huber(u_i − w): the derivative −Σ ψ(u_i − w) is monotone in w, so bisect
+function huberMin(u){ const d = delta(); let lo = Math.min(...u), hi = Math.max(...u);
+  for (let k = 0; k < 50; k++){ const w = (lo + hi) / 2, s = u.reduce((a, v) => a + Math.max(-d, Math.min(d, v - w)), 0); s > 0 ? lo = w : hi = w; }
+  return (lo + hi) / 2; }
+function newData2(){
+  const pts = Array.from({length: N2}, () => { const x = 10 * Math.random(); return {x, y: truth(x) + 0.35 * randn(), out: false}; });
+  const te = Array.from({length: 300}, () => { const x = 10 * Math.random(); return [x, truth(x) + 0.35 * randn()]; });
+  D2 = {pts, te}; build2(); }
+function build2(){
+  const k = +$('b2O').value; $('b2OV').textContent = k; $('b2HV').textContent = delta().toFixed(1);
+  // corrupt the first k points (positions are random), pushed well above the curve
+  const P = D2.pts.map((p, i) => ({x: p.x, y: i < k ? truth(p.x) + 6 + 2 * ((i * 37) % 7) / 7 : p.y, out: i < k})).sort((a, b) => a.x - b.x);
+  const xs = P.map(p => p.x), ys = P.map(p => p.y);
+  D2.P = P; D2.fits = {};
+  for (const key of ['sq', 'abs', 'hub']){
+    const L = LOSS[key], f0 = L.f0(ys), F = ys.map(() => f0), trees = [];
+    for (let m = 0; m < M2; m++){
+      const r = ys.map((y, i) => L.r(y - F[i]));
+      const t = setLeaves(fitTree(xs, r, 2, 3), (lo, hi) => L.leaf(ys.slice(lo, hi).map((y, j) => y - F[lo + j])));   // line search per leaf
+      trees.push(t); for (let i = 0; i < F.length; i++) F[i] += ETA2 * pred(t, xs[i]);
+    }
+    const fn = x => trees.reduce((s, t) => s + ETA2 * pred(t, x), f0);
+    D2.fits[key] = {fn, r0: ys.map(y => L.r(y - f0)), te: D2.te.reduce((s, [x, y]) => s + (fn(x) - y) ** 2, 0) / D2.te.length};
+  }
+  draw2();
+}
+function draw2(){
+  const col = {sq: cssv('--s1'), abs: cssv('--s2'), hub: cssv('--s3')};
+  let f = frame($('c2'), [-0.2, 10.2], [-3.2, 12], {yt: [0, 4, 8, 12], xt: [0, 5, 10], xl: 'x'});
+  curve(f, truth, XR, cssv('--faint'), 2, [6, 5]);
+  D2.P.forEach(p => { f.ctx.fillStyle = p.out ? cssv('--ink') : cssv('--faint'); f.ctx.beginPath(); f.ctx.arc(f.X(p.x), f.Y(p.y), p.out ? 4.5 : 3, 0, 7); f.ctx.fill(); });
+  ['sq', 'abs', 'hub'].forEach(k => { f.ctx.globalAlpha = k === loss2 ? 1 : 0.45; curve(f, D2.fits[k].fn, XR, col[k], k === loss2 ? 3 : 1.5); }); f.ctx.globalAlpha = 1; f.done();
+  const r0 = D2.fits[loss2].r0, rm = Math.max(1.2, ...r0.map(Math.abs)) * 1.1;
+  f = frame($('c2r'), [-0.2, 10.2], [-rm, rm], {yt: [-rm / 1.1, 0, rm / 1.1].map(v => +v.toFixed(1)), xl: 'pseudo-residual'});
+  f.ctx.lineWidth = 3;
+  D2.P.forEach((p, i) => { f.ctx.strokeStyle = p.out ? cssv('--ink') : col[loss2]; f.ctx.beginPath(); f.ctx.moveTo(f.X(p.x), f.Y(0)); f.ctx.lineTo(f.X(p.x), f.Y(r0[i])); f.ctx.stroke(); }); f.done();
+  $('b2Sq').textContent = D2.fits.sq.te.toFixed(3); $('b2Ab').textContent = D2.fits.abs.te.toFixed(3); $('b2Hu').textContent = D2.fits.hub.te.toFixed(3);
+  const k = +$('b2O').value;
+  $('b2Txt').innerHTML = k === 0
+    ? 'No outliers: all three losses give nearly the same fit. With clean Gaussian-like noise, squared loss is the maximum-likelihood choice (L33) and does best.'
+    : {sq: `Squared loss: each outlier sends a pseudo-residual of about 6–8 (black bars), so every tree spends its splits pulling the curve towards them. The fit bulges up near the ${k} outlier${k > 1 ? 's' : ''}.`,
+       abs: 'Absolute loss: every pseudo-residual is ±1, so an outlier counts as one vote "up", no more. Leaf values are medians, which ignore how far away the outliers are.',
+       hub: `Huber loss (δ = ${delta().toFixed(1)}): residuals smaller than δ behave like squared loss; bigger ones are capped at ±δ. Small δ acts like absolute loss, large δ like squared loss.`}[loss2];
+}
+document.querySelectorAll('button[data-loss]').forEach(b => b.onclick = () => { loss2 = b.dataset.loss; document.querySelectorAll('button[data-loss]').forEach(x => x.classList.toggle('on', x === b)); draw2(); });
+$('b2O').oninput = build2; $('b2H').oninput = build2; $('b2New').onclick = newData2;
+
+newData1(); newData2();
+function drawAll(){ draw1(); draw2(); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

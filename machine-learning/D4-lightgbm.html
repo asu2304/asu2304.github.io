@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LightGBM: Histograms, Leaf-wise Growth, GOSS and EFB</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+main{overflow-x:clip} .katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">Detour 4 of 5 · Not in the DA5400 lectures · Gradient-boosted trees</div>
+<h1>LightGBM: Histograms, Leaf-wise Growth, GOSS and EFB</h1>
+<p class="lede">XGBoost (D3) tells us <b>what</b> to optimise: every tree is chosen by the gain formula built from per-point gradients $g_i$ and Hessians $h_i$. LightGBM keeps exactly that objective and attacks <b>cost</b>. Finding a split means scanning every data point for every feature, so LightGBM makes each scan cheaper (<b>histograms</b>), spends its leaf budget where the loss falls fastest (<b>leaf-wise growth</b>), uses fewer data points (<b>GOSS</b>) and fewer features (<b>EFB</b>).</p>
+<p class="small muted">Not part of the DA5400 lectures. Main source: G. Ke et al., <i>LightGBM: A Highly Efficient Gradient Boosting Decision Tree</i>, NeurIPS 2017; parameter names from the <a href="https://lightgbm.readthedocs.io/">LightGBM documentation</a>. Previous: <a href="D3-xgboost.html">D3</a> · Next: <a href="D5-catboost.html">D5</a>.</p>
+
+<h2>1 · Where the time goes</h2>
+<p>Recall the round of gradient boosting from D1–D3. At round $m$ we have $F_{m-1}$, compute for every training point</p>
+<div>$$g_i=\frac{\partial \ell(y_i,F)}{\partial F}\Big|_{F_{m-1}(x_i)},\qquad h_i=\frac{\partial^2 \ell(y_i,F)}{\partial F^2}\Big|_{F_{m-1}(x_i)},$$</div>
+<p>grow a tree $f_m$ greedily, and update $F_m=F_{m-1}+\eta f_m$. Growing the tree is the L44 recipe ("find the best question, split, repeat on each side") with information gain replaced by D3's score. For a leaf $I$ split into $I_L$ and $I_R$, with $G=\sum_{i\in I}g_i$ and $H=\sum_{i\in I}h_i$:</p>
+<div>$$\text{Gain}=\frac12\left[\frac{G_L^2}{H_L+\lambda}+\frac{G_R^2}{H_R+\lambda}-\frac{(G_L+G_R)^2}{H_L+H_R+\lambda}\right]-\gamma ,\qquad w^\star=-\frac{G}{H+\lambda}.$$</div>
+<p>To score <b>every</b> threshold of one feature, sort the points in the leaf by that feature and sweep left to right, keeping running sums $G_L,H_L$ (then $G_R=G-G_L$, $H_R=H-H_L$). One sweep touches every point, so finding one split costs</p>
+<div>$$O(\#\text{data in the leaf}\times\#\text{features}),$$</div>
+<p>and across a whole tree level that's $O(n\,d)$. With millions of rows and thousands of features, that sweep is nearly all of the training time. LightGBM cuts each factor:</p>
+<table>
+<tr><th>Factor</th><th>LightGBM's idea</th><th>Section</th></tr>
+<tr><td>cost per candidate threshold</td><td>scan $\le$ <code>max_bin</code> histogram bins instead of $n$ sorted points</td><td>2</td></tr>
+<tr><td>how the leaf budget is spent</td><td>split the leaf with the largest gain next (leaf-wise)</td><td>3</td></tr>
+<tr><td>#data</td><td>Gradient-based One-Side Sampling (GOSS)</td><td>4</td></tr>
+<tr><td>#features</td><td>Exclusive Feature Bundling (EFB)</td><td>5</td></tr>
+</table>
+
+<h2>2 · Histogram-based split finding</h2>
+<ol class="steps">
+<li><b>Bin once, before training.</b> Each feature's values are mapped to at most <code>max_bin</code> integer bins (LightGBM's default is 255), with bin edges chosen from the data's distribution so busy regions get more bins. The data set is stored as small bin indices from then on.</li>
+<li><b>Build a histogram per leaf.</b> For each feature, one pass over the leaf's points accumulates, per bin $b$, $\;G_b=\sum_{i\in\text{bin }b}g_i\;$ and $\;H_b=\sum_{i\in\text{bin }b}h_i$ (plus a count).</li>
+<li><b>Scan bins, not points.</b> The candidate thresholds are the bin boundaries. Prefix sums $G_L(k)=\sum_{b\le k}G_b$, $H_L(k)=\sum_{b\le k}H_b$ go straight into the gain formula. That scan costs $O(\#\text{bins})$, independent of $n$.</li>
+<li><b>Histogram subtraction.</b> After splitting a parent into two children, build the histogram of the <b>smaller</b> child only; the other is $\text{hist}(\text{parent})-\text{hist}(\text{smaller child})$, a subtraction over bins.</li>
+</ol>
+<p>Building a histogram still touches every point once, but it needs no sorting and is a cheap, cache-friendly addition, and the subtraction trick roughly halves even that. The price is that thresholds can only fall on bin boundaries. The demo shows how little that usually costs: with a few dozen bins, the best binned split captures almost all of the exact best gain.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">400 points on one feature with gradients $g_i$ (squared loss, so $h_i=1$, and $\lambda=1$). Top: the gain of every exact threshold (line) and of each bin boundary (dots, equal-frequency bins). Bottom: the histogram itself, $G_b$ per bin. That's all LightGBM keeps.</p>
+  <div class="row">
+    <label>bins = <b id="bV"></b> <input type="range" id="bins" min="2" max="64" value="8" aria-label="number of bins"></label>
+    <button id="newH">New data</button>
+  </div>
+  <canvas id="hc" height="230" aria-label="Gain versus threshold, exact and binned"></canvas>
+  <canvas id="hb" height="110" aria-label="Per-bin gradient sums"></canvas>
+  <div class="legend"><span><i style="background:var(--ink)"></i>exact gain at every threshold</span><span><i class="dot" style="background:var(--s1)"></i>gain at bin boundaries</span><span><i class="dot" style="background:var(--s2)"></i>best binned split</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="hEx">–</div><div class="l">best exact gain (399 candidates)</div></div>
+    <div class="stat"><div class="v" id="hBn">–</div><div class="l">best binned gain</div></div>
+    <div class="stat"><div class="v" id="hPc">–</div><div class="l">share of the exact gain kept</div></div>
+  </div>
+  <p class="small" id="hTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond.</b> D3's approximate algorithm also restricts thresholds to candidate split points, from a weighted quantile sketch (weights $h_i$). The difference is mainly in engineering: LightGBM bins once globally and reuses the integer bins everywhere. XGBoost later added a histogram method of its own, so "histograms" is no longer what separates the two libraries.</div>
+
+<h2>3 · Leaf-wise vs level-wise growth</h2>
+<p>L44 grew a tree by splitting <b>every</b> node until a depth limit, then cross-validated the depth. That's <b>level-wise</b> (depth-wise) growth: all leaves at depth $k$ are split before any at depth $k+1$. LightGBM grows <b>leaf-wise</b> (best-first): among all current leaves, split the one whose best split has the <b>largest gain</b>, and stop at <code>num_leaves</code> leaves.</p>
+<div class="callout"><b>Same number of leaves, usually a lower training loss.</b> Each leaf-wise step takes the largest available loss reduction, so with a budget of $T$ leaves it typically reaches a lower training loss than a level-wise tree with $T$ leaves. But leaf-wise trees can become very deep and lopsided, chasing a few points, which is the overfitting of L66. LightGBM's controls: <code>num_leaves</code>, <code>max_depth</code>, <code>min_data_in_leaf</code>, <code>min_sum_hessian_in_leaf</code>.</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">One regression tree fitted to the first round's targets (squared loss, $F_0=0$, so $g_i=-y_i$, $h_i=1$, $\lambda=1$). The target has a coarse step plus fine structure in the top-left corner. Both trees get the same leaf budget $T$; level-wise uses depth $\log_2T$. The thick outline is the leaf each strategy would split <b>next</b>. Shading: leaf value $w^\star$.</p>
+  <div class="row">
+    <label>leaf budget T = <b id="tV"></b> <input type="range" id="T" min="1" max="5" value="3" aria-label="leaf budget as a power of two"></label>
+    <label>min_data_in_leaf = <b id="mV"></b> <input type="range" id="mn" min="1" max="40" value="5" aria-label="minimum points per leaf"></label>
+    <button id="newT">New data</button>
+  </div>
+  <div class="pair half">
+    <div><p class="small muted" style="margin:0 0 4px">level-wise (depth-wise)</p><canvas id="lv" height="260" aria-label="Level-wise tree partition"></canvas></div>
+    <div><p class="small muted" style="margin:0 0 4px">leaf-wise (best-first)</p><canvas id="lf" height="260" aria-label="Leaf-wise tree partition"></canvas></div>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>leaf value &gt; 0</span><span><i class="dot" style="background:var(--s2)"></i>leaf value &lt; 0</span><span><i style="background:var(--ink)"></i>next leaf to split</span></div>
+  <table style="margin-top:10px">
+  <tr><th></th><th>train MSE</th><th>test MSE (2,000 fresh points)</th><th>leaves</th><th>max depth</th></tr>
+  <tr><td>level-wise</td><td id="lvTr">–</td><td id="lvTe">–</td><td id="lvL">–</td><td id="lvD">–</td></tr>
+  <tr><td>leaf-wise</td><td id="lfTr">–</td><td id="lfTe">–</td><td id="lfL">–</td><td id="lfD">–</td></tr>
+  </table>
+  <p class="small" id="tTxt"></p>
+</div>
+
+<h2>4 · GOSS: Gradient-based One-Side Sampling</h2>
+<p>AdaBoost (L68) had explicit point weights $D_t(i)$: points the ensemble gets wrong carry more weight. In L71 we saw why: the exponential loss's slope grows like $e^{-y_iH(x_i)}$. Gradient boosting has no separate weights, but $|g_i|$ plays the same role. A point with a small gradient is already fitted well and moving $F$ there barely changes the loss; a point with a large $|g_i|$ is a "hard" point. That suggests a smarter subsample than D2's uniform one.</p>
+<ol class="steps">
+<li>Sort the points by $|g_i|$. Keep the top $a\cdot100\%$ (the large-gradient set $A$), all of them.</li>
+<li>From the remaining $(1-a)\,n$ points, sample $b\cdot100\%$ of $n$ uniformly at random (the set $B$). Drop the rest for this tree.</li>
+<li>Multiply $g_i$ and $h_i$ of the points in $B$ by $\dfrac{1-a}{b}$, since each sampled point stands in for $\frac{1-a}{b}$ small-gradient points.</li>
+<li>Grow the tree on $A\cup B$ with these weighted statistics, using the usual gain formula.</li>
+</ol>
+<p>The factor makes the sums unbiased: for any leaf, $\mathbb E[G]$ over the random draw of $B$ equals the full-data $G$ (and likewise $H$). The gain is a ratio of squared sums, so its estimate is only <b>approximately</b> unbiased; the paper bounds the error and shows it shrinks as $n$ grows. Because the points that dominate the gain (large $|g_i|$) are never dropped, GOSS estimates the gain with much less variance than a uniform sample of the same size.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">1,000 points: most are fitted well (small $|g_i|$), about 12% are hard. Top: $|g_i|$ sorted, coloured by what one GOSS draw does with each point. Bottom: the gain of one fixed split estimated from 400 independent draws, GOSS vs a uniform subsample of the <b>same size</b> $(a+b)\,n$ (also reweighted by $1/(a+b)$). The dashed line is the full-data gain.</p>
+  <div class="row">
+    <label>a (top share kept) = <b id="aV"></b> <input type="range" id="ga" min="2" max="50" value="20" aria-label="top rate a"></label>
+    <label>b (rest sampled) = <b id="bbV"></b> <input type="range" id="gb" min="2" max="50" value="10" aria-label="other rate b"></label>
+    <button id="newG">Redraw</button>
+  </div>
+  <canvas id="gs" height="110" aria-label="Sorted absolute gradients with GOSS selection"></canvas>
+  <canvas id="gd" height="200" aria-label="Distribution of gain estimates, GOSS versus uniform"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s2)"></i>kept: top a by |g|</span><span><i class="dot" style="background:var(--s1)"></i>sampled from the rest (×(1−a)/b)</span><span><i class="dot" style="background:var(--faint)"></i>dropped</span><span><i style="background:var(--s3)"></i>uniform subsample estimates</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="gT">–</div><div class="l">full-data gain</div></div>
+    <div class="stat"><div class="v" id="gG">–</div><div class="l">GOSS: mean ± sd</div></div>
+    <div class="stat"><div class="v" id="gU">–</div><div class="l">uniform: mean ± sd</div></div>
+    <div class="stat"><div class="v" id="gN">–</div><div class="l">points used per tree</div></div>
+  </div>
+  <p class="small" id="gTxt"></p>
+</div>
+<div class="beyond"><b>Why $\frac{1-a}{b}$, going beyond.</b> The small-gradient set has $(1-a)n$ points and we draw $bn$ of them uniformly, so each one is included with probability $\frac{bn}{(1-a)n}=\frac{b}{1-a}$. For any leaf, $\mathbb E\big[\sum_{i\in B\cap\text{leaf}}\tfrac{1-a}{b}g_i\big]=\sum_{i\in\text{rest}\cap\text{leaf}}g_i$: the standard inverse-probability (Horvitz–Thompson) weight. GOSS pays off mainly when $n$ is large; on small data sets, plain row subsampling (D2) is the simpler and safer choice (a rule of thumb, not a result from the paper).</div>
+
+<h2>5 · EFB: Exclusive Feature Bundling</h2>
+<p>Real high-dimensional data is usually <b>sparse</b>: one-hot encodings, bag-of-words (the spam features of L46–L48), indicator columns. Many features are <b>mutually exclusive</b>: they are rarely non-zero in the same row. Exclusive features can share one column without losing information.</p>
+<ol class="steps">
+<li><b>Which features to bundle</b> is a graph-colouring problem: features are vertices, and an edge's weight counts the rows where both are non-zero (conflicts). Optimal bundling is NP-hard, so LightGBM goes greedy: order features (for example by degree), and put each one into the first bundle whose total conflicts stay below a tolerance $K$, else open a new bundle.</li>
+<li><b>How to merge</b>: give each feature in a bundle its own range of bins by adding an <b>offset</b>. If feature A has bins $[0,10)$ and B has $[0,20)$, store B's bins as $[10,30)$. The bundle's histogram then contains each original feature's histogram side by side, so splits on A or B can still be found.</li>
+</ol>
+<p>Histogram building now costs $O(n\times\#\text{bundles})$ instead of $O(n\times\#\text{features})$. A small $K$ trades a little accuracy (conflicting rows lose information) for fewer bundles.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">10 rows of 8 sparse binary features (dots are non-zeros). f1–f4 are a one-hot code, so never conflict. Colours show the greedy bundles for the chosen conflict tolerance K, and the right-most column is bundle 1's merged value, with offsets.</p>
+  <div class="row"><label>conflict tolerance K = <b id="kV"></b> <input type="range" id="K" min="0" max="3" value="0" aria-label="conflict tolerance"></label></div>
+  <div id="efb" style="overflow-x:auto"></div>
+  <p class="small" id="eTxt"></p>
+</div>
+
+<h2>6 · Categorical features, briefly</h2>
+<p>LightGBM can also split a categorical feature directly instead of one-hot encoding it (for features declared categorical). For a leaf, it sorts the categories by their accumulated statistic $\sum g/\sum h$, in effect the leaf value each category would want on its own, and then scans that ordering like a numeric feature, splitting the categories into a left group and a right group. Settings such as <code>max_cat_to_onehot</code> and <code>cat_smooth</code> control and regularise this. High-cardinality categoricals can still overfit this way, which is the problem CatBoost attacks head-on in <a href="D5-catboost.html">D5</a>.</p>
+
+<h2>7 · Parameter cheat sheet</h2>
+<table>
+<tr><th>Parameter</th><th>Meaning in these notes</th><th>Turn it to…</th></tr>
+<tr><td><code>learning_rate</code>, <code>num_iterations</code></td><td>$\eta$ and the number of trees $M$ (D1–D2)</td><td>smaller $\eta$ with more trees, plus early stopping on a validation set (L35)</td></tr>
+<tr><td><code>num_leaves</code></td><td>leaf budget $T$ for leaf-wise growth (default 31)</td><td>main complexity knob; keep it well below $2^{\texttt{max\_depth}}$</td></tr>
+<tr><td><code>max_depth</code></td><td>caps how deep a leaf-wise tree can go</td><td>set it when trees overfit on small data</td></tr>
+<tr><td><code>min_data_in_leaf</code>, <code>min_sum_hessian_in_leaf</code></td><td>no leaf with too few points or too little total $h$</td><td>raise against overfitting</td></tr>
+<tr><td><code>lambda_l2</code>, <code>lambda_l1</code>, <code>min_gain_to_split</code></td><td>$\lambda$ in $w^\star=-G/(H+\lambda)$, an L1 term, and $\gamma$ (D3)</td><td>raise to shrink leaves and prune weak splits</td></tr>
+<tr><td><code>max_bin</code></td><td>bins per feature (default 255)</td><td>fewer bins: faster and slightly more regularised</td></tr>
+<tr><td><code>bagging_fraction</code> + <code>bagging_freq</code>, <code>feature_fraction</code></td><td>row and column subsampling (D2, L67)</td><td>below 1 for variance reduction and speed</td></tr>
+<tr><td>GOSS: <code>top_rate</code>, <code>other_rate</code></td><td>$a$ and $b$ above. Enabled with <code>data_sample_strategy="goss"</code> in recent versions (<code>boosting="goss"</code> in older ones)</td><td>mostly for large data sets</td></tr>
+</table>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>LightGBM optimises the same second-order objective as XGBoost (D3); its contributions are about cost.</li>
+<li>Histograms: bin features once, accumulate $G_b,H_b$ per bin, scan $\le$ <code>max_bin</code> boundaries; build the smaller child's histogram and get the sibling by subtraction.</li>
+<li>Leaf-wise growth splits the highest-gain leaf next: lower training loss for the same number of leaves, but deep, lopsided trees, so cap it with <code>num_leaves</code>, <code>max_depth</code> and <code>min_data_in_leaf</code>.</li>
+<li>GOSS keeps all large-$|g_i|$ points (the "hard" points, like AdaBoost's heavy weights) and samples the rest with weight $\frac{1-a}{b}$: an approximately unbiased gain with lower variance than uniform sampling.</li>
+<li>EFB merges mutually exclusive sparse features into bundles using bin offsets, cutting the number of histograms to build.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const rgba = (hex, a) => { const h = hex.replace('#', ''), v = parseInt(h.length === 3 ? h.replace(/./g, c => c + c) : h, 16); return `rgba(${v >> 16 & 255},${v >> 8 & 255},${v & 255},${a})`; };
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const LAM = 1;
+const score = (G, H) => G * G / (H + LAM);
+const gainOf = (GL, HL, G, H) => 0.5 * (score(GL, HL) + score(G - GL, H - HL) - score(G, H));
+
+/* ---------- demo 1: histogram split finding ---------- */
+let HD = null;
+function newHist(){
+  const n = 400, pts = [];
+  for (let i = 0; i < n; i++){ const x = Math.random() ** 1.6, y = (x > 0.42 ? 1 : -0.6) + (x > 0.8 ? 0.7 : 0) + 0.6 * randn(); pts.push([x, -y]); }
+  pts.sort((p, q) => p[0] - q[0]); HD = pts; drawHist();
+}
+function drawHist(){
+  const B = +$('bins').value; $('bV').textContent = B;
+  const n = HD.length, G = HD.reduce((s, p) => s + p[1], 0), H = n;
+  const ex = []; let GL = 0, best = {g: -1};
+  for (let i = 0; i < n - 1; i++){ GL += HD[i][1]; const t = (HD[i][0] + HD[i + 1][0]) / 2, g = gainOf(GL, i + 1, G, H); ex.push([t, g]); if (g > best.g) best = {g, t}; }
+  // equal-frequency bins: boundaries after every n/B points
+  const bnd = [], Gb = new Array(B).fill(0); let bb = {g: -1};
+  for (let k = 1; k < B; k++){ const c = Math.round(k * n / B); const t = (HD[c - 1][0] + HD[c][0]) / 2; let s = 0; for (let i = 0; i < c; i++) s += HD[i][1]; const g = gainOf(s, c, G, H); bnd.push([t, g]); if (g > bb.g) bb = {g, t}; }
+  for (let i = 0; i < n; i++) Gb[Math.min(B - 1, Math.floor(i * B / n))] += HD[i][1];
+  const [ctx, W, Hh] = setupCanvas($('hc')), pad = {l: 40, r: 10, t: 10, b: 24}, gmax = best.g * 1.1;
+  const X = x => pad.l + x * (W - pad.l - pad.r), Y = g => Hh - pad.b - Math.max(0, g) / gmax * (Hh - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v * gmax)); ctx.lineTo(W - pad.r, Y(v * gmax)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText((v * gmax).toFixed(0), pad.l - 5, Y(v * gmax)); });
+  [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(v => { ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(v.toFixed(1), X(v), Hh - pad.b + 5); });
+  ctx.strokeStyle = cssv('--faint'); ctx.setLineDash([2, 3]); bnd.forEach(([t]) => { ctx.beginPath(); ctx.moveTo(X(t), pad.t); ctx.lineTo(X(t), Hh - pad.b); ctx.stroke(); }); ctx.setLineDash([]);
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.6; ctx.beginPath(); ex.forEach(([t, g], i) => i ? ctx.lineTo(X(t), Y(g)) : ctx.moveTo(X(t), Y(g))); ctx.stroke();
+  bnd.forEach(([t, g]) => { ctx.fillStyle = cssv(t === bb.t ? '--s2' : '--s1'); ctx.beginPath(); ctx.arc(X(t), Y(g), t === bb.t ? 6 : 4, 0, 2 * Math.PI); ctx.fill(); });
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.moveTo(X(best.t), Y(best.g) - 9); ctx.lineTo(X(best.t) - 5, Y(best.g) - 17); ctx.lineTo(X(best.t) + 5, Y(best.g) - 17); ctx.fill();
+  const [c2, W2, H2] = setupCanvas($('hb')), p2 = {l: 40, r: 10, t: 8, b: 18}, gm = Math.max(...Gb.map(Math.abs));
+  const bw = (W2 - p2.l - p2.r) / B, Y0 = (H2 - p2.b + p2.t) / 2;
+  c2.font = '12px system-ui,sans-serif'; c2.strokeStyle = cssv('--grid'); c2.beginPath(); c2.moveTo(p2.l, Y0); c2.lineTo(W2 - p2.r, Y0); c2.stroke();
+  Gb.forEach((v, b) => { const h = v / gm * (Y0 - p2.t); c2.fillStyle = cssv(v > 0 ? '--s2' : '--s1'); c2.fillRect(p2.l + b * bw + 1, Math.min(Y0, Y0 - h), Math.max(1, bw - 2), Math.abs(h)); });
+  c2.fillStyle = cssv('--muted'); c2.textAlign = 'left'; c2.textBaseline = 'top'; c2.fillText('G_b per bin (bin k holds n/B points)', p2.l, H2 - p2.b + 3);
+  $('hEx').textContent = best.g.toFixed(1); $('hBn').textContent = bb.g.toFixed(1); $('hPc').textContent = (100 * bb.g / best.g).toFixed(1) + '%';
+  $('hTxt').innerHTML = `The exact search scores 399 thresholds; the histogram scores ${B - 1}. ` + (bb.g / best.g > 0.97
+    ? `The best bin boundary (x ≈ ${bb.t.toFixed(3)}) is close to the exact optimum (x ≈ ${best.t.toFixed(3)}) and keeps almost all of the gain.`
+    : `With so few bins the nearest boundary is far from the exact optimum (x ≈ ${best.t.toFixed(3)}), so some gain is lost. Add bins.`);
+}
+$('bins').oninput = drawHist; $('newH').onclick = newHist;
+
+/* ---------- demo 2: level-wise vs leaf-wise ---------- */
+const fT = (a, b) => 0.6 * (a > 0.6) + (a < 0.6 && b > 0.5 ? (a < 0.3 ? 1.5 : -1.0) * (b > 0.75 ? 1 : -1) : 0);
+const mkT = m => Array.from({length: m}, () => { const a = Math.random(), b = Math.random(); return [a, b, fT(a, b) + 0.35 * randn()]; });
+let TR = mkT(240), TE = mkT(2000);
+function bestSplit(node, minL){
+  const I = node.idx, G = node.G, H = I.length; let best = {gain: 0};
+  for (let f = 0; f < 2; f++){
+    const s = I.slice().sort((p, q) => TR[p][f] - TR[q][f]); let GL = 0;
+    for (let k = 0; k < s.length - 1; k++){ GL += -TR[s[k]][2];
+      if (k + 1 < minL || s.length - k - 1 < minL || TR[s[k]][f] === TR[s[k + 1]][f]) continue;
+      const g = gainOf(GL, k + 1, G, H); if (g > best.gain) best = {gain: g, f, thr: (TR[s[k]][f] + TR[s[k + 1]][f]) / 2}; } }
+  return best;
+}
+function mkNode(idx, box, depth){ const G = idx.reduce((s, i) => s - TR[i][2], 0); return {idx, box, depth, G, w: -G / (idx.length + LAM)}; }
+function split(node){ const {f, thr} = node.best, L = [], R = [];
+  node.idx.forEach(i => (TR[i][f] <= thr ? L : R).push(i));
+  const bL = node.box.slice(), bR = node.box.slice(); bL[2 * f + 1] = thr; bR[2 * f] = thr;
+  return [mkNode(L, bL, node.depth + 1), mkNode(R, bR, node.depth + 1)]; }
+function grow(mode, T, minL){
+  let leaves = [mkNode(TR.map((_, i) => i), [0, 1, 0, 1], 0)]; leaves[0].best = bestSplit(leaves[0], minL);
+  const pick = () => { if (mode === 'leaf'){ let b = null; leaves.forEach(l => { if (l.best.gain > 0 && (!b || l.best.gain > b.best.gain)) b = l; }); return b; }
+    let d = Infinity; leaves.forEach(l => { if (l.best.gain > 0 && l.depth < d) d = l.depth; });
+    return leaves.find(l => l.best.gain > 0 && l.depth === d) || null; };
+  while (leaves.length < T){ const l = pick(); if (!l) break; if (mode === 'level' && l.depth >= Math.log2(T)) break;
+    const kids = split(l); kids.forEach(k => k.best = bestSplit(k, minL)); leaves.splice(leaves.indexOf(l), 1, ...kids); }
+  let next = pick(); if (next && mode === 'level' && next.depth >= Math.log2(2 * T)) next = null;
+  return {leaves, next};
+}
+const predict = (leaves, a, b) => { for (const l of leaves){ const x = l.box; if (a >= x[0] && a <= x[1] && b >= x[2] && b <= x[3]) return l.w; } return 0; };
+function drawTree(cv, tr){
+  const [ctx, W, H] = setupCanvas(cv), s = Math.min(W, H) - 4, ox = (W - s) / 2, oy = 2;
+  const X = a => ox + a * s, Y = b => oy + (1 - b) * s, wm = 1.6;
+  tr.leaves.forEach(l => { const [a0, a1, b0, b1] = l.box; ctx.fillStyle = rgba(cssv(l.w > 0 ? '--s1' : '--s2'), Math.min(0.75, Math.abs(l.w) / wm * 0.75));
+    ctx.fillRect(X(a0), Y(b1), X(a1) - X(a0), Y(b0) - Y(b1)); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1; ctx.strokeRect(X(a0), Y(b1), X(a1) - X(a0), Y(b0) - Y(b1)); });
+  ctx.fillStyle = cssv('--ink'); ctx.globalAlpha = 0.45; TR.forEach(([a, b]) => { ctx.beginPath(); ctx.arc(X(a), Y(b), 1.6, 0, 2 * Math.PI); ctx.fill(); }); ctx.globalAlpha = 1;
+  if (tr.next){ const [a0, a1, b0, b1] = tr.next.box; ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 3; ctx.strokeRect(X(a0) + 1.5, Y(b1) + 1.5, X(a1) - X(a0) - 3, Y(b0) - Y(b1) - 3); }
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, s, s);
+}
+function drawGrow(){
+  const T = 2 ** +$('T').value, minL = +$('mn').value; $('tV').textContent = T; $('mV').textContent = minL;
+  const r = {level: grow('level', T, minL), leaf: grow('leaf', T, minL)};
+  const mse = (lv, D) => D.reduce((s, [a, b, y]) => s + (predict(lv, a, b) - y) ** 2, 0) / D.length;
+  [['lv', 'level'], ['lf', 'leaf']].forEach(([id, k]) => { drawTree($(id), r[k]); const lv = r[k].leaves;
+    $(id + 'Tr').textContent = mse(lv, TR).toFixed(3); $(id + 'Te').textContent = mse(lv, TE).toFixed(3);
+    $(id + 'L').textContent = lv.length; $(id + 'D').textContent = Math.max(...lv.map(l => l.depth)); });
+  const dTr = mse(r.level.leaves, TR) - mse(r.leaf.leaves, TR), dTe = mse(r.level.leaves, TE) - mse(r.leaf.leaves, TE);
+  $('tTxt').innerHTML = T <= 2 ? 'With 2 leaves both strategies make the same single split.'
+    : `Leaf-wise spends its ${T} leaves on the busy top-left corner and the big step, so its training MSE is ${dTr > 0.001 ? 'lower by ' + dTr.toFixed(3) : 'about the same'}. `
+      + (dTe > 0 ? 'Here that also helps on fresh data.' : '<b>On fresh data it is no better</b>: the extra splits chase noise, the overfitting risk that <code>min_data_in_leaf</code> and <code>max_depth</code> exist to control. Raise min_data_in_leaf and compare.');
+}
+$('T').oninput = drawGrow; $('mn').oninput = drawGrow; $('newT').onclick = () => { TR = mkT(240); TE = mkT(2000); drawGrow(); };
+
+/* ---------- demo 3: GOSS ---------- */
+const NG = 1000, RUNS = 400;
+let GX = [], GG = [], GTHR = 0.4, GOrder = [], gsim = null;
+function newGoss(){
+  GX = []; GG = [];
+  for (let i = 0; i < NG; i++){ const x = Math.random(); GX.push(x);
+    GG.push(Math.random() < 0.12 ? (x < 0.4 ? -2 : 1.5) * (0.6 + 0.8 * Math.random()) : 0.08 * randn() + (x < 0.4 ? -0.1 : 0.05)); }
+  GOrder = GG.map((_, i) => i).sort((p, q) => Math.abs(GG[q]) - Math.abs(GG[p]));
+  simGoss();
+}
+function gainW(sel, wts){ let GL = 0, HL = 0, G = 0, H = 0;
+  sel.forEach((i, k) => { const w = wts[k]; G += w * GG[i]; H += w; if (GX[i] <= GTHR){ GL += w * GG[i]; HL += w; } });
+  return 0.5 * (GL * GL / HL + (G - GL) ** 2 / (H - HL) - G * G / H); }   // λ = 0 here, so the scale of the weights matters
+function gossDraw(a, b){ const top = Math.round(a * NG), rest = GOrder.slice(top), m = Math.round(b * NG), f = (1 - a) / b;
+  const pick = rest.slice(); for (let k = 0; k < m; k++){ const j = k + Math.floor(Math.random() * (pick.length - k)); [pick[k], pick[j]] = [pick[j], pick[k]]; }
+  const B = pick.slice(0, m), sel = GOrder.slice(0, top).concat(B), wts = sel.map((_, k) => k < top ? 1 : f); return {sel, wts, B: new Set(B), top}; }
+function unifDraw(a, b){ const m = Math.round((a + b) * NG), idx = GG.map((_, i) => i);
+  for (let k = 0; k < m; k++){ const j = k + Math.floor(Math.random() * (NG - k)); [idx[k], idx[j]] = [idx[j], idx[k]]; }
+  const sel = idx.slice(0, m); return {sel, wts: sel.map(() => 1 / (a + b))}; }
+function simGoss(){
+  let a = +$('ga').value / 100, b = +$('gb').value / 100; if (a + b > 0.95){ b = Math.max(0.02, 0.95 - a); $('gb').value = Math.round(b * 100); }
+  $('aV').textContent = a.toFixed(2); $('bbV').textContent = b.toFixed(2);
+  const all = GG.map((_, i) => i), truth = gainW(all, all.map(() => 1));
+  const ge = [], ue = []; let one = null;
+  for (let r = 0; r < RUNS; r++){ const d = gossDraw(a, b); if (!one) one = d; ge.push(gainW(d.sel, d.wts)); const u = unifDraw(a, b); ue.push(gainW(u.sel, u.wts)); }
+  gsim = {a, b, truth, ge, ue, one}; drawGoss();
+}
+const ms = v => { const m = v.reduce((s, x) => s + x, 0) / v.length; return [m, Math.sqrt(v.reduce((s, x) => s + (x - m) ** 2, 0) / v.length)]; };
+function drawGoss(){
+  if (!gsim) return;
+  const {a, b, truth, ge, ue, one} = gsim;
+  const [ctx, W, H] = setupCanvas($('gs')), bw = W / NG, gm = Math.abs(GG[GOrder[0]]);
+  GOrder.forEach((i, k) => { const col = k < one.top ? '--s2' : one.B.has(i) ? '--s1' : '--faint'; ctx.fillStyle = cssv(col); ctx.globalAlpha = col === '--faint' ? 0.45 : 1;
+    const h = Math.abs(GG[i]) / gm * (H - 16); ctx.fillRect(k * bw, H - 14 - h, Math.max(0.6, bw), h); });
+  ctx.globalAlpha = 1; ctx.font = '12px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textBaseline = 'bottom'; ctx.textAlign = 'left'; ctx.fillText('points sorted by |g_i| (largest first)', 0, H);
+  const [c2, W2, H2] = setupCanvas($('gd')), pad = {l: 10, r: 10, t: 10, b: 24};
+  const lo = Math.min(...ge, ...ue, truth), hi = Math.max(...ge, ...ue, truth), nb = 40, bwd = (hi - lo) / nb || 1;
+  const hist = v => { const c = new Array(nb).fill(0); v.forEach(x => c[Math.min(nb - 1, Math.floor((x - lo) / bwd))]++); return c; };
+  const hg = hist(ge), hu = hist(ue), cm = Math.max(...hg, ...hu), X = v => pad.l + (v - lo) / (hi - lo) * (W2 - pad.l - pad.r), Y = c => H2 - pad.b - c / cm * (H2 - pad.t - pad.b);
+  [[hu, '--s3', 0.45], [hg, '--s1', 0.7]].forEach(([hh, col, al]) => { c2.fillStyle = rgba(cssv(col), al); hh.forEach((c, k) => { if (c) c2.fillRect(X(lo + k * bwd) + 0.5, Y(c), Math.max(1, X(lo + (k + 1) * bwd) - X(lo + k * bwd) - 1), H2 - pad.b - Y(c)); }); });
+  c2.strokeStyle = cssv('--ink'); c2.lineWidth = 2; c2.setLineDash([6, 4]); c2.beginPath(); c2.moveTo(X(truth), pad.t); c2.lineTo(X(truth), H2 - pad.b); c2.stroke(); c2.setLineDash([]);
+  c2.font = '12px system-ui,sans-serif'; c2.fillStyle = cssv('--muted'); c2.textBaseline = 'top';
+  [lo, (lo + hi) / 2, hi].forEach((v, k) => { c2.textAlign = ['left', 'center', 'right'][k]; c2.fillText(v.toFixed(0), X(v), H2 - pad.b + 5); });
+  const [gm1, gs1] = ms(ge), [um, us] = ms(ue);
+  $('gT').textContent = truth.toFixed(1); $('gG').textContent = `${gm1.toFixed(1)} ± ${gs1.toFixed(1)}`; $('gU').textContent = `${um.toFixed(1)} ± ${us.toFixed(1)}`;
+  $('gN').textContent = `${Math.round((a + b) * NG)} of ${NG}`;
+  $('gTxt').innerHTML = `Both estimators average close to the full-data gain, but GOSS's spread is ${us > 0 ? (us / Math.max(gs1, 1e-9)).toFixed(1) : '–'}× smaller: it never drops the ${Math.round(a * NG)} points with the largest |g|, which carry most of the gain. Uniform sampling sometimes misses many of the hard points and sometimes over-counts them.`;
+}
+$('ga').oninput = simGoss; $('gb').oninput = simGoss; $('newG').onclick = newGoss;
+
+/* ---------- EFB table ---------- */
+const EF = [ // 10 rows × 8 binary features
+  [1,0,0,0, 1,0, 1,0],[0,1,0,0, 0,1, 0,1],[0,0,1,0, 0,0, 1,0],[0,0,0,1, 1,0, 0,0],[1,0,0,0, 0,1, 1,1],
+  [0,1,0,0, 0,0, 0,0],[0,0,1,0, 1,1, 1,0],[0,0,0,1, 0,0, 0,1],[1,0,0,0, 0,0, 1,0],[0,0,1,0, 0,1, 0,0]];
+function efb(){
+  const K = +$('K').value; $('kV').textContent = K;
+  const d = 8, conf = (p, q) => EF.reduce((s, r) => s + (r[p] && r[q] ? 1 : 0), 0);
+  const deg = Array.from({length: d}, (_, p) => Array.from({length: d}, (_, q) => p !== q ? conf(p, q) : 0).reduce((s, x) => s + x, 0));
+  const order = deg.map((_, i) => i).sort((p, q) => deg[q] - deg[p] || p - q), bundles = [];
+  order.forEach(f => { let placed = false;
+    for (const bnd of bundles){ const c = bnd.f.reduce((s, g) => s + conf(f, g), 0); if (bnd.c + c <= K){ bnd.f.push(f); bnd.c += c; placed = true; break; } }
+    if (!placed) bundles.push({f: [f], c: 0}); });
+  bundles.forEach(b => b.f.sort((p, q) => p - q));
+  const bOf = f => bundles.findIndex(b => b.f.includes(f)), cols = ['--s1', '--s2', '--s3', '--ink', '--faint', '--accent', '--muted', '--s1'];
+  const b0 = bundles.find(b => b.f.includes(0)) || bundles[0];
+  const merged = r => { let v = 0; b0.f.forEach((f, k) => { if (r[f]) v = k + 1; }); return v; };   // offset k gives feature f the bin k+1
+  let h = '<table style="width:auto;min-width:100%"><tr><th>row</th>' + Array.from({length: d}, (_, f) => `<th style="color:${cssv(cols[bOf(f) % cols.length])}">f${f + 1}</th>`).join('') + `<th>bundle with f1</th></tr>`;
+  EF.forEach((r, i) => { h += `<tr><td>${i + 1}</td>` + r.map((v, f) => `<td style="text-align:center">${v ? `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${cssv(cols[bOf(f) % cols.length])}"></span>` : '<span class="muted">·</span>'}</td>`).join('') + `<td><b>${merged(r)}</b></td></tr>`; });
+  $('efb').innerHTML = h + '</table>';
+  $('eTxt').innerHTML = `8 features → <b>${bundles.length} bundles</b>: ` + bundles.map((b, k) => `{${b.f.map(f => 'f' + (f + 1)).join(', ')}}${b.c ? ` (${b.c} conflict${b.c > 1 ? 's' : ''})` : ''}`).join(', ')
+    + `. The last column stores the f1-bundle as one feature: 0 = all zero, and the k-th feature in the bundle gets value k (its offset bin). ${K === 0 ? 'With K = 0 only truly exclusive features merge.' : 'Allowing conflicts merges more features, but a conflicting row can only report one of them.'}`;
+}
+$('K').oninput = efb;
+
+function drawAll(){ drawHist(); drawGrow(); drawGoss(); efb(); }
+newHist(); drawGrow(); newGoss(); efb();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+</body>
+</html>

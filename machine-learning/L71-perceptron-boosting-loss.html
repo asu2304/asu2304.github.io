@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 71 · Classification through the lens of loss functions, part 3</div>
 <h1>The Perceptron and Boosting as Loss Minimisers</h1>
 <p class="lede">Two more algorithms fit the loss picture, with caveats. The <b>perceptron</b> is stochastic (sub)gradient descent with step size 1 on a "modified hinge" loss, $\max(0,-z)$. <b>Boosting</b> can be seen as minimising the <b>exponential loss</b> $e^{-z}$. All of these are convex surrogates for the 0-1 loss; <b>neural networks</b>, coming next, give up convexity altogether.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=ZAuZqOM-skQ">this lecture on YouTube</a> (≈14 min). Previous: <a href="L70-hinge-logistic-loss.html">L70</a> · Next: <a href="L72-neural-networks.html">L72</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=ZAuZqOM-skQ">this lecture on YouTube</a> (≈14 min). Previous: <a href="L70-hinge-logistic-loss.html">L70</a> · Next: <a href="D1-gradient-boosting.html">D1</a> (detour: gradient-boosted trees), or skip ahead to <a href="L72-neural-networks.html">L72</a>.</p>
 
 <h2>1 · The perceptron update looks like gradient descent</h2>
 <p>The perceptron (L52–L53) looks at a point $(x_t,y_t)$ at step $t$ and, if it makes a mistake, updates</p>

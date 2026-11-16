@@ -41,6 +41,8 @@ Every page is plain, self-contained HTML; there is no build step. Maths is rende
 ## Run locally
 
 ```bash
+git clone https://github.com/asu2304/asu2304.github.io.git
+cd asu2304.github.io
 python3 -m http.server 8000
 ```
 

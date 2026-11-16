@@ -1,26 +1,51 @@
 # asu2304.github.io
 
-### 🔗 Open the blog: **[asu2304.github.io](https://asu2304.github.io/)**
+**🔗 [asu2304.github.io](https://asu2304.github.io/)**
 
-Personal notes blog of Ashutosh Patidar, served by GitHub Pages.
+Personal revision notes by Ashutosh Patidar, served with GitHub Pages. The notes cover maths and machine learning: one page per lecture or chapter, most with interactive demos.
 
-Revision notes for Probability & Statistics, Linear Algebra, Machine Learning, SQL and Deep Learning. Revision notes on hot industry topics such as RAG and AI agents are coming soon.
+## Notes
 
-## Revision
+| Section | Source | What's inside | Status |
+|---|---|---|---|
+| [Machine Learning](https://asu2304.github.io/machine-learning/) | Arun Rajkumar, DA5400 (IIT Madras) | All 74 lectures: PCA and kernels, clustering, estimation and EM, regression, classification, ensembles, loss functions and neural networks. Plus my own notes and a 5-page detour on gradient boosting (XGBoost, LightGBM, CatBoost). | Complete |
+| [Linear Algebra](https://asu2304.github.io/linear-algebra/) | Gilbert Strang, MIT 18.06 | All 34 lectures read through an ML / DL lens, a PCA prologue, and a revision sheet. | Complete |
+| [SQL for Data Science](https://asu2304.github.io/sql/) | Nitish Singh, CampusX | 12 chapters and a practice session, with quizzes and an in-browser SQL lab. | Complete |
+| [Probability and Statistics](https://asu2304.github.io/probability-statistics/) | — | — | Coming soon |
+| [Deep Learning](https://asu2304.github.io/deep-learning/) | Mitesh Khapra, CS6910 (IIT Madras) | — | Coming soon |
 
-- **[Probability and Statistics Revision](https://asu2304.github.io/probability-statistics/)**: coming soon.
-- **[Linear Algebra (source: Gilbert Strang notes)](https://asu2304.github.io/linear-algebra/)**: 37 pages on MIT 18.06 (Gilbert Strang), read through an ML / DL / AI lens, with math rendered by MathJax.
-  - [Prologue: PCA (IITM MLT L5)](https://asu2304.github.io/linear-algebra/00-pca-mlt-l5.html)
-  - [Lecture 1: The Geometry of Linear Equations](https://asu2304.github.io/linear-algebra/lecture-01.html), then Lectures 2–34 in order
-  - [Revision notes & formula sheet](https://asu2304.github.io/linear-algebra/revision-notes.html)
-- **[Machine Learning Revision (source: Arun Rajkumar, DA5400)](https://asu2304.github.io/machine-learning/)**: one interactive page per lecture (L1–L74), with demos and links to each lecture video.
-  - Foundations and representation learning: [L1 Introduction to machine learning](https://asu2304.github.io/machine-learning/L1-introduction.html), [L2 Paradigms](https://asu2304.github.io/machine-learning/L2-paradigms.html), then PCA from [L3 Representation learning](https://asu2304.github.io/machine-learning/L3-representation-learning.html) to [L12 Kernel PCA](https://asu2304.github.io/machine-learning/L12-kernel-pca.html)
-  - Clustering: [L13 Introduction to clustering](https://asu2304.github.io/machine-learning/L13-clustering-notes.html) to [L18 Choosing K](https://asu2304.github.io/machine-learning/L18-kmeans-choice-of-K-notes.html)
-  - Estimation: [L19 Introduction to estimation](https://asu2304.github.io/machine-learning/L19-estimation.html) to [L26 The EM algorithm](https://asu2304.github.io/machine-learning/L26-em-algorithm.html)
-  - Regression: [L27 Supervised learning](https://asu2304.github.io/machine-learning/L27-supervised-learning.html) to [L40 Solving lasso](https://asu2304.github.io/machine-learning/L40-solving-lasso.html)
-  - Classification: [L41 Binary classification](https://asu2304.github.io/machine-learning/L41-binary-classification.html), [L42 k-nearest neighbours](https://asu2304.github.io/machine-learning/L42-knn.html), [L43 Decision trees](https://asu2304.github.io/machine-learning/L43-decision-trees.html), [L44 Building a decision tree](https://asu2304.github.io/machine-learning/L44-building-trees.html), then generative models from [L45 Generative and discriminative models](https://asu2304.github.io/machine-learning/L45-generative-discriminative.html) to [L48 Naive Bayes](https://asu2304.github.io/machine-learning/L48-naive-bayes.html), [L49 Naive Bayes pitfalls](https://asu2304.github.io/machine-learning/L49-naive-bayes-pitfalls.html), [L50 Decision function of naive Bayes](https://asu2304.github.io/machine-learning/L50-naive-bayes-decision-function.html), [L51 Gaussian naive Bayes](https://asu2304.github.io/machine-learning/L51-gaussian-naive-bayes.html), then linear discriminative models from [L52 The perceptron](https://asu2304.github.io/machine-learning/L52-perceptron.html) to [L56 Logistic regression](https://asu2304.github.io/machine-learning/L56-logistic-regression.html), support vector machines from [L57 Perceptrons and margin](https://asu2304.github.io/machine-learning/L57-perceptron-and-margin.html) to [L65 Soft-margin summary](https://asu2304.github.io/machine-learning/L65-soft-margin-summary.html), and [L66 Overfitting, underfitting and bias–variance](https://asu2304.github.io/machine-learning/L66-bias-variance.html)
-  - Ensembles, losses and neural networks: [L67 Bagging and random forests](https://asu2304.github.io/machine-learning/L67-bagging.html), [L68 Boosting](https://asu2304.github.io/machine-learning/L68-boosting.html), loss functions from [L69 The 0-1 loss and its surrogates](https://asu2304.github.io/machine-learning/L69-classification-losses.html) to [L71 Perceptron and boosting losses](https://asu2304.github.io/machine-learning/L71-perceptron-boosting-loss.html), then my earlier gradient-boosting notes ([N1](https://asu2304.github.io/machine-learning/N1-gradient-boosting-notes.html), [N2](https://asu2304.github.io/machine-learning/N2-gbdt-classification-notes.html), [N3](https://asu2304.github.io/machine-learning/N3-lightgbm-notes.html)) and a detour (not in the course) on gradient-boosted trees: [D1 Gradient boosting](https://asu2304.github.io/machine-learning/D1-gradient-boosting.html), [D2 GBDT](https://asu2304.github.io/machine-learning/D2-gbdt.html), [D3 XGBoost](https://asu2304.github.io/machine-learning/D3-xgboost.html), [D4 LightGBM](https://asu2304.github.io/machine-learning/D4-lightgbm.html) and [D5 CatBoost](https://asu2304.github.io/machine-learning/D5-catboost.html), then [L72 Neural networks](https://asu2304.github.io/machine-learning/L72-neural-networks.html), [L73 Backpropagation](https://asu2304.github.io/machine-learning/L73-backpropagation.html), and the [L74 course summary and map](https://asu2304.github.io/machine-learning/L74-course-summary.html)
-- **[SQL for Data Science (source: Nitish Singh, CampusX)](https://asu2304.github.io/sql/)**: interactive notes on the [Complete SQL Course For Data Science](https://www.youtube.com/watch?v=nopIGY1zJE0) video, one page per chapter, with quizzes and an in-browser SQL lab.
-  - [1 Introduction](https://asu2304.github.io/sql/01-introduction.html) to [7 DDL SQL Queries](https://asu2304.github.io/sql/07-ddl-queries.html); then [8 DML](https://asu2304.github.io/sql/08-dml-queries.html), [9 GROUP BY](https://asu2304.github.io/sql/09-group-by.html), [10 CASE](https://asu2304.github.io/sql/10-case-statement.html), [11 Joins](https://asu2304.github.io/sql/11-sql-joins.html) and [12 Subqueries](https://asu2304.github.io/sql/12-subqueries.html)
-  - Practice: [P1 Top 10 most common SQL interview queries](https://asu2304.github.io/sql/practice-01-top-10-queries.html) (CampusX Live 1)
-- **[Deep Learning Revision (source: Mitesh Khapra, CS6910)](https://asu2304.github.io/deep-learning/)**: comprehensive revision notes from the lectures of [CS6910](https://www.cse.iitm.ac.in/~miteshk/CS6910.html). Coming soon.
+Coming later: notes on industry topics such as RAG and AI agents.
+
+## What a page looks like
+
+- A short summary of the lecture, with the derivations written out.
+- Interactive demos that run in the browser (sliders, step-through algorithms, live training).
+- "Going beyond the video" boxes, which mark anything I added that isn't in the lecture.
+- A link to the original lecture video, and links to related lectures.
+- Light and dark mode, and a layout that works on phones.
+
+## Repository layout
+
+```
+index.html                 home page
+assets/style.css           shared styles for the home and section pages
+machine-learning/          DA5400 notes (L1–L74, N1–N3, D1–D5)
+linear-algebra/            MIT 18.06 notes
+sql/                       SQL notes and the SQL lab
+probability-statistics/    placeholder
+deep-learning/             placeholder
+```
+
+Every page is plain, self-contained HTML; there is no build step. Maths is rendered with KaTeX (MathJax in the linear algebra notes), loaded from a CDN.
+
+## Run locally
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open <http://localhost:8000>.
+
+## Note
+
+These are personal, unofficial notes. Explanations and extensions are my own, so check the original lectures for the definitive treatment.

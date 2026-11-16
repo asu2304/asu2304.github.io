@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 68 · Ensembles: turning weak learners into a strong one</div>
 <h1>Boosting and AdaBoost</h1>
 <p class="lede">Boosting keeps bagging's two steps but makes both principled. Instead of uniform bags, it keeps a <b>distribution over the data points</b> and, after each round, <b>raises the weight of the points the last learner got wrong</b>, so the next learner focuses on them. Instead of a plain average, it takes a <b>weighted vote</b>, with weight $\alpha_t$ growing as the learner's weighted error shrinks. With learners only slightly better than random, the training error provably reaches zero.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=-B534pLpnhk">this lecture on YouTube</a> (≈32 min). Previous: <a href="L67-bagging.html">L67</a> · Next: <a href="L69-classification-losses.html">L69</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=-B534pLpnhk" target="_blank" rel="noopener">this lecture on YouTube</a> (≈32 min). Previous: <a href="L67-bagging.html">L67</a> · Next: <a href="L69-classification-losses.html">L69</a>.</p>
 
 <h2>1 · The goal: weak learner in, strong learner out</h2>
 <p>A <b>weak learner</b> here may be an <b>underfit</b> classifier, which is easy and cheap to get. The standard example is a <b>decision stump</b>: a decision tree stopped after one question, "feature $f$ &lt; threshold?" (sometimes two levels). In 2-D it just cuts the plane into two half-planes with a vertical or horizontal line. Typical trees in practice have depth 10–15, so a stump is a big drop: <b>high bias, low variance</b>, and it won't reach 100% training accuracy on its own.</p>
@@ -261,5 +261,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

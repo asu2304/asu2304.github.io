@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 9 · PCA, issue 1: too many features</div>
 <h1>PCA When d ≫ n: Solving the Smaller Eigenproblem</h1>
 <p class="lede">PCA needs the eigenvectors of the $d\times d$ covariance matrix, which costs about $O(d^3)$. When there are far more features than points, every eigenvector $w_k$ turns out to be a <b>combination of the data points</b>, $w_k=X\alpha_k$. The weights $\alpha_k$ come from the eigenvectors of the much smaller $n\times n$ matrix $K=X^\top X$, at a cost of $O(n^3)$. And $K$ only contains <b>dot products between data points</b>, a fact that unlocks the next three lectures.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=pwpDf2_Pytk">this lecture on YouTube</a> (≈36 min). Previous: <a href="L8-pca-issues.html">L8</a> · Next: <a href="L10-feature-transformation.html">L10</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=pwpDf2_Pytk" target="_blank" rel="noopener">this lecture on YouTube</a> (≈36 min). Previous: <a href="L8-pca-issues.html">L8</a> · Next: <a href="L10-feature-transformation.html">L10</a>.</p>
 
 <h2>1 · Setting up the matrices</h2>
 <p>Stack the $n$ data points $x_1,\dots,x_n\in\mathbb R^d$ (centred, as PCA assumes) as <b>columns</b> of a matrix:</p>
@@ -209,5 +209,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

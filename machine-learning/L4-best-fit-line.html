@@ -48,7 +48,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 4 · Unsupervised learning: representation learning, part 2</div>
 <h1>Finding the Best Line: Reconstruction Error and the Covariance Matrix</h1>
 <p class="lede">Real data never lies exactly on a line, and nobody tells us which line to project onto. Every line gives the same compression, but not the same <b>reconstruction error</b>. Minimising that error over unit vectors $w$ turns into maximising $w^\top Cw$, where $C=\frac1n\sum_i x_ix_i^\top$ is the <b>covariance matrix</b>. The answer is the <b>eigenvector of $C$ with the largest eigenvalue</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=mU6CzvuUM00">this lecture on YouTube</a> (≈17 min). Previous: <a href="L3-representation-learning.html">L3</a> · Next: <a href="L5-compression-residue.html">L5</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=mU6CzvuUM00" target="_blank" rel="noopener">this lecture on YouTube</a> (≈17 min). Previous: <a href="L3-representation-learning.html">L3</a> · Next: <a href="L5-compression-residue.html">L5</a>.</p>
 
 <h2>1 · Nobody gives us the line</h2>
 <p>L3 assumed we knew which points were on the line and which weren't. In practice we just get a dataset. Measure the height and weight of 100 people: weight tends to rise with height, but maybe <b>no</b> point lies exactly on any line. An exact linear relationship between features is a myth (physical laws, perhaps; real-world data, practically never). Off-line points are <b>the rule, not the exception</b>, so every point needs a proxy, and we must <b>find the line</b> too.</p>
@@ -184,5 +184,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

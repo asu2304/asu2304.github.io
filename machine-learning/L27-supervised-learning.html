@@ -35,7 +35,7 @@ code{font-size:14px}
 <div class="kicker">Lecture 27 · Part 2 of the course begins</div>
 <h1>Supervised Learning</h1>
 <p class="lede">So far the data was just $x$'s. Now each data point comes with a <b>label</b> $y$ telling us the right answer. The task is to learn a rule that predicts the label of <b>new</b> points. What kind of value the label takes decides what kind of problem it is.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=AIKTk9KtPJ0">this lecture on YouTube</a> (≈9 min). Next: <a href="L28-linear-regression.html">L28 · Linear regression</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=AIKTk9KtPJ0" target="_blank" rel="noopener">this lecture on YouTube</a> (≈9 min). Next: <a href="L28-linear-regression.html">L28 · Linear regression</a>.</p>
 
 <h2>1 · The setup</h2>
 <p>We have $n$ data points $x_1,\dots,x_n\in\mathbb R^d$, the same as in unsupervised learning. Each entry of $x$ is called a <b>feature</b> (also an attribute or predictor). Now each point also comes with a <b>label</b> $y_1,\dots,y_n$. The labels are the "supervision": someone has supplied the correct answer for each training example.</p>
@@ -95,5 +95,6 @@ box.querySelectorAll('button').forEach(b => b.onclick = () => {
 });
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

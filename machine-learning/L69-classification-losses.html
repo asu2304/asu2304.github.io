@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 69 · Classification through the lens of loss functions</div>
 <h1>Why So Many Classifiers? The 0-1 Loss and Its Surrogates</h1>
 <p class="lede">Regression had one loss (squared error) and essentially one algorithm. Classification has logistic regression, SVMs, the perceptron, boosting… Why? Because the loss we actually care about, <b>the number of mistakes</b>, is NP-hard to minimise. Every algorithm is a different way of dodging that hardness, and the way to see this is to plot each algorithm's <b>loss as a function of the margin</b> $g(x)\,y$.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=1ok_K5EohoU">this lecture on YouTube</a> (≈23 min). Previous: <a href="L68-boosting.html">L68</a> · Next: <a href="L70-hinge-logistic-loss.html">L70</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=1ok_K5EohoU" target="_blank" rel="noopener">this lecture on YouTube</a> (≈23 min). Previous: <a href="L68-boosting.html">L68</a> · Next: <a href="L70-hinge-logistic-loss.html">L70</a>.</p>
 
 <h2>1 · The question</h2>
 <p>For regression we used the squared loss, added a regulariser, and got ridge and lasso. They're all variants of one idea. For binary classification we've met a whole zoo: decision trees, k-NN, generative models, the perceptron, logistic regression, SVMs, boosting. Today's question: <b>why so many, and can we see them in one framework?</b></p>
@@ -223,5 +223,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

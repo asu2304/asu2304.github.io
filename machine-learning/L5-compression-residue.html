@@ -47,7 +47,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 5 · Representation learning, part 3</div>
 <h1>Residues Carry Information: From One Line to Many</h1>
 <p class="lede">The best line gives a compression: one representative $w$ plus one coefficient $x^\top w$ per point. But are we done? If the data really lives on a <b>plane</b>, the "errors" left over after projecting onto the best line all point the same way, so they aren't noise; they hold structure. Fit a line to the <b>residues</b>, and repeat. Before that works, the data has to be <b>centred</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=t0bA3rsZ6qM">this lecture on YouTube</a> (≈16 min). Previous: <a href="L4-best-fit-line.html">L4</a> · Next: <a href="L6-pca-error-minimization.html">L6</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=t0bA3rsZ6qM" target="_blank" rel="noopener">this lecture on YouTube</a> (≈16 min). Previous: <a href="L4-best-fit-line.html">L4</a> · Next: <a href="L6-pca-error-minimization.html">L6</a>.</p>
 
 <h2>1 · Are we done?</h2>
 <p>From L4: given $\{x_1,\dots,x_n\}\subset\mathbb R^d$, find the unit vector $w$ that minimises the total squared distance from each point to its <b>proxy</b> $(x_i^\top w)\,w$. Equivalently,</p>
@@ -179,5 +179,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

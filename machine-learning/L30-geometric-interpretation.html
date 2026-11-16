@@ -37,7 +37,7 @@ table{border-collapse:collapse;font-size:14px} th,td{padding:5px 12px;border-bot
 <div class="kicker">Lecture 30 · Regression</div>
 <h1>The Geometry of Linear Regression: a Projection</h1>
 <p class="lede">Stop picturing data <i>points</i>. Picture each <b>feature</b> as one long vector holding that feature's value for every person. All weighted combinations of these vectors form a flat plane. Linear regression finds the point on that plane <b>closest to the label vector</b> $y$: it <b>projects</b> $y$ onto the plane.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=SGbelq087Qs">this lecture on YouTube</a> (≈13 min). Previous: <a href="L29-optimizing-error.html">L29</a> · Next: <a href="L31-gradient-descent.html">L31</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=SGbelq087Qs" target="_blank" rel="noopener">this lecture on YouTube</a> (≈13 min). Previous: <a href="L29-optimizing-error.html">L29</a> · Next: <a href="L31-gradient-descent.html">L31</a>.</p>
 
 <h2>1 · Features as vectors in ℝⁿ</h2>
 <p>The lecture's small example: $n=3$ people and $d=2$ features, height and weight.</p>
@@ -136,5 +136,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 37 · Regression: regularisation</div>
 <h1>Ridge Regression: Loss Plus a Regulariser</h1>
 <p class="lede">The Bayesian estimator from L36 is <b>ridge regression</b>: the usual squared loss plus a penalty $\lambda\lVert w\rVert^2$. The penalty, called a <b>regulariser</b>, pulls $w$ towards 0. That's useful when many features are <b>redundant</b>, because then many different weight vectors fit the data equally well, and ridge picks a short one.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=dMB1c5NADnE">this lecture on YouTube</a> (≈10 min). Previous: <a href="L36-bayesian-ridge.html">L36</a> · Next: <a href="L38-ridge-geometry.html">L38</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=dMB1c5NADnE" target="_blank" rel="noopener">this lecture on YouTube</a> (≈10 min). Previous: <a href="L36-bayesian-ridge.html">L36</a> · Next: <a href="L38-ridge-geometry.html">L38</a>.</p>
 
 <h2>1 · Two estimators side by side</h2>
 <table>
@@ -140,5 +140,6 @@ function draw(){
 $('l').oninput = draw; $('newD').onclick = () => { newData(); draw(); };
 newData(); onReady(draw);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

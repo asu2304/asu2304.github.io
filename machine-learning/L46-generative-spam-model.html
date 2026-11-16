@@ -58,7 +58,7 @@ textarea,input[type=text]{font:inherit;width:100%;padding:8px 10px;border:1px so
 <div class="kicker">Lecture 46 · Classification: a first generative model</div>
 <h1>A Generative Model for Spam: The Dice Story</h1>
 <p class="lede">Turn each email into a 0/1 vector (is each dictionary word present?). Then tell a story for how (email, label) pairs are generated: toss a <b>coin</b> for the label, then roll that label's <b>die</b>, which has one face per possible email. It is a perfectly valid model, but it needs about $2^{d+1}$ numbers, far too many to learn. So the story must change.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=tna8wxoasss">this lecture on YouTube</a> (≈30 min). Previous: <a href="L45-generative-discriminative.html">L45</a> · Next: <a href="L47-coin-model.html">L47</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=tna8wxoasss" target="_blank" rel="noopener">this lecture on YouTube</a> (≈30 min). Previous: <a href="L45-generative-discriminative.html">L45</a> · Next: <a href="L47-coin-model.html">L47</a>.</p>
 
 <h2>1 · Emails as binary feature vectors</h2>
 <p>Data: $(x_1,y_1),\dots,(x_n,y_n)$ with $y_i\in\{0,1\}$ (1 = spam). Emails have different lengths, but algorithms need a fixed number $d$ of features. One simple way: let $d$ be the number of words in the dictionary, and set feature $j$ to 1 if word $j$ <b>appears</b> in the email, else 0.</p>
@@ -204,5 +204,6 @@ $('d2').oninput = cover; $('n').oninput = cover;
 enc(); story(); count(); cover();
 onReady(() => {});
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 65 · Support vector machines: summary</div>
 <h1>Soft-Margin SVM: The Full Picture</h1>
 <p class="lede">Read the complementary-slackness conditions from the primal side: a point with margin below 1 has $\alpha^*_i=C$; a point with margin above 1 has $\alpha^*_i=0$; a point exactly on the margin line can have anything in $[0,C]$. Together with L64 this gives a complete map. The upshot: the soft-margin SVM is <b>kernelisable</b>, has <b>simple box constraints</b>, and is still <b>sparse</b>, which is why it works so well in practice.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=jbcaJ_kn3CQ">this lecture on YouTube</a> (≈18 min). Previous: <a href="L64-soft-margin-slackness.html">L64</a> · Next: <a href="L66-bias-variance.html">L66</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=jbcaJ_kn3CQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈18 min). Previous: <a href="L64-soft-margin-slackness.html">L64</a> · Next: <a href="L66-bias-variance.html">L66</a>.</p>
 
 <h2>1 · The primal point of view</h2>
 <p>Suppose you solved the <b>primal</b> and hold $w^*$. Look at one point's margin $(w^{*\top}x_i)y_i$:</p>
@@ -180,5 +180,6 @@ $('n').oninput = vDraw; $('c').oninput = vDraw; $('vNew').onclick = () => { vSee
 qLoad();
 onReady(() => { qDraw(); vDraw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

@@ -59,7 +59,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 50 · Classification: what naive Bayes really computes</div>
 <h1>The Decision Function of Naive Bayes</h1>
 <p class="lede">For k-NN and decision trees we looked at the shape of the decision boundary. Do the same for naive Bayes: take the log of the ratio of the two posteriors, and the rule "predict spam if spam is more probable" turns into <b>$w^\top x+b\ge 0$</b>. Behind the coins and Bayes' rule, naive Bayes is a <b>linear classifier</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=ADXQaTI0Lpo">this lecture on YouTube</a> (≈17 min). Previous: <a href="L49-naive-bayes-pitfalls.html">L49</a> · Next: <a href="L51-gaussian-naive-bayes.html">L51</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=ADXQaTI0Lpo" target="_blank" rel="noopener">this lecture on YouTube</a> (≈17 min). Previous: <a href="L49-naive-bayes-pitfalls.html">L49</a> · Next: <a href="L51-gaussian-naive-bayes.html">L51</a>.</p>
 
 <h2>1 · From "which is bigger" to "is the log-ratio positive"</h2>
 <p>Naive Bayes predicts $\hat y_{\text{test}}=1$ when $P(y=1\mid x_{\text{test}})\ge P(y=0\mid x_{\text{test}})$. Three equivalent ways to say it:</p>
@@ -194,5 +194,6 @@ $('sqReset').onclick = () => { Object.entries(DEF).forEach(([k, v]) => $(k).valu
 scale();
 onReady(sq);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

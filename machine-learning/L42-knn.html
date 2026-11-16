@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 42 · Classification: the simplest algorithm</div>
 <h1>k-Nearest Neighbours: Ask Your Neighbours</h1>
 <p class="lede">To label a new point, look at the training points closest to it and let them <b>vote</b>. One neighbour is fooled by outliers; everyone gives the same answer everywhere. The right <b>k</b> sits in between, found by cross-validation. The deeper problem: k-NN <b>learns no model</b>, so every prediction needs the whole training set.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=H-Y_A7HvBqk">this lecture on YouTube</a> (≈25 min). Previous: <a href="L41-binary-classification.html">L41</a> · Next: <a href="L43-decision-trees.html">L43</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=H-Y_A7HvBqk" target="_blank" rel="noopener">this lecture on YouTube</a> (≈25 min). Previous: <a href="L41-binary-classification.html">L41</a> · Next: <a href="L43-decision-trees.html">L43</a>.</p>
 
 <h2>1 · From one neighbour to k</h2>
 <ol class="steps">
@@ -194,5 +194,6 @@ $('useBest').onclick = () => { const b = cvDraw(); K = b; $('k').value = b; refr
 P = baseData(); $('k').max = P.length % 2 ? P.length : P.length - 1; cvCompute();
 onReady(() => refresh(false));
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

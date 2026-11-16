@@ -37,7 +37,7 @@ canvas{width:100%;display:block}
 <div class="kicker">Lecture 28 · Regression</div>
 <h1>Linear Regression: Error, Overfitting and Structure</h1>
 <p class="lede">To learn a prediction rule we need a way to score candidates: the <b>squared error</b>. But if every possible function is allowed, you can get zero error just by memorising the training data, which is useless on new data. The fix is to search only <b>structured</b> functions. The simplest choice, linear functions, gives <b>linear regression</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=RkcCmmN0TY4">this lecture on YouTube</a> (≈18 min). Previous: <a href="L27-supervised-learning.html">L27</a> · Next: <a href="L29-optimizing-error.html">L29</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=RkcCmmN0TY4" target="_blank" rel="noopener">this lecture on YouTube</a> (≈18 min). Previous: <a href="L27-supervised-learning.html">L27</a> · Next: <a href="L29-optimizing-error.html">L29</a>.</p>
 
 <h2>1 · The goal</h2>
 <p>Training data: $x_1,\dots,x_n\in\mathbb R^d$ with real labels $y_1,\dots,y_n$. We want a function $h:\mathbb R^d\to\mathbb R$ that predicts the label of <b>new</b> points well. There are endless such functions, so we need to be able to say how good a given $h$ is on our data.</p>
@@ -125,5 +125,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

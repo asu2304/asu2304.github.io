@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 34 · Regression: how good is the ML estimator?</div>
 <h1>Goodness of the Maximum Likelihood Estimator</h1>
 <p class="lede">Because the labels are random, $\hat w_{\text{ML}}$ is random too: a different draw of noise gives a different estimate. Measure its quality by the <b>average squared distance</b> to the true $w$. The answer, $\sigma^2\,\operatorname{tr}\big((XX^\top)^{-1}\big)$, depends on the noise <b>and on the features</b>, and the feature part is something we might be able to improve.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_CNCiGfwdQs">this lecture on YouTube</a> (≈12 min). Previous: <a href="L33-probabilistic-regression.html">L33</a> · Next: <a href="L35-cross-validation.html">L35</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_CNCiGfwdQs" target="_blank" rel="noopener">this lecture on YouTube</a> (≈12 min). Previous: <a href="L33-probabilistic-regression.html">L33</a> · Next: <a href="L35-cross-validation.html">L35</a>.</p>
 
 <h2>1 · Recap</h2>
 <p>Model: $y\mid x=w^\top x+\epsilon$, $\epsilon\sim\mathcal N(0,\sigma^2)$, so $y\mid x\sim\mathcal N(w^\top x,\sigma^2)$. Maximum likelihood gave</p>
@@ -166,5 +166,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 12 · Putting it together · end of PCA</div>
 <h1>Kernel PCA</h1>
 <p class="lede">Combine the two fixes: the $n\times n$ trick from L9 and kernels from L11. Build the kernel matrix, <b>centre</b> it, take its eigenvectors, and rescale them into weights $\alpha_k$. We can never form the principal directions $w_k$ in the feature space, because that needs $\phi(x)$. But we don't have to: the <b>projection</b> of each point onto $w_k$ is $\sum_j\alpha_{kj}K_{ij}$, which uses only the kernel. Those projections are the new low-dimensional representation.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=K46tdjqxM0w">this lecture on YouTube</a> (≈21 min). Previous: <a href="L11-kernel-functions.html">L11</a> · Next: <a href="L13-clustering-notes.html">L13</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=K46tdjqxM0w" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L11-kernel-functions.html">L11</a> · Next: <a href="L13-clustering-notes.html">L13</a>.</p>
 
 <h2>1 · The algorithm, first attempt</h2>
 <p><b>Input:</b> data $\{x_1,\dots,x_n\}$, $x_i\in\mathbb R^d$, and a valid kernel $k:\mathbb R^d\times\mathbb R^d\to\mathbb R$ (checked with Mercer's theorem, L11).</p>
@@ -204,5 +204,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

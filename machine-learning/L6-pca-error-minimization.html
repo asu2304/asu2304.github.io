@@ -47,7 +47,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 6 · Principal component analysis, part 1</div>
 <h1>From Residues to an Orthonormal Basis</h1>
 <p class="lede">Fitting a line to the residues gives a direction <b>orthogonal</b> to the first. Keep going and you get an orthonormal basis $w_1,\dots,w_d$: the residue procedure is a <b>change of basis</b>. The pay-off comes when the residues vanish (or nearly vanish) after $k\ll d$ rounds: store $k$ shared directions and $k$ numbers per point instead of $d$. How much each round captures tells you when to stop.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_GOADM-SdKU">this lecture on YouTube</a> (≈31 min). Previous: <a href="L5-compression-residue.html">L5</a> · Next: <a href="L7-pca-variance.html">L7</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_GOADM-SdKU" target="_blank" rel="noopener">this lecture on YouTube</a> (≈31 min). Previous: <a href="L5-compression-residue.html">L5</a> · Next: <a href="L7-pca-variance.html">L7</a>.</p>
 
 <h2>1 · Where we left off</h2>
 <p>Data $\{x_1,\dots,x_n\}\subset\mathbb R^d$, centred. Round 1 finds</p>
@@ -191,5 +191,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 57 · Support vector machines: the motivation</div>
 <h1>Perceptrons and Margin</h1>
 <p class="lede">The perceptron's mistake bound $R^2/\gamma^2$ is governed by the <b>best</b> margin any separator achieves. Yet the separator the perceptron actually <b>returns</b> can have a tiny margin: it stops at the first line that makes no mistakes. A wide margin is worth having, because it tolerates noise in new data. So drop the perceptron and ask directly for the separator with the <b>largest margin</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=-guLBqucS_I">this lecture on YouTube</a> (≈19 min). Previous: <a href="L56-logistic-regression.html">L56</a> · Next: <a href="L58-maximum-margin.html">L58</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=-guLBqucS_I" target="_blank" rel="noopener">this lecture on YouTube</a> (≈19 min). Previous: <a href="L56-logistic-regression.html">L56</a> · Next: <a href="L58-maximum-margin.html">L58</a>.</p>
 
 <h2>1 · Recall the bound</h2>
 <p>If $\lVert x_i\rVert\le R$ and some unit vector $w^*$ has $(w^{*\top}x_i)y_i\ge\gamma&gt;0$ for all $i$, the perceptron makes at most $R^2/\gamma^2$ mistakes (L54). The gap $\gamma$ had to be non-zero, or the perceptron may never converge (L53).</p>
@@ -175,5 +175,6 @@ function nzDraw(){ const s = +$('sg').value / 100; $('sgV').textContent = s.toFi
 $('sg').oninput = nzDraw; $('useP').onclick = () => { if (!finals.length) percRun(); thin = finals.reduce((a, b) => marginOf(a) < marginOf(b) ? a : b); pmDraw(); nzDraw(); };
 onReady(() => { pmDraw(); nzDraw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

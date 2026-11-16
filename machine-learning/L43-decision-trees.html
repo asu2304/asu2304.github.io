@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 43 · Classification: learning a model</div>
 <h1>Decision Trees: Asking Good Questions</h1>
 <p class="lede">A decision tree is a <b>model</b>: a short sequence of yes/no questions like "is height ≤ 180 cm?" that ends in a label. Once it's built, the data can be thrown away. To build it, we need to score how good a question is. A good question splits the labels into <b>pure</b> groups, measured with <b>entropy</b>, and the score is the <b>information gain</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gXbAJGd8fO0">this lecture on YouTube</a> (≈26 min). Previous: <a href="L42-knn.html">L42</a> · Next: <a href="L44-building-trees.html">L44</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gXbAJGd8fO0" target="_blank" rel="noopener">this lecture on YouTube</a> (≈26 min). Previous: <a href="L42-knn.html">L42</a> · Next: <a href="L44-building-trees.html">L44</a>.</p>
 
 <h2>1 · What a decision tree is</h2>
 <div class="card" style="overflow-x:auto">
@@ -214,5 +214,6 @@ $('clean').onclick = () => { noisy = !noisy; $('clean').textContent = noisy ? 'D
 makeData();
 onReady(() => { entDraw(); qDraw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

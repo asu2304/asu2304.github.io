@@ -40,7 +40,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 31 · Regression: computational considerations</div>
 <h1>Gradient Descent and Stochastic Gradient Descent</h1>
 <p class="lede">The closed form $w^\star=(XX^\top)^{+}Xy$ needs a $d\times d$ matrix inverse, which costs about $d^3$ operations, too slow for millions of features. <b>Gradient descent</b> reaches the same $w^\star$ by repeated small steps, with no inverse. When the number of data points $n$ is also huge, <b>stochastic gradient descent</b> uses a small random batch per step.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=vS1LK8xoM4g">this lecture on YouTube</a> (≈25 min). Previous: <a href="L30-geometric-interpretation.html">L30</a> · Next: <a href="L32-kernel-regression.html">L32</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=vS1LK8xoM4g" target="_blank" rel="noopener">this lecture on YouTube</a> (≈25 min). Previous: <a href="L30-geometric-interpretation.html">L30</a> · Next: <a href="L32-kernel-regression.html">L32</a>.</p>
 
 <h2>1 · The problem: the inverse is expensive</h2>
 <p>Inverting the $d\times d$ matrix $XX^\top$ takes roughly $O(d^3)$ time, as hard as computing PCA's eigenvectors. With a billion features, it's out of reach. But $w^\star$ is the minimiser of an unconstrained function, so general-purpose minimisation tools also find it.</p>
@@ -164,5 +164,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

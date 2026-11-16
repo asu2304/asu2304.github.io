@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 61 · Support vector machines: which points matter</div>
 <h1>Support Vectors and Complementary Slackness</h1>
 <p class="lede">At the optimum, each multiplier times its constraint is zero: $\alpha^*_i\,\big(1-(w^{*\top}x_i)y_i\big)=0$. So a point with $\alpha^*_i&gt;0$ must lie <b>exactly on</b> a margin line, and every point beyond the margin has $\alpha^*_i=0$. The few points on the margin lines, the <b>support vectors</b>, determine $w^*$ completely. This sparsity, plus kernels, is the support vector machine.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=2LnQ2r7Q3-0">this lecture on YouTube</a> (≈22 min). Previous: <a href="L60-svm-dual.html">L60</a> · Next: <a href="L62-soft-margin-svm.html">L62</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=2LnQ2r7Q3-0" target="_blank" rel="noopener">this lecture on YouTube</a> (≈22 min). Previous: <a href="L60-svm-dual.html">L60</a> · Next: <a href="L62-soft-margin-svm.html">L62</a>.</p>
 
 <h2>1 · Complementary slackness</h2>
 <p>Let $w^*$ solve the primal and $\alpha^*$ the dual of $\min f(w)$ s.t. $g(w)\le0$ (convex). Evaluate both sides of $\min_w\max_{\alpha\ge0}L=\max_{\alpha\ge0}\min_wL$ at these solutions:</p>
@@ -183,5 +183,6 @@ $('kNew').onclick = () => { kSeed++; ring(); kSolve(); ksDraw(); };
 solveIt(); ring(); kSolve();
 onReady(() => { svDraw(); ksDraw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

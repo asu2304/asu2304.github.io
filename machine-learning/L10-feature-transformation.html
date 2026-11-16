@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 10 · PCA, issue 2: non-linear relationships</div>
 <h1>Feature Transformation: Making Non-linear Relationships Linear</h1>
 <p class="lede">PCA finds <b>linear</b> relationships. Points on a circle obey a perfectly exact rule, but it's quadratic, so PCA says both directions matter. Map each point to a higher-dimensional vector of monomials, $\phi(x)$, and the circle's rule becomes a <b>linear</b> equation: the mapped points lie in a linear subspace, which PCA can find. The catch: the number of monomial features explodes like $d^p$.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=zcxnCyVSh70">this lecture on YouTube</a> (≈18 min). Previous: <a href="L9-pca-time-complexity.html">L9</a> · Next: <a href="L11-kernel-functions.html">L11</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=zcxnCyVSh70" target="_blank" rel="noopener">this lecture on YouTube</a> (≈18 min). Previous: <a href="L9-pca-time-complexity.html">L9</a> · Next: <a href="L11-kernel-functions.html">L11</a>.</p>
 
 <h2>1 · Recap: issue 1 is solved</h2>
 <p>When $d\gg n$, L9 avoided the $O(d^3)$ eigen-solve of the covariance matrix by solving the $n\times n$ problem for $K=X^\top X$ and converting its eigenvectors into those of the covariance matrix. Issue 2 is different: what if the features are related, but <b>not linearly</b>?</p>
@@ -203,5 +203,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

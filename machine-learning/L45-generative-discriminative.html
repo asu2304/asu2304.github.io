@@ -51,7 +51,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 45 · Classification: two ways to model</div>
 <h1>Generative and Discriminative Models</h1>
 <p class="lede">Learning only works if training and test data are linked. The link is an <b>unknown but fixed distribution</b> over (features, label) pairs. There are two schools for what to assume about it: a <b>generative</b> model describes how the features <i>and</i> the label are produced, $P(x,y)$; a <b>discriminative</b> model only describes the label given the features, $P(y\mid x)$.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gwa47ZzhYno">this lecture on YouTube</a> (≈23 min). Previous: <a href="L44-building-trees.html">L44</a> · Next: <a href="L46-generative-spam-model.html">L46</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gwa47ZzhYno" target="_blank" rel="noopener">this lecture on YouTube</a> (≈23 min). Previous: <a href="L44-building-trees.html">L44</a> · Next: <a href="L46-generative-spam-model.html">L46</a>.</p>
 
 <h2>1 · What links training and test data?</h2>
 <ul>
@@ -211,5 +211,6 @@ function quiz(){ $('quiz').innerHTML = QZ.map((q, i) => `<div class="qcard ${ans
 mMake(); gMake(); quiz();
 onReady(() => { mDraw(); gDraw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

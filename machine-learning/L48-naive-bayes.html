@@ -58,7 +58,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 48 · Classification: learn the coins, then predict</div>
 <h1>The Naive Bayes Algorithm</h1>
 <p class="lede">The coin model has $2d+1$ unknowns. Maximum likelihood estimates them by <b>counting</b>: the fraction of emails that are spam, and for each word, the fraction of spam (and of non-spam) emails containing it. To classify a new email, <b>Bayes' rule</b> turns $P(x\mid y)$ into $P(y\mid x)$, and we pick the more probable label. "Naive" for the independence assumption, "Bayes" for the rule.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=VKqGflpKG_A">this lecture on YouTube</a> (≈29 min). Previous: <a href="L47-coin-model.html">L47</a> · Next: <a href="L49-naive-bayes-pitfalls.html">L49</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=VKqGflpKG_A" target="_blank" rel="noopener">this lecture on YouTube</a> (≈29 min). Previous: <a href="L47-coin-model.html">L47</a> · Next: <a href="L49-naive-bayes-pitfalls.html">L49</a>.</p>
 
 <h2>1 · Estimating the parameters: just count</h2>
 <p>Parameters: $p$, and $p^1_1,\dots,p^1_d$, $p^0_1,\dots,p^0_d$. Every one is the bias of a coin (a Bernoulli), and we already know the maximum-likelihood estimate of a coin's bias: the fraction of heads.</p>
@@ -210,5 +210,6 @@ function all(){ inbox(); predict(); }
 all(); runExp();
 onReady(exDraw);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

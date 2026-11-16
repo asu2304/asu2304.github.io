@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 36 · Regression: the Bayesian view</div>
 <h1>Where the Better Estimator Comes From: a Gaussian Prior</h1>
 <p class="lede">L35 pulled $(XX^\top+\lambda I)^{-1}Xy$ out of a hat. Here it gets a principled origin. Put a <b>Gaussian prior</b> on $w$, centred at 0, and the <b>MAP estimate</b> (the peak of the posterior) is exactly that estimator, with $\lambda=1/\gamma^2$, where $\gamma^2$ is the prior's variance.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=DG7KvatwL2Q">this lecture on YouTube</a> (≈15 min). Previous: <a href="L35-cross-validation.html">L35</a> · Next: <a href="L37-ridge-regression.html">L37</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=DG7KvatwL2Q" target="_blank" rel="noopener">this lecture on YouTube</a> (≈15 min). Previous: <a href="L35-cross-validation.html">L35</a> · Next: <a href="L37-ridge-regression.html">L37</a>.</p>
 
 <h2>1 · The recipe: prior × likelihood → posterior</h2>
 <p>Bayesian modelling, as in L21: put a <b>prior</b> on the unknown parameter, multiply by the <b>likelihood</b> of the data, and get the <b>posterior</b>. Here the parameter is $w\in\mathbb R^d$, a whole vector, so the prior must be a density over all of $\mathbb R^d$.</p>
@@ -138,5 +138,6 @@ function draw(){
 $('g').oninput = draw; $('newD').onclick = () => { newData(); draw(); };
 newData(); onReady(draw);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

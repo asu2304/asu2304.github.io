@@ -40,7 +40,7 @@ canvas{width:100%;display:block}
 <div class="kicker">Lecture 29 · Regression</div>
 <h1>Solving Linear Regression in Closed Form</h1>
 <p class="lede">Write the problem with matrices, set the gradient to zero, and linear regression has an exact formula for the best weights: $w^\star=(XX^\top)^{+}Xy$. It looks a lot like PCA's covariance matrix, except the labels come in too. The lecture ends with four questions that the next lectures answer.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=JQPLz5YhjaM">this lecture on YouTube</a> (≈13 min). Previous: <a href="L28-linear-regression.html">L28</a> · Next: <a href="L30-geometric-interpretation.html">L30</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=JQPLz5YhjaM" target="_blank" rel="noopener">this lecture on YouTube</a> (≈13 min). Previous: <a href="L28-linear-regression.html">L28</a> · Next: <a href="L30-geometric-interpretation.html">L30</a>.</p>
 
 <h2>1 · The same problem, with matrices</h2>
 <p>Stack the data points as <b>columns</b> of a $d\times n$ matrix $X$, so $X^\top$ has one point per row. Put the labels in an $n\times1$ vector $y$ and the weights in a $d\times1$ vector $w$. Then $X^\top w$ is the vector of all predictions $(x_1^\top w,\dots,x_n^\top w)$, and the total squared error is a squared length:</p>
@@ -121,5 +121,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

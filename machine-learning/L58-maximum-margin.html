@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 58 · Support vector machines: the primal problem</div>
 <h1>Maximum Margin: The Formulation</h1>
 <p class="lede">"Maximise $\gamma$ subject to $(w^\top x_i)y_i\ge\gamma$" is broken as stated: doubling $w$ doubles $\gamma$ without moving the line. Fix the scale, either by pinning $\lVert w\rVert=1$ or, more usefully, by pinning <b>$\gamma=1$</b>. Then the width of the empty band is $2/\lVert w\rVert$, and maximising it means <b>minimising $\tfrac12\lVert w\rVert^2$ subject to $(w^\top x_i)y_i\ge1$</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=ZzWFdt_6KLA">this lecture on YouTube</a> (≈29 min). Previous: <a href="L57-perceptron-and-margin.html">L57</a> · Next: <a href="L59-constrained-optimization.html">L59</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=ZzWFdt_6KLA" target="_blank" rel="noopener">this lecture on YouTube</a> (≈29 min). Previous: <a href="L57-perceptron-and-margin.html">L57</a> · Next: <a href="L59-constrained-optimization.html">L59</a>.</p>
 
 <h2>1 · First attempt, and what's wrong with it</h2>
 $$\max_{w,\gamma}\ \gamma\qquad\text{such that}\qquad (w^\top x_i)\,y_i\ge\gamma\ \ \text{for all } i .$$
@@ -169,5 +169,6 @@ $('opt').onclick = () => { w = [...WOPT]; mmDraw(); }; $('rs').onclick = () => {
 cDraw();
 onReady(mmDraw);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

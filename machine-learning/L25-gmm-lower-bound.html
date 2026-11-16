@@ -48,7 +48,7 @@ summary{cursor:pointer;font-weight:600}
 <div class="kicker">Lecture 25 · Fitting a GMM, part 2</div>
 <h1>Estimating GMM Parameters with a Lower Bound</h1>
 <p class="lede">The GMM log-likelihood is hard to maximise because of the log of a sum. The trick: add some extra helper numbers λ, use Jensen to get a <b>lower bound</b> with the sum outside the log, and notice that this bound is <b>easy to maximise one half at a time</b>, with simple formulas for each half.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=idWmaE39OIk">this lecture on YouTube</a> (≈23 min). Previous: <a href="L24-convexity-jensen.html">L24 · Convexity and Jensen</a> · <a href="L23-gmm-likelihood.html">L23 · GMM likelihood</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=idWmaE39OIk" target="_blank" rel="noopener">this lecture on YouTube</a> (≈23 min). Previous: <a href="L24-convexity-jensen.html">L24 · Convexity and Jensen</a> · <a href="L23-gmm-likelihood.html">L23 · GMM likelihood</a>.</p>
 
 <h2>1 · The trick: multiply and divide by λ</h2>
 <p>For every data point $i$, introduce $K$ new numbers $\lambda_{i1},\dots,\lambda_{iK}$ that behave like probabilities: each is between 0 and 1, and $\sum_k\lambda_{ik}=1$. Then multiply and divide each term inside the log by $\lambda_{ik}$. That changes nothing:</p>
@@ -172,5 +172,6 @@ window.addEventListener('load', () => {
   draw();
 });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

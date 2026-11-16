@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 39 · Regression: sparse solutions</div>
 <h1>Lasso: L1 Regularisation for Exact Zeros</h1>
 <p class="lede">Swap ridge's squared length for the <b>L1 norm</b>, the sum of absolute values. The search region changes from a disc to a <b>diamond</b> with sharp corners on the axes. Growing loss ellipses tend to hit a corner first, and at a corner some weights are <b>exactly zero</b>. That's <b>lasso</b>, which selects features rather than only shrinking them.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=f9KWAixPUCc">this lecture on YouTube</a> (≈10 min). Previous: <a href="L38-ridge-geometry.html">L38</a> · Next: <a href="L40-solving-lasso.html">L40</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=f9KWAixPUCc" target="_blank" rel="noopener">this lecture on YouTube</a> (≈10 min). Previous: <a href="L38-ridge-geometry.html">L38</a> · Next: <a href="L40-solving-lasso.html">L40</a>.</p>
 
 <h2>1 · The goal: a sparse w</h2>
 <p>A <b>sparse</b> $w$ has many exactly-zero components. Each zero says "this feature is useless", so it can be dropped. L38 showed that ridge's round region makes exact zeros unlikely. Idea: <b>change the region</b> so the loss ellipses are more likely to touch where some coordinates are zero.</p>
@@ -168,5 +168,6 @@ $('trials').onclick = () => { let ls = 0, rs = 0, n = 0;
 ['a', 'b', 'k', 't'].forEach(id => $(id).oninput = draw);
 onReady(draw);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

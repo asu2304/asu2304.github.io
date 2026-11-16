@@ -53,7 +53,7 @@ select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);bo
 <div class="kicker">Lecture 73 · Neural networks: learning the parameters</div>
 <h1>Training a Neural Network: Loss, Gradient Descent and Backpropagation</h1>
 <p class="lede">Collect every weight into one parameter vector $\theta$, write down a loss (squared error for regression, cross-entropy for classification), and run <b>gradient descent</b>. <b>Backpropagation</b> is simply the efficient way to compute that gradient, using the chain rule layer by layer. Because the loss isn't convex in $\theta$, gradient descent finds a <b>local minimum</b>, which in practice is usually very good.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=LctgFHD_RN4">this lecture on YouTube</a> (≈22 min). Previous: <a href="L72-neural-networks.html">L72</a> · Next: <a href="L74-course-summary.html">L74</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=LctgFHD_RN4" target="_blank" rel="noopener">this lecture on YouTube</a> (≈22 min). Previous: <a href="L72-neural-networks.html">L72</a> · Next: <a href="L74-course-summary.html">L74</a>.</p>
 
 <h2>1 · The loss</h2>
 <p>Let $\theta$ stand for <b>all</b> the network's parameters ($w_1,\dots,w_k$ and $w_{\text{out}}$ in L72), and $\text{NN}(x;\theta)$ for the network's output on input $x$. For regression, use the usual squared loss:</p>
@@ -288,5 +288,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

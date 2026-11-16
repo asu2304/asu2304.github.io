@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 11 · Computing dot products without the map</div>
 <h1>Kernel Functions and Mercer's Theorem</h1>
 <p class="lede">PCA in the mapped space only needs the dot products $\phi(x_i)^\top\phi(x_j)$, never $\phi(x)$ itself. Some functions compute that high-dimensional dot product <b>directly from the low-dimensional inputs</b>: $(x^\top x'+1)^2$ is a dot product in $\mathbb R^6$, and the Gaussian (RBF) function is one in an infinite-dimensional space. Such functions are <b>kernels</b>. Mercer's theorem says how to recognise one: it must be symmetric and give positive semi-definite kernel matrices.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=G6rMGLhw3IQ">this lecture on YouTube</a> (≈29 min). Previous: <a href="L10-feature-transformation.html">L10</a> · Next: <a href="L12-kernel-pca.html">L12</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=G6rMGLhw3IQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈29 min). Previous: <a href="L10-feature-transformation.html">L10</a> · Next: <a href="L12-kernel-pca.html">L12</a>.</p>
 
 <h2>1 · The problem, restated</h2>
 <p>$\phi(x)\in\mathbb R^D$ may be too large to compute (L10: $D\approx d^p$). But L9 showed that PCA only needs the $n\times n$ matrix of pairwise dot products. In the mapped space that is</p>
@@ -197,5 +197,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

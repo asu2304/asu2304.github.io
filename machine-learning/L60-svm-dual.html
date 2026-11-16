@@ -50,7 +50,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 60 · Support vector machines: the dual problem</div>
 <h1>The Dual of the SVM</h1>
 <p class="lede">Apply the Lagrangian machinery to $\min\tfrac12\lVert w\rVert^2$ s.t. $(w^\top x_i)y_i\ge1$. For fixed multipliers $\alpha$, the best $w$ is simply $w=\sum_i\alpha_i y_i x_i$. Substituting back leaves a problem in $\alpha$ alone: <b>$\max_{\alpha\ge0}\ \alpha^\top\mathbf 1-\tfrac12\alpha^\top Y^\top X^\top X\,Y\alpha$</b>. It has $n$ variables, trivial constraints, and touches the data only through <b>dot products</b> $X^\top X$, so it can be kernelised.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=85BxDKkiK4c">this lecture on YouTube</a> (≈22 min). Previous: <a href="L59-constrained-optimization.html">L59</a> · Next: <a href="L61-support-vectors.html">L61</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=85BxDKkiK4c" target="_blank" rel="noopener">this lecture on YouTube</a> (≈22 min). Previous: <a href="L59-constrained-optimization.html">L59</a> · Next: <a href="L61-support-vectors.html">L61</a>.</p>
 
 <h2>1 · Set up the Lagrangian</h2>
 <p>The objective $\tfrac12\lVert w\rVert^2$ is quadratic and the constraints are linear in $w$: all convex, so the min-max swap of L59 applies. In standard form each constraint is $g_i(w)=1-(w^\top x_i)y_i\le0$, and with one multiplier $\alpha_i\ge0$ per data point:</p>
@@ -173,5 +173,6 @@ $('zero').onclick = () => { al = D.map(() => 0); sliders(); draw(); };
 sliders();
 onReady(draw);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

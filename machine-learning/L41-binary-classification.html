@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 41 · Classification begins</div>
 <h1>Binary Classification: the 0-1 Loss, and Why Regression Isn't Enough</h1>
 <p class="lede">Classification predicts one of <b>two labels</b>. The natural error to measure is the <b>0-1 loss</b>: the fraction of points you get wrong. Even with linear classifiers $\operatorname{sign}(w^\top x)$, minimising it is <b>NP-hard</b>. Reusing least squares regression doesn't work well either: it cares <i>where</i> points are, not just <i>which side</i> of the line they're on.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_w9irUy_8Cs">this lecture on YouTube</a> (≈23 min). Previous: <a href="L40-solving-lasso.html">L40</a> · Next: <a href="L42-knn.html">L42</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_w9irUy_8Cs" target="_blank" rel="noopener">this lecture on YouTube</a> (≈23 min). Previous: <a href="L40-solving-lasso.html">L40</a> · Next: <a href="L42-knn.html">L42</a>.</p>
 
 <h2>1 · The problem</h2>
 <p>Data $x_1,\dots,x_n\in\mathbb R^d$ with labels $y_i\in\{0,1\}$, or equivalently $\{-1,+1\}$: which numbers name the two classes doesn't matter, and different algorithms prefer different conventions. Example: spam vs not spam. We want $h:\mathbb R^d\to\{0,1\}$ that labels <b>new</b> points correctly. The course focuses on <b>binary</b> classification; multi-class mostly reuses its ideas.</p>
@@ -217,5 +217,6 @@ function lossDraw(){ const [ctx, W, H] = setupCanvas($('lossC')), pad = {l: 34, 
 function drawAll(){ gameDraw(); regDraw(); lossDraw(); }
 newGame(gSeed); RP = baseReg(); onReady(drawAll);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

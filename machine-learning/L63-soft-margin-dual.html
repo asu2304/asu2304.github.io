@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 63 · Support vector machines: the soft-margin dual</div>
 <h1>The Dual of the Soft-Margin SVM</h1>
 <p class="lede">Derive the dual of the soft-margin problem and almost nothing changes. The objective is the <b>same</b> as the hard-margin dual; the only difference is that each multiplier is now capped: <b>$0\le\alpha_i\le C$</b>. These "box constraints" are just as easy to handle, and the data still appears only through $X^\top X$. So the soft-margin SVM keeps kernels and adds tolerance to outliers.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=MZzp4OP8GgQ">this lecture on YouTube</a> (≈21 min). Previous: <a href="L62-soft-margin-svm.html">L62</a> · Next: <a href="L64-soft-margin-slackness.html">L64</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=MZzp4OP8GgQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L62-soft-margin-svm.html">L62</a> · Next: <a href="L64-soft-margin-slackness.html">L64</a>.</p>
 
 <h2>1 · Why we need the dual again</h2>
 <p>The soft-margin primal handles linear structure plus outliers. But data can have <b>non-linear structure and outliers together</b>: say a quadratic boundary with a few points on the wrong side. We want slack for the noise <i>and</i> a kernel for the structure. Whether the new problem can be kernelised is only visible in its dual.</p>
@@ -200,5 +200,6 @@ $('kNew').onclick = () => { kSeed++; KP = ringData(kSeed, 26, 40); kSolve(); knD
 KP = ringData(kSeed, 26, 40); KT = ringData(999, 160, 240); kSolve();
 onReady(() => { bxDraw(); knDraw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

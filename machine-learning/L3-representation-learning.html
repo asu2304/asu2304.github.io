@@ -48,7 +48,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 3 · Unsupervised learning: representation learning, part 1</div>
 <h1>Representation Learning: Comprehension Is Compression</h1>
 <p class="lede">Unsupervised learning starts with a vague goal: understand something useful about a set of data points. The running theme of the course makes it concrete: to <b>comprehend</b> is to <b>compress</b>. If points lie on a line, store one <b>representative</b> plus one <b>coefficient</b> per point. When a point is off the line, give up exact reconstruction and store its best <b>proxy</b> on the line: its <b>projection</b> $(x^\top w)\,w$.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=1V_M4JxygGk">this lecture on YouTube</a> (≈32 min). Previous: <a href="L2-paradigms.html">L2</a> · Next: <a href="L4-best-fit-line.html">L4</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=1V_M4JxygGk" target="_blank" rel="noopener">this lecture on YouTube</a> (≈32 min). Previous: <a href="L2-paradigms.html">L2</a> · Next: <a href="L4-best-fit-line.html">L4</a>.</p>
 
 <h2>1 · Unsupervised learning: a vague goal</h2>
 <p>Given a set of data points, understand something useful about them. Three words need pinning down:</p>
@@ -203,5 +203,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

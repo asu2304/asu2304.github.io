@@ -47,7 +47,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 7 · Principal component analysis, part 2</div>
 <h1>PCA: Eigenvectors and Variance Maximisation</h1>
 <p class="lede">The residue procedure has a linear-algebra shortcut: its lines are the <b>eigenvectors of the covariance matrix</b> $C$, in order of eigenvalue. Each eigenvalue is the <b>variance</b> of the data projected on that direction. So on centred data, minimising reconstruction error is the same as <b>maximising variance</b>, and the new coordinates are <b>de-correlated</b>. This is principal component analysis.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=o__dWBLqPhQ">this lecture on YouTube</a> (≈27 min). Previous: <a href="L6-pca-error-minimization.html">L6</a> · Next: <a href="L8-pca-issues.html">L8</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=o__dWBLqPhQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈27 min). Previous: <a href="L6-pca-error-minimization.html">L6</a> · Next: <a href="L8-pca-issues.html">L8</a>.</p>
 
 <h2>1 · Enter linear algebra</h2>
 <p>The problem in each round is</p>
@@ -198,5 +198,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

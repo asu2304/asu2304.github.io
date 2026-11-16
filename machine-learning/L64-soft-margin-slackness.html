@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 64 · Support vector machines: reading the multipliers</div>
 <h1>Complementary Slackness for the Soft-Margin SVM</h1>
 <p class="lede">Solve the soft-margin dual, look at one $\alpha^*_i$, and you can tell where its point sits. <b>$\alpha^*_i=0$</b>: correctly classified, on or beyond its margin line. <b>$0&lt;\alpha^*_i&lt;C$</b>: exactly on the margin line. <b>$\alpha^*_i=C$</b>: on the line or on the wrong side of it, inside the band or misclassified, paying a bribe. Everything with $\alpha^*_i&gt;0$ is a support vector.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=jthjk2nboDM">this lecture on YouTube</a> (≈21 min). Previous: <a href="L63-soft-margin-dual.html">L63</a> · Next: <a href="L65-soft-margin-summary.html">L65</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=jthjk2nboDM" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L63-soft-margin-dual.html">L63</a> · Next: <a href="L65-soft-margin-summary.html">L65</a>.</p>
 
 <h2>1 · The conditions</h2>
 <p>Let $(w^*,\xi^*)$ solve the primal and $(\alpha^*,\beta^*)$ the dual. Each term added to the Lagrangian vanishes at the optimum:</p>
@@ -169,5 +169,6 @@ cv.addEventListener('pointerleave', () => { hov = -1; draw(); });
 solveIt();
 onReady(draw);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 70 · Classification through the lens of loss functions, part 2</div>
 <h1>SVMs and Logistic Regression as Convex Surrogates: Hinge and Logistic Loss</h1>
 <p class="lede">Rewrite the soft-margin SVM and logistic regression so the data appears only through the margin $w^\top x_i\,y_i$. Then both turn into <b>"loss + regulariser"</b>, just like ridge regression. The SVM uses the <b>hinge loss</b> $\max(0,1-z)$ and logistic regression the <b>logistic loss</b> $\log(1+e^{-z})$. Both are convex and, unlike the squared loss, both shaped like the 0-1 step they replace.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=tXVelGBsIPI">this lecture on YouTube</a> (≈25 min). Previous: <a href="L69-classification-losses.html">L69</a> · Next: <a href="L71-perceptron-boosting-loss.html">L71</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=tXVelGBsIPI" target="_blank" rel="noopener">this lecture on YouTube</a> (≈25 min). Previous: <a href="L69-classification-losses.html">L69</a> · Next: <a href="L71-perceptron-boosting-loss.html">L71</a>.</p>
 
 <h2>1 · The SVM, rewritten</h2>
 <p>The soft-margin SVM from L62:</p>
@@ -253,5 +253,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

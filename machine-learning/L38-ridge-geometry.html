@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 38 · Regression: regularisation, geometrically</div>
 <h1>The Geometry of Ridge: Ellipses Meet a Circle</h1>
 <p class="lede">Ridge regression is the same as minimising the loss while keeping $w$ <b>inside a circle</b> around the origin. The loss grows in <b>elliptical contours</b> around the ML solution. The ridge solution is where the contours first touch the circle. That point is shorter than $\hat w_{\text{ML}}$, but generally has <b>no exactly-zero</b> coordinates.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=rCfjaEYxaC8">this lecture on YouTube</a> (≈25 min). Previous: <a href="L37-ridge-regression.html">L37</a> · Next: <a href="L39-lasso.html">L39</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=rCfjaEYxaC8" target="_blank" rel="noopener">this lecture on YouTube</a> (≈25 min). Previous: <a href="L37-ridge-regression.html">L37</a> · Next: <a href="L39-lasso.html">L39</a>.</p>
 
 <h2>1 · Ridge as a constrained problem</h2>
 <p>Two problems that turn out to have the same answer:</p>
@@ -159,5 +159,6 @@ function draw(){
 ['a', 'b', 'k', 't', 'r'].forEach(id => $(id).oninput = draw);
 onReady(draw);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

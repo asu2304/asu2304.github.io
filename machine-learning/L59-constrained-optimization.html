@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 59 · Support vector machines: an optimisation detour</div>
 <h1>Constrained Optimisation: Lagrangian and Duality</h1>
 <p class="lede">To minimise $f(w)$ subject to $g(w)\le0$, fold the constraint into the objective: $L(w,\alpha)=f(w)+\alpha\,g(w)$. Maximising over $\alpha\ge0$ gives $f(w)$ when $w$ is feasible and $+\infty$ when it isn't, so the constrained problem equals $\min_w\max_{\alpha\ge0}L$. For <b>convex</b> $f$ and $g$ the min and max can be <b>swapped</b>, which gives the dual problem.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=7Th2YgPMnk0">this lecture on YouTube</a> (≈20 min). Previous: <a href="L58-maximum-margin.html">L58</a> · Next: <a href="L60-svm-dual.html">L60</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=7Th2YgPMnk0" target="_blank" rel="noopener">this lecture on YouTube</a> (≈20 min). Previous: <a href="L58-maximum-margin.html">L58</a> · Next: <a href="L60-svm-dual.html">L60</a>.</p>
 
 <h2>1 · The setting</h2>
 <p>Our SVM problem (call it A) is $\min_w\tfrac12\lVert w\rVert^2$ s.t. $(w^\top x_i)y_i\ge1$. It has the general shape</p>
@@ -171,5 +171,6 @@ document.querySelectorAll('button[data-e]').forEach(b => b.onclick = () => { ek 
 $('aBest').onclick = () => { const E = EX[ek]; let bestA = 0, bestD = -Infinity; for (let i = 0; i <= 400; i++){ const x = E.amax * i / 400, v = dualAt(E, x)[0]; if (v > bestD){ bestD = v; bestA = x; } } $('a2').value = Math.round(bestA * 10); duDraw(); };
 onReady(() => { laDraw(); duDraw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

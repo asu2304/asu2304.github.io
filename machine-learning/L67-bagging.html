@@ -46,7 +46,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 67 · Ensembles: bootstrap aggregation</div>
 <h1>Bagging and Random Forests</h1>
 <p class="lede">Averaging independent estimates keeps the mean and shrinks the <b>variance</b>. Bagging applies this to classifiers: build many datasets from one by <b>sampling with replacement</b> (bootstrapping), train an overfit, low-bias learner on each, and take a <b>majority vote</b> (aggregation). Random forests add <b>feature bagging</b> so the trees disagree more and the vote cancels more of their noise.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=OXTu2vrsTjY">this lecture on YouTube</a> (≈31 min). Previous: <a href="L66-bias-variance.html">L66</a> · Next: <a href="L68-boosting.html">L68</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=OXTu2vrsTjY" target="_blank" rel="noopener">this lecture on YouTube</a> (≈31 min). Previous: <a href="L66-bias-variance.html">L66</a> · Next: <a href="L68-boosting.html">L68</a>.</p>
 
 <h2>1 · Why average? A lesson from estimating a mean</h2>
 <p>Take $x_1,\dots,x_n$ drawn i.i.d. from a Gaussian with unknown mean $\mu$ (say $5.5$) and variance 1. Consider the estimators</p>
@@ -269,5 +269,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

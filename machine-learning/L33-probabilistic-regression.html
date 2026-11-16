@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 33 · Regression: the probabilistic view</div>
 <h1>Probabilistic View of Linear Regression</h1>
 <p class="lede">So far, squared error was just an intuitive choice. Now assume a <b>probabilistic mechanism</b> generates the labels: $y=w^\top x+\epsilon$ with Gaussian noise. Regression becomes an <b>estimation problem</b>, and maximum likelihood gives back exactly the least-squares solution. Choosing a noise model means choosing an error function, and vice versa.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gLGQokSrtDI">this lecture on YouTube</a> (≈15 min). Previous: <a href="L32-kernel-regression.html">L32</a> · Next: <a href="L34-goodness-of-ml-estimator.html">L34</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gLGQokSrtDI" target="_blank" rel="noopener">this lecture on YouTube</a> (≈15 min). Previous: <a href="L32-kernel-regression.html">L32</a> · Next: <a href="L34-goodness-of-ml-estimator.html">L34</a>.</p>
 
 <h2>1 · Model the labels, not the features</h2>
 <p>The data is $\{(x_1,y_1),\dots,(x_n,y_n)\}$ with $x_i\in\mathbb R^d$ and $y_i\in\mathbb R$. We don't try to model how the features $x$ are generated. We only model how a label is produced <b>given</b> a feature vector:</p>
@@ -169,5 +169,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

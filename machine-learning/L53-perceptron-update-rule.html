@@ -51,7 +51,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 53 · Classification: inside the perceptron</div>
 <h1>The Perceptron Update Rule and the Margin</h1>
 <p class="lede">One update, $w^{t+1}=w^t+x_iy_i$, always moves $w^\top x_i$ in the <b>right direction</b> for the point that was wrong. It may not fully fix that point, and it can <b>break others</b>. A three-point example even makes the algorithm loop forever, although the data is linearly separable. The cure is a slightly stronger assumption: linear separability with a <b>margin $\gamma&gt;0$</b>.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=FMRpmR9HNtY">this lecture on YouTube</a> (≈36 min). Previous: <a href="L52-perceptron.html">L52</a> · Next: <a href="L54-perceptron-convergence.html">L54</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=FMRpmR9HNtY" target="_blank" rel="noopener">this lecture on YouTube</a> (≈36 min). Previous: <a href="L52-perceptron.html">L52</a> · Next: <a href="L54-perceptron-convergence.html">L54</a>.</p>
 
 <h2>1 · Two kinds of mistake, one rule</h2>
 <table>
@@ -240,5 +240,6 @@ $('ang').oninput = mgDraw; $('angBest').onclick = () => { $('ang').value = Math.
 fLoad(); cInit();
 onReady(() => { anDraw(); fDraw(); cDraw(); mgDraw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

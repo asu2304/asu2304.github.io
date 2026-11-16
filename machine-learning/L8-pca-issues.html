@@ -47,7 +47,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 8 · PCA in practice, and its limits</div>
 <h1>Eigenfaces, and Two Issues with PCA</h1>
 <p class="lede">Treat every face image as one long vector of pixels and run PCA: the principal components are themselves face-like images ("eigenfaces"), and a few hundred of them describe a 32,000-pixel face well enough to recognise the person. Then two concerns: computing the eigenvectors costs about $d^3$, painful when $d$ is huge; and PCA only finds <b>linear</b> structure, so data on a curved surface fools it. Surprisingly, one idea will fix both.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=sgU4zbO-W4M">this lecture on YouTube</a> (≈25 min). Previous: <a href="L7-pca-variance.html">L7</a> · Next: <a href="L9-pca-time-complexity.html">L9</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=sgU4zbO-W4M" target="_blank" rel="noopener">this lecture on YouTube</a> (≈25 min). Previous: <a href="L7-pca-variance.html">L7</a> · Next: <a href="L9-pca-time-complexity.html">L9</a>.</p>
 
 <h2>1 · Images as data points</h2>
 <p>The <b>Extended Yale Face Database</b> contains grayscale, same-size, camera-facing face images (the lecture quotes around 20,000 of them). To turn an image into features:</p>
@@ -268,5 +268,6 @@ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTime
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

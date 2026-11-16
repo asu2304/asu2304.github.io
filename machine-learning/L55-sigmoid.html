@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 55 · Classification: softening the perceptron</div>
 <h1>From Scores to Probabilities: The Sigmoid</h1>
 <p class="lede">The perceptron's model says $P(y=1\mid x)$ is exactly 1 or 0, which is why one outlier makes a dataset impossible. Relax it: let the <b>score</b> $z=w^\top x$ set a real probability through a <b>link function</b>. The popular choice is the <b>sigmoid</b>, $g(z)=1/(1+e^{-z})$. Now every dataset is possible under every $w$, just more or less likely, and choosing $w$ becomes a maximum-likelihood problem.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=udFWtBLJUvA">this lecture on YouTube</a> (≈20 min). Previous: <a href="L54-perceptron-convergence.html">L54</a> · Next: <a href="L56-logistic-regression.html">L56</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=udFWtBLJUvA" target="_blank" rel="noopener">this lecture on YouTube</a> (≈20 min). Previous: <a href="L54-perceptron-convergence.html">L54</a> · Next: <a href="L56-logistic-regression.html">L56</a>.</p>
 
 <h2>1 · Where the perceptron stands</h2>
 <p>It converges on linearly separable data, with at most $R^2/\gamma^2$ mistakes. The margin $\gamma$ deserves a longer discussion, which the course parks for later. Today's question is about the <b>assumption</b>:</p>
@@ -183,5 +183,6 @@ $('orig').onclick = () => { SP = BASE.map(p => [...p]); custom = false; sfDraw()
 
 onReady(() => { sgDraw(); sfDraw(); });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

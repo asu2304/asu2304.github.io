@@ -53,7 +53,7 @@ summary{cursor:pointer;font-weight:600}
 <div class="kicker">Lecture 22 · Estimation for clustered data</div>
 <h1>Gaussian Mixture Models</h1>
 <p class="lede">When data falls into several clumps, one Gaussian can't explain it. A <b>Gaussian mixture model (GMM)</b> explains it with a two-step story: first pick a clump at random, then draw a point from that clump's own Gaussian.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=dyRTVmtML-U">this lecture on YouTube</a> (≈21 min). Previous: <a href="L21-bayesian-estimation.html">L21 · Bayesian estimation</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=dyRTVmtML-U" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L21-bayesian-estimation.html">L21 · Bayesian estimation</a>.</p>
 
 <h2>1 · Why one Gaussian isn't enough</h2>
 <p>Take 1-D data in three clumps. Fit one Gaussian by maximum likelihood: its mean is the sample mean, which lands in the middle. The fitted curve then says the outer clumps sit in <b>low-density</b> regions, yet that's exactly where lots of data was observed. Maximum likelihood isn't at fault: it found the best Gaussian. The <b>model</b> is too simple. A single Gaussian has only one peak, and this data needs three.</p>
@@ -207,5 +207,6 @@ window.addEventListener('load', () => {
   redrawAll();
 });
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

@@ -45,7 +45,7 @@ table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px
 <div class="kicker">Lecture 62 · Support vector machines: handling outliers</div>
 <h1>Soft-Margin SVM</h1>
 <p class="lede">With outliers, no $w$ satisfies every constraint $(w^\top x_i)y_i\ge1$. So make <b>every $w$ feasible</b>: let each point pay a <b>"bribe" $\xi_i\ge0$</b> to make up its shortfall, $(w^\top x_i)y_i+\xi_i\ge1$. Bribes must cost something, or the answer collapses to $w=0$. Charging $C$ per unit gives the soft-margin problem: $\min\ \tfrac12\lVert w\rVert^2+C\sum_i\xi_i$.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=leolYGmaFLM">this lecture on YouTube</a> (≈14 min). Previous: <a href="L61-support-vectors.html">L61</a> · Next: <a href="L63-soft-margin-dual.html">L63</a>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=leolYGmaFLM" target="_blank" rel="noopener">this lecture on YouTube</a> (≈14 min). Previous: <a href="L61-support-vectors.html">L61</a> · Next: <a href="L63-soft-margin-dual.html">L63</a>.</p>
 
 <h2>1 · The problem with the hard margin</h2>
 $$\min_w\ \tfrac12\lVert w\rVert^2\qquad\text{s.t.}\qquad(w^\top x_i)\,y_i\ge1\ \ \forall i .$$
@@ -177,5 +177,6 @@ function ccDraw(){ const [ctx, W, H] = setupCanvas($('cc')), pad = {l: 44, r: 44
   $('ccTxt').innerHTML = `For each C the problem is solved exactly. At your C = ${$('cV').textContent}: band width ${cur.wd.toFixed(2)}, total bribe ${cur.sx.toFixed(1)}, held-out accuracy <b>${(100 * cur.acc).toFixed(1)}%</b>. As C grows the band narrows and the bribes shrink. Held-out accuracy is best around C = ${bestS.C < 0.1 ? bestS.C.toFixed(3) : bestS.C.toFixed(2)} (${(100 * bestS.acc).toFixed(1)}%), and collapses when C is tiny and w heads to 0. Cross-validation picks C by reading this green curve.`; }
 onReady(smDraw);
 </script>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

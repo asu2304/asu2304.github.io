@@ -8,16 +8,16 @@ Personal revision notes by Ashutosh Patidar, served with GitHub Pages. The notes
 
 | Section | Source | What's inside | Status |
 |---|---|---|---|
-| [Machine Learning](https://asu2304.github.io/machine-learning/) | Arun Rajkumar, DA5400 (IIT Madras) | All 74 lectures: PCA and kernels, clustering, estimation and EM, regression, classification, ensembles, loss functions and neural networks. Plus my own notes and a 5-page detour on gradient boosting (XGBoost, LightGBM, CatBoost). | Complete |
 | [Linear Algebra](https://asu2304.github.io/linear-algebra/) | Gilbert Strang, MIT 18.06 | All 34 lectures read through an ML / DL lens, a PCA prologue, and a revision sheet. | Complete |
-| [SQL for Data Science](https://asu2304.github.io/sql/) | Nitish Singh, CampusX | 12 chapters and a practice session, with quizzes and an in-browser SQL lab. | Complete |
 | [Probability and Statistics](https://asu2304.github.io/probability-statistics/) | — | — | Coming soon |
+| [SQL for Data Science](https://asu2304.github.io/sql/) | Nitish Singh, CampusX | 12 chapters and a practice session, with quizzes and an in-browser SQL lab. | Complete |
+| [Machine Learning](https://asu2304.github.io/machine-learning/) | Arun Rajkumar, DA5400 (IIT Madras) | All 74 lectures: PCA and kernels, clustering, estimation and EM, regression, classification, ensembles, loss functions and neural networks. Plus my own notes and a 5-page detour on gradient boosting (XGBoost, LightGBM, CatBoost). | Complete |
 | [Deep Learning](https://asu2304.github.io/deep-learning/) | Mitesh Khapra, CS6910 (IIT Madras) | — | Coming soon |
-| Transformers | — | — | Coming soon |
-| Quantization | — | — | Coming soon |
-| LLMOps | — | — | Coming soon |
-| RAG | — | — | Coming soon |
-| Agentic AI | — | — | Coming soon |
+| [Transformers](https://asu2304.github.io/transformers/) | — | — | Coming soon |
+| [Quantization](https://asu2304.github.io/quantization/) | — | — | Coming soon |
+| [LLMOps](https://asu2304.github.io/llmops/) | — | — | Coming soon |
+| [RAG](https://asu2304.github.io/rag/) | — | — | Coming soon |
+| [Agentic AI](https://asu2304.github.io/agentic-ai/) | — | — | Coming soon |
 
 ## What a page looks like
 
@@ -31,12 +31,17 @@ Personal revision notes by Ashutosh Patidar, served with GitHub Pages. The notes
 
 ```
 index.html                 home page
-assets/style.css           shared styles for the home and section pages
-machine-learning/          DA5400 notes (L1–L74, N1–N3, D1–D5)
+assets/                    shared styles, and the script that opens videos in the YouTube app on phones
 linear-algebra/            MIT 18.06 notes
+probability-statistics/    coming soon
 sql/                       SQL notes and the SQL lab
-probability-statistics/    placeholder
-deep-learning/             placeholder
+machine-learning/          DA5400 notes (L1–L74, N1–N3, D1–D5)
+deep-learning/             coming soon
+transformers/              coming soon
+quantization/              coming soon
+llmops/                    coming soon
+rag/                       coming soon
+agentic-ai/                coming soon
 ```
 
 Every page is plain, self-contained HTML; there is no build step. Maths is rendered with KaTeX (MathJax in the linear algebra notes), loaded from a CDN.

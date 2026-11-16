@@ -48,7 +48,7 @@ main{overflow-x:clip} .katex{position:relative}
 <div class="kicker">Detour 1 of 5 · Not in the DA5400 lectures · Gradient-boosted trees</div>
 <h1>Gradient Boosting: Gradient Descent in Function Space</h1>
 <p class="lede">L71 showed that AdaBoost is secretly minimising the exponential loss, one weak learner at a time. <b>Gradient boosting</b> keeps that recipe and swaps in <b>any differentiable loss</b>: at every round, compute how the loss wants each training prediction to move (the <b>negative gradient</b>), fit a small <b>regression tree</b> to those numbers, and take a small step along it. For squared error this is just "fit a tree to the residuals"; for other losses it's gradient descent (L31) where the thing being optimised is the function itself.</p>
-<p class="small muted">Not part of the DA5400 lectures. Main source: J. H. Friedman, <i>Greedy function approximation: a gradient boosting machine</i>, Annals of Statistics 29(5), 2001 (<a href="https://doi.org/10.1214/aos/1013203451">doi:10.1214/aos/1013203451</a>). Previous: <a href="L71-perceptron-boosting-loss.html">L71</a> · Next: <a href="D2-gbdt.html">D2</a>.</p>
+<p class="small muted">Not part of the DA5400 lectures. Main source: J. H. Friedman, <i>Greedy function approximation: a gradient boosting machine</i>, Annals of Statistics 29(5), 2001 (<a href="https://doi.org/10.1214/aos/1013203451">doi:10.1214/aos/1013203451</a>). Previous: <a href="N3-lightgbm-notes.html">N3</a> (my notes) or <a href="L71-perceptron-boosting-loss.html">L71</a> · Next: <a href="D2-gbdt.html">D2</a>.</p>
 
 <h2>1 · Where we are, and why go further</h2>
 <p>Three ideas from the course meet here:</p>

@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient Boosting: My Revision Notes, Part 2</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} .pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair,.pair.half{grid-template-columns:1fr}}
+.algo{font-size:15px;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:10px 16px;margin:14px 0}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+main{overflow-x:clip} .katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+pre{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 16px;overflow-x:auto;font-size:13px;line-height:1.5}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
+:not(pre)>code{background:var(--tint);border-radius:4px;padding:1px 5px}
+h3{font-size:18px;margin:26px 0 6px}
+hr{border:0;border-top:1px solid var(--grid);margin:28px 0}
+blockquote.callout{margin:14px 0}
+li.todo{list-style:none;position:relative}
+li.todo::before{content:'☐';position:absolute;left:-22px;color:var(--muted)}
+.mynote{background:var(--warn-bg);border-radius:10px;padding:12px 16px;margin:14px 0}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">My notes · Part 2 of 3 · Not in the DA5400 lectures · Gradient boosting</div>
+<h1>Gradient Boosting — Revision Notes, Part 2</h1>
+<div class="mynote"><b>My earlier understanding.</b> These are my own revision notes, written while I was learning gradient boosting with ChatGPT, before the detour pages existed. I've kept them as I wrote them. To go further on gradient boosting, XGBoost, LightGBM and CatBoost, with derivations and interactive demos tied back to the lectures, continue to the detour: <a href="D1-gradient-boosting.html">D1 Gradient boosting</a> · <a href="D2-gbdt.html">D2 GBDT</a> · <a href="D3-xgboost.html">D3 XGBoost</a> · <a href="D4-lightgbm.html">D4 LightGBM</a> · <a href="D5-catboost.html">D5 CatBoost</a>.</div>
+<p class="small muted">Previous: <a href="N1-gradient-boosting-notes.html">N1</a> · Next: <a href="N3-lightgbm-notes.html">N3</a>.</p>
+<p>This file continues the earlier <strong>Gradient Boosting Revision Notes</strong>. It starts from the next lecture: gradient-boosted decision trees (GBDTs) for binary classification, followed by their hyperparameters and stochastic gradient boosting.</p>
+<hr />
+<h2>14. Gradient boosting for binary classification: boost the log-odds</h2>
+<p>In binary classification, the training dataset contains a feature matrix and binary labels:</p>
+<ul>
+<li>$X$: the input features (columns) for each observation.</li>
+<li>$y$: the actual class label, with $y_i \in  \{0, 1\}$.</li>
+</ul>
+<p>The model does not directly build trees that output class labels. Instead, it builds an additive <strong>real-valued score</strong> (logit) and converts that score into a probability using the sigmoid function.</p>
+<h3>14.1 The model's score is a logit</h3>
+<p>Let the current model score be $F(x)$. Interpret it as the log-odds of the positive class:</p>
+<div>$$F(x)=\log\frac{p(x)}{1-p(x)}$$</div>
+<p>The corresponding probability is:</p>
+<div>$$p(x)=\sigma(F(x))=\frac{1}{1+e^{-F(x)}}$$</div>
+<p>The sigmoid converts any real-valued score into a number between 0 and 1.</p>
+<ul>
+<li>$F(x) = 0$ gives $p(x) = 0.5$.</li>
+<li>A positive score gives a probability above 0.5.</li>
+<li>A negative score gives a probability below 0.5.</li>
+</ul>
+<p>The final class can be chosen by thresholding the probability, commonly at 0.5. Equivalently, with that threshold, predict class 1 when $F(x) &gt; 0$.</p>
+<h3>14.2 How this differs from logistic regression</h3>
+<p>In ordinary logistic regression, the score is linear in the features:</p>
+<div>$$F(x)=w^\top x+b$$</div>
+<p>In gradient-boosted trees, the score is an additive collection of tree outputs:</p>
+<div>$$F_M(x)=F_0(x)+\eta\sum_{m=1}^{M}f_m(x)$$</div>
+<p>Each tree contributes a piecewise-constant correction. The resulting decision boundary can therefore be nonlinear and can represent feature interactions.</p>
+<h3>14.3 The loss function</h3>
+<p>For binary labels $y \in  {0,1}$, use binary cross-entropy (logistic loss):</p>
+<div>$$\ell(y,F)=-\left[y\log p+(1-y)\log(1-p)\right],
+\qquad p=\sigma(F)$$</div>
+<p>For a positive example ($y=1$), the loss is $-\log(p)$: a small predicted probability is penalized.</p>
+<p>For a negative example ($y=0$), the loss is $-\log(1-p)$: a large predicted probability is penalized.</p>
+<p>The loss is evaluated using the actual label and the model's current predicted probability. We do <strong>not</strong> need a target logit or a target probability in the training data; the given binary label is enough.</p>
+<h3>14.4 Gradient and Hessian with respect to the score</h3>
+<p>Differentiate the loss with respect to the model score $F_i$ (holding the actual label $y_i$ fixed):</p>
+<div>$$g_i=\frac{\partial\ell(y_i,F_i)}{\partial F_i}=p_i-y_i$$</div>
+<p>The second derivative, or Hessian for this one-dimensional score, is:</p>
+<div>$$h_i=\frac{\partial^2\ell(y_i,F_i)}{\partial F_i^2}
+=p_i(1-p_i)$$</div>
+<p>The negative gradient is the pseudo-residual:</p>
+<div>$$r_i=-g_i=y_i-p_i$$</div>
+<p>Interpretation:</p>
+<ul>
+<li>If $y_i=1$, then $r_i=1-p_i$, which is nonnegative. The score should generally move upwards.</li>
+<li>If $y_i=0$, then $r_i=-p_i$, which is nonpositive. The score should generally move downwards.</li>
+</ul>
+<p>The label supplies the direction of correction; the current model probability determines how large the gradient is. We do not know a “correct logit” for each observation, and we do not need one. We differentiate the classification loss evaluated at the current score.</p>
+<p>Because $y_i$ is either 0 or 1 and $p_i$ lies between 0 and 1, the magnitude of $y_i-p_i$ is at most 1. This is one reason logistic-loss boosting is less dominated by extremely misclassified observations than boosting with exponential loss. It does not make logistic boosting immune to label noise.</p>
+<hr />
+<h2>15. Initialization: where the first score comes from</h2>
+<p>Before fitting any tree, the model starts as a constant function:</p>
+<div>$$F_0(x)=c\quad\text{for every observation }x$$</div>
+<p>We choose the constant that minimizes total binary cross-entropy on the training labels:</p>
+<div>$$c=\arg\min_c\sum_{i=1}^{n}\ell(y_i,c)$$</div>
+<p>The derivative with respect to $c$ is:</p>
+<div>$$\frac{dL}{dc}=\sum_{i=1}^{n}(\sigma(c)-y_i)$$</div>
+<p>Set it to zero:</p>
+<div>$$n\sigma(c)=\sum_i y_i$$</div>
+<p>Therefore:</p>
+<div>$$\sigma(c)=\bar y$$</div>
+<p>where $\bar y$ is the fraction of positive examples in the training data. Applying the inverse sigmoid gives:</p>
+<div>$$\boxed{F_0=\log\frac{\bar y}{1-\bar y}}$$</div>
+<h3>Example: 30% positive labels</h3>
+<p>If 30 out of 100 training observations have label 1, then:</p>
+<div>$$\bar y=0.3,\qquad F_0=\log\frac{0.3}{0.7}\approx-0.847$$</div>
+<p>The initial model assigns the same score $-0.847$ and probability $0.3$ to every observation. No feature has been used yet and no tree has been fitted.</p>
+<p><strong>Important:</strong> the fraction is calculated from the actual labels already present in the training dataset. It is not calculated from predicted labels. The initial constant probability is the model's starting prediction.</p>
+<p>If the training set contains only one class, the unregularized log-odds would be infinite; practical implementations need safeguards for such edge cases.</p>
+<hr />
+<h2>16. What happens after initialization? A complete first-round walkthrough</h2>
+<p>Suppose we have four observations:</p>
+<table>
+<thead>
+<tr>
+<th>Observation</th>
+<th style="text-align: right;">Feature $x$</th>
+<th style="text-align: right;">Actual label $y$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td style="text-align: right;">10</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>B</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align: right;">30</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr>
+<td>D</td>
+<td style="text-align: right;">40</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+<p>There are two positive labels out of four, so:</p>
+<div>$$\bar y=0.5,\qquad F_0=\log\frac{0.5}{0.5}=0$$</div>
+<p>Every observation initially has score 0 and probability:</p>
+<div>$$p_i=\sigma(0)=0.5$$</div>
+<p>Now calculate the gradients and negative gradients:</p>
+<table>
+<thead>
+<tr>
+<th>Point</th>
+<th style="text-align: right;">Actual $y_i$</th>
+<th style="text-align: right;">Current $p_i$</th>
+<th style="text-align: right;">Gradient $g_i=p_i-y_i$</th>
+<th style="text-align: right;">Negative gradient $r_i=y_i-p_i$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">-0.5</td>
+<td style="text-align: right;">+0.5</td>
+</tr>
+<tr>
+<td>B</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">-0.5</td>
+<td style="text-align: right;">+0.5</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">+0.5</td>
+<td style="text-align: right;">-0.5</td>
+</tr>
+<tr>
+<td>D</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.5</td>
+<td style="text-align: right;">+0.5</td>
+<td style="text-align: right;">-0.5</td>
+</tr>
+</tbody>
+</table>
+<p>The negative gradient tells us the direction in which each current score should move to reduce the loss locally:</p>
+<ul>
+<li>A and B need their scores increased.</li>
+<li>C and D need their scores decreased.</li>
+</ul>
+<p>We now fit a regression tree using the feature values as inputs and the negative gradients as numerical targets:</p>
+<div>$$\boxed{\text{Fit tree on }(X,r),\quad r_i=y_i-p_i}$$</div>
+<p>The tree is learning a feature-dependent correction. It is not being fitted to the original binary labels in this boosting round, and it is not being fitted to the Hessians.</p>
+<p>For the simple example, a split at $x = 25$ would put A and B in one leaf and C and D in another. This is just an illustrative split; an actual tree chooses splits by evaluating the available feature thresholds and their reduction in squared error on the pseudo-residual targets.</p>
+<h3>The order of operations</h3>
+<ol>
+<li>Use the current ensemble to calculate scores $F_i$.</li>
+<li>Convert scores into probabilities $p_i = \sigma(F_i)$.</li>
+<li>Calculate gradients $g_i = p_i-y_i$ and Hessians $h_i=p_i(1-p_i)$.</li>
+<li>Fit a regression tree to features $X$ and negative gradients $r_i=-g_i$.</li>
+<li>Once the tree structure and its leaves are determined, calculate a Newton correction for each leaf using the gradients and Hessians of observations in that leaf.</li>
+<li>Add the shrunken leaf correction to the current model.</li>
+<li>Recalculate probabilities and gradients from the updated ensemble at the next round.</li>
+</ol>
+<p>This ordering is important: in the basic GBDT procedure described here, the negative gradients determine the regression-tree fitting targets and SSE-based splits; the Hessians are used afterwards to calculate the Newton leaf values.</p>
+<hr />
+<h2>17. Newton leaf values: why divide by the sum of Hessians?</h2>
+<p>A fitted tree determines which observations share a leaf. It does not yet determine the final numerical correction to the model score for that leaf.</p>
+<p>For a leaf $j$, let $I_j$ be its observations. We want a shared score correction $w$ that reduces the sum of logistic losses in that leaf:</p>
+<div>$$L_j(w)=\sum_{i\in I_j}\ell(y_i,F_{m-1}(x_i)+w)$$</div>
+<p>There is generally no simple closed-form solution for the exact minimizer. Instead, approximate each loss around $w=0$ with a second-order Taylor expansion:</p>
+<div>$$\ell(y_i,F_i+w)\approx
+\ell(y_i,F_i)+g_iw+\frac12h_iw^2$$</div>
+<p>Summing over the leaf and dropping terms that do not depend on $w$ gives:</p>
+<div>$$L_j(w)\approx G_jw+\frac12H_jw^2$$</div>
+<p>where:</p>
+<div>$$G_j=\sum_{i\in I_j}g_i,\qquad
+H_j=\sum_{i\in I_j}h_i$$</div>
+<p>Differentiate with respect to $w$ and set the derivative to zero:</p>
+<div>$$G_j+H_jw=0$$</div>
+<p>Thus the Newton leaf value is:</p>
+<div>$$\boxed{w_j=-\frac{G_j}{H_j}}$$</div>
+<p>Substituting the logistic gradient and Hessian:</p>
+<div>$$\boxed{
+ w_j=\frac{\sum_{i\in I_j}(y_i-p_i)}
+ {\sum_{i\in I_j}p_i(1-p_i)}
+}$$</div>
+<h3>What numerator and denominator mean</h3>
+<p>The numerator is the sum of negative gradients (the total requested correction) in the leaf.</p>
+<p>The denominator is the sum of local curvatures of the loss with respect to the scores. Newton's method uses curvature to scale the step:</p>
+<ul>
+<li>A larger Hessian sum means greater local curvature, so the Newton correction is smaller for the same gradient sum.</li>
+<li>A smaller Hessian sum means lower local curvature, so the Newton correction can be larger.</li>
+</ul>
+<p>The gradient measures the local slope; the Hessian measures how quickly that slope changes. The Hessian is also with respect to the model score/logit $F_i$, with the actual label held fixed.</p>
+<h3>Numerical example</h3>
+<p>Consider a leaf with two positive observations:</p>
+<table>
+<thead>
+<tr>
+<th>Point</th>
+<th style="text-align: right;">$y_i$</th>
+<th style="text-align: right;">$p_i$</th>
+<th style="text-align: right;">$y_i-p_i$</th>
+<th style="text-align: right;">$h_i=p_i(1-p_i)$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.9</td>
+<td style="text-align: right;">0.1</td>
+<td style="text-align: right;">0.09</td>
+</tr>
+<tr>
+<td>B</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.8</td>
+<td style="text-align: right;">0.2</td>
+<td style="text-align: right;">0.16</td>
+</tr>
+<tr>
+<td><strong>Sum</strong></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"></td>
+<td style="text-align: right;"><strong>0.3</strong></td>
+<td style="text-align: right;"><strong>0.25</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The Newton leaf value is:</p>
+<div>$$w_j=\frac{0.1+0.2}{0.09+0.16}=\frac{0.3}{0.25}=1.2$$</div>
+<p>The denominator is $0.25$ because it is the sum of the two Hessians, not the number of observations. With learning rate $\eta=0.1$, the actual score update contributed by this leaf is $0.1 \times  1.2 = 0.12$.</p>
+<h3>Why this is not the average pseudo-residual</h3>
+<p>For squared loss:</p>
+<div>$$\ell(y,F)=\frac12(y-F)^2,\quad g_i=F_i-y_i,\quad h_i=1$$</div>
+<p>The Newton leaf value becomes:</p>
+<div>$$w_j=-\frac{\sum_i g_i}{\sum_i h_i}
+=\frac{\sum_i(y_i-F_i)}{|I_j|}$$</div>
+<p>That is exactly the mean residual. The reason is that every squared-loss Hessian equals 1, so the sum of Hessians is just the number of observations in the leaf.</p>
+<p>For logistic loss, $h_i=p_i(1-p_i)$ varies with the current probability. Therefore, the denominator is generally not the number of observations, and the Newton leaf value is not simply the mean pseudo-residual.</p>
+<h3>A practical caution</h3>
+<p>When probabilities are very close to 0 or 1, $p_i(1-p_i)$ can be small. A leaf with a small total Hessian can therefore produce a large Newton step. Implementations control this with shrinkage, leaf constraints, limits on leaf values, or regularization.</p>
+<p>With an L2 leaf penalty $\lambda$, the regularized Newton value becomes:</p>
+<div>$$\boxed{w_j=-\frac{G_j}{H_j+\lambda}}$$</div>
+<p>This is the form commonly encountered in XGBoost-style second-order tree learning.</p>
+<hr />
+<h2>18. How the new tree is combined with the existing model</h2>
+<p>After calculating the Newton value for each leaf, the new tree contributes a score correction. The model update is:</p>
+<div>$$\boxed{F_m(x)=F_{m-1}(x)+\eta w_{j(x)}}$$</div>
+<p>Here $j(x)$ is the leaf that contains $x$, and $\eta$ is the learning rate.</p>
+<p>The new model is the previous ensemble plus the new tree's contribution. Then the updated ensemble is used to calculate the next round's probabilities and gradients:</p>
+<div>$$p_i=\sigma(F_m(x_i))$$</div>
+<p>This is the sequential nature of gradient boosting:</p>
+<ul>
+<li>Round 1 uses the initial constant model to calculate gradients and fit tree 1.</li>
+<li>Round 2 uses the combined model (initial constant plus tree 1) to calculate new gradients and fit tree 2.</li>
+<li>Round 3 uses the constant plus trees 1 and 2 to calculate new gradients and fit tree 3.</li>
+<li>This continues for the chosen number of rounds.</li>
+</ul>
+<p>Unlike a Random Forest, where trees are trained independently and their predictions are aggregated, each boosting tree is trained in response to the current combined ensemble.</p>
+<p>AdaBoost is also sequential and updates observation weights based on the current ensemble. The particular mechanism in gradient boosting is to calculate gradients of a chosen loss with respect to the current model predictions.</p>
+<hr />
+<h2>19. Complete binary-classification GBDT algorithm</h2>
+<p><strong>Initialization</strong></p>
+<p>Calculate the positive-label fraction and set the initial score:</p>
+<div>$$F_0=\log\frac{\bar y}{1-\bar y}$$</div>
+<p><strong>For rounds $m = 1, ..., M$:</strong></p>
+<ol>
+<li>Calculate current probabilities:</li>
+</ol>
+<div>$$p_i=\sigma(F_{m-1}(x_i))$$</div>
+<ol start="2">
+<li>Calculate pseudo-residuals, gradients and Hessians:</li>
+</ol>
+<div>$$r_i=y_i-p_i,\quad g_i=p_i-y_i,\quad h_i=p_i(1-p_i)$$</div>
+<ol start="3">
+<li>
+<p>Fit a regression tree to $(X, r)$ using the chosen tree-fitting procedure. In the basic method described here, split selection uses squared-error reduction on pseudo-residuals.</p>
+</li>
+<li>
+<p>For each leaf $j$, calculate its Newton value:</p>
+</li>
+</ol>
+<div>$$w_j=\frac{\sum_{i\in I_j}(y_i-p_i)}
+   {\sum_{i\in I_j}p_i(1-p_i)}$$</div>
+<p>With L2 regularization, add $\lambda$ to the denominator.</p>
+<ol start="5">
+<li>Update the ensemble:</li>
+</ol>
+<div>$$F_m(x)=F_{m-1}(x)+\eta w_{j(x)}$$</div>
+<p><strong>Prediction:</strong></p>
+<div>$$p(x)=\sigma(F_M(x))$$</div>
+<p>Predict class 1 if $p(x)$ exceeds the chosen threshold (0.5 is common, but the threshold can be changed to suit the task).</p>
+<hr />
+<h2>20. Multiclass extension</h2>
+<p>For $K$ classes, maintain $K$ score functions:</p>
+<div>$$F^{(1)}(x),F^{(2)}(x),\ldots,F^{(K)}(x)$$</div>
+<p>Convert the scores into class probabilities using softmax:</p>
+<div>$$p^{(k)}(x)=\frac{e^{F^{(k)}(x)}}{\sum_{l=1}^{K}e^{F^{(l)}(x)}}$$</div>
+<p>For observation $i$, define the one-hot target for class $k$:</p>
+<div>$$y_i^{(k)}=\begin{cases}
+1 &amp; \text{if observation }i\text{ belongs to class }k\\
+0 &amp; \text{otherwise}
+\end{cases}$$</div>
+<p>The negative gradient for class $k$ has the form:</p>
+<div>$$r_i^{(k)}=y_i^{(k)}-p_i^{(k)}$$</div>
+<p>A boosting round fits one tree for each class score, so there are $K$ trees per round in this formulation. This requires substantially more work than the binary case as the number of classes increases.</p>
+<hr />
+<h2>21. Hyperparameters: how they affect bias and variance</h2>
+<p>The bias–variance perspective helps explain the main controls. Boosting often begins with a simple, high-bias model and reduces training error as trees are added. But additional flexibility can eventually fit noise, causing generalization performance to deteriorate.</p>
+<table>
+<thead>
+<tr>
+<th>Hyperparameter</th>
+<th>What it controls</th>
+<th>General effect of increasing it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Number of rounds $M$</td>
+<td>Number of trees added</td>
+<td>Usually reduces training error and bias initially; too many rounds can overfit. Use validation-based early stopping.</td>
+</tr>
+<tr>
+<td>Learning rate $\eta$</td>
+<td>Fraction of each tree's correction that is added</td>
+<td>A larger value makes each update more aggressive and can reach overfitting sooner. A smaller value usually requires more rounds and often gives smoother training.</td>
+</tr>
+<tr>
+<td>Tree depth $d$ (or number of leaves)</td>
+<td>Complexity of each tree</td>
+<td>Deeper trees can model more complex patterns and interactions, reducing bias but increasing variance.</td>
+</tr>
+<tr>
+<td>Minimum points per leaf</td>
+<td>Minimum number of observations allowed in a leaf</td>
+<td>A larger minimum makes leaves less specific and generally reduces variance.</td>
+</tr>
+<tr>
+<td>Minimum Hessian per leaf</td>
+<td>Minimum sum of second derivatives allowed in a leaf</td>
+<td>Prevents leaves with very little curvature/support from receiving unstable Newton updates.</td>
+</tr>
+<tr>
+<td>Row subsampling</td>
+<td>Fraction of training rows used by each tree</td>
+<td>A lower fraction adds randomness and can reduce correlation/variance; very small samples can increase bias.</td>
+</tr>
+<tr>
+<td>Column subsampling</td>
+<td>Fraction/subset of features considered</td>
+<td>Adds randomness and can reduce correlation between trees; too few features can weaken individual trees.</td>
+</tr>
+</tbody>
+</table>
+<h3>21.1 Number of rounds</h3>
+<p>More rounds give the ensemble more opportunities to correct the current model. Training loss generally continues to improve, but validation loss may eventually stop improving and then worsen.</p>
+<h3>21.2 Learning rate</h3>
+<p>The update is:</p>
+<div>$$F_m(x)=F_{m-1}(x)+\eta f_m(x)$$</div>
+<p>If a tree proposes a correction of 2, a learning rate of 1 adds 2, while a learning rate of 0.1 adds 0.2. Smaller learning rates make the process more gradual and generally require more trees.</p>
+<p>A smaller learning rate combined with more rounds often generalizes well and can make performance less sensitive to the exact stopping round. It is not a guarantee; the learning rate and number of rounds must be tuned together.</p>
+<h3>21.3 Tree depth and interaction order</h3>
+<p>Depth controls which feature relationships an individual tree can express.</p>
+<ul>
+<li><strong>Depth 1 (stumps):</strong> each tree splits on one feature. A sum of such trees is an additive model of one-variable functions, with no feature interactions:</li>
+</ul>
+<div>$$F(x)=\sum_k f_k(x_k)$$</div>
+<ul>
+<li><strong>Depth 2:</strong> a tree can make a second split conditional on the first. It can represent a pairwise interaction, such as “if $x1$ is large and $x2$ is small”.</li>
+<li><strong>Greater depth:</strong> allows more complex conditional patterns and higher-order interactions.</li>
+</ul>
+<p>Thus, depth is not merely a tree-size setting. It changes the kinds of relationships the ensemble can represent.</p>
+<h3>21.4 Minimum leaf size</h3>
+<p>A very small leaf can fit a small number of observations, potentially memorizing noise. Requiring more observations per leaf makes the tree's predictions less specific and usually reduces variance.</p>
+<h3>21.5 Row and column subsampling</h3>
+<p>Row subsampling selects a random subset of observations for a tree. Column subsampling selects a random subset of features for a tree or split. Both introduce randomness and can reduce correlation between successive trees, acting as regularization.</p>
+<hr />
+<h2>22. Stochastic Gradient Boosting: bagging-like randomness inside boosting</h2>
+<p>Stochastic Gradient Boosting, associated with Friedman's 2002 work, adds row subsampling to each boosting round.</p>
+<p>Instead of fitting every tree using all training rows, randomly sample a fraction $s$ of the rows without replacement. A common illustrative range is around 50–80%, though the suitable value depends on the dataset and implementation.</p>
+<h3>22.1 Why subsample rows?</h3>
+<p><strong>Variance reduction:</strong> consecutive trees see different subsets, so their fitted structures are less dependent on exactly the same observations. This can reduce correlation between trees and help control variance.</p>
+<p><strong>Regularization:</strong> an individual noisy observation does not influence every tree's fit.</p>
+<p><strong>Speed:</strong> if a tree uses a fraction $s$ of the rows, its fitting work can be reduced accordingly (the exact speed-up depends on the implementation and other costs).</p>
+<h3>22.2 An important implementation detail</h3>
+<p>The pseudo-residuals are calculated from the <strong>full current ensemble</strong>. Then a random subset is selected for fitting the next tree. The tree structure and its leaf values are fitted/calculated using the selected subsample in the procedure described here.</p>
+<p>So the distinction is:</p>
+<ul>
+<li>The current model supplies predictions and gradients for the training observations.</li>
+<li>Only the selected rows are used to fit that round's tree and estimate its leaf corrections.</li>
+</ul>
+<p>Column subsampling applies the same broad idea to features rather than observations.</p>
+<h3>22.3 Connection to Random Forest</h3>
+<p>Both Random Forest and stochastic gradient boosting use sampling to introduce randomness, but their overall learning procedures remain different:</p>
+<ul>
+<li>Random Forest trains trees independently and aggregates their predictions.</li>
+<li>Stochastic Gradient Boosting still trains trees sequentially; each new tree responds to the current ensemble's gradients, while using a random row subset for its fit.</li>
+</ul>
+<p>LightGBM's GOSS (Gradient-based One-Side Sampling) is a more specialized sampling strategy. Rather than selecting rows uniformly at random, it gives special treatment to observations with larger gradient magnitudes.</p>
+<hr />
+<h2>23. Practical takeaways and conceptual checks</h2>
+<ol>
+<li><strong>The training labels are available from the beginning.</strong> They are not predicted labels. The initial positive fraction is calculated directly from the actual labels.</li>
+<li><strong>The initial model is a constant score.</strong> It predicts the base-rate probability for every observation, without using features.</li>
+<li><strong>There are no target logits.</strong> The binary label and the differentiable cross-entropy loss give the gradient with respect to the current logit.</li>
+<li><strong>The tree is fitted to negative gradients.</strong> In this binary logistic-loss example, the pseudo-residual is $y_i-p_i$.</li>
+<li><strong>The Hessian is not the tree's target.</strong> It is the second derivative of the loss with respect to the score and is used to scale the Newton leaf correction.</li>
+<li><strong>The Newton leaf value is not generally the mean pseudo-residual.</strong> It is the sum of negative gradients divided by the sum of Hessians (with regularization where used).</li>
+<li><strong>The tree is fitted before its Newton leaf values are assigned</strong> in the basic procedure described here: the gradient targets guide tree fitting; the gradient and Hessian sums then determine leaf outputs.</li>
+<li><strong>The ensemble is updated after every tree.</strong> The next round's probabilities and gradients come from the combined model built so far.</li>
+<li><strong>This sequential dependence is a key distinction from Random Forest.</strong> Random Forest trees are independently fitted; boosting trees are fitted in response to the current ensemble.</li>
+<li><strong>Overfitting is possible.</strong> Additional rounds can fit noise after useful structure has been learned. Depth, learning rate, leaf constraints, subsampling, regularization and early stopping help control this.</li>
+</ol>
+<h3>Quick self-test</h3>
+<ul>
+<li>Why can we calculate the initial positive fraction without making predictions?</li>
+<li>Why is the negative gradient $y_i-p_i$ even though the actual target is only 0 or 1?</li>
+<li>What quantity is the regression tree fitted to in the basic logistic GBDT procedure?</li>
+<li>Why is the Hessian not used as the regression-tree target?</li>
+<li>Why does the Newton leaf formula divide by the sum of Hessians?</li>
+<li>Under what loss does the Newton leaf value reduce to the mean residual?</li>
+<li>Why does the next boosting tree depend on the combined predictions of all previous trees?</li>
+<li>How does stochastic gradient boosting differ from Random Forest?</li>
+</ul>
+<hr />
+<p><strong>Mental picture:</strong> Start with the best constant probability given by the training-label base rate. Evaluate the classification loss at the current model scores. Its negative gradients say which way the scores should move. Fit a regression tree to approximate those corrections from the features. Use the Hessians to scale each leaf's correction with a Newton step. Add the shrunken tree to the current ensemble, recalculate predictions, and repeat.</p>
+<p class="small muted" style="margin-top:32px">Previous: <a href="N1-gradient-boosting-notes.html">N1</a> · Next: <a href="N3-lightgbm-notes.html">N3</a>.</p>
+</main>
+<script>
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); });
+</script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient Boosting: My Revision Notes, Part 1</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} .pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair,.pair.half{grid-template-columns:1fr}}
+.algo{font-size:15px;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:10px 16px;margin:14px 0}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+main{overflow-x:clip} .katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+pre{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 16px;overflow-x:auto;font-size:13px;line-height:1.5}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
+:not(pre)>code{background:var(--tint);border-radius:4px;padding:1px 5px}
+h3{font-size:18px;margin:26px 0 6px}
+hr{border:0;border-top:1px solid var(--grid);margin:28px 0}
+blockquote.callout{margin:14px 0}
+li.todo{list-style:none;position:relative}
+li.todo::before{content:'☐';position:absolute;left:-22px;color:var(--muted)}
+.mynote{background:var(--warn-bg);border-radius:10px;padding:12px 16px;margin:14px 0}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">My notes · Part 1 of 3 · Not in the DA5400 lectures · Gradient boosting</div>
+<h1>Gradient Boosting with Decision Trees (GBDT)</h1>
+<div class="mynote"><b>My earlier understanding.</b> These are my own revision notes, written while I was learning gradient boosting with ChatGPT, before the detour pages existed. I've kept them as I wrote them. To go further on gradient boosting, XGBoost, LightGBM and CatBoost, with derivations and interactive demos tied back to the lectures, continue to the detour: <a href="D1-gradient-boosting.html">D1 Gradient boosting</a> · <a href="D2-gbdt.html">D2 GBDT</a> · <a href="D3-xgboost.html">D3 XGBoost</a> · <a href="D4-lightgbm.html">D4 LightGBM</a> · <a href="D5-catboost.html">D5 CatBoost</a>.</div>
+<p class="small muted">Previous: <a href="L71-perceptron-boosting-loss.html">L71</a> · Next: <a href="N2-gbdt-classification-notes.html">N2</a>.</p>
+<h2>A revision guide: from regression trees to gradient descent in function space</h2>
+<p>These notes reconstruct our discussion of Gradient Boosting, including the conceptual questions and intuitions raised during the discussion. The goal is to make the ideas easy to recover later, while keeping the mathematics precise.</p>
+<hr />
+<h2>1. The big picture</h2>
+<p>Gradient Boosting is an ensemble-learning method. It builds a predictive model by adding weak learners sequentially. In the common tabular-data setting, those weak learners are small regression trees.</p>
+<p>The central pattern is:</p>
+<ol>
+<li>Start with a simple model.</li>
+<li>Work out how the current model should change to reduce the loss.</li>
+<li>Fit a small tree to approximate those desired changes.</li>
+<li>Add a shrunken version of that tree to the current model.</li>
+<li>Repeat.</li>
+</ol>
+<p>The final model is an additive function:</p>
+<div>$$F_M(x)=F_0(x)+\eta\sum_{m=1}^{M}f_m(x),$$</div>
+<p>where:</p>
+<ul>
+<li>$F_0$ is the initial prediction function.</li>
+<li>$f_m$ is the tree added at boosting round $m$.</li>
+<li>$M$ is the number of boosting rounds.</li>
+<li>$\eta$ is the learning rate (shrinkage).</li>
+</ul>
+<p>The important distinction from bagging is that boosting is sequential: each new learner is fitted using information produced by the current ensemble. In bagging, learners are generally trained independently and then combined.</p>
+<h2>2. What does “boosting” mean?</h2>
+<p>A weak learner is a model with deliberately limited capacity. For decision-tree boosting, this often means a shallow regression tree or decision stump.</p>
+<p>A single shallow tree may be too simple to model the whole relationship. But many trees, added sequentially, can form a much more expressive model.</p>
+<p>The ensemble is:</p>
+<div>$$F_M(x)=F_0(x)+\eta f_1(x)+\eta f_2(x)+\cdots+\eta f_M(x).$$</div>
+<p>Each tree contributes a correction to the current prediction. The ensemble can therefore be much more powerful than any one of its component trees.</p>
+<p>A useful contrast:</p>
+<ul>
+<li><strong>Bagging:</strong> commonly combines relatively complex, high-variance trees to reduce variance by averaging.</li>
+<li><strong>Boosting:</strong> commonly adds relatively simple learners sequentially so that their combined model reduces the current objective.</li>
+</ul>
+<p>This is a useful intuition, not an absolute rule. Boosting can overfit, and bagging is not simply “making an overfit model underfit.” Their mechanisms and typical effects differ.</p>
+<h2>3. AdaBoost and Gradient Boosting</h2>
+<p>AdaBoost is a boosting algorithm. In its familiar binary-classification form, it builds an additive model such as</p>
+<div>$$H(x)=\sum_{m=1}^{M}\alpha_m h_m(x),
+\qquad
+\hat y=\operatorname{sign}(H(x)),$$</div>
+<p>where $h_m$ are weak classifiers and $\alpha_m$ are their weights.</p>
+<p>AdaBoost can be understood as minimizing an exponential loss for labels $y\in\{-1,+1\}$:</p>
+<div>$$\ell(y,H(x))=\exp(-yH(x)).$$</div>
+<p>Its training procedure changes the weights of observations so that observations currently classified incorrectly receive more attention.</p>
+<p>Gradient Boosting generalizes the additive boosting idea by connecting it to gradient-based minimization of a chosen loss. It is not restricted to AdaBoost's exponential-loss formulation. Depending on the task, one can use losses such as squared error, absolute error, Huber loss, or suitable classification losses.</p>
+<p>The important distinction:</p>
+<ul>
+<li>In the familiar AdaBoost explanation, the algorithm updates observation weights.</li>
+<li>In Gradient Boosting, the algorithm computes negative loss gradients (often called pseudo-residuals) and fits a learner to approximate them.</li>
+</ul>
+<p>Both are boosting methods, but their update mechanisms are different.</p>
+<h2>4. Forward stagewise additive modelling</h2>
+<p>At boosting round $m$, the model has the form</p>
+<div>$$F_m(x)=F_{m-1}(x)+\eta f_m(x).$$</div>
+<p>Expanding recursively gives</p>
+<div>$$F_m(x)=F_0(x)+\eta\sum_{k=1}^{m}f_k(x).$$</div>
+<p>This is an <strong>additive model</strong> because the final prediction is a sum of contributions from the initial model and the trees.</p>
+<p>It is <strong>forward stagewise</strong> because the model is built one term at a time:</p>
+<ul>
+<li>At round 1, fit $f_1$.</li>
+<li>At round 2, keep $f_1$ fixed and fit $f_2$.</li>
+<li>At round 3, keep $f_1,f_2$ fixed and fit $f_3$.</li>
+<li>Continue in the same way.</li>
+</ul>
+<p>Previously fitted trees are not ordinarily refitted at every new round. The new tree is selected to improve the current ensemble.</p>
+<p>A general stagewise objective is</p>
+<div>$$f_m \approx
+\arg\min_{f\in\mathcal F}
+\sum_{i=1}^{n}
+\ell\left(y_i,F_{m-1}(x_i)+f(x_i)\right),$$</div>
+<p>with the learning-rate factor sometimes absorbed into the candidate function in this expression. The explicit shrunken update is</p>
+<div>$$F_m(x)=F_{m-1}(x)+\eta f_m(x).$$</div>
+<p>Here, $\mathcal F$ is the family of allowed weak learners, for example regression trees with a restricted maximum depth.</p>
+<h2>5. Regression trees: the weak learner</h2>
+<p>Gradient-boosted decision trees use <strong>regression trees</strong> as their base learners, even when the overall task is classification. The tree's leaves output real-valued scores or corrections.</p>
+<h3>5.1 How a regression tree makes predictions</h3>
+<p>A regression tree partitions the input space into regions (leaves) $I_1,\ldots,I_J$. It predicts a constant value in each leaf:</p>
+<div>$$f(x)=w_{j(x)},$$</div>
+<p>where $j(x)$ is the leaf containing $x$.</p>
+<p>For ordinary squared-error regression, the tree chooses leaf values by minimizing</p>
+<div>$$\min_{w_j}\sum_{i\in I_j}\frac12(y_i-w_j)^2.$$</div>
+<p>Differentiating with respect to $w_j$,</p>
+<div>$$\sum_{i\in I_j}(w_j-y_i)=0,$$</div>
+<p>so</p>
+<div>$$\boxed{w_j=\frac{1}{|I_j|}\sum_{i\in I_j}y_i.}$$</div>
+<p>Thus, under squared error, a leaf predicts the mean target of the observations that fall into it.</p>
+<h3>5.2 How a regression tree chooses a split</h3>
+<p>For a set $S$ of observations, define its sum of squared errors around its mean:</p>
+<div>$$\operatorname{SSE}(S)=\sum_{i\in S}(t_i-\bar t_S)^2,
+\qquad
+\bar t_S=\frac{1}{|S|}\sum_{i\in S}t_i.$$</div>
+<p>Here $t_i$ denotes the target being fitted by the tree. For an ordinary regression tree, $t_i=y_i$. For a boosting tree under squared loss, $t_i$ will be a residual.</p>
+<p>A candidate split divides a parent set $S$ into left and right children $L$ and $R$. Its gain is</p>
+<div>$$\operatorname{Gain}
+=\operatorname{SSE}(S)-\operatorname{SSE}(L)-\operatorname{SSE}(R).$$</div>
+<p>The greedy tree-growing procedure chooses the candidate with the largest reduction in SSE (equivalently, the smallest combined child SSE).</p>
+<p>An equivalent expression is</p>
+<div>$$\operatorname{Gain}
+=
+\frac{n_Ln_R}{n_L+n_R}
+(\bar t_L-\bar t_R)^2.$$</div>
+<p>This shows that a split is useful when the child groups have meaningfully different target means, with group sizes also affecting the gain.</p>
+<p>For efficient computation, define</p>
+<div>$$S_A=\sum_{i\in A}t_i,\qquad
+Q_A=\sum_{i\in A}t_i^2,\qquad n_A=|A|.$$</div>
+<p>Then</p>
+<div>$$\operatorname{SSE}(A)=Q_A-\frac{S_A^2}{n_A}.$$</div>
+<p>This lets us evaluate candidate splits using counts, sums, and sums of squares.</p>
+<h3>5.3 How candidate thresholds are examined</h3>
+<p>At a node, for each feature separately:</p>
+<ol>
+<li>Sort observations by that feature's value, keeping each target paired with its observation.</li>
+<li>Consider valid boundaries between adjacent distinct feature values.</li>
+<li>Move a split from left to right through the sorted observations, maintaining counts, sums, and sums of squares.</li>
+<li>Compute the gain at each valid boundary.</li>
+<li>Compare candidates across features and select the best one.</li>
+</ol>
+<p>The observations are sorted by the <strong>feature being split on</strong>, not by the target. The target values remain attached to their corresponding observations.</p>
+<p>With $n$ observations and $d$ features, there are at most $d(n-1)$ candidate boundaries at a node before excluding invalid splits. A standard binary split creates two children. The process recurses until a stopping condition is met, such as maximum depth, minimum samples per leaf, or insufficient gain.</p>
+<p>Tree splits are typically axis-aligned: a condition such as $x_j&lt;c$. A deep tree can combine many such regions to approximate complicated patterns, but an individual split is not generally a slanted hyperplane.</p>
+<h3>5.4 Complexity intuition</h3>
+<p>If every feature is sorted independently at a node containing $m$ observations, sorting costs approximately $O(dm\log m)$, followed by $O(dm)$ work to scan candidate thresholds.</p>
+<p>A simple upper-bound intuition for repeatedly sorting at nodes is $O(dDn\log n)$ for depth $D$. Implementations can reuse sorted feature orders; under such an idealized strategy, initial sorting is $O(dn\log n)$ and scanning across levels is approximately $O(dnD)$. Practical implementations differ and may use histogram-based approximations.</p>
+<p>For large datasets, exact evaluation of every threshold can be expensive. Histogram-based methods, used in modern tree-boosting implementations, bucket continuous feature values and search over a smaller set of candidate boundaries.</p>
+<h3>5.5 A useful analogy—and its limit</h3>
+<p>A regression-tree split can be viewed as a supervised partition of the observations: the feature threshold creates groups, and the target values determine whether those groups are internally homogeneous.</p>
+<p>This has a loose resemblance to clustering because it tries to create groups with low within-group target variation. But it is not ordinary $k$-means or a Gaussian mixture model:</p>
+<ul>
+<li>The split is determined by input features.</li>
+<li>The target is used to evaluate the quality of the partition.</li>
+<li>A standard regression tree does not assume Gaussian clusters or probabilistic memberships.</li>
+</ul>
+<h2>6. Squared-loss Gradient Boosting: fit a tree to residuals</h2>
+<p>Now connect the ordinary regression tree to boosting.</p>
+<p>Use the squared loss</p>
+<div>$$\ell(y,F(x))=\frac12(y-F(x))^2.$$</div>
+<p>At round $m$, the existing ensemble is $F_{m-1}$. We seek a new tree $f_m$ that improves it:</p>
+<div>$$\min_{f_m\in\mathcal F}
+\sum_{i=1}^{n}
+\frac12
+\left(y_i-F_{m-1}(x_i)-f_m(x_i)\right)^2.$$</div>
+<p>Define the current residual:</p>
+<div>$$r_i^{(m)}=y_i-F_{m-1}(x_i).$$</div>
+<p>Substituting,</p>
+<div>$$\boxed{
+\min_{f_m\in\mathcal F}
+\sum_{i=1}^{n}\frac12
+\left(r_i^{(m)}-f_m(x_i)\right)^2.
+}$$</div>
+<p>This is an ordinary least-squares regression-tree objective, but its target is the <strong>current residual</strong>, not the original target.</p>
+<p>For a particular leaf $I_{jm}$, the optimal leaf value is</p>
+<div>$$w_{jm}=
+\frac{1}{|I_{jm}|}
+\sum_{i\in I_{jm}}r_i^{(m)}.$$</div>
+<p>The tree is fitted to the residuals, and then the ensemble is updated:</p>
+<div>$$\boxed{F_m(x)=F_{m-1}(x)+\eta f_m(x).}$$</div>
+<p>The learning rate $\eta$ scales the tree's contribution. The tree is fitted to residuals; its prediction is then multiplied by the learning rate when added to the ensemble.</p>
+<h3>6.1 Side-by-side: ordinary regression tree versus boosting tree</h3>
+<table>
+<thead>
+<tr>
+<th>Ordinary regression tree</th>
+<th>Squared-loss boosting tree</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Target is $y_i$.</td>
+<td>Target is $r_i=y_i-F_{m-1}(x_i)$.</td>
+</tr>
+<tr>
+<td>Minimizes $\sum_i \frac12(y_i-f(x_i))^2$.</td>
+<td>Minimizes $\sum_i \frac12(r_i-f_m(x_i))^2$.</td>
+</tr>
+<tr>
+<td>A leaf predicts the mean of the original targets in that leaf.</td>
+<td>A leaf predicts the mean residual in that leaf.</td>
+</tr>
+<tr>
+<td>Learns a prediction of the target directly.</td>
+<td>Learns a correction to the existing ensemble.</td>
+</tr>
+</tbody>
+</table>
+<p>The tree-learning machinery is essentially the same. What changes is the target supplied to the tree.</p>
+<h3>6.2 A small numerical illustration</h3>
+<p>Suppose the current ensemble makes these predictions:</p>
+<table>
+<thead>
+<tr>
+<th>Observation</th>
+<th style="text-align: right;">Actual $y_i$</th>
+<th style="text-align: right;">Current prediction $F(x_i)$</th>
+<th style="text-align: right;">Residual $r_i=y_i-F(x_i)$</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A</td>
+<td style="text-align: right;">100</td>
+<td style="text-align: right;">80</td>
+<td style="text-align: right;">+20</td>
+</tr>
+<tr>
+<td>B</td>
+<td style="text-align: right;">150</td>
+<td style="text-align: right;">170</td>
+<td style="text-align: right;">−20</td>
+</tr>
+<tr>
+<td>C</td>
+<td style="text-align: right;">200</td>
+<td style="text-align: right;">180</td>
+<td style="text-align: right;">+20</td>
+</tr>
+<tr>
+<td>D</td>
+<td style="text-align: right;">250</td>
+<td style="text-align: right;">240</td>
+<td style="text-align: right;">+10</td>
+</tr>
+</tbody>
+</table>
+<p>A positive residual means underprediction; a negative residual means overprediction; zero means an exact prediction.</p>
+<p>If a fitted tree puts A and C in one leaf, and B and D in another, the corresponding leaf outputs would be $+20$ and $-5$, respectively. This grouping is only illustrative: an actual tree can create those leaves only if the available feature values and selected splits support that partition.</p>
+<p>With learning rate $\eta=0.5$, the corrections would be $+10$ and $-2.5$, respectively.</p>
+<h2>7. The key step: residuals are negative gradients</h2>
+<p>This is the conceptual bridge from “fit residuals” to a general boosting method.</p>
+<h3>7.1 Treat predictions as the optimization variables</h3>
+<p>Collect the current predictions on the training observations into a vector:</p>
+<div>$$F=
+\begin{bmatrix}
+F(x_1)\\
+F(x_2)\\
+\vdots\\
+F(x_n)
+\end{bmatrix}
+\in\mathbb R^n.$$</div>
+<p>Define the total training loss as a function of this prediction vector:</p>
+<div>$$L(F)=\sum_{i=1}^{n}\ell(y_i,F(x_i)).$$</div>
+<p>The gradient has components</p>
+<div>$$g_i=
+\frac{\partial \ell(y_i,F(x_i))}
+{\partial F(x_i)}.$$</div>
+<p>For squared loss,</p>
+<div>$$\ell(y_i,F(x_i))=\frac12(y_i-F(x_i))^2.$$</div>
+<p>Differentiating with respect to the prediction,</p>
+<div>$$g_i=F(x_i)-y_i.$$</div>
+<p>Therefore,</p>
+<div>$$\boxed{-g_i=y_i-F(x_i)=r_i.}$$</div>
+<p>So, under squared loss, the ordinary residual is exactly the negative gradient with respect to the prediction.</p>
+<h3>7.2 Why does the negative gradient matter?</h3>
+<p>The gradient describes how the loss changes locally as a prediction changes.</p>
+<ul>
+<li>The <strong>negative-gradient sign</strong> gives the direction in which to move the prediction to decrease the loss locally.</li>
+<li>Its <strong>magnitude</strong> indicates the local sensitivity of the loss to a change in prediction.</li>
+</ul>
+<p>More precisely, for a small prediction change $\Delta F_i$,</p>
+<div>$$\ell(y_i,F_i+\Delta F_i)
+\approx
+\ell(y_i,F_i)+g_i\Delta F_i.$$</div>
+<p>Choosing $\Delta F_i$ in the negative-gradient direction makes the first-order change negative. The actual loss reduction also depends on the step size and curvature; gradient magnitude is not, by itself, the total future loss reduction.</p>
+<p>For squared loss, the negative gradient happens to equal the residual. Thus the residual tells us both whether to increase or decrease the prediction and how large the unconstrained gradient correction is.</p>
+<h3>7.3 Gradient descent in prediction space</h3>
+<p>If we could independently change every training prediction, a gradient-descent step would be</p>
+<div>$$F_m=F_{m-1}-\eta g.$$</div>
+<p>For squared loss, this becomes</p>
+<div>$$F_m=F_{m-1}+\eta r.$$</div>
+<p>But this vector only specifies changes at the training observations. It does not define a function that can be evaluated at a new input $x$.</p>
+<h3>7.4 Why fit a regression tree to the negative gradients?</h3>
+<p>We need a function of the input features that approximates the desired correction at the training points.</p>
+<p>So we fit a regression tree to the pairs</p>
+<div>$$(x_i,-g_i).$$</div>
+<p>In least-squares form:</p>
+<div>$$\boxed{
+f_m=
+\arg\min_{f\in\mathcal F}
+\sum_{i=1}^{n}\left(-g_i-f(x_i)\right)^2.
+}$$</div>
+<p>The tree is the member of the weak-learner family that best approximates the negative-gradient values under squared error. It turns a list of training-point corrections into a function of $x$, which can be evaluated on unseen observations.</p>
+<p>Then update:</p>
+<div>$$\boxed{F_m(x)=F_{m-1}(x)+\eta f_m(x).}$$</div>
+<p>This is why Gradient Boosting is described as gradient descent in <strong>function space</strong>: the model is updated by adding functions, rather than by directly adjusting the weights of one fixed parameterized model.</p>
+<p>The tree is a constrained approximation to the negative-gradient step. It is generally not an exact unrestricted gradient step, because the weak-learner family cannot represent every possible vector of corrections.</p>
+<h2>8. Pseudo-residuals: why this generalizes beyond squared loss</h2>
+<p>The negative-gradient interpretation is more general than ordinary residual fitting.</p>
+<p>For any differentiable loss, define the pseudo-residual at round $m$ as</p>
+<div>$$\boxed{
+r_i^{(m)}
+=
+-\left.
+\frac{\partial \ell(y_i,F(x_i))}
+{\partial F(x_i)}
+\right|_{F=F_{m-1}}.
+}$$</div>
+<p>Then:</p>
+<ol>
+<li>Calculate the current predictions.</li>
+<li>Calculate the negative gradient for each training observation.</li>
+<li>Fit a regression tree to the inputs and these negative-gradient values.</li>
+<li>Add a suitably scaled version of the tree to the current ensemble.</li>
+</ol>
+<p>For squared loss, pseudo-residuals equal ordinary residuals:</p>
+<div>$$r_i^{(m)}=y_i-F_{m-1}(x_i).$$</div>
+<p>For other losses, they generally do not. They are still the directions in which the individual predictions should move to reduce the selected loss locally.</p>
+<p>This is the key generalization: Gradient Boosting does not require the target correction to be the ordinary residual. It requires a differentiable loss whose negative gradients can be computed.</p>
+<h2>9. Complete algorithm: squared-error Gradient Boosting with regression trees</h2>
+<p><strong>Inputs:</strong> Training data $\{(x_i,y_i)\}_{i=1}^{n}$, number of boosting rounds $M$, learning rate $\eta$, and tree-complexity settings such as maximum depth.</p>
+<h3>Step 1: Initialize</h3>
+<p>Choose the constant prediction minimizing the total squared loss:</p>
+<div>$$F_0(x)=
+\arg\min_c
+\sum_{i=1}^{n}\frac12(y_i-c)^2.$$</div>
+<p>The solution is the target mean:</p>
+<div>$$\boxed{F_0(x)=\bar y=\frac1n\sum_{i=1}^{n}y_i.}$$</div>
+<h3>Step 2: For each boosting round $m=1,\ldots,M$</h3>
+<p><strong>2.1 Calculate current residuals</strong></p>
+<div>$$r_i^{(m)}=y_i-F_{m-1}(x_i).$$</div>
+<p><strong>2.2 Fit a regression tree to the residuals</strong></p>
+<div>$$f_m=
+\arg\min_{f\in\mathcal F}
+\sum_{i=1}^{n}
+\frac12(r_i^{(m)}-f(x_i))^2.$$</div>
+<p><strong>2.3 Update the ensemble</strong></p>
+<div>$$F_m(x)=F_{m-1}(x)+\eta f_m(x).$$</div>
+<p>Keep all earlier trees fixed and proceed to the next round.</p>
+<h3>Step 3: Predict on a new input</h3>
+<div>$$\boxed{
+\hat y=F_M(x)
+=
+\bar y+\eta\sum_{m=1}^{M}f_m(x).
+}$$</div>
+<p>The final model is the initial mean plus the sum of all shrunken tree predictions.</p>
+<h3>Pseudocode</h3>
+<pre><code class="language-python"># Inputs: X, y, number of trees M, learning rate eta
+#         and tree-complexity settings
+
+# Initialize with the mean target
+initial_value = mean(y)
+train_prediction = initial_value
+
+trees = []
+
+for m in range(M):
+
+    # 1. Compute residuals (negative gradients for squared loss)
+    residuals = y - train_prediction
+
+    # 2. Fit a regression tree to the residuals
+    tree = DecisionTreeRegressor(max_depth=max_depth)
+    tree.fit(X, residuals)
+
+    # 3. Store the tree
+    trees.append(tree)
+
+    # 4. Update predictions on the training set
+    train_prediction += eta * tree.predict(X)
+
+
+# Inference on new observations
+def predict(X_new):
+    prediction = initial_value
+
+    for tree in trees:
+        prediction += eta * tree.predict(X_new)
+
+    return prediction
+</code></pre>
+<p>This is a conceptual implementation. Practical libraries may use additional regularization, leaf-value optimization, subsampling, and efficient split-search procedures.</p>
+<h2>10. The deeper intuition: signal, noise, and generalization</h2>
+<p>One of the most useful intuitions from our discussion was that machine learning is trying to discover the underlying structure in data without learning random noise.</p>
+<p>A simple data-generating picture is</p>
+<div>$$y=f^*(x)+\epsilon,$$</div>
+<p>where $f^*(x)$ is the underlying signal and $\epsilon$ is noise.</p>
+<p>The goal is to learn a function that captures the systematic relationship, rather than memorizing the random component of the observed targets.</p>
+<p>Overfitting is not unique to boosting. Many model families can fit training-specific patterns:</p>
+<ul>
+<li>A sufficiently flexible tree can memorize training observations.</li>
+<li>A high-capacity kernel model can fit complicated training patterns.</li>
+<li>A flexible neural network can also overfit.</li>
+<li>Even a relatively simple model can overfit in a small or poorly conditioned dataset.</li>
+</ul>
+<p>The issue is not that every model necessarily fits noise, but that model flexibility, data quantity, noise level, and regularization determine how well the learned structure generalizes.</p>
+<h3>10.1 Why weak learners help</h3>
+<p>A shallow tree has limited capacity. It can make only relatively simple, piecewise-constant corrections.</p>
+<p>Rather than asking one large tree to explain the entire dataset, boosting builds the model incrementally:</p>
+<ul>
+<li>The current ensemble captures some structure.</li>
+<li>The next tree approximates the remaining negative-gradient information.</li>
+<li>The ensemble adds a controlled correction.</li>
+<li>The process repeats.</li>
+</ul>
+<p>This is a useful way to build complexity gradually.</p>
+<p>However, a weak learner does not automatically distinguish signal from noise. A shallow tree can still learn a spurious pattern if it is present in the training data. Repeated boosting rounds can also eventually fit noise.</p>
+<p>The protection comes from controlling the complexity and size of the updates, not from an assumption that the algorithm can identify noise perfectly.</p>
+<h3>10.2 Why the learning rate matters</h3>
+<p>The learning rate controls how much of each fitted tree is added:</p>
+<div>$$F_m=F_{m-1}+\eta f_m.$$</div>
+<p>A smaller $\eta$ makes each update more conservative. It often requires more boosting rounds, but can improve generalization.</p>
+<p>The learning rate is not a perfect noise filter. It works together with tree depth, minimum leaf size, regularization, subsampling, and the number of rounds.</p>
+<h3>10.3 Why validation and early stopping matter</h3>
+<p>Training loss generally decreases as the model is allowed to add more trees, but validation performance may eventually stop improving and then deteriorate.</p>
+<p>A common procedure is:</p>
+<ol>
+<li>Monitor performance on a validation set.</li>
+<li>Save the boosting iteration with the best validation score.</li>
+<li>Stop if validation performance fails to improve for a chosen patience period.</li>
+<li>Use the best iteration rather than automatically using the final one.</li>
+</ol>
+<p>The validation set is used for model selection and early stopping. The final test set should be kept separate for an unbiased final evaluation.</p>
+<p>This is often described as controlling the point at which additional ensemble complexity begins to hurt generalization.</p>
+<h2>11. Why boosted trees are so effective on tabular data</h2>
+<p>Gradient-boosted tree systems such as XGBoost, LightGBM, and CatBoost are strong choices for many structured/tabular prediction problems.</p>
+<p>Useful properties include:</p>
+<ul>
+<li>They capture nonlinear relationships without requiring a globally linear model.</li>
+<li>They naturally represent feature interactions through successive splits.</li>
+<li>They do not require all features to be on the same numerical scale.</li>
+<li>They can model piecewise and threshold-like effects.</li>
+<li>Sequential boosting can progressively improve the fit to a chosen loss.</li>
+<li>Modern implementations include regularization and efficient split-search strategies.</li>
+</ul>
+<p>They are not guaranteed to outperform logistic regression, SVMs, neural networks, or other methods on every dataset. The best method depends on the data, task, preprocessing, tuning, and evaluation protocol.</p>
+<h2>12. Corrections and precision points to remember</h2>
+<p>These are important distinctions that prevent common misunderstandings.</p>
+<p><strong>1. Gradient magnitude is not exactly the amount of loss reduction.</strong><br />
+It measures local sensitivity. The actual reduction depends on the step size and curvature of the loss.</p>
+<p><strong>2. A residual is not always a negative gradient.</strong><br />
+It is exactly the negative gradient for the particular squared loss $\frac12(y-F)^2$. For other losses, use pseudo-residuals.</p>
+<p><strong>3. A tree fitted to negative gradients is an approximation.</strong><br />
+It projects the desired training-point corrections onto the restricted family of trees. It may not reproduce the unrestricted gradient step exactly.</p>
+<p><strong>4. Weak learners do not guarantee no overfitting.</strong><br />
+An ensemble of many weak learners can become highly expressive and overfit.</p>
+<p><strong>5. Learning rate is not the only regularizer.</strong><br />
+Tree depth, leaf-size constraints, regularization, subsampling, and early stopping also matter.</p>
+<p><strong>6. Use validation data for early stopping, not the final test set.</strong><br />
+Repeatedly choosing the model based on test performance leaks information from the test set into model selection.</p>
+<p><strong>7. The tree's targets change at every boosting round.</strong><br />
+For ordinary regression trees, the target is $y_i$. For squared-loss boosting, the target at round $m$ is the current residual $y_i-F_{m-1}(x_i)$.</p>
+<h2>13. The whole idea in one mental picture</h2>
+<p>The most useful way to remember Gradient Boosting is:</p>
+<blockquote class="callout">
+<p>We have a current model. The loss function tells us, through its negative gradient, how each training prediction should move to reduce the loss locally. We fit a weak learner to approximate those desired movements. Because the weak learner is a function of the input, it gives us a correction that can be applied to unseen observations too. We add only a controlled fraction of that correction and repeat.</p>
+</blockquote>
+<p>For squared loss, the negative gradient is exactly the residual, which is why the familiar procedure of repeatedly fitting regression trees to residuals is gradient descent in function space.</p>
+<p>The deeper objective is to learn the systematic structure in the data while controlling the model's capacity so that it does not simply memorize training-specific noise.</p>
+<hr />
+<h2>Quick revision checklist</h2>
+<p>Before moving on, make sure you can explain these without looking:</p>
+<ul>
+<li class="todo">Why is the final Gradient Boosting model an additive model?</li>
+<li class="todo">What does forward stagewise fitting mean?</li>
+<li class="todo">How does an ordinary regression tree choose leaf values and splits?</li>
+<li class="todo">Why does a squared-loss boosting tree fit residuals rather than original targets?</li>
+<li class="todo">Why is the residual the negative gradient for squared loss?</li>
+<li class="todo">Why do we fit a tree to negative gradients instead of directly updating training predictions?</li>
+<li class="todo">What are pseudo-residuals?</li>
+<li class="todo">How does the learning rate affect the update?</li>
+<li class="todo">Why can an ensemble of weak learners still overfit?</li>
+<li class="todo">Why should early stopping use validation data rather than the test set?</li>
+</ul>
+<p>If you can answer these, you have the conceptual and mathematical foundation for the next part of Gradient Boosting.</p>
+<p class="small muted" style="margin-top:32px">Previous: <a href="L71-perceptron-boosting-loss.html">L71</a> · Next: <a href="N2-gbdt-classification-notes.html">N2</a>.</p>
+</main>
+<script>
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); });
+</script>
+</body>
+</html>

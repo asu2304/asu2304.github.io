@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient Boosting: My Revision Notes, Part 3</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} .pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair,.pair.half{grid-template-columns:1fr}}
+.algo{font-size:15px;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:10px 16px;margin:14px 0}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+main{overflow-x:clip} .katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+pre{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 16px;overflow-x:auto;font-size:13px;line-height:1.5}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
+:not(pre)>code{background:var(--tint);border-radius:4px;padding:1px 5px}
+h3{font-size:18px;margin:26px 0 6px}
+hr{border:0;border-top:1px solid var(--grid);margin:28px 0}
+blockquote.callout{margin:14px 0}
+li.todo{list-style:none;position:relative}
+li.todo::before{content:'☐';position:absolute;left:-22px;color:var(--muted)}
+.mynote{background:var(--warn-bg);border-radius:10px;padding:12px 16px;margin:14px 0}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · ML revision (DA5400)</a></p>
+<div class="kicker">My notes · Part 3 of 3 · Not in the DA5400 lectures · Gradient boosting</div>
+<h1>Gradient Boosting — Revision Notes, Part 3</h1>
+<div class="mynote"><b>My earlier understanding.</b> These are my own revision notes, written while I was learning gradient boosting with ChatGPT, before the detour pages existed. I've kept them as I wrote them. To go further on gradient boosting, XGBoost, LightGBM and CatBoost, with derivations and interactive demos tied back to the lectures, continue to the detour: <a href="D1-gradient-boosting.html">D1 Gradient boosting</a> · <a href="D2-gbdt.html">D2 GBDT</a> · <a href="D3-xgboost.html">D3 XGBoost</a> · <a href="D4-lightgbm.html">D4 LightGBM</a> · <a href="D5-catboost.html">D5 CatBoost</a>.</div>
+<p class="small muted">Previous: <a href="N2-gbdt-classification-notes.html">N2</a> · Next: <a href="D1-gradient-boosting.html">D1 (detour)</a>.</p>
+<h2>LightGBM: histogram construction, split evaluation, and leaf-wise growth</h2>
+<p>This file continues <strong>Gradient Boosting Revision Notes, Part 2</strong>. It focuses on the concepts we unpacked while learning LightGBM: second-order split evaluation, how numerical feature bins are constructed, how histograms are used to find splits, and how leaf-wise growth builds a complete tree.</p>
+<hr />
+<h2>1. Where LightGBM fits</h2>
+<p>Gradient Boosting is the general procedure: build an additive model sequentially, with each new tree correcting the current ensemble. LightGBM is an efficient implementation of gradient-boosted decision trees. It retains the boosting idea but changes parts of tree construction to reduce computation and memory use.</p>
+<p>The topics covered here are second-order split evaluation, histogram-based split finding, and leaf-wise (best-first) tree growth. GOSS and EFB are further LightGBM optimizations and are not covered here.</p>
+<h2>2. Second-order split evaluation</h2>
+<p>At a boosting round, suppose the current ensemble gives observation $i$ the score $F_i$. A candidate leaf assigns a shared score correction $w$ to every observation in that leaf.</p>
+<p>Approximate each observation's loss around its current score with a second-order Taylor expansion:</p>
+<div>$$\ell(y_i,F_i+w)\approx \ell(y_i,F_i)+g_iw+\frac12h_iw^2,$$</div>
+<p>where</p>
+<div>$$g_i=\frac{\partial \ell(y_i,F_i)}{\partial F_i},
+\qquad
+h_i=\frac{\partial^2 \ell(y_i,F_i)}{\partial F_i^2}.$$</div>
+<p>This quadratic approximation matches the loss's value, slope and curvature at the current score. It is local; it is not the exact loss curve everywhere.</p>
+<p>For observations $I$ in one leaf, define</p>
+<div>$$G_I=\sum_{i\in I}g_i,\qquad H_I=\sum_{i\in I}h_i.$$</div>
+<p>Including L2 regularization $\lambda$, and dropping terms independent of $w$, the approximate objective is</p>
+<div>$$Q_I(w)=G_Iw+\frac12(H_I+\lambda)w^2.$$</div>
+<p>Differentiating and setting to zero gives</p>
+<div>$$\boxed{w_I^*=-\frac{G_I}{H_I+\lambda}}.$$</div>
+<p>Substituting this value into the quadratic gives the estimated improvement from giving this set its own optimal leaf correction:</p>
+<div>$$\boxed{\operatorname{Score}(I)=\frac12\frac{G_I^2}{H_I+\lambda}}.$$</div>
+<h3>Why evaluate a split?</h3>
+<p>Before splitting, every observation in a parent leaf shares one correction. After splitting, the left and right children can receive different corrections.</p>
+<p>For parent $P$ and children $L,R$, the estimated gain is</p>
+<div>$$\boxed{
+\operatorname{Gain}
+=
+\frac12\left[
+\frac{G_L^2}{H_L+\lambda}
++
+\frac{G_R^2}{H_R+\lambda}
+-
+\frac{G_P^2}{H_P+\lambda}
+\right]-\gamma
+}$$</div>
+<p>where $\gamma$ penalizes adding a split.</p>
+<p>In words:</p>
+<div>$$\text{split gain} = \text{best child scores} - \text{best parent score} - \text{split penalty}.$$</div>
+<p>A positive gain means that, under the local quadratic approximation and regularization settings, allowing the two groups to have separate corrections is worthwhile.</p>
+<p>The algorithm is choosing a <strong>partition of observations</strong>. The split determines which observations receive which leaf correction; it is not directly choosing a movement in parameter space.</p>
+<h3>Numerical example</h3>
+<p>Suppose</p>
+<div>$$G_P=10,\ H_P=20,\quad G_L=15,\ H_L=12,\quad G_R=-5,\ H_R=8$$</div>
+<p>and $\lambda=\gamma=0$. Then</p>
+<div>$$\begin{aligned}
+\operatorname{Gain}
+&amp;=\frac12\left[
+\frac{15^2}{12}
++\frac{(-5)^2}{8}
+-\frac{10^2}{20}
+\right]\\
+&amp;=\frac12(18.75+3.125-5)\\
+&amp;=8.4375.
+\end{aligned}$$</div>
+<p>The positive gain says that this split gives a better approximate objective than keeping the parent as one leaf.</p>
+<h2>3. Why use both gradients and Hessians?</h2>
+<p>The gradient gives the local slope: which direction decreases the loss and how steeply it is changing. The Hessian gives local curvature: how quickly the slope changes. A Newton correction uses both:</p>
+<div>$$w^*=-\frac{G}{H+\lambda}.$$</div>
+<p>Using only the gradient gives a direction, but not the curvature-aware Newton step size. A first-order method is possible, but it needs a step-size choice or line search.</p>
+<p>For binary logistic loss,</p>
+<div>$$p_i=\sigma(F_i),\qquad g_i=p_i-y_i,\qquad h_i=p_i(1-p_i).$$</div>
+<p>Both $G$ and $H$ therefore depend on the current ensemble predictions.</p>
+<h2>4. Why ordinary split search can be expensive</h2>
+<p>For one numerical feature in a leaf, conventional exact split search sorts the feature values and considers thresholds between successive distinct values. At each threshold, it needs the gradient and Hessian sums on both sides:</p>
+<div>$$G_L,\ H_L,\ G_R,\ H_R.$$</div>
+<p>These sums can be accumulated while scanning sorted observations, but repeating this for many observations and features is expensive.</p>
+<p>LightGBM reduces the number of candidate thresholds by grouping feature values into a limited number of <strong>bins</strong>.</p>
+<h2>5. How LightGBM creates the bins</h2>
+<p>The bins are not chosen using gradients, Hessians, labels, or split gains. For a numerical feature, LightGBM looks at the distribution of that feature's observed values and constructs data-driven intervals using an approximate quantile-style strategy.</p>
+<p>The aim is generally for bins to contain roughly similar numbers of observations, rather than having equal-width intervals.</p>
+<p>For example, suppose a feature has sorted values</p>
+<div>$$1.2,\ 1.5,\ 2.1,\ 2.4,\ 3.0,\ 3.2,\ 4.8,\ 5.1,\ 7.0,\ 9.0.$$</div>
+<p>Four illustrative bins might group the first two values, the next two, the next four, and the final two. This only illustrates the idea; it is not a claim about the exact boundaries LightGBM would choose.</p>
+<p>So the right core intuition is <strong>approximately equal-frequency bins</strong>, not equal-width bins. With 10,000 observations and a target of around 100 bins, a rough mental picture is about 100 observations per bin.</p>
+<p>The actual procedure is approximate and subject to constraints:</p>
+<ul>
+<li><code>max_bin</code> limits the number of bins for a feature.</li>
+<li><code>min_data_in_bin</code> discourages bins containing too few observations.</li>
+<li>LightGBM uses an efficient bin-construction procedure and can use sampling, rather than requiring an expensive exact sort of every training value.</li>
+<li>Missing values and categorical features have their own handling; they should not be thought of as ordinary continuous values placed into numeric intervals.</li>
+</ul>
+<p>The bin mapping for a feature is constructed as part of dataset preparation and reused during tree training. It is not normally rebuilt from scratch for every candidate split.</p>
+<h2>6. Once bins exist, how does histogram split finding work?</h2>
+<p>The expensive search over individual observations becomes a search over bin boundaries.</p>
+<p>For a particular feature and current leaf:</p>
+<ol>
+<li>Each observation already has a bin index for that feature.</li>
+<li>Add its gradient and Hessian to the totals for that bin.</li>
+<li>Each bin $b$ now has $G_b=\sum_{i\in b}g_i$ and $H_b=\sum_{i\in b}h_i$.</li>
+<li>Scan bins in increasing feature-value order. Prefix sums give the left-side totals at boundary $k$: $G_L=\sum_{b\le k}G_b$ and $H_L=\sum_{b\le k}H_b$.</li>
+<li>Obtain the right-side totals by subtracting from the parent totals: $G_R=G_P-G_L$ and $H_R=H_P-H_L$.</li>
+<li>Evaluate the second-order gain at each valid bin boundary and choose the best one.</li>
+</ol>
+<p>The candidate thresholds are therefore <strong>bin boundaries</strong>, not every distinct raw feature value.</p>
+<p>If a leaf contains thousands of observations but a feature has at most 255 bins, split evaluation scans at most about 255 bin boundaries rather than thousands of individual thresholds. The trade-off is reduced threshold resolution: a threshold inside a bin is not separately considered.</p>
+<h3>Keep these two ideas separate</h3>
+<ul>
+<li><strong>Second-order gain</strong> tells us how to score a candidate split using $G$ and $H$.</li>
+<li><strong>Histogram binning</strong> reduces the number of candidate thresholds that must be scored.</li>
+</ul>
+<p>The gain formula does not create the bins. Binning is an efficiency technique for split search.</p>
+<h2>7. Does LightGBM build a decision stump at every step?</h2>
+<p>No. A stump has exactly one split and two leaves. LightGBM generally grows a multi-leaf decision tree during each boosting iteration.</p>
+<p>Keep the levels separate:</p>
+<ul>
+<li><strong>One split</strong> divides one current leaf into two children.</li>
+<li><strong>One tree</strong> may contain many splits and leaves.</li>
+<li><strong>One boosting iteration</strong> adds one newly grown tree to the existing ensemble.</li>
+</ul>
+<p>LightGBM can make several splits while constructing the same tree. It does not stop after the first split unless the tree constraints allow only a stump. The final boosted model is an additive ensemble of these trees.</p>
+<h2>8. Leaf-wise growth: which leaf is split next?</h2>
+<p>A level-wise strategy expands nodes at the same depth together. For example, it may split every eligible node at depth 1 before splitting nodes at depth 2.</p>
+<p>LightGBM's characteristic strategy is <strong>leaf-wise</strong>, also called best-first growth:</p>
+<ul>
+<li>Find the best available split and gain for every current leaf.</li>
+<li>Compare those gains across leaves.</li>
+<li>Split the leaf with the largest gain, even if it is at a different depth from other leaves.</li>
+<li>Repeat, subject to stopping conditions.</li>
+</ul>
+<p>For example, if leaf A has best gain 8 and leaf B has best gain 3, LightGBM chooses A next.</p>
+<h3>Why this is greedy budget allocation</h3>
+<p>Every split turns one leaf into two and therefore spends some of the tree's complexity budget. Leaf-wise growth greedily spends the next unit of budget on the currently available split with the largest gain.</p>
+<p>This can reduce training loss quickly for a fixed leaf budget, but it is greedy and does not guarantee the globally optimal tree. Since it follows gain rather than depth, the resulting tree can be unbalanced and can grow deep along some branches.</p>
+<p>Controls include:</p>
+<ul>
+<li><code>num_leaves</code>: limits the number of leaves;</li>
+<li><code>max_depth</code>: limits depth;</li>
+<li><code>min_data_in_leaf</code>: requires a minimum number of observations in a leaf;</li>
+<li><code>min_sum_hessian_in_leaf</code>: requires sufficient summed Hessian in a leaf.</li>
+</ul>
+<h2>9. The complete mental picture</h2>
+<p>At a boosting round, the current ensemble produces scores. From those scores and labels, calculate gradients and Hessians.</p>
+<p>For a candidate tree, LightGBM uses a second-order approximation to estimate how much a split could improve the objective. To make the search efficient, each numerical feature has already been mapped into a limited number of bins. The algorithm aggregates gradient and Hessian sums in those bins, scans bin boundaries, and evaluates their gains.</p>
+<p>It grows one tree by repeatedly splitting the current leaf with the largest available gain. Once the tree is complete, its leaf corrections are added to the ensemble with shrinkage, and the next boosting round begins.</p>
+<div>$$\boxed{
+\text{Current ensemble}
+\rightarrow (g_i,h_i)
+\rightarrow \text{histogram split search}
+\rightarrow \text{leaf-wise tree}
+\rightarrow \text{ensemble update}
+}$$</div>
+<h2>10. Quick self-check</h2>
+<ul>
+<li class="todo">Why does a second-order approximation use both a gradient and a Hessian?</li>
+<li class="todo">Why is split gain the children's improvement minus the parent's improvement?</li>
+<li class="todo">Are numerical histogram bins chosen using gradients and Hessians? <strong>No; they are based on feature-value distributions.</strong></li>
+<li class="todo">Is the basic binning intuition approximately equal-frequency or equal-width? <strong>Approximately equal-frequency.</strong></li>
+<li class="todo">What does <code>max_bin</code> control? <strong>The maximum number of bins for a feature.</strong></li>
+<li class="todo">What is accumulated in each bin during a boosting round? <strong>Gradient and Hessian sums.</strong></li>
+<li class="todo">Why scan bin boundaries instead of every raw value? <strong>There are fewer candidate thresholds.</strong></li>
+<li class="todo">Does one boosting iteration build only a stump? <strong>No; it generally builds a multi-split tree.</strong></li>
+<li class="todo">What does leaf-wise growth choose greedily? <strong>The current leaf whose best available split has the largest gain.</strong></li>
+<li class="todo">Why can leaf-wise growth need regularization? <strong>It can create deep, unbalanced trees and overfit.</strong></li>
+</ul>
+<p class="small muted" style="margin-top:32px">Previous: <a href="N2-gbdt-classification-notes.html">N2</a> · Next: <a href="D1-gradient-boosting.html">D1 (detour)</a>.</p>
+</main>
+<script>
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); });
+</script>
+</body>
+</html>

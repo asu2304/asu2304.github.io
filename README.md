@@ -13,8 +13,11 @@ Personal revision notes by Ashutosh Patidar, served with GitHub Pages. The notes
 | [SQL for Data Science](https://asu2304.github.io/sql/) | Nitish Singh, CampusX | 12 chapters and a practice session, with quizzes and an in-browser SQL lab. | Complete |
 | [Probability and Statistics](https://asu2304.github.io/probability-statistics/) | — | — | Coming soon |
 | [Deep Learning](https://asu2304.github.io/deep-learning/) | Mitesh Khapra, CS6910 (IIT Madras) | — | Coming soon |
-
-Coming later: notes on industry topics such as RAG and AI agents.
+| Transformers | — | — | Coming soon |
+| Quantization | — | — | Coming soon |
+| LLMOps | — | — | Coming soon |
+| RAG | — | — | Coming soon |
+| Agentic AI | — | — | Coming soon |
 
 ## What a page looks like
 

@@ -36,75 +36,97 @@ canvas{width:100%;display:block}
 .steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
 table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
 .pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
-.pair.rev{grid-template-columns:minmax(0,2fr) minmax(0,1fr)} .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
-@media (max-width:600px){.pair.rev,.trio{grid-template-columns:1fr}}
-@media (max-width:600px){table{display:block;overflow-x:auto}}
-.katex-display{overflow-x:auto;overflow-y:hidden}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
 .credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
-.tl{list-style:none;padding:0;margin:14px 0;border-left:2px solid var(--grid)}
-.tl li{position:relative;padding:6px 0 10px 18px}
-.tl li::before{content:"";position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--s1)}
-.tl li.w::before{background:var(--s2)} .tl li.g::before{background:var(--s3)}
-.tl .yr{font-weight:700;font-variant-numeric:tabular-nums;margin-right:6px}
-.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--grid);color:var(--muted);margin-left:4px}
-select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
 </style>
 </head>
 <body>
 <main>
 <p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
-<div class="kicker">Lecture 10 · McCulloch–Pitts neuron, perceptrons</div>
+<div class="kicker">Lecture 10 · playlist video 10 (titled “L8” on YouTube) · McCulloch–Pitts neuron, perceptrons</div>
 <h1>The Perceptron Learning Algorithm</h1>
-<p class="lede">Start with random weights. Pick a point. If it is a positive point the perceptron calls negative, add it to $w$; if it is a negative point called positive, subtract it. Repeat until nothing is misclassified. The geometry explains why this works: adding $x$ turns $w$ towards $x$ (shrinking the angle between them), subtracting turns $w$ away.</p>
-<p class="small muted">Source: <a href="https://www.youtube.com/watch?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM&index=10" target="_blank" rel="noopener">lecture 10 of Prof. Khapra's Deep Learning playlist on YouTube</a>. Previous: <a href="L9-perceptron.html">L9</a>.</p>
+<p class="lede">Start with random weights. Pick a point. If it's a positive point the perceptron calls negative, <b>add</b> it to $w$; if it's a negative point called positive, <b>subtract</b> it. Repeat until a full pass changes nothing. The reason this makes sense is geometric: $w^\top x\ge0$ means the angle between $w$ and $x$ is at most 90°, and each update turns $w$ towards a misclassified positive point or away from a misclassified negative one.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=HPfZ9lEZOj4" target="_blank" rel="noopener">this lecture on YouTube</a> (≈22 min). Previous: <a href="L9-error-surfaces.html">L9</a> · Next in the playlist: <a href="https://www.youtube.com/watch?v=9AmGI-tVCSQ" target="_blank" rel="noopener">proof of convergence</a> (notes coming soon).</p>
 <div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
 
-<h2>1 · The algorithm</h2>
+<h2>1 · A real classification problem</h2>
+<p>Boolean functions were the warm-up. Back to the movie example: we have watched $m$ movies, each with a label, <b>liked</b> (1) or <b>not</b> (0). Each movie is described by $n$ features: boolean ones ("is the actor Matt Damon?", "is the genre thriller?") and real-valued ones (the IMDb rating, the critics' rating). They all feed a perceptron whose weights we don't know. We want to learn weights that classify the past movies correctly, so we can use them on new ones.</p>
+<p>Assume the data are <b>linearly separable</b>: some line (plane, hyperplane) has all the liked movies on its positive side and the rest on its negative side.</p>
+
+<h2>2 · The algorithm</h2>
 <div class="card">
-<p class="mono" style="margin:0;white-space:pre-wrap">P ← inputs with label 1;  N ← inputs with label 0
+<p class="mono" style="margin:0;white-space:pre-wrap">P ← inputs with label 1;   N ← inputs with label 0
 initialise w randomly
 while not converged:
     pick a random x ∈ P ∪ N
     if x ∈ P and w·x &lt; 0:   w ← w + x
-    if x ∈ N and w·x ≥ 0:   w ← w − x
-converged = every input is classified correctly</p>
+    if x ∈ N and w·x ≥ 0:   w ← w − x</p>
 </div>
-<p>As in L9, $x$ includes $x_0=1$ and $w$ includes the bias $w_0$, so the rule is simply "positive iff $w^\top x\ge0$".</p>
+<p>Here $x=(x_0,x_1,\dots,x_n)$ includes the constant $x_0=1$, and $w=(w_0,\dots,w_n)$ includes the bias (L8). <b>Converged</b> means every positive point has $w^\top x\ge0$ and every negative point has $w^\top x&lt;0$: the training data are separated. In practice, you know you've converged when a full pass through the data makes no correction.</p>
+<p>Why add $x$ in one case and subtract it in the other? The lecture explains it with a little linear algebra.</p>
 
-<h2>2 · Why it works: angles</h2>
-<p>$w^\top x=\|w\|\|x\|\cos\alpha$, where $\alpha$ is the angle between $w$ and $x$. So:</p>
+<h2>3 · Geometry: the decision rule is about angles</h2>
+<p>$\sum_{i=0}^n w_ix_i$ is just the dot product $w^\top x$, so the rule is: $y=1$ if $w^\top x\ge0$, else $y=0$. And</p>
+$$\cos\alpha=\frac{w^\top x}{\lVert w\rVert\,\lVert x\rVert},\qquad \alpha=\text{angle between } w \text{ and } x .$$
 <ul>
-<li>Correct for $x\in P$: $w^\top x\ge0$ ⇔ $\alpha\le 90°$.</li>
-<li>Correct for $x\in N$: $w^\top x<0$ ⇔ $\alpha> 90°$.</li>
+<li><b>Points on the line</b> $w^\top x=0$ have $\cos\alpha=0$, so $\alpha=90°$: <b>$w$ is perpendicular to the decision boundary</b>.</li>
+<li><b>Positive half-space</b>, $w^\top x&gt;0$: $\cos\alpha&gt;0$, so $\alpha&lt;90°$ (acute).</li>
+<li><b>Negative half-space</b>, $w^\top x&lt;0$: $\cos\alpha&lt;0$, so $\alpha&gt;90°$ (obtuse).</li>
 </ul>
-<p>The decision boundary $w^\top x=0$ is the set of points <b>perpendicular</b> to $w$. Now check each update:</p>
-$$x\in P \text{ misclassified},\ w_{\text{new}}=w+x:\quad w_{\text{new}}^\top x = w^\top x + x^\top x > w^\top x$$
-$$x\in N \text{ misclassified},\ w_{\text{new}}=w-x:\quad w_{\text{new}}^\top x = w^\top x - x^\top x < w^\top x$$
-<p>Since $x^\top x=\|x\|^2>0$, adding $x$ increases $\cos\alpha$ (the angle shrinks, $w$ turns towards $x$); subtracting decreases it ($w$ turns away). One update may not fix the point, but it always moves in the right direction.</p>
-<div class="callout">Prof. Khapra's caveat: this is <b>intuition</b>, not proof. Fixing one point can break another, so why should the loop ever stop? The convergence proof (next lecture in the playlist) shows that if the data are linearly separable, it stops after a finite number of updates.</div>
+<div class="callout">Goal restated: every positive point should make an <b>acute</b> angle with $w$, and every negative point an <b>obtuse</b> one.</div>
 
-<h2>3 · Step through it</h2>
+<h2>4 · Why the updates move in the right direction</h2>
+<ol class="steps">
+<li><b>Positive point misclassified</b> ($x\in P$, $w^\top x&lt;0$): the angle is obtuse, but we want it acute. We may not fix that in one step, but the angle should at least <b>shrink</b>. With $w_{\text{new}}=w+x$:
+$$\cos\alpha_{\text{new}}\ \propto\ w_{\text{new}}^\top x=(w+x)^\top x=w^\top x+x^\top x\ &gt;\ w^\top x\ \propto\ \cos\alpha,$$
+because $x^\top x=\lVert x\rVert^2&gt;0$. So $\cos\alpha$ grows and $\alpha_{\text{new}}&lt;\alpha$.</li>
+<li><b>Negative point misclassified</b> ($x\in N$, $w^\top x\ge0$): the angle is at most 90° and we want it obtuse, so it should <b>grow</b>. With $w_{\text{new}}=w-x$: $w_{\text{new}}^\top x=w^\top x-x^\top x&lt;w^\top x$, so $\cos\alpha$ falls and $\alpha_{\text{new}}&gt;\alpha$.</li>
+</ol>
+<p>Prof. Khapra flags that the "$\propto$" quietly ignores the denominators $\lVert w\rVert\lVert x\rVert$, which change too. The full calculation is trickier; the point here is the intuition.</p>
+<div class="beyond"><b>Going beyond the video: the denominator doesn't spoil it.</b> $w+x$ lies inside the angle formed by $w$ and $x$ (it's the diagonal of the parallelogram they span), so the angle between $w+x$ and $x$ is strictly smaller than the angle between $w$ and $x$, whatever the lengths. Likewise $w-x$ is $w$ plus the vector $-x$, which points directly away from $x$, so it turns away from $x$. The demo below shows the angle before and after each update.</div>
+
+<h2>5 · Running it on a toy dataset</h2>
+<p>The lecture walks through an example. The random starting $w$ is the exact opposite of what we want: acute angles with all the negative points, obtuse with all the positive ones.</p>
+<ul>
+<li>Pick $p_1$: misclassified, so $w\leftarrow w+p_1$. The angle with $p_1$ shrinks.</li>
+<li>Pick $p_2$: still obtuse, so $w\leftarrow w+p_2$. The angle shrinks (here it even becomes acute).</li>
+<li>Pick $n_1$: the angle is very small, so $w\leftarrow w-n_1$. It grows.</li>
+<li>Pick $n_3$, then $n_2$: already obtuse, no change.</li>
+<li>Pick $p_3$: obtuse, so $w\leftarrow w+p_3$.</li>
+<li>Then $p_2$, $n_1$, $n_3$, …: no corrections. A full cycle with no change means <b>convergence</b>.</li>
+</ul>
+<p>Step through the same process yourself:</p>
+
 <div class="card">
-  <p class="small muted" style="margin-top:0">Data separable by a line through the origin (so the bias can be dropped and $w$ drawn as an arrow). Blue = $P$, orange = $N$. The shaded half-plane is where the perceptron says "positive"; the line is perpendicular to $w$.</p>
-  <div class="row"><button id="step">Step (one random point)</button><button id="run">Run to convergence</button><button id="reset">New data</button><label><input type="checkbox" id="mixed"> make data not separable</label></div>
-  <canvas id="pc" height="320" aria-label="Perceptron learning on 2D data"></canvas>
-  <div class="row"><div class="stat"><div class="v" id="nup">0</div><div class="l">updates so far</div></div><div class="stat"><div class="v" id="nmis">–</div><div class="l">currently misclassified</div></div><div class="stat"><div class="v" id="ang">–</div><div class="l">angle(w, last point)</div></div></div>
+  <p class="small muted" style="margin-top:0">Data separable by a line through the origin, so $w$ can be drawn as an arrow (with a bias you'd add $x_0=1$). Blue = $P$, orange = $N$. The shaded side is where the perceptron says 1; the black line is the boundary, perpendicular to $w$. The faint grey arrow is $w$ before the last update.</p>
+  <div class="row"><button id="step">Step: pick a random point</button><button id="pass">Run one full pass</button><button id="run">Run to convergence</button><button id="reset">New data</button>
+    <label><input type="checkbox" id="mixed"> make the data not separable</label></div>
+  <canvas id="pc" height="340" aria-label="Perceptron learning on 2-D data with the weight vector drawn as an arrow"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>P (label 1)</span><span><i class="dot" style="background:var(--s2)"></i>N (label 0)</span><span><i style="background:var(--s3)"></i>w now</span><span><i style="background:var(--faint)"></i>w before the update</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="nup">0</div><div class="l">updates so far</div></div>
+    <div class="stat"><div class="v" id="nmis">–</div><div class="l">currently misclassified</div></div>
+    <div class="stat"><div class="v" id="ang">–</div><div class="l">angle to the picked point: before → after</div></div>
+  </div>
   <p class="small" id="pTxt"></p>
 </div>
-<div class="beyond"><b>Going beyond the video.</b> The "Run" button sweeps through the points in random order and stops after 2,000 updates. On the non-separable setting it never converges: $w$ keeps swinging. Compare L54 of my <a href="../machine-learning/L54-perceptron-convergence.html">machine learning notes</a>, which proves the bound of at most $R^2/\gamma^2$ mistakes, with labels in $\{-1,+1\}$ so both update cases merge into $w\leftarrow w+y\,x$.</div>
 
-<h2>4 · What comes next</h2>
-<p>The next lecture in the playlist is the <a href="https://www.youtube.com/watch?v=9AmGI-tVCSQ&list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM&index=11" target="_blank" rel="noopener">proof of convergence of the perceptron learning algorithm</a>.</p>
+<h2>6 · Could it keep toggling forever?</h2>
+<p>Fixing a positive point changes $w$; the next correction for a negative point changes it again, and might undo the first. So why should the loop ever stop? The intuition above doesn't answer that. It needs a <b>proof of convergence</b>: if the data are linearly separable, the algorithm stops after a finite number of updates. That's the <a href="https://www.youtube.com/watch?v=9AmGI-tVCSQ" target="_blank" rel="noopener">next video in the playlist</a>. Tick "not separable" in the demo to see what happens when the assumption fails: $w$ keeps swinging and never settles.</p>
+<div class="beyond"><b>Going beyond the video.</b> My ML notes cover the same algorithm with labels $\{-1,+1\}$, where both cases merge into one rule, $w\leftarrow w+y\,x$ (<a href="../machine-learning/L52-perceptron.html">L52</a>, <a href="../machine-learning/L53-perceptron-update-rule.html">L53</a>). <a href="../machine-learning/L54-perceptron-convergence.html">L54</a> proves the convergence bound: at most $R^2/\gamma^2$ mistakes, where $R$ is the largest $\lVert x\rVert$ and $\gamma$ the margin.</div>
 
 <h2>Key takeaways</h2>
 <ol>
-<li>PLA: on a mistake, $w\leftarrow w+x$ for positives and $w\leftarrow w-x$ for negatives; stop when all are correct.</li>
-<li>$w$ is perpendicular to the decision boundary; positives should be within 90° of $w$, negatives beyond.</li>
-<li>Each update increases $w^\top x$ by $\|x\|^2$ (or decreases it), turning $w$ towards (or away from) the point.</li>
-<li>Intuition, not proof: convergence for linearly separable data is proved next.</li>
+<li>PLA: on a mistake, $w\leftarrow w+x$ for a positive point and $w\leftarrow w-x$ for a negative one; stop when a full pass makes no change.</li>
+<li>$w^\top x=\lVert w\rVert\lVert x\rVert\cos\alpha$: positives should be within 90° of $w$, negatives beyond; $w$ is perpendicular to the boundary.</li>
+<li>Each update changes $w^\top x$ by $\pm\lVert x\rVert^2$, turning $w$ towards (or away from) the misclassified point.</li>
+<li>This is intuition, not proof: convergence for linearly separable data is proved in the next video.</li>
 </ol>
-
 </main>
 <script>
 const $ = id => document.getElementById(id);
@@ -114,42 +136,54 @@ function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('hei
   cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
   const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
 const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
-const DRAWERS = []; const onDraw = f => DRAWERS.push(f); const redraw = () => DRAWERS.forEach(f => f());
-let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redraw, 120); });
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
-window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redraw(); });
+const angle = (a, b) => Math.acos(Math.max(-1, Math.min(1, (a[0] * b[0] + a[1] * b[1]) / ((Math.hypot(...a) || 1e-12) * (Math.hypot(...b) || 1e-12))))) * 180 / Math.PI;
 
-let D = [], w = [0, 0], upd = 0, last = null, trail = [];
-function newData(){ const th = Math.random() * Math.PI * 2, u = [Math.cos(th), Math.sin(th)]; D = [];
-  while (D.length < 30) { const p = [(Math.random() * 2 - 1) * 3, (Math.random() * 2 - 1) * 3], m = p[0] * u[0] + p[1] * u[1];
-    if (Math.abs(m) < 0.35) continue; let y = m > 0 ? 1 : 0; if ($('mixed').checked && Math.random() < 0.12) y = 1 - y; D.push([p[0], p[1], y]); }
-  w = [randn(), randn()]; upd = 0; last = null; trail = [w.slice()]; drawP(); }
-const pred = p => (w[0] * p[0] + w[1] * p[1]) >= 0 ? 1 : 0, mis = () => D.filter(p => pred(p) !== p[2]);
-function stepOnce(){ const p = D[Math.floor(Math.random() * D.length)]; last = p;
-  if (p[2] === 1 && pred(p) === 0) { w = [w[0] + p[0], w[1] + p[1]]; upd++; trail.push(w.slice()); return 'add'; }
-  if (p[2] === 0 && pred(p) === 1) { w = [w[0] - p[0], w[1] - p[1]]; upd++; trail.push(w.slice()); return 'sub'; }
-  return 'ok'; }
-function drawP(msg){
+let D = [], w = [0, 0], prev = null, upd = 0, last = null, msg = '';
+function newData(){ const th = Math.random() * 2 * Math.PI, u = [Math.cos(th), Math.sin(th)]; D = [];
+  while (D.length < 24) { const p = [(Math.random() * 2 - 1) * 3, (Math.random() * 2 - 1) * 3], m = p[0] * u[0] + p[1] * u[1];
+    if (Math.abs(m) < 0.4 || Math.hypot(...p) < 0.6) continue; let y = m > 0 ? 1 : 0; if ($('mixed').checked && Math.random() < 0.15) y = 1 - y; D.push({x: p, y}); }
+  w = [-u[0] * 1.5 + 0.3 * randn(), -u[1] * 1.5 + 0.3 * randn()];   // start roughly opposite, as in the lecture
+  prev = null; upd = 0; last = null; msg = 'A random start. As in the lecture, w points roughly the wrong way: acute angles with the negatives, obtuse with the positives. Press Step.'; draw(); }
+const pred = p => (w[0] * p.x[0] + w[1] * p.x[1]) >= 0 ? 1 : 0, mis = () => D.filter(p => pred(p) !== p.y);
+function update(p){ const a0 = angle(w, p.x);
+  if (p.y === 1 && pred(p) === 0) { prev = w.slice(); w = [w[0] + p.x[0], w[1] + p.x[1]]; upd++; return ['add', a0, angle(w, p.x)]; }
+  if (p.y === 0 && pred(p) === 1) { prev = w.slice(); w = [w[0] - p.x[0], w[1] - p.x[1]]; upd++; return ['sub', a0, angle(w, p.x)]; }
+  return ['ok', a0, a0]; }
+function draw(){
   const [ctx, W, H] = setupCanvas($('pc')), R = 3.6, S = Math.min(W, H) / (2 * R), ox = W / 2, oy = H / 2, X = v => ox + v * S, Y = v => oy - v * S;
-  const nw = Math.hypot(w[0], w[1]) || 1, u = [w[0] / nw, w[1] / nw], d = [-u[1], u[0]], big = 20;
-  ctx.fillStyle = cssv('--tint'); ctx.beginPath(); ctx.moveTo(X(d[0] * big), Y(d[1] * big)); ctx.lineTo(X(d[0] * big + u[0] * big), Y(d[1] * big + u[1] * big)); ctx.lineTo(X(-d[0] * big + u[0] * big), Y(-d[1] * big + u[1] * big)); ctx.lineTo(X(-d[0] * big), Y(-d[1] * big)); ctx.fill();
+  const nw = Math.hypot(...w) || 1, u = [w[0] / nw, w[1] / nw], d = [-u[1], u[0]], big = 30;
+  ctx.fillStyle = cssv('--tint'); ctx.beginPath(); ctx.moveTo(X(d[0] * big), Y(d[1] * big)); ctx.lineTo(X(d[0] * big + u[0] * big), Y(d[1] * big + u[1] * big));
+  ctx.lineTo(X(-d[0] * big + u[0] * big), Y(-d[1] * big + u[1] * big)); ctx.lineTo(X(-d[0] * big), Y(-d[1] * big)); ctx.fill();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
   ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(d[0] * big), Y(d[1] * big)); ctx.lineTo(X(-d[0] * big), Y(-d[1] * big)); ctx.stroke();
-  D.forEach(p => { ctx.fillStyle = cssv(p[2] ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 5, 0, 7); ctx.fill();
-    if (pred(p) !== p[2]) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 9, 0, 7); ctx.stroke(); } });
-  if (last) { ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(X(last[0]), Y(last[1]), 12, 0, 7); ctx.stroke(); }
-  const L = Math.min(2.4, nw); ctx.strokeStyle = cssv('--s3'); ctx.fillStyle = cssv('--s3'); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(u[0] * 2.4), Y(u[1] * 2.4)); ctx.stroke();
-  ctx.beginPath(); const tip = [X(u[0] * 2.4), Y(u[1] * 2.4)], a = Math.atan2(-u[1], u[0]); ctx.moveTo(tip[0], tip[1]); ctx.lineTo(tip[0] - 12 * Math.cos(a - 0.4), tip[1] - 12 * Math.sin(a - 0.4)); ctx.lineTo(tip[0] - 12 * Math.cos(a + 0.4), tip[1] - 12 * Math.sin(a + 0.4)); ctx.fill();
-  ctx.font = '600 13px system-ui'; ctx.fillText('w', tip[0] + 6, tip[1] - 6);
+  D.forEach(p => { ctx.fillStyle = cssv(p.y ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(X(p.x[0]), Y(p.x[1]), 5.5, 0, 7); ctx.fill();
+    if (pred(p) !== p.y) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(p.x[0]), Y(p.x[1]), 9.5, 0, 7); ctx.stroke(); } });
+  const arrow = (v, col, lw) => { const n = Math.hypot(...v) || 1, L = 2.6, t = [X(v[0] / n * L), Y(v[1] / n * L)], a = Math.atan2(t[1] - oy, t[0] - ox);
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(t[0], t[1]); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(t[0], t[1]); ctx.lineTo(t[0] - 12 * Math.cos(a - 0.4), t[1] - 12 * Math.sin(a - 0.4)); ctx.lineTo(t[0] - 12 * Math.cos(a + 0.4), t[1] - 12 * Math.sin(a + 0.4)); ctx.fill(); return t; };
+  if (prev) arrow(prev, cssv('--faint'), 2);
+  if (last) { ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(X(last.x[0]), Y(last.x[1]), 13, 0, 7); ctx.stroke();
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(X(last.x[0]), Y(last.x[1])); ctx.stroke(); ctx.setLineDash([]); }
+  const tip = arrow(w, cssv('--s3'), 3); ctx.font = '600 13px system-ui'; ctx.fillStyle = cssv('--s3'); ctx.fillText('w', tip[0] + 6, tip[1] - 6);
   const m = mis().length; $('nup').textContent = upd; $('nmis').textContent = m;
-  $('ang').textContent = last ? (Math.acos(Math.max(-1, Math.min(1, (w[0] * last[0] + w[1] * last[1]) / (nw * Math.hypot(last[0], last[1]))))) * 180 / Math.PI).toFixed(0) + '°' : '–';
-  $('pTxt').innerHTML = msg || (m ? 'Press Step: a random point is picked (green ring). If it is misclassified, w moves.' : '<b>Converged</b>: every point is on the correct side.');
+  $('pTxt').innerHTML = msg + (m === 0 ? ' <b>Converged:</b> every point is on its correct side, so a full pass will change nothing.' : '');
 }
-$('step').onclick = () => { if (!mis().length) { drawP(); return; } const r = stepOnce(), nm = last[2] ? 'positive' : 'negative';
-  drawP(r === 'ok' ? `Picked a ${nm} point that is already correct: no change.` : r === 'add' ? `Picked a positive point with w·x &lt; 0 (angle &gt; 90°): <b>w ← w + x</b>. The angle to it shrinks.` : `Picked a negative point with w·x ≥ 0 (angle ≤ 90°): <b>w ← w − x</b>. The angle to it grows.`); };
-$('run').onclick = () => { let k = 0; while (mis().length && k < 2000) { const before = upd; stepOnce(); if (upd > before) k++; } drawP(mis().length ? `Stopped after 2,000 more updates without converging${$('mixed').checked ? ': the data are not linearly separable, so it never will.' : '.'}` : `<b>Converged</b> after ${upd} updates in total.`); };
+function nameOf(p){ return (p.y ? 'positive' : 'negative') + ' point'; }
+$('step').onclick = () => { const p = D[Math.floor(Math.random() * D.length)]; last = p; const [kind, a0, a1] = update(p);
+  $('ang').textContent = `${a0.toFixed(0)}° → ${a1.toFixed(0)}°`;
+  msg = kind === 'ok' ? `Picked a ${nameOf(p)} that is already correct (angle ${a0.toFixed(0)}° is ${p.y ? 'acute' : 'obtuse'}): no change.`
+    : kind === 'add' ? `Picked a positive point with w·x &lt; 0 (angle ${a0.toFixed(0)}°, obtuse): <b>w ← w + x</b>. The angle shrinks to ${a1.toFixed(0)}°${a1 < 90 ? ', now acute' : ', still obtuse, but smaller'}.`
+    : `Picked a negative point with w·x ≥ 0 (angle ${a0.toFixed(0)}°): <b>w ← w − x</b>. The angle grows to ${a1.toFixed(0)}°${a1 > 90 ? ', now obtuse' : ', not yet obtuse, but larger'}.`;
+  draw(); };
+$('pass').onclick = () => { let k = 0; const order = D.slice().sort(() => Math.random() - 0.5); order.forEach(p => { if (update(p)[0] !== 'ok') k++; }); last = null; $('ang').textContent = '–';
+  msg = k ? `One full pass over all ${D.length} points made ${k} correction${k > 1 ? 's' : ''}.` : `A full pass made <b>no corrections</b>: that is exactly the convergence test.`; draw(); };
+$('run').onclick = () => { let k = 0; while (mis().length && k < 2000) { const p = D[Math.floor(Math.random() * D.length)]; if (update(p)[0] !== 'ok') k++; } last = null; $('ang').textContent = '–';
+  msg = mis().length ? `Stopped after 2,000 more updates without converging${$('mixed').checked ? ': the data are not linearly separable, so it never will.' : '.'}` : `Finished after ${upd} updates in total.`; draw(); };
 $('reset').onclick = newData; $('mixed').addEventListener('change', newData);
-newData(); onDraw(() => drawP());
-
+newData();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
 </script>
 <script src="../assets/video-links.js" defer></script>
 </body>

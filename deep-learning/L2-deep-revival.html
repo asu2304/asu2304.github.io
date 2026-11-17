@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Deep Revival: From Cats to ConvNets</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.tl{list-style:none;padding:0;margin:10px 0;border-left:2px solid var(--grid)}
+.tl li{position:relative;padding:6px 8px 8px 18px;border-radius:8px;cursor:pointer}
+.tl li:hover{background:var(--tint)} .tl li.sel{background:var(--tint)}
+.tl li::before{content:"";position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--c,var(--s1))}
+.tl .yr{font-weight:700;font-variant-numeric:tabular-nums;margin-right:6px}
+.tl li.hide{display:none}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--grid);color:var(--muted);margin-left:4px}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 2 · playlist video 2 (titled “L1” on YouTube) · A brief history of deep learning</div>
+<h1>The Deep Revival: From Cats to Convolutional Networks</h1>
+<p class="lede">Around 2006, Hinton’s group showed that a deep network trains well with backpropagation if its weights are initialised sensibly (unsupervised pre-training). That spark led to better optimisers and regularisers, competition wins, and in 2012 AlexNet’s ImageNet result. The convolutional networks behind it trace back to a 1959 experiment on a cat’s visual cortex.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=EifcfTLIzxc" target="_blank" rel="noopener">this lecture on YouTube</a> (≈10 min). Previous: <a href="L1-history.html">L1</a> · Next: <a href="L3-faster-higher-stronger.html">L3</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · 2006: deep networks become trainable</h2>
+<p>Until then, a deep network initialised with random weights and trained with backpropagation often failed. Hinton's group proposed a simple fix: <b>initialise the weights properly</b>, using unsupervised pre-training, and then training with backpropagation becomes stable, even for a network that was deep by the standards of the time.</p>
+<ul>
+<li>The idea wasn't completely new: Schmidhuber had trained very deep learners around <b>1991–1993</b>.</li>
+<li>It didn't take off then because the conditions weren't right: the internet was young, data and storage were small, and compute was limited.</li>
+<li>By 2006 compute was better (GPUs had not yet arrived in deep learning) and there was more data to train on.</li>
+</ul>
+<div class="beyond"><b>Going beyond the video.</b> The lecture says "around 2016" at one point, but it means <b>2006</b>, as it says elsewhere: the deep belief network paper by Hinton, Osindero and Teh (2006). Weight initialisation comes back properly later in the course.</div>
+
+<h2>2 · 2007–2009: understanding why it works</h2>
+<p>Once the spark was there (we always knew deep networks were powerful, from the universal approximation theorem in <a href="L1-history.html">L1</a>; now we could train them), people asked <b>why</b> unsupervised pre-training helps. Two answers emerged:</p>
+<table>
+<tr><th>Hypothesis</th><th>What it says</th><th>What it led to</th></tr>
+<tr><td>Better <b>optimisation</b></td><td>Pre-training starts the network in a place where the optimisation problem is easier.</td><td>Better optimisation algorithms (see <a href="L3-faster-higher-stronger.html">L3</a>).</td></tr>
+<tr><td>Better <b>regularisation</b></td><td>Pre-training helps the network generalise, acting like a regulariser.</td><td>Better regularisation methods.</td></tr>
+</table>
+<p>With these, deep learning started <b>winning competitions</b>: handwriting recognition on MNIST, speech recognition, and visual pattern recognition on traffic-sign data.</p>
+
+<h2>3 · ImageNet: deep learning arrives</h2>
+<p>The ImageNet challenge: about <b>1,000 classes</b> (cats, dogs, aeroplanes, trucks, …), about a <b>million</b> training images, and a test set to classify. In 2012 <b>AlexNet</b> won with an error rate of about 16%. ZFNet cut it to 11.2%, and within a few years it reached <b>3.6%</b>, better than humans, who get about 4–5% wrong because some images are unclear (a dog's face hidden, two similar breeds). Depth grew from 8 layers in AlexNet to <b>152</b> in ResNet.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">ImageNet classification error (top-5) by winning model. Click a bar for details. Switch the second axis between error and depth to see both trends.</p>
+  <div class="row"><button data-m="err" class="on">Error rate</button><button data-m="depth">Number of layers</button><label><input type="checkbox" id="onlyLec"> only the models named in the lecture</label></div>
+  <canvas id="ic" height="280" aria-label="ImageNet error and depth by year"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>named in the lecture</span><span><i class="dot" style="background:var(--faint)"></i>added (beyond the video)</span><span><i style="background:var(--s2)"></i>human error (~5%)</span></div>
+  <p class="small" id="iTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The grey bars (VGG and GoogLeNet, both 2014) aren't in the lecture; I added them to fill the gap. The 3.6% result is ResNet, which won the 2015 challenge (3.57% top-5). The human figure of about 5.1% comes from Andrej Karpathy's 2014 experiment of labelling test images himself.</div>
+<p>From here it was accepted that for image problems you migrate to <b>convolutional neural networks</b>. The same shift soon happened in NLP and speech: deep networks replaced older methods. Prof. Khapra calls <b>2012–2016</b> the transition period.</p>
+
+<h2>4 · From cats to convolutional networks</h2>
+<ol class="steps">
+<li><b>1959, Hubel and Wiesel.</b> Electrodes on different parts of a cat's brain, and a stick pattern shown at different positions on a screen. Depending on <b>where</b> the stick is, a different part of the brain fires: each neuron has a <b>receptive field</b>. Different parts of the brain look at different parts of the scene.</li>
+<li><b>1980, the Neocognitron.</b> A network inspired by this: different parts of the image are handled by different parts of the network, rather than everything being connected to everything.</li>
+<li><b>1989, Yann LeCun</b> (one of the founding fathers of deep learning) used convolutional networks to recognise handwritten digits, motivated by postal services reading PIN codes to sort letters.</li>
+<li><b>1998, LeNet-5</b> improved the 1989 model, and LeCun introduced the <b>MNIST</b> dataset, still among the first datasets every newcomer tries.</li>
+</ol>
+<p>Try the cat experiment. Each "neuron" below watches one patch of the screen and, as Hubel and Wiesel also found, prefers one orientation. Drag the stick around and rotate it.</p>
+<div class="card">
+  <div class="row"><label>stick orientation <input type="range" id="ori" min="0" max="179" value="45" aria-label="stick orientation"></label><span class="small muted">Drag on the screen to move the stick.</span></div>
+  <div class="pair half">
+    <canvas id="sc" height="240" aria-label="Screen with a stick stimulus and receptive fields"></canvas>
+    <canvas id="bc" height="240" aria-label="Firing of each neuron"></canvas>
+  </div>
+  <p class="small" id="sTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The lecture talks about position (receptive fields). Orientation preference is also part of Hubel and Wiesel's Nobel-winning findings, and it's exactly what early convolutional filters learn: edge detectors at different angles. The Neocognitron is Kunihiko Fukushima's model. Convolutions themselves are covered later in the course.</div>
+<p>So the CNNs that won ImageNet in 2012 were not new. What changed by 2012 was everything around them: better optimisation, initialisation and activation functions, and an understanding of how to train deep networks on large-scale problems.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>2006: good initialisation (unsupervised pre-training) made deep networks trainable with backpropagation. Data and compute finally allowed it.</li>
+<li>2007–2009: studying why it worked (optimisation vs regularisation) gave better optimisers and regularisers, and deep learning began winning competitions.</li>
+<li>ImageNet: about 16% error with AlexNet (2012) down to 3.6% with ResNet, below human error, as depth grew from 8 to 152 layers.</li>
+<li>CNNs come from receptive fields in a cat's visual cortex (1959), via the Neocognitron (1980) and LeCun's digit recognisers (1989, LeNet-5 and MNIST in 1998).</li>
+</ol>
+
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAWERS = []; const onDraw = f => DRAWERS.push(f); const redraw = () => DRAWERS.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redraw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redraw(); });
+
+/* ---- ImageNet error and depth ---- */
+const NETS = [
+  {n: 'AlexNet', y: 2012, e: 16.4, d: 8, lec: true, t: 'The 2012 winner that started the deep learning era for images. The lecture quotes about 16% error.'},
+  {n: 'ZFNet', y: 2013, e: 11.2, d: 8, lec: true, t: 'Still 8 layers, but error down to 11.2%.'},
+  {n: 'VGG', y: 2014, e: 7.3, d: 19, lec: false, t: 'Very small 3×3 filters stacked deep (not in the lecture).'},
+  {n: 'GoogLeNet', y: 2014, e: 6.7, d: 22, lec: false, t: 'Inception modules; won 2014 (not in the lecture).'},
+  {n: 'ResNet', y: 2015, e: 3.6, d: 152, lec: true, t: '152 layers with residual connections; 3.6% error, below human error. The lecture places it around 2016–17.'},
+];
+let mode = 'err', selN = 4;
+function drawI(){
+  const only = $('onlyLec').checked, list = NETS.filter(m => !only || m.lec); if (!list.includes(NETS[selN])) selN = NETS.indexOf(list[list.length - 1]);
+  const [ctx, W, H] = setupCanvas($('ic')), pad = {l: 44, r: 10, t: 16, b: 46};
+  const vmax = mode === 'err' ? 18 : 160, val = m => mode === 'err' ? m.e : m.d;
+  const bw = (W - pad.l - pad.r) / list.length, Y = v => H - pad.b - v / vmax * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  const ticks = mode === 'err' ? [0, 5, 10, 15] : [0, 50, 100, 150];
+  ticks.forEach(v => { ctx.beginPath(); ctx.moveTo(pad.l, Y(v)); ctx.lineTo(W - pad.r, Y(v)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(v + (mode === 'err' ? '%' : ''), pad.l - 6, Y(v)); });
+  list.forEach((m, i) => { const x = pad.l + i * bw + bw * 0.18, w = bw * 0.64, sel = NETS.indexOf(m) === selN;
+    ctx.fillStyle = cssv(m.lec ? '--s1' : '--faint'); ctx.globalAlpha = sel ? 1 : 0.75; ctx.fillRect(x, Y(val(m)), w, Y(0) - Y(val(m))); ctx.globalAlpha = 1;
+    if (sel) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.strokeRect(x, Y(val(m)), w, Y(0) - Y(val(m))); }
+    ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(val(m) + (mode === 'err' ? '%' : ''), x + w / 2, Y(val(m)) - 3);
+    ctx.textBaseline = 'top'; ctx.fillText(m.n, x + w / 2, H - pad.b + 6); ctx.fillStyle = cssv('--muted'); ctx.fillText(m.y, x + w / 2, H - pad.b + 22); });
+  if (mode === 'err') { ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath(); ctx.moveTo(pad.l, Y(5.1)); ctx.lineTo(W - pad.r, Y(5.1)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = cssv('--s2'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom'; ctx.fillText('human', W - pad.r, Y(5.1) - 2); }
+  const m = NETS[selN]; $('iTxt').innerHTML = `<b>${m.n} (${m.y})</b>: ${m.e}% error, ${m.d} layers. ${m.t}`;
+  drawI.hit = (px) => { const i = Math.floor((px - pad.l) / bw); if (i >= 0 && i < list.length) { selN = NETS.indexOf(list[i]); drawI(); } };
+}
+document.querySelectorAll('button[data-m]').forEach(b => b.onclick = () => { mode = b.dataset.m; document.querySelectorAll('button[data-m]').forEach(x => x.classList.toggle('on', x === b)); drawI(); });
+$('onlyLec').addEventListener('change', drawI);
+$('ic').addEventListener('click', e => drawI.hit(e.clientX - $('ic').getBoundingClientRect().left));
+onDraw(drawI);
+
+/* ---- Hubel & Wiesel: receptive fields with orientation preference ---- */
+const G = 3, PREF = [0, 45, 90, 135, 0, 45, 90, 135, 90];   // preferred orientation of each of the 9 neurons
+let stick = [0.5, 0.5];
+function rates(){
+  const o = +$('ori').value;
+  return PREF.map((p, k) => { const cx = (k % G + 0.5) / G, cy = (Math.floor(k / G) + 0.5) / G;
+    const dist = Math.hypot(stick[0] - cx, stick[1] - cy), inField = Math.exp(-(dist * dist) / (2 * 0.09 * 0.09));
+    let dth = Math.abs(o - p) % 180; dth = Math.min(dth, 180 - dth); const tune = Math.cos(dth * Math.PI / 180) ** 4;
+    return inField * tune; });
+}
+function drawS(){
+  const o = +$('ori').value, r = rates();
+  let [ctx, W, H] = setupCanvas($('sc')); const S = Math.min(W, H) - 10, ox = (W - S) / 2, oy = 5;
+  ctx.fillStyle = cssv('--card'); ctx.fillRect(ox, oy, S, S);
+  for (let k = 0; k < 9; k++) { const x = ox + (k % G) * S / G, y = oy + Math.floor(k / G) * S / G;
+    ctx.fillStyle = cssv('--s3'); ctx.globalAlpha = 0.08 + 0.6 * r[k]; ctx.fillRect(x + 2, y + 2, S / G - 4, S / G - 4); ctx.globalAlpha = 1;
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(x + 2, y + 2, S / G - 4, S / G - 4);
+    const cx = x + S / G / 2, cy = y + S / G / 2, a = PREF[k] * Math.PI / 180, L = S / G * 0.18;
+    ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx - L * Math.cos(a), cy + L * Math.sin(a)); ctx.lineTo(cx + L * Math.cos(a), cy - L * Math.sin(a)); ctx.stroke(); }
+  const sx = ox + stick[0] * S, sy = oy + stick[1] * S, a = o * Math.PI / 180, L = S * 0.12;
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(sx - L * Math.cos(a), sy + L * Math.sin(a)); ctx.lineTo(sx + L * Math.cos(a), sy - L * Math.sin(a)); ctx.stroke(); ctx.lineCap = 'butt';
+  drawS.map = (px, py) => [Math.max(0, Math.min(1, (px - ox) / S)), Math.max(0, Math.min(1, (py - oy) / S))];
+  [ctx, W, H] = setupCanvas($('bc')); const pad = {l: 8, r: 8, t: 12, b: 26}, bw = (W - pad.l - pad.r) / 9;
+  ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  r.forEach((v, k) => { const x = pad.l + k * bw, h = v * (H - pad.t - pad.b);
+    ctx.fillStyle = cssv('--s3'); ctx.fillRect(x + 3, H - pad.b - h, bw - 6, h);
+    ctx.fillStyle = cssv('--muted'); ctx.textBaseline = 'top'; ctx.fillText('n' + (k + 1), x + bw / 2, H - pad.b + 4); });
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = cssv('--muted'); ctx.fillText('firing rate', pad.l, 0);
+  const top = r.indexOf(Math.max(...r));
+  $('sTxt').innerHTML = r[top] > 0.5 ? `Neuron n${top + 1} fires strongly: the stick is in its patch <b>and</b> at roughly its preferred angle (${PREF[top]}°). Move the stick to another patch and a different neuron takes over.`
+    : 'Nothing fires strongly: the stick is in a patch whose neuron prefers a different angle, or between patches. Rotate it to match the grey line in its patch.';
+}
+let dragging = false; const mv = e => { const r = $('sc').getBoundingClientRect(), t = e.touches ? e.touches[0] : e; stick = drawS.map(t.clientX - r.left, t.clientY - r.top); drawS(); };
+$('sc').addEventListener('pointerdown', e => { dragging = true; mv(e); }); window.addEventListener('pointerup', () => { dragging = false; });
+$('sc').addEventListener('pointermove', e => { if (dragging) mv(e); }); $('sc').style.touchAction = 'none';
+$('ori').addEventListener('input', drawS); onDraw(drawS);
+
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

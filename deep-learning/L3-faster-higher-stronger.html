@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Faster, Higher, Stronger</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.tl{list-style:none;padding:0;margin:10px 0;border-left:2px solid var(--grid)}
+.tl li{position:relative;padding:6px 8px 8px 18px;border-radius:8px;cursor:pointer}
+.tl li:hover{background:var(--tint)} .tl li.sel{background:var(--tint)}
+.tl li::before{content:"";position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--c,var(--s1))}
+.tl .yr{font-weight:700;font-variant-numeric:tabular-nums;margin-right:6px}
+.tl li.hide{display:none}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--grid);color:var(--muted);margin-left:4px}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 3 · playlist video 3 (titled “L3” on YouTube) · A brief history of deep learning</div>
+<h1>Faster, Higher, Stronger: Optimisers, Activations, Sequences and Games</h1>
+<p class="lede">Once deep networks could be trained, the race was to train them faster and more stably: momentum and Nesterov, then Adagrad, RMSProp and Adam; ReLU and its cousins instead of the logistic function; dropout and batch normalisation. The same years saw recurrent networks and LSTMs finally work on language and speech, and deep reinforcement learning beat humans at Atari, Go, poker and Dota.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=csM_nCAhIQk" target="_blank" rel="noopener">this lecture on YouTube</a> (≈17 min). Previous: <a href="L2-deep-revival.html">L2</a> · Next: <a href="L4-transformers-madness.html">L4</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<p>Where the story stands: enthusiasm in the 1950s, the spring, the winter, some 1990s success with CNNs, the 2006 breakthrough, and by 2012 deep networks winning ImageNet. From about 2016 the pace accelerated further.</p>
+
+<h2>1 · Faster: better optimisation</h2>
+<p>Now that deep networks <i>could</i> be trained, the question became: can we reach a good solution <b>faster</b>, and a <b>better</b> one (deep networks have many minima)? Faster convergence was always a goal in machine learning. Nesterov proposed a method in <b>1983</b> that converges faster than plain gradient descent, and the idea grew into a series of optimisers: <b>Adagrad, RMSProp, Adam, AdamW</b> and more, along with increasingly sophisticated <b>learning-rate schedules</b>. All of these come later in the course.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">A race on a long, narrow valley, the shape that makes plain gradient descent slow. All four start at the same point with the same learning rate. Press Play.</p>
+  <div class="row"><button id="op">Play</button><button id="os">Step ×10</button><button id="or">Reset</button><label>learning rate <input type="range" id="olr" min="1" max="60" value="12" aria-label="learning rate"></label><b id="olrV"></b></div>
+  <div class="pair">
+    <canvas id="oc" height="260" aria-label="Optimiser paths on a narrow valley"></canvas>
+    <canvas id="ol" height="260" aria-label="Loss versus step for each optimiser"></canvas>
+  </div>
+  <div class="legend" id="oLeg"></div>
+  <p class="small" id="oTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The lecture only names these methods. Rough intuition until we cover them: <b>momentum</b> remembers past gradients so it builds speed along the valley floor; <b>Nesterov</b> looks one step ahead before correcting; <b>Adam</b> scales each coordinate's step by a running average of its gradient size, so the steep and the shallow directions get comparable steps.</div>
+
+<h2>2 · Higher: better activation functions</h2>
+<p>In the 1980s–90s the only activation was the <b>logistic</b> (sigmoid) function. Since then a whole "industry" of activation functions has appeared, each meant to stabilise training or give faster convergence and better performance: <b>tanh, ReLU, leaky ReLU, parametric ReLU, GELU</b> and others. Regularisers such as <b>dropout</b> and <b>batch normalisation</b> (which can also be seen as a regulariser) added further stability.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Pick an activation. The dashed curve is its slope, which is what backpropagation multiplies by. Shaded regions are where the slope is almost zero ("saturation"), so the neuron barely learns.</p>
+  <div class="row" id="actBtns"></div>
+  <canvas id="ac" height="240" aria-label="Activation function and its derivative"></canvas>
+  <div class="row"><div class="stat"><div class="v" id="aMax">–</div><div class="l">largest slope</div></div><div class="stat"><div class="v" id="aSat">–</div><div class="l">share of [−6, 6] saturated</div></div></div>
+</div>
+
+<h2>3 · Stronger: sequences, RNNs and LSTMs</h2>
+<p>Speech is a sequence of phonemes, video a sequence of frames, text a sequence of words. You can't analyse each millisecond of speech independently: it depends on what came before. So we need networks in which inputs <b>interact</b> over time.</p>
+<ul>
+<li><b>1982</b>: Hopfield networks did some sequence processing (not covered in the course).</li>
+<li><b>Recurrent neural networks</b> (around 1986–1990): the <b>Jordan network</b> feeds each time step's output back in as input for the next step.</li>
+<li>They weren't used for real problems because they were very hard to train: <b>exploding and vanishing gradients</b> (covered later in the course).</li>
+<li><b>1997</b>: <b>LSTMs</b> (long short-term memory) eased the vanishing-gradient problem, but compute and data were still lacking.</li>
+<li><b>2014</b>: with better training know-how, GPUs and large datasets, RNNs and LSTMs entered NLP and replaced statistical machine translation. They dominated roughly 2014–2019.</li>
+<li><b>2017</b>: <b>transformers</b> arrived and slowly replaced them (<a href="L4-transformers-madness.html">L4</a>).</li>
+</ul>
+<p>Why do gradients vanish? Backpropagating through $T$ time steps multiplies $T$ derivatives together. The sigmoid's slope is at most $0.25$, so the product shrinks like $0.25^T$:</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Size of the gradient that reaches step 1 after flowing back through $T$ steps, if each step multiplies it by the activation's slope times a weight $w$ (log scale).</p>
+  <div class="row"><label>weight $w$ <input type="range" id="vw" min="10" max="600" value="100" aria-label="recurrent weight"></label><b id="vwV"></b><label>slope per step <select id="vs"><option value="0.25">sigmoid at best (0.25)</option><option value="1" selected>ReLU, active (1)</option><option value="0.1">saturated tanh (0.1)</option></select></label></div>
+  <canvas id="vc" height="220" aria-label="Gradient size versus number of time steps"></canvas>
+  <p class="small" id="vTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> This is the one-number version of the real story, where the product is of Jacobian matrices. The lesson is the same: per-step factors below 1 make gradients vanish, above 1 make them explode. LSTMs are built to keep a path where the factor stays close to 1.</div>
+
+<h2>4 · Games: deep reinforcement learning</h2>
+<p>Reinforcement learning was always used for games (Pac-Man, ping-pong). Deep RL took it much further:</p>
+<table>
+<tr><th>When</th><th>What</th><th>Why it mattered</th></tr>
+<tr><td>2015</td><td>Deep RL plays <b>Atari</b> games</td><td>Beats humans across console games.</td></tr>
+<tr><td>2015–16</td><td><b>Go</b></td><td>Far more complex than chess; beat the best players without brute force.</td></tr>
+<tr><td>2016</td><td><b>Poker</b></td><td>Beat professional poker players.</td></tr>
+<tr><td>2019</td><td><b>Dota</b> (OpenAI)</td><td>An agent playing itself for the equivalent of about 10,000 years of games reached expert level, from image-like inputs.</td></tr>
+<tr><td>—</td><td><b>OpenAI Gym</b>, <b>Gym Retro</b> (about 1,000 games)</td><td>Simpler environments so anyone can do deep RL research.</td></tr>
+<tr><td>2019</td><td><b>AlphaStar</b>; hide-and-seek agents</td><td>Balancing short- and long-term goals; agents learnt to build shelters, break them, and use ramps.</td></tr>
+<tr><td>2019–20</td><td><b>MuZero</b>, then <b>Player of Games</b></td><td>One agent for Go, chess, shogi and Atari: a step towards "master of all" agents.</td></tr>
+</table>
+<p>Deep RL is <b>not covered in this course</b>, but it's a branch worth exploring once the basics are in place.</p>
+<div class="beyond"><b>Going beyond the video.</b> Dates where the lecture is vague are the usual published ones: AlphaGo beat Fan Hui (October 2015) and Lee Sedol (March 2016); OpenAI Five beat the Dota 2 world champions in 2019; AlphaStar reached Grandmaster level in StarCraft II in 2019; MuZero was published in 2019–2020.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>After 2006 the goal became training faster and better: Nesterov (1983), then Adagrad, RMSProp, Adam, AdamW and learning-rate schedules.</li>
+<li>Activations moved beyond the logistic function (tanh, ReLU and variants, GELU); dropout and batch norm stabilised training.</li>
+<li>RNNs (1986–1990) and LSTMs (1997) were held back by vanishing/exploding gradients, compute and data; they took over NLP in 2014 until transformers (2017).</li>
+<li>Deep RL beat humans at Atari, Go, poker and Dota, and MuZero played several games with one agent.</li>
+</ol>
+
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAWERS = []; const onDraw = f => DRAWERS.push(f); const redraw = () => DRAWERS.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redraw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redraw(); });
+
+/* ---- optimiser race on f(x, y) = 0.5 (x^2 / 25 + 4 y^2) ... a narrow valley ---- */
+const A = 0.04, B = 4;                       // curvatures along x and y
+const loss = (x, y) => 0.5 * (A * x * x + B * y * y);
+const grad = (x, y) => [A * x, B * y];
+const START = [-9, 1.4];
+const OPT = [
+  {id: 'gd', name: 'gradient descent', c: '--ink'},
+  {id: 'mom', name: 'momentum', c: '--s1'},
+  {id: 'nag', name: 'Nesterov', c: '--s3'},
+  {id: 'adam', name: 'Adam', c: '--s2'},
+];
+let st, steps, playing = false;
+function resetO(){ steps = 0; st = OPT.map(o => ({o, p: START.slice(), v: [0, 0], m: [0, 0], s: [0, 0], path: [START.slice()], L: [loss(...START)]})); }
+function stepO(){ const lr = +$('olr').value / 100; steps++;
+  st.forEach(S => { const [x, y] = S.p;
+    if (S.o.id === 'gd') { const g = grad(x, y); S.p = [x - lr * g[0], y - lr * g[1]]; }
+    else if (S.o.id === 'mom') { const g = grad(x, y); S.v = [0.9 * S.v[0] - lr * g[0], 0.9 * S.v[1] - lr * g[1]]; S.p = [x + S.v[0], y + S.v[1]]; }
+    else if (S.o.id === 'nag') { const g = grad(x + 0.9 * S.v[0], y + 0.9 * S.v[1]); S.v = [0.9 * S.v[0] - lr * g[0], 0.9 * S.v[1] - lr * g[1]]; S.p = [x + S.v[0], y + S.v[1]]; }
+    else { const g = grad(x, y), b1 = 0.9, b2 = 0.999, a = lr * 4;     // Adam's step is a per-coordinate size, so it uses a larger base rate
+      S.m = S.m.map((m, i) => b1 * m + (1 - b1) * g[i]); S.s = S.s.map((s, i) => b2 * s + (1 - b2) * g[i] * g[i]);
+      const mh = S.m.map(m => m / (1 - b1 ** steps)), sh = S.s.map(s => s / (1 - b2 ** steps));
+      S.p = [x - a * mh[0] / (Math.sqrt(sh[0]) + 1e-8), y - a * mh[1] / (Math.sqrt(sh[1]) + 1e-8)]; }
+    if (!isFinite(S.p[0]) || Math.abs(S.p[1]) > 50) S.p = [NaN, NaN];
+    S.path.push(S.p.slice()); S.L.push(loss(...S.p)); });
+}
+function drawO(){
+  $('olrV').textContent = (+$('olr').value / 100).toFixed(2);
+  let [ctx, W, H] = setupCanvas($('oc')); const xr = [-10, 2], yr = [-2, 2];
+  const X = x => (x - xr[0]) / (xr[1] - xr[0]) * W, Y = y => H - (y - yr[0]) / (yr[1] - yr[0]) * H;
+  [0.02, 0.1, 0.4, 1, 2, 4].forEach(lv => { ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(X(0), Y(0), Math.sqrt(2 * lv / A) / (xr[1] - xr[0]) * W, Math.sqrt(2 * lv / B) / (yr[1] - yr[0]) * H, 0, 0, 7); ctx.stroke(); });
+  ctx.fillStyle = cssv('--muted'); ctx.beginPath(); ctx.arc(X(0), Y(0), 4, 0, 7); ctx.fill();
+  st.forEach(S => { ctx.strokeStyle = cssv(S.o.c); ctx.lineWidth = 2; ctx.beginPath(); let started = false;
+    S.path.forEach(p => { if (!isFinite(p[0])) return; started ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])); started = true; }); ctx.stroke(); });
+  [ctx, W, H] = setupCanvas($('ol')); const pad = {l: 34, r: 8, t: 8, b: 22}, N = Math.max(40, steps);
+  const LX = i => pad.l + i / N * (W - pad.l - pad.r), LY = v => { const t = (Math.log10(Math.max(v, 1e-6)) + 6) / 8; return H - pad.b - t * (H - pad.t - pad.b); };
+  ctx.font = '11px system-ui'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [-6, -4, -2, 0, 2].forEach(e => { ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(pad.l, LY(10 ** e)); ctx.lineTo(W - pad.r, LY(10 ** e)); ctx.stroke(); ctx.fillText('1e' + e, pad.l - 4, LY(10 ** e)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('step', (pad.l + W) / 2, H - 14);
+  st.forEach(S => { ctx.strokeStyle = cssv(S.o.c); ctx.lineWidth = 2; ctx.beginPath(); S.L.forEach((v, i) => { if (!isFinite(v)) return; i ? ctx.lineTo(LX(i), LY(v)) : ctx.moveTo(LX(i), LY(v)); }); ctx.stroke(); });
+  $('oLeg').innerHTML = st.map(S => `<span><i style="background:var(${S.o.c})"></i>${S.o.name}: ${isFinite(S.L[S.L.length - 1]) ? S.L[S.L.length - 1].toExponential(1) : 'diverged'}</span>`).join('');
+  const bestS = st.filter(S => isFinite(S.L[S.L.length - 1])).sort((a, b) => a.L[a.L.length - 1] - b.L[b.L.length - 1])[0];
+  $('oTxt').innerHTML = steps === 0 ? 'The valley is 100× steeper across (up–down) than along it. Plain gradient descent must keep its step small for the steep direction, so it crawls along the flat one.'
+    : `After ${steps} steps the lowest loss is <b>${bestS ? bestS.o.name : '—'}</b>. ` + (st[0].L[st[0].L.length - 1] > 0.05 ? 'Gradient descent has zig-zagged across the valley but barely moved along it. ' : '') + 'Raise the learning rate past 0.50 and plain gradient descent oscillates across the steep direction and diverges.';
+}
+let timer = null;
+$('op').onclick = () => { playing = !playing; $('op').textContent = playing ? 'Pause' : 'Play';
+  if (playing) timer = setInterval(() => { stepO(); drawO(); if (steps >= 200) { playing = false; clearInterval(timer); $('op').textContent = 'Play'; } }, 40); else clearInterval(timer); };
+$('os').onclick = () => { for (let i = 0; i < 10; i++) stepO(); drawO(); };
+$('or').onclick = () => { resetO(); drawO(); }; $('olr').addEventListener('input', () => { resetO(); drawO(); });
+resetO(); onDraw(drawO);
+
+/* ---- activation functions ---- */
+const erf = x => { const t = 1 / (1 + 0.3275911 * Math.abs(x)), y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return x >= 0 ? y : -y; };
+const sig = x => 1 / (1 + Math.exp(-x));
+const ACT = {
+  'logistic': [sig, x => sig(x) * (1 - sig(x))],
+  'tanh': [Math.tanh, x => 1 - Math.tanh(x) ** 2],
+  'ReLU': [x => Math.max(0, x), x => x > 0 ? 1 : 0],
+  'leaky ReLU': [x => x > 0 ? x : 0.1 * x, x => x > 0 ? 1 : 0.1],
+  'GELU': [x => 0.5 * x * (1 + erf(x / Math.SQRT2)), x => 0.5 * (1 + erf(x / Math.SQRT2)) + x * Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI)],
+};
+let act = 'logistic';
+$('actBtns').innerHTML = Object.keys(ACT).map(k => `<button data-a="${k}" class="${k === act ? 'on' : ''}">${k}</button>`).join('');
+document.querySelectorAll('button[data-a]').forEach(b => b.onclick = () => { act = b.dataset.a; document.querySelectorAll('button[data-a]').forEach(x => x.classList.toggle('on', x === b)); drawA(); });
+function drawA(){
+  const [f, d] = ACT[act], [ctx, W, H] = setupCanvas($('ac')), xr = [-6, 6], yr = [-1.5, 3];
+  const X = x => (x - xr[0]) / (xr[1] - xr[0]) * W, Y = y => H - (y - yr[0]) / (yr[1] - yr[0]) * H;
+  let sat = 0, mx = 0; const N = 600;
+  for (let i = 0; i < N; i++) { const x = xr[0] + (i + 0.5) / N * 12, g = Math.abs(d(x)); mx = Math.max(mx, g);
+    if (g < 0.05) { sat++; ctx.fillStyle = cssv('--warn-bg'); ctx.fillRect(X(x), 0, W / N + 1, H); } }
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.stroke();
+  const plot = (g, col, dash) => { ctx.strokeStyle = cssv(col); ctx.lineWidth = 2.5; ctx.setLineDash(dash); ctx.beginPath(); for (let i = 0; i <= 300; i++) { const x = xr[0] + i / 300 * 12; i ? ctx.lineTo(X(x), Y(g(x))) : ctx.moveTo(X(x), Y(g(x))); } ctx.stroke(); ctx.setLineDash([]); };
+  plot(f, '--s1', []); plot(d, '--s2', [6, 4]);
+  ctx.font = '12px system-ui'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText('blue: f(x)   orange dashed: slope f′(x)', 6, 4);
+  $('aMax').textContent = mx.toFixed(2); $('aSat').textContent = Math.round(100 * sat / N) + '%';
+}
+onDraw(drawA);
+
+/* ---- vanishing / exploding gradient ---- */
+function drawV(){
+  const w = +$('vw').value / 100, s = +$('vs').value, f = w * s; $('vwV').textContent = w.toFixed(2);
+  const [ctx, W, H] = setupCanvas($('vc')), pad = {l: 44, r: 10, t: 10, b: 24}, T = 50;
+  const X = t => pad.l + t / T * (W - pad.l - pad.r), Y = v => { const e = Math.max(-12, Math.min(12, Math.log10(v))); return H - pad.b - (e + 12) / 24 * (H - pad.t - pad.b); };
+  ctx.font = '11px system-ui'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  [-12, -6, 0, 6, 12].forEach(e => { ctx.strokeStyle = cssv(e === 0 ? '--muted' : '--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, Y(10 ** e)); ctx.lineTo(W - pad.r, Y(10 ** e)); ctx.stroke(); ctx.fillText('1e' + e, pad.l - 4, Y(10 ** e)); });
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText('time steps T', (pad.l + W) / 2, H - 14);
+  ctx.strokeStyle = cssv(f < 0.95 ? '--s1' : f > 1.05 ? '--s2' : '--s3'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let t = 0; t <= T; t++) { const v = f ** t; t ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v)); } ctx.stroke();
+  const g20 = f ** 20;
+  $('vTxt').innerHTML = `Each step multiplies the gradient by ${w.toFixed(2)} × ${s} = <b>${f.toFixed(3)}</b>. After 20 steps it is ${g20.toExponential(1)}: ` +
+    (f < 0.95 ? '<b>vanishing</b>. Early time steps get almost no learning signal.' : f > 1.05 ? '<b>exploding</b>. Updates become huge and training blows up.' : 'roughly preserved. This is the regime LSTMs are designed to keep.');
+}
+$('vw').addEventListener('input', drawV); $('vs').addEventListener('change', drawV); onDraw(drawV);
+
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

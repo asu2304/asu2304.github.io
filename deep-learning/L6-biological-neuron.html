@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Biological Neurons</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 6 · playlist video 6 (titled “L6” on YouTube) · From biological to artificial neurons</div>
+<h1>Biological Neurons: Where the Artificial Neuron Comes From</h1>
+<p class="lede">The most basic unit of a neural network is the <b>artificial neuron</b>, and the name comes from biology. A biological neuron receives signals, processes them, and if it is excited enough, passes a signal on. The brain wires about 100 billion of them into <b>layers</b>, each doing a more abstract job. That layered, massively parallel picture is the one the whole course builds on.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=KjMvUwq7PdQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈8 min). Previous: <a href="L5-call-for-sanity.html">L5</a> · Next: <a href="L7-mcculloch-pitts.html">L7</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Where this lecture sits</h2>
+<p>This opens the second lecture of the course proper. Its plan: biological neurons, then the <a href="L7-mcculloch-pitts.html">McCulloch–Pitts neuron</a> and thresholding logic, then perceptrons, the perceptron learning algorithm and a proof that it converges, and finally multi-layer perceptrons (MLPs) and how much they can represent. This short module is the motivation: the history lectures mentioned that the word "neuron" was coined in the 1890s for the brain's processing unit. If neurons in the brain can do complex processing, can artificial ones do useful computation?</p>
+
+<h2>2 · The parts of a neuron</h2>
+<table>
+<tr><th>Part</th><th>Role</th><th>In an artificial neuron (preview)</th></tr>
+<tr><td><b>Dendrite</b></td><td>Receives signals from other neurons</td><td>the inputs</td></tr>
+<tr><td><b>Synapse</b></td><td>The point of connection between two neurons</td><td>the connections (later, weights)</td></tr>
+<tr><td><b>Soma</b></td><td>The "central processing unit", where the information is processed</td><td>aggregate and decide</td></tr>
+<tr><td><b>Axon</b></td><td>Carries the output on to other neurons</td><td>the output</td></tr>
+</table>
+
+<h2>3 · A cartoon of how it works</h2>
+<p>You're watching a comedy (the lecture's example is a scene with Sheldon). Your eyes see it and your ears hear it; the sense organs relay this to neurons. A neuron processes the signal and, <b>if it is excited enough</b>, fires and signals other neurons, and eventually you laugh.</p>
+<p>In reality it isn't one neuron but a <b>network arranged in layers</b>. The lowest layer talks to the sense organs; some of those neurons get excited and activate neurons in the next layer, and so on, until a physical response (laughter) is triggered. This layered architecture will appear again and again in the course.</p>
+
+<h2>4 · Massively parallel, with a division of work</h2>
+<p>The average human brain has about $10^{11}$ (100 billion) neurons, interconnected and working in parallel. They also divide the work: a neuron doesn't handle visual and auditory and every other kind of input. The lecture's cartoon:</p>
+<ul>
+<li>one neuron fires only if the <b>visual</b> is funny,</li>
+<li>one fires only if the <b>speech</b> or sound is funny,</li>
+<li>one fires only if the <b>text</b> (what is being said) is funny,</li>
+<li>and a fourth neuron fires if <b>at least two of the three</b> are on, then activates others or triggers an action.</li>
+</ul>
+<div class="card">
+  <p class="small muted" style="margin-top:0">The lecture's four-neuron cartoon. Each sensory neuron fires when its stimulus passes 0.5. The fourth neuron counts how many fired and fires if the count reaches its threshold (the lecture uses "at least two of three").</p>
+  <div class="row">
+    <label>funny visual <input type="range" id="sv" min="0" max="1" step="0.01" value="0.8" aria-label="visual stimulus"></label>
+    <label>funny speech <input type="range" id="ss" min="0" max="1" step="0.01" value="0.3" aria-label="speech stimulus"></label>
+    <label>funny text <input type="range" id="st" min="0" max="1" step="0.01" value="0.7" aria-label="text stimulus"></label>
+  </div>
+  <div class="row"><label>fourth neuron's threshold = <b id="thV"></b> <input type="range" id="th" min="0" max="3" step="1" value="2" aria-label="threshold of the fourth neuron"></label></div>
+  <canvas id="nc" height="240" aria-label="Three sensory neurons feeding a fourth neuron"></canvas>
+  <p class="small" id="nTxt"></p>
+</div>
+<div class="callout">Keep this cartoon in mind: a unit that <b>counts its active inputs and fires if the count reaches a threshold</b> is exactly the McCulloch–Pitts neuron of the <a href="L7-mcculloch-pitts.html">next lecture</a>.</div>
+
+<h2>5 · Layers in the visual cortex</h2>
+<p>A more real example. Light hits the <b>retina</b> (the input). The signal passes through several layers of the brain, each doing some processing and passing it on, until an action is generated and sent to the spinal cord, say to move your hand. Focus on the layers labelled V1, V2, V4, in a very simplified story:</p>
+<ol class="steps">
+<li><b>First layer:</b> detects only dots, <b>edges and corners</b>.</li>
+<li><b>Next layer:</b> groups them into <b>feature groups</b>: these edges form a nose, these form a mouth, these dots are eyes.</li>
+<li><b>Next layer:</b> combines the groups into a bigger object: <b>a face</b>.</li>
+</ol>
+<p>Each layer does a different job, and each does <b>more abstract</b> processing than the one before.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">A toy three-layer "visual cortex". Pick an input and step through the layers. Layer 1 finds edges, layer 2 groups them into parts, layer 3 checks whether the parts form a face.</p>
+  <div class="row">
+    <span id="inp"><button data-i="face" class="on">a face</button><button data-i="jumbled">the same parts, jumbled</button><button data-i="noise">random edges</button></span>
+    <span id="lay"><button data-l="0">retina</button><button data-l="1">layer 1</button><button data-l="2">layer 2</button><button data-l="3" class="on">layer 3</button></span>
+  </div>
+  <canvas id="vc" height="260" aria-label="Toy visual cortex processing an input layer by layer"></canvas>
+  <p class="small" id="vTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> This toy is mine; real visual cortex is far more complicated, and the lecture's own disclaimer applies: the explanation suits this course, not a biology course. The idea it shows is the one the lecture stresses: later layers depend on <b>arrangements</b> of what earlier layers found, so jumbled parts pass layer 2 but fail layer 3. Convolutional networks build features in a similar hierarchy.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>A biological neuron: dendrites receive, synapses connect, the soma processes, the axon sends the output on.</li>
+<li>A neuron fires when it is excited enough by its inputs; that idea becomes a threshold.</li>
+<li>The brain is a massively parallel network of about $10^{11}$ neurons, arranged in layers, with a division of work.</li>
+<li>Layers build abstraction: edges, then parts, then objects (V1 → V2 → V4).</li>
+<li>Prof. Khapra's disclaimer: this is a cartoon of the brain, enough to motivate artificial neural networks.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+
+/* ---- demo 1: the four-neuron cartoon ---- */
+function drawN(){
+  const s = [+$('sv').value, +$('ss').value, +$('st').value], th = +$('th').value; $('thV').textContent = th;
+  const f = s.map(v => v > 0.5 ? 1 : 0), sum = f[0] + f[1] + f[2], out = sum >= th ? 1 : 0;
+  const [ctx, W, H] = setupCanvas($('nc')), names = ['visual', 'speech', 'text'];
+  const x0 = Math.max(46, W * 0.1), x1 = W * 0.42, x2 = W * 0.76, ys = [H * 0.18, H * 0.5, H * 0.82];
+  ctx.font = '13px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ys.forEach((y, i) => {
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x0 + 30, y); ctx.lineTo(x1 - 18, y); ctx.stroke();
+    ctx.strokeStyle = f[i] ? cssv('--s1') : cssv('--grid'); ctx.lineWidth = f[i] ? 4 : 2; ctx.beginPath(); ctx.moveTo(x1 + 18, y); ctx.lineTo(x2 - 30, H / 2); ctx.stroke();
+    ctx.fillStyle = cssv('--s3'); ctx.globalAlpha = 0.2 + 0.8 * s[i]; ctx.fillRect(x0 - 40, y - 13, 80, 26); ctx.globalAlpha = 1;
+    ctx.fillStyle = cssv('--ink'); ctx.fillText(names[i] + ' ' + s[i].toFixed(2), x0, y);
+    ctx.fillStyle = f[i] ? cssv('--s1') : cssv('--card'); ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x1, y, 17, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = f[i] ? '#fff' : cssv('--ink'); ctx.fillText(f[i], x1, y); });
+  ctx.fillStyle = out ? cssv('--s2') : cssv('--card'); ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(x2, H / 2, 28, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = out ? '#fff' : cssv('--ink'); ctx.fillText(sum + ' ≥ ' + th + '?', x2, H / 2);
+  ctx.fillStyle = cssv('--muted'); ctx.fillText(out ? 'laugh!' : 'no laugh', x2, H / 2 + 46);
+  $('nTxt').innerHTML = `${sum} of 3 sensory neurons fire; the fourth needs ${th}. ` + (out ? '<b>It fires: you laugh.</b>' : '<b>It stays silent.</b>') +
+    (th === 0 ? ' With threshold 0 it fires even when nothing is funny.' : th === 3 ? ' With threshold 3 every sense must agree.' : ' Change the threshold: lower makes laughing easier, higher makes it harder.');
+}
+['sv', 'ss', 'st', 'th'].forEach(id => $(id).addEventListener('input', drawN));
+
+/* ---- demo 2: toy visual cortex ---- */
+let inp = 'face', layer = 3, seed = 7;
+const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+// parts in a unit square: each is a list of edge segments [x1,y1,x2,y2]
+const PARTS = {
+  eyeL: [[0.30, 0.36, 0.38, 0.36], [0.30, 0.36, 0.34, 0.32], [0.34, 0.32, 0.38, 0.36]],
+  eyeR: [[0.62, 0.36, 0.70, 0.36], [0.62, 0.36, 0.66, 0.32], [0.66, 0.32, 0.70, 0.36]],
+  nose: [[0.50, 0.42, 0.46, 0.56], [0.46, 0.56, 0.53, 0.56]],
+  mouth: [[0.38, 0.68, 0.50, 0.74], [0.50, 0.74, 0.62, 0.68]],
+};
+const CENTRE = {eyeL: [0.34, 0.35], eyeR: [0.66, 0.35], nose: [0.49, 0.5], mouth: [0.5, 0.71]};
+function scene(){
+  seed = inp === 'jumbled' ? 11 : inp === 'noise' ? 23 : 7;
+  if (inp === 'noise') return {parts: null, edges: Array.from({length: 10}, () => { const x = 0.15 + 0.7 * rnd(), y = 0.15 + 0.7 * rnd(), a = rnd() * 6.28; return [x, y, x + 0.08 * Math.cos(a), y + 0.08 * Math.sin(a)]; })};
+  const shift = {eyeL: [0, 0], eyeR: [0, 0], nose: [0, 0], mouth: [0, 0]};
+  if (inp === 'jumbled') { shift.mouth = [0.0, -0.4]; shift.eyeL = [0.05, 0.38]; shift.nose = [0.28, 0.12]; }
+  const parts = {}; for (const k in PARTS) parts[k] = {edges: PARTS[k].map(([a, b, c, d]) => [a + shift[k][0], b + shift[k][1], c + shift[k][0], d + shift[k][1]]), c: [CENTRE[k][0] + shift[k][0], CENTRE[k][1] + shift[k][1]]};
+  return {parts, edges: Object.values(parts).flatMap(p => p.edges)};
+}
+function isFace(parts){ if (!parts) return false; const {eyeL, eyeR, nose, mouth} = parts;
+  return Math.abs(eyeL.c[1] - eyeR.c[1]) < 0.06 && eyeL.c[0] < nose.c[0] && nose.c[0] < eyeR.c[0] && nose.c[1] > eyeL.c[1] && mouth.c[1] > nose.c[1]; }
+function drawVC(){
+  const [ctx, W, H] = setupCanvas($('vc')), S = Math.min(W, H) - 10, ox = (W - S) / 2, oy = 5, sc = scene();
+  const P = (x, y) => [ox + x * S, oy + y * S];
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, S, S);
+  ctx.lineCap = 'round';
+  sc.edges.forEach(([a, b, c, d]) => { ctx.strokeStyle = layer >= 1 ? cssv('--s1') : cssv('--ink'); ctx.lineWidth = layer >= 1 ? 3.5 : 2.5;
+    const p = P(a, b), q = P(c, d); ctx.beginPath(); ctx.moveTo(...p); ctx.lineTo(...q); ctx.stroke();
+    if (layer === 1) { ctx.fillStyle = cssv('--s1'); [p, q].forEach(z => { ctx.beginPath(); ctx.arc(z[0], z[1], 3, 0, 7); ctx.fill(); }); } });
+  ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center';
+  if (layer >= 2 && sc.parts) for (const k in sc.parts) { const xs = sc.parts[k].edges.flatMap(e => [e[0], e[2]]), ys = sc.parts[k].edges.flatMap(e => [e[1], e[3]]);
+    const [x0, y0] = P(Math.min(...xs) - 0.03, Math.min(...ys) - 0.03), [x1, y1] = P(Math.max(...xs) + 0.03, Math.max(...ys) + 0.03);
+    ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.strokeRect(x0, y0, x1 - x0, y1 - y0); ctx.setLineDash([]);
+    ctx.fillStyle = cssv('--s3'); ctx.fillText(k.replace('eyeL', 'eye').replace('eyeR', 'eye'), (x0 + x1) / 2, y0 - 6); }
+  const face = isFace(sc.parts);
+  if (layer >= 3 && face) { const [cx, cy] = P(0.5, 0.52); ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(cx, cy, S * 0.3, S * 0.36, 0, 0, 7); ctx.stroke(); }
+  $('vTxt').innerHTML = [
+    'The retina just receives the input: a pattern of light.',
+    `Layer 1 finds ${sc.edges.length} short edges and their corners. It knows nothing about what they mean.`,
+    sc.parts ? 'Layer 2 groups edges into parts: two eyes, a nose and a mouth.' : 'Layer 2 finds no parts: these edges don\'t group into eyes, a nose or a mouth.',
+    face ? '<b>Layer 3: a face.</b> The parts are in the right arrangement (eyes level, nose between and below them, mouth below the nose).' : sc.parts ? '<b>Layer 3: no face.</b> Every part is there, but not in a face-like arrangement. The higher layer depends on how lower-level features are arranged.' : '<b>Layer 3: no face.</b> Nothing to build on.'][layer];
+}
+document.querySelectorAll('#inp button').forEach(b => b.onclick = () => { inp = b.dataset.i; document.querySelectorAll('#inp button').forEach(x => x.classList.toggle('on', x === b)); drawVC(); });
+document.querySelectorAll('#lay button').forEach(b => b.onclick = () => { layer = +b.dataset.l; document.querySelectorAll('#lay button').forEach(x => x.classList.toggle('on', x === b)); drawVC(); });
+
+function drawAll(){ drawN(); drawVC(); }
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

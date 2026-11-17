@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Madness and the Rise of Transformers</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.tl{list-style:none;padding:0;margin:10px 0;border-left:2px solid var(--grid)}
+.tl li{position:relative;padding:6px 8px 8px 18px;border-radius:8px;cursor:pointer}
+.tl li:hover{background:var(--tint)} .tl li.sel{background:var(--tint)}
+.tl li::before{content:"";position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--c,var(--s1))}
+.tl .yr{font-weight:700;font-variant-numeric:tabular-nums;margin-right:6px}
+.tl li.hide{display:none}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--grid);color:var(--muted);margin-left:4px}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 4 · playlist video 4 (titled “L5” on YouTube) · A brief history of deep learning</div>
+<h1>Madness and the Rise of Transformers</h1>
+<p class="lede">Since about 2010 AI has been in a period of “absolute madness”: publications, patents and funding all shooting up. Machine translation shows the pace of change: rules, then 20 years of statistical models, wiped out within two years by sequence-to-sequence models with attention (2014), which were themselves replaced by transformers (2017). Then came BERT, GPT-3, trillion-parameter models, vision transformers and diffusion models.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=m2tyQC2qTDQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈20 min). Previous: <a href="L3-faster-higher-stronger.html">L3</a> · Next: <a href="L5-call-for-sanity.html">L5</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The madness</h2>
+<p>From about 2010 there has been "absolute madness" around AI. Stanford's <b>AI Index</b> report shows the number of AI publications rising very rapidly, close to exponentially in recent years, whether you count journals, conferences or book chapters, and across machine learning, computer vision and NLP. Patent filings and startups have grown just as fast. This is the opposite of the AI winter: plenty of funding for research and startups, and everyone wants to work in AI. Prof. Khapra notes the side effects too: the speed of the field, pressure on graduate students, and the quality of conference reviewing.</p>
+
+<h2>2 · Machine translation: three revolutions in one field</h2>
+<p>Transformers were born in machine translation, so the lecture goes back to its history. Click an era for what happened in it.</p>
+<div class="card">
+  <canvas id="mt" height="150" aria-label="Eras of machine translation"></canvas>
+  <div class="callout small" id="mtTxt"></div>
+</div>
+<p>The striking part is the speed. Statistical machine translation took 20 years to build and dominated NLP. Within a couple of years of neural machine translation (2014), people stopped even comparing with it. Then, within three years, the <b>transformer</b> (2017) replaced recurrent models too, taking attention "on steroids" with <b>multi-head attention</b>. Two revolutions in a very short span, and with them the era of <b>bigger models trained on enormous amounts of data</b>.</p>
+<div class="beyond"><b>Going beyond the video.</b> The 1954 effort is the Georgetown–IBM experiment, and the critical 1966 report is the ALPAC report. The 2014 models are the sequence-to-sequence models of Sutskever, Vinyals and Le, and the attention-based model of Bahdanau, Cho and Bengio. The transformer paper is Vaswani et al., "Attention Is All You Need" (2017).</div>
+
+<h2>3 · Pre-train, then fine-tune: BERT and GPT</h2>
+<ul>
+<li><b>BERT (2018)</b>: as a child, you learn language from unstructured exposure; later a few examples are enough to learn a task such as sentiment analysis. BERT does the same: <b>pre-train</b> on large <b>unlabelled</b> text (Wikipedia, news, web pages, including Indian languages such as Hindi and Marathi), then <b>fine-tune</b> on a small labelled dataset. This brought back <b>transfer learning</b>, and it is the dominant paradigm today.</li>
+<li><b>GPT-3</b>: a 175-billion-parameter model that takes a prompt and generates coherent text: a conversation with a famous person, or an article from a headline. From a 1954 system with a few grammar rules to models with billions of parameters.</li>
+</ul>
+
+<h2>4 · The billion- and trillion-parameter clubs</h2>
+<p>The lecture compares model parameters with the number of <b>synapses</b> in animal brains: a synapse connects two neurons, as a weight connects two artificial neurons. Prof. Khapra is clear that this is just for fun: brains are far more complex and do far more. Hover or tap a point.</p>
+<div class="card">
+  <div class="row"><button data-v="lec" class="on">Numbers as quoted in the lecture</button><button data-v="pub">Published parameter counts</button></div>
+  <canvas id="pc" height="300" aria-label="Model parameters and animal synapses on a log scale"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s3)"></i>animal synapses</span><span><i class="dot" style="background:var(--s1)"></i>model parameters</span></div>
+  <p class="small" id="pTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> A few of the spoken numbers differ from the papers, so the second button shows published counts: the original transformer (big) had about 213 million parameters; Megatron-LM about 8.3 billion; GShard's largest model 600 billion; Switch Transformer (Switch-C) about 1.57 trillion. The lecture's point survives either way: in about three years, models went from hundreds of millions of parameters to more than a trillion, trained on thousands of accelerators (the lecture mentions 2,048 TPUs for the Switch model).</div>
+
+<h2>5 · Transformers take over vision</h2>
+<ul>
+<li><b>Image classification</b>: AlexNet (2012, about 16% error) and other CNNs, up to ResNet (2015).</li>
+<li><b>Object detection</b>: a move from traditional methods to CNN-based <b>R-CNN</b> and its whole family of models.</li>
+<li>From about <b>2019</b>, transformers entered image classification and then object detection, and today's state-of-the-art vision models are largely transformer based, replacing CNNs that had been around since the 1980s.</li>
+</ul>
+<p>Transformers are now the state of the art across image, speech and NLP.</p>
+
+<h2>6 · Generative models: from noise to images</h2>
+<p>Classification and detection map an input to a label. <b>Generative models</b> go the other way: they take a <b>random noise vector</b> and produce a realistic image of, say, a face of someone who does not exist.</p>
+<ol class="steps">
+<li><b>Variational autoencoders</b>: among the first such models.</li>
+<li><b>GANs</b> (generative adversarial networks, 2014): the most popular, with six or seven years of steady improvements in image quality.</li>
+<li><b>Diffusion models</b>: a paradigm shift that overcomes several drawbacks of GANs.</li>
+<li><b>DALL·E</b> (transformer based) and <b>DALL·E 2</b> (diffusion based, 2022), then <b>Stable Diffusion</b>: give a prompt such as "an armchair in the shape of an avocado" or "an astronaut riding a horse in a photorealistic style" and get a new image. Not retrieval: generated from noise, guided by the prompt, after training on many text–image pairs.</li>
+</ol>
+<p>Generative models are <b>not covered</b> in this first course; they may come in a later one.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Since about 2010 AI publications, patents and funding have grown extremely fast: the opposite of the AI winter.</li>
+<li>Machine translation went from rules (1954) to statistical IBM models (1990s, about 20 years) to seq2seq with attention (2014) to transformers (2017), with the last two shifts happening within a few years.</li>
+<li>BERT made "pre-train on unlabelled text, fine-tune on little labelled data" the dominant paradigm; GPT-3 showed what 175 billion parameters can generate.</li>
+<li>Model sizes went from hundreds of millions to over a trillion parameters; transformers now lead in vision and speech as well as language.</li>
+<li>Generative models went from VAEs and GANs to diffusion models that turn text prompts into images.</li>
+</ol>
+
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAWERS = []; const onDraw = f => DRAWERS.push(f); const redraw = () => DRAWERS.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redraw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redraw(); });
+
+/* ---- eras of machine translation ---- */
+const ERA = [
+  {a: 1954, b: 1990, n: 'Rule-based', c: '--faint', t: '<b>1954 onwards: rule-based systems.</b> Interest in translating politically important languages such as English and Russian. Big promises of perfect translation within a few years; a critical <b>1966</b> report said the hype had not been lived up to, around the same time as the AI winter.'},
+  {a: 1990, b: 2014, n: 'Statistical (IBM models)', c: '--s3', t: '<b>1990s: IBM models.</b> Translation as a probabilistic problem: model the conditional distribution of the French sentence given the English one, $P(f\\mid e)$, with clever inference. Dominated NLP for about 20 years (1993 to 2012–13).'},
+  {a: 2014, b: 2017, n: 'Seq2seq + attention', c: '--s1', t: '<b>2014: sequence-to-sequence with attention.</b> Prof. Khapra calls attention perhaps <i>the idea of the decade</i>. Big, data-hungry neural models; within a couple of years nobody compared with statistical MT any more.'},
+  {a: 2017, b: 2023, n: 'Transformers', c: '--s2', t: '<b>2017: the transformer.</b> Attention "on steroids" (multi-head attention), very different from recurrent models. Within a couple of years recurrent MT models disappeared; most modern MT systems are transformers.'},
+];
+let selE = 3;
+function drawMT(){
+  const [ctx, W, H] = setupCanvas($('mt')), pad = {l: 10, r: 10}, y0 = 30, h = 56, X = yr => pad.l + (yr - 1954) / (2023 - 1954) * (W - pad.l - pad.r);
+  ERA.forEach((e, i) => { ctx.fillStyle = cssv(e.c); ctx.globalAlpha = i === selE ? 1 : 0.55; ctx.fillRect(X(e.a), y0, X(e.b) - X(e.a) - 2, h); ctx.globalAlpha = 1;
+    if (i === selE) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.strokeRect(X(e.a), y0, X(e.b) - X(e.a) - 2, h); } });
+  ctx.font = '600 12px system-ui'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+  ERA.forEach(e => { const w = X(e.b) - X(e.a); if (w > 70) { ctx.fillStyle = '#fff'; ctx.fillText(e.n, (X(e.a) + X(e.b)) / 2, y0 + h / 2); } });
+  ctx.font = '12px system-ui'; ctx.fillStyle = cssv('--muted'); ctx.textBaseline = 'top';
+  [1954, 1966, 1990, 2014, 2017].forEach((yr, i) => { ctx.fillText(yr, X(yr), y0 + h + 8 + (i % 2) * 16); ctx.strokeStyle = cssv('--muted'); ctx.beginPath(); ctx.moveTo(X(yr), y0 + h); ctx.lineTo(X(yr), y0 + h + 6); ctx.stroke(); });
+  ctx.textBaseline = 'bottom'; ctx.textAlign = 'left'; ctx.fillText('Click an era (narrow ones too: 2014 and 2017)', pad.l, y0 - 6);
+  $('mtTxt').innerHTML = ERA[selE].t; if (window.renderMathInElement) renderMathInElement($('mtTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+  drawMT.hit = px => { for (let i = 0; i < ERA.length; i++) if (px >= X(ERA[i].a) - 4 && px <= X(ERA[i].b) + 2) { selE = i; drawMT(); return; } };
+}
+$('mt').addEventListener('click', e => drawMT.hit(e.clientX - $('mt').getBoundingClientRect().left));
+onDraw(drawMT);
+
+/* ---- parameters vs synapses (log scale) ---- */
+const ANIMALS = [['fruit fly', 6], ['honey bee', 9], ['mouse', 12], ['cat', 13], ['human', 15]];
+const MODELS = [   // [name, year, quoted in lecture, published]
+  ['Transformer', 2017, 4e8, 2.13e8],
+  ['GPT-2', 2019, 1.5e9, 1.5e9],
+  ['Megatron', 2019, 1e10, 8.3e9],
+  ['GPT-3', 2020, 1.75e11, 1.75e11],
+  ['GShard', 2020, 1.1e12, 6e11],
+  ['Switch', 2021, 1.6e12, 1.57e12],
+];
+let view = 'lec', hov = null;
+function drawP(){
+  const [ctx, W, H] = setupCanvas($('pc')), pad = {l: 40, r: 14, t: 16, b: 34}, lo = 5, hi = 16;
+  const X = e => pad.l + (e - lo) / (hi - lo) * (W - pad.l - pad.r);
+  ctx.font = '11px system-ui'; ctx.fillStyle = cssv('--muted'); ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let e = lo; e <= hi; e++) { ctx.beginPath(); ctx.moveTo(X(e), pad.t); ctx.lineTo(X(e), H - pad.b); ctx.stroke(); if (e % 2 === 0 || W > 520) ctx.fillText('10^' + e, X(e), H - pad.b + 6); }
+  ctx.fillText('number of synapses / parameters (log scale)', (pad.l + W) / 2, H - 14);
+  const pts = [];
+  const yA = pad.t + 22, rowH = (H - pad.b - pad.t - 50) / MODELS.length;
+  ANIMALS.forEach(([n, e], i) => { const x = X(e), y = yA + (i % 2) * 18; pts.push({x, y, s: `<b>${n}</b>: about 10<sup>${e}</sup> synapses${e === 6 ? ' (more than)' : ''}`});
+    ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); ctx.fillStyle = cssv('--ink'); ctx.textBaseline = 'bottom'; ctx.fillText(n, x, y - 8); });
+  MODELS.forEach(([n, yr, q, p], i) => { const v = view === 'lec' ? q : p, e = Math.log10(v), x = X(e), y = yA + 50 + i * rowH;
+    const fmt = v >= 1e12 ? (v / 1e12).toFixed(2).replace(/\.?0+$/, '') + ' trillion' : v >= 1e9 ? (v / 1e9).toFixed(1).replace(/\.0$/, '') + ' billion' : Math.round(v / 1e6) + ' million';
+    pts.push({x, y, s: `<b>${n} (${yr})</b>: ${fmt} parameters${view === 'lec' ? ' (as quoted in the lecture)' : ' (published)'}${q !== p ? `; the ${view === 'lec' ? 'published' : 'lecture'} figure is ${view === 'lec' ? p.toExponential(2) : q.toExponential(1)}` : ''}.`});
+    ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = cssv('--ink'); ctx.textBaseline = 'middle'; ctx.textAlign = x > W * 0.7 ? 'right' : 'left'; ctx.fillText(n, x + (x > W * 0.7 ? -10 : 10), y); ctx.textAlign = 'center'; });
+  if (hov !== null && pts[hov]) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(pts[hov].x, pts[hov].y, 10, 0, 7); ctx.stroke(); }
+  $('pTxt').innerHTML = hov !== null && pts[hov] ? pts[hov].s : 'In 2017 the transformer sat just left of a honey bee; by 2021 the Switch model was just past a mouse. A human brain has about 10<sup>15</sup> synapses.';
+  drawP.pts = pts;
+}
+const pick = e => { const r = $('pc').getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top; let best = null, bd = 400;
+  (drawP.pts || []).forEach((p, i) => { const d = (p.x - px) ** 2 + (p.y - py) ** 2; if (d < bd) { bd = d; best = i; } }); if (best !== hov) { hov = best; drawP(); } };
+$('pc').addEventListener('pointermove', pick); $('pc').addEventListener('click', pick);
+document.querySelectorAll('button[data-v]').forEach(b => b.onclick = () => { view = b.dataset.v; document.querySelectorAll('button[data-v]').forEach(x => x.classList.toggle('on', x === b)); drawP(); });
+onDraw(drawP);
+
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

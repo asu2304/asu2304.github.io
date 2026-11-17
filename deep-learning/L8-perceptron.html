@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Perceptron: Weighted Inputs and a Bias</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 8 · playlist video 8 (titled “L9” on YouTube) · McCulloch–Pitts neuron, perceptrons</div>
+<h1>The Perceptron: Weighted Inputs and a Bias</h1>
+<p class="lede">The McCulloch–Pitts neuron left three gaps: inputs had to be boolean, every input counted equally, and we found the threshold by hand. Rosenblatt's <b>perceptron</b> adds a <b>weight</b> to each input, allows real inputs, and comes with a <b>learning algorithm</b>. Folding the threshold in as a weight $w_0=-\theta$ on a constant input $x_0=1$ gives the neat rule "output 1 iff $\sum_{i=0}^n w_ix_i\ge0$". It still draws a straight line; what's new is that the line can be learned.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Ydd9TMyoG6k" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L7-mcculloch-pitts.html">L7</a> · Next: <a href="L9-error-surfaces.html">L9</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The story so far: what the MP neuron couldn't do</h2>
+<ul>
+<li><b>Non-boolean inputs.</b> The McCulloch–Pitts (MP) neuron only takes 0/1 inputs. What about real-valued ones?</li>
+<li><b>Hand-coding the threshold.</b> For AND we worked out $\theta$ in our heads. That gets cumbersome for complex functions. Can we <b>learn</b> it?</li>
+<li><b>All inputs equal.</b> Real decisions weigh some factors more than others. Even the biological neuron has connections of different strengths (L6). The MP neuron has no notion of importance.</li>
+<li><b>Functions that aren't linearly separable.</b> Raised at the end of L7, and answered over the next lectures.</li>
+</ul>
+
+<h2>2 · The perceptron</h2>
+<p>Proposed by <b>Frank Rosenblatt in 1958</b> (we met it in the history lectures). The model studied in the course is the one later refined and analysed by <b>Minsky and Papert (1969)</b>. Three differences from the MP neuron:</p>
+<ol class="steps">
+<li><b>Real inputs</b> are allowed, not just boolean ones.</li>
+<li>Each input has a <b>weight</b> $w_i$ that says how important it is.</li>
+<li>There is a <b>learning algorithm</b> to find the weights from data, instead of hand-coding them (L10).</li>
+</ol>
+<p>The rule looks just like the MP neuron, but with a <b>weighted</b> sum:</p>
+$$y=\begin{cases}1 & \text{if } \sum_{i=1}^{n} w_i x_i \ge \theta\\ 0 & \text{if } \sum_{i=1}^{n} w_i x_i &lt; \theta\end{cases}$$
+<p>A weak input can still matter a lot if its weight is large. Now a small rewrite. Move $\theta$ to the left, then invent a constant input $x_0=1$ with weight $w_0=-\theta$:</p>
+$$\sum_{i=1}^{n} w_ix_i-\theta\ge0 \quad\Longleftrightarrow\quad \sum_{i=0}^{n} w_ix_i\ge0,\qquad x_0=1,\ w_0=-\theta .$$
+<div class="callout">The threshold hasn't disappeared: it has become the weight $w_0$. From now on the perceptron is "<b>$y=1$ iff $\sum_{i=0}^{n}w_ix_i\ge0$</b>", with the bias inside the sum.</div>
+
+<h2>3 · Why boolean functions? Why weights?</h2>
+<p><b>Boolean functions</b> aren't a toy restriction. Many real problems can be turned into boolean inputs and a boolean output. Prof. Khapra's running example: <i>will I like this movie?</i> The inputs can be "is the actor Matt Damon?", "is the genre thriller?", "is the director Nolan?", and so on; the output is like / don't like.</p>
+<p><b>Weights</b> encode importance, learned from past viewing. If you've always liked Christopher Nolan's films, "director is Nolan" gets a large weight. Then even if that is the <b>only</b> input that's on, the weighted sum can still cross the threshold.</p>
+
+<h2>4 · Why is $w_0$ called the bias?</h2>
+<p>$w_0=-\theta$ is the starting point of the sum before any evidence comes in: a <b>prior</b>, or <b>prejudice</b>. A large $\theta$ means the sum starts very negative, so many (or heavily weighted) inputs must be on to cross zero. It measures your <b>inertia</b>.</p>
+<table>
+<tr><th>Viewer</th><th>Weights</th><th>Threshold</th><th>Goes to the movie when…</th></tr>
+<tr><td>Niche moviegoer</td><td>all 1</td><td>$\theta=3$ ($w_0=-3$)</td><td>Matt Damon <b>and</b> thriller <b>and</b> Nolan, all three</td></tr>
+<tr><td>Movie buff</td><td>all 1</td><td>$\theta=0$ ($w_0=0$)</td><td>always, even if none of the three is true</td></tr>
+</table>
+<p>So the bias captures what you'd decide about this person <b>before</b> seeing any inputs. Try both viewers below.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A perceptron deciding whether to watch a movie. Tick the features of the movie, set the weights and the threshold, or load a viewer.</p>
+  <div class="row">
+    <button data-v="niche" class="on">Niche moviegoer</button><button data-v="buff">Movie buff</button><button data-v="nolan">Nolan fan</button>
+  </div>
+  <div class="row">
+    <label><input type="checkbox" id="f0" checked> actor is Matt Damon</label>
+    <label><input type="checkbox" id="f1" checked> genre is thriller</label>
+    <label><input type="checkbox" id="f2"> director is Nolan</label>
+  </div>
+  <div class="row">
+    <label>$w_1$ = <b id="w0v"></b> <input type="range" id="w0" min="0" max="5" step="0.5" value="1" aria-label="weight of actor"></label>
+    <label>$w_2$ = <b id="w1v"></b> <input type="range" id="w1" min="0" max="5" step="0.5" value="1" aria-label="weight of genre"></label>
+    <label>$w_3$ = <b id="w2v"></b> <input type="range" id="w2" min="0" max="5" step="0.5" value="1" aria-label="weight of director"></label>
+    <label>$\theta$ = <b id="thv"></b> <input type="range" id="th" min="0" max="6" step="0.5" value="3" aria-label="threshold"></label>
+  </div>
+  <canvas id="mc" height="150" aria-label="Weighted sum compared with the threshold"></canvas>
+  <div class="row">
+    <div class="stat"><div class="v" id="ws">–</div><div class="l">$w_0+\sum_i w_ix_i$ with $w_0=-\theta$</div></div>
+    <div class="stat"><div class="v" id="dec">–</div><div class="l">decision</div></div>
+  </div>
+  <p class="small" id="mTxt"></p>
+</div>
+
+<h2>5 · What can a perceptron implement?</h2>
+<p>Compare the two rules: the MP neuron checks $\sum_i x_i-\theta\ge0$, the perceptron checks $\sum_i w_ix_i-\theta\ge0$. Both are a <b>linear</b> expression compared with zero, so both draw a <b>straight-line</b> (in general, hyperplane) decision boundary. Points in the positive half-space get output 1, the rest get 0. The difference is not the shape of the boundary but that it now has <b>weights</b>, and a <b>learning algorithm</b> to find them. This is the first step into learning, which continues with sigmoid neurons and then deep networks.</p>
+<p><b>Example: OR.</b> Writing the rule for each of the four inputs gives four inequalities:</p>
+<table>
+<tr><th>$x_1$</th><th>$x_2$</th><th>OR</th><th>Condition</th><th>Simplifies to</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>$w_0+w_1\cdot0+w_2\cdot0&lt;0$</td><td>$w_0&lt;0$</td></tr>
+<tr><td>0</td><td>1</td><td>1</td><td>$w_0+w_2\ge0$</td><td>$w_2\ge-w_0$</td></tr>
+<tr><td>1</td><td>0</td><td>1</td><td>$w_0+w_1\ge0$</td><td>$w_1\ge-w_0$</td></tr>
+<tr><td>1</td><td>1</td><td>1</td><td>$w_0+w_1+w_2\ge0$</td><td>$w_1+w_2\ge-w_0$</td></tr>
+</table>
+<p>One solution (the slide has a typo, corrected in the lecture): $w_0=-1,\ w_1=1.1,\ w_2=1.1$. The boundary is the line $-1+1.1x_1+1.1x_2=0$: the three positive inputs lie in its positive half-space and only $(0,0)$ lies in the negative one. Many other solutions exist; others make errors. Try it:</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Pick a boolean function and move the weights. Shading shows the half-space the perceptron labels 1 (where $w_0+w_1x_1+w_2x_2\ge0$). Ringed points are errors.</p>
+  <div class="row"><button data-f="or" class="on">OR</button><button data-f="and">AND</button><button data-f="nand">NAND</button><button data-f="xor">XOR</button><button id="lect">Lecture's OR solution</button></div>
+  <div class="row">
+    <label>$w_0$ = <b id="b0v"></b> <input type="range" id="b0" min="-3" max="3" step="0.1" value="-1" aria-label="bias weight w0"></label>
+    <label>$w_1$ = <b id="b1v"></b> <input type="range" id="b1" min="-3" max="3" step="0.1" value="1.1" aria-label="weight w1"></label>
+    <label>$w_2$ = <b id="b2v"></b> <input type="range" id="b2" min="-3" max="3" step="0.1" value="1.1" aria-label="weight w2"></label>
+  </div>
+  <canvas id="bc" height="300" aria-label="Four boolean inputs and the perceptron's decision line"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>output should be 1</span><span><i class="dot" style="background:var(--s2)"></i>output should be 0</span><span><i style="background:var(--ink)"></i>$w_0+w_1x_1+w_2x_2=0$</span></div>
+  <div class="row"><div class="stat"><div class="v" id="berr">–</div><div class="l">errors (out of 4)</div></div></div>
+  <p class="small" id="bTxt"></p>
+</div>
+<p>Notice that $w_0$ moves the line without turning it: it sets where the line crosses the axes. Push $w_0$ up far enough and $(0,0)$ crosses into the positive side, giving one error.</p>
+<p><b>Exercise from the lecture:</b> write the same four inequalities for the MP neuron. There are no $w_1,w_2$, only $\theta$; find the value of $\theta$ that implements OR. Finding parameters by solving inequalities is learning too, it was just obvious for the MP neuron. For the perceptron it's harder, which is why we want an algorithm.</p>
+<div class="beyond"><b>Going beyond the video.</b> The XOR button shows the limit: no choice of $w_0,w_1,w_2$ gets all four right, because no single line separates $\{(0,1),(1,0)\}$ from $\{(0,0),(1,1)\}$. The best any line can do is 1 error. My <a href="../machine-learning/L52-perceptron.html">ML notes (L52)</a> cover the same perceptron with labels $\{-1,+1\}$ instead of $\{0,1\}$, which lets the rule be written as $\operatorname{sign}(w^\top x)$.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The perceptron (Rosenblatt 1958; Minsky–Papert 1969) adds real inputs, weights, and a learning algorithm to the MP neuron.</li>
+<li>$y=1$ iff $\sum_{i=1}^n w_ix_i\ge\theta$; with $x_0=1$ and $w_0=-\theta$ this is $\sum_{i=0}^n w_ix_i\ge0$.</li>
+<li>Weights encode importance; the bias $w_0$ encodes a prior, the inertia before any input is seen.</li>
+<li>Like the MP neuron, a perceptron draws a linear boundary; the new part is that the boundary can be learned.</li>
+<li>For OR, $w_0=-1,\ w_1=w_2=1.1$ works; finding such weights by hand is what the learning algorithm (L10) automates.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+
+/* ---- demo 1: the movie perceptron ---- */
+const VIEWERS = {niche: [1, 1, 1, 3], buff: [1, 1, 1, 0], nolan: [0.5, 0.5, 3, 3]};
+const NAMES = ['Matt Damon', 'thriller', 'Nolan'];
+function drawMovie(){
+  const w = [0, 1, 2].map(i => +$('w' + i).value), th = +$('th').value, x = [0, 1, 2].map(i => $('f' + i).checked ? 1 : 0);
+  [0, 1, 2].forEach(i => $('w' + i + 'v').textContent = w[i]); $('thv').textContent = th;
+  const parts = x.map((v, i) => v * w[i]), s = parts.reduce((a, b) => a + b, 0) - th, yes = s >= 0;
+  $('ws').textContent = (s >= 0 ? '+' : '') + s.toFixed(1); $('dec').textContent = yes ? 'watch' : 'skip';
+  const [ctx, W, H] = setupCanvas($('mc')), pad = {l: 10, r: 10}, max = Math.max(9, th + 1), X = v => pad.l + (v + max) / (2 * max) * (W - pad.l - pad.r), mid = H / 2;
+  ctx.font = '12px system-ui,sans-serif'; ctx.textBaseline = 'middle';
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad.l, mid + 22); ctx.lineTo(W - pad.r, mid + 22); ctx.stroke();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), mid - 40); ctx.lineTo(X(0), mid + 34); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.fillText('0 (threshold crossed at the right of this line)', X(0), mid + 52);
+  // bar: start at w0 = -θ, then add each active weight
+  let at = -th; const segs = [['w₀ = −θ', -th, cssv('--s2')]];
+  ctx.fillStyle = cssv('--s2'); ctx.fillRect(Math.min(X(0), X(-th)), mid - 26, Math.abs(X(-th) - X(0)), 14);
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.fillText('bias w₀ = −θ', Math.min(X(0), X(-th)), mid - 34);
+  x.forEach((v, i) => { if (!v || !w[i]) return; const a = at, b = at + w[i]; ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = 0.55 + 0.15 * i; ctx.fillRect(X(a), mid - 6, X(b) - X(a), 14); ctx.globalAlpha = 1;
+    ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'center'; if (X(b) - X(a) > 40) ctx.fillText(NAMES[i], (X(a) + X(b)) / 2, mid + 1); at = b; });
+  ctx.fillStyle = yes ? cssv('--s3') : cssv('--s2'); ctx.beginPath(); ctx.arc(X(s), mid + 22, 7, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'center'; ctx.fillText('sum = ' + s.toFixed(1), X(s), mid + 36);
+  const on = x.map((v, i) => v ? NAMES[i] : null).filter(Boolean);
+  $('mTxt').innerHTML = `Inputs on: ${on.length ? on.join(', ') : 'none'}. Starting from w₀ = −${th}, the active weights add up to ${parts.reduce((a, b) => a + b, 0)}, so the sum is ${s.toFixed(1)}: ` + (yes ? '<b>at or above 0, so watch</b>.' : '<b>below 0, so skip</b>.') + (th === 0 ? ' With θ = 0 the movie buff watches whatever the inputs are.' : '');
+}
+document.querySelectorAll('button[data-v]').forEach(b => b.onclick = () => { const v = VIEWERS[b.dataset.v]; [0, 1, 2].forEach(i => $('w' + i).value = v[i]); $('th').value = v[3];
+  document.querySelectorAll('button[data-v]').forEach(x => x.classList.toggle('on', x === b)); drawMovie(); });
+['w0', 'w1', 'w2', 'th', 'f0', 'f1', 'f2'].forEach(id => $(id).addEventListener('input', drawMovie));
+
+/* ---- demo 2: boolean functions as half-planes ---- */
+const FN = {or: [0, 1, 1, 1], and: [0, 0, 0, 1], nand: [1, 1, 1, 0], xor: [0, 1, 1, 0]}, PTS = [[0, 0], [0, 1], [1, 0], [1, 1]];
+let fn = 'or';
+function drawBool(){
+  const w = [+$('b0').value, +$('b1').value, +$('b2').value]; ['b0', 'b1', 'b2'].forEach((id, i) => $(id + 'v').textContent = w[i].toFixed(1));
+  const [ctx, W, H] = setupCanvas($('bc')), lo = -0.6, hi = 1.6, side = Math.min(W - 40, H - 30), ox = (W - side) / 2 + 10, oy = 10;
+  const X = v => ox + (v - lo) / (hi - lo) * side, Y = v => oy + side - (v - lo) / (hi - lo) * side;
+  const step = 6; ctx.globalAlpha = 0.18;
+  for (let px = 0; px < side; px += step) for (let py = 0; py < side; py += step) { const a = lo + (px + step / 2) / side * (hi - lo), b = lo + (side - py - step / 2) / side * (hi - lo);
+    ctx.fillStyle = w[0] + w[1] * a + w[2] * b >= 0 ? cssv('--s1') : cssv('--s2'); ctx.fillRect(ox + px, oy + py, step, step); }
+  ctx.globalAlpha = 1; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, side, side);
+  ctx.strokeStyle = cssv('--muted'); [0, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(X(v), oy); ctx.lineTo(X(v), oy + side); ctx.moveTo(ox, Y(v)); ctx.lineTo(ox + side, Y(v)); ctx.globalAlpha = 0.35; ctx.stroke(); ctx.globalAlpha = 1; });
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, side, side); ctx.clip(); ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+  if (Math.abs(w[2]) > 1e-9) { ctx.moveTo(X(lo), Y(-(w[0] + w[1] * lo) / w[2])); ctx.lineTo(X(hi), Y(-(w[0] + w[1] * hi) / w[2])); }
+  else if (Math.abs(w[1]) > 1e-9) { ctx.moveTo(X(-w[0] / w[1]), Y(lo)); ctx.lineTo(X(-w[0] / w[1]), Y(hi)); }
+  ctx.stroke(); ctx.restore();
+  let err = 0; ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center';
+  PTS.forEach(([a, b], k) => { const want = FN[fn][k], got = w[0] + w[1] * a + w[2] * b >= 0 ? 1 : 0;
+    ctx.fillStyle = want ? cssv('--s1') : cssv('--s2'); ctx.beginPath(); ctx.arc(X(a), Y(b), 8, 0, 7); ctx.fill();
+    if (want !== got) { err++; ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(a), Y(b), 13, 0, 7); ctx.stroke(); }
+    ctx.fillStyle = cssv('--ink'); ctx.fillText(`(${a},${b})`, X(a), Y(b) + 24); });
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('x₁', ox + side - 10, Y(0) - 8); ctx.fillText('x₂', X(0) + 12, oy + 10);
+  $('berr').textContent = err;
+  $('bTxt').innerHTML = err === 0 ? `<b>Zero errors:</b> this perceptron implements ${fn.toUpperCase()}.`
+    : fn === 'xor' ? `${err} error${err > 1 ? 's' : ''}. For XOR no line gets all four right; the best you can do is 1 error.`
+    : `${err} error${err > 1 ? 's' : ''}: the ringed point${err > 1 ? 's are' : ' is'} on the wrong side of the line. Adjust the weights until the count is 0.`;
+}
+document.querySelectorAll('button[data-f]').forEach(b => b.onclick = () => { fn = b.dataset.f; document.querySelectorAll('button[data-f]').forEach(x => x.classList.toggle('on', x === b)); drawBool(); });
+$('lect').onclick = () => { fn = 'or'; document.querySelectorAll('button[data-f]').forEach(x => x.classList.toggle('on', x.dataset.f === 'or')); $('b0').value = -1; $('b1').value = 1.1; $('b2').value = 1.1; drawBool(); };
+['b0', 'b1', 'b2'].forEach(id => $(id).addEventListener('input', drawBool));
+
+function drawAll(){ drawMovie(); drawBool(); }
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

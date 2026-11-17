@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Brief History of Deep Learning</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.tl{list-style:none;padding:0;margin:10px 0;border-left:2px solid var(--grid)}
+.tl li{position:relative;padding:6px 8px 8px 18px;border-radius:8px;cursor:pointer}
+.tl li:hover{background:var(--tint)} .tl li.sel{background:var(--tint)}
+.tl li::before{content:"";position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--c,var(--s1))}
+.tl .yr{font-weight:700;font-variant-numeric:tabular-nums;margin-right:6px}
+.tl li.hide{display:none}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--grid);color:var(--muted);margin-left:4px}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 1 · playlist video 1 (titled “L2” on YouTube) · A brief history of deep learning</div>
+<h1>A Brief History of Deep Learning: Biology, Spring and Winter</h1>
+<p class="lede">Deep learning did not start with GPUs. It starts with a 19th-century argument about whether the nervous system is one continuous web or a network of separate cells, runs through the hype of the perceptron, crashes into the “winter of AI” after Minsky and Papert, and keeps going quietly with backpropagation and the universal approximation theorem. A recurring theme: ideas arrive long before the conditions to make them work.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=zdmEzqpAG70" target="_blank" rel="noopener">this lecture on YouTube</a> (≈27 min). Next: <a href="L2-deep-revival.html">L2</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<p class="small muted">The early material in this lecture follows Jürgen Schmidhuber's survey <i>Deep Learning in Neural Networks: An Overview</i>. Prof. Khapra calls it "a brief and maybe a bit selective, partial history" and invites corrections.</p>
+
+<h2>1 · The whole story on one timeline</h2>
+<p>Click an event to read what happened and where it comes back later in the course. Filter by period to see the shape of the story: a long biological prelude, a hopeful <b>spring</b>, a <b>winter</b>, and work that continued quietly through it.</p>
+<div class="card">
+  <div class="row" id="eraBtns"></div>
+  <div class="pair">
+    <ul class="tl" id="tl"></ul>
+    <div class="callout small" id="tlTxt" style="align-self:start"></div>
+  </div>
+</div>
+
+<h2>2 · Biology first: one web, or many cells?</h2>
+<p>Around <b>1871</b>, Joseph von Gerlach proposed that the nervous system is a single <b>continuous network</b>, not a set of discrete cells. This was the <b>reticular theory</b>.</p>
+<ul>
+<li>In the 1870s Camillo Golgi developed a <b>staining technique</b>, a chemical reaction that made nervous tissue easier to examine. Looking at stained slices, he too concluded the nervous system was one continuous network.</li>
+<li>Using the <b>same</b> technique, Santiago Ramón y Cajal reached the opposite conclusion (around 1888–1891): the nervous system is made of <b>discrete individual cells</b> forming a network. This is the <b>neuron doctrine</b>.</li>
+<li>Around 1891 the term <b>neuron</b> was coined, and the neuron doctrine was consolidated. (The same scientist also coined the word <i>chromosome</i>.)</li>
+<li>The Nobel Prize in Medicine (1906) went to <b>both</b> Golgi and Cajal, so both camps kept their champions and the conflict lasted.</li>
+<li>It was settled in the <b>1950s</b> by a different field: <b>electron microscopy</b> confirmed the neuron doctrine. Neurons are separate cells connected through <b>synapses</b>, and this structure is the foundation of artificial neural networks.</li>
+</ul>
+<p>A second debate asked whether brain processing is <b>localised</b> (specific regions for speech, vision, …) or <b>distributed</b>. Both views still matter: modern networks are largely distributed, but multilingual models, for instance, are sometimes pushed to keep parts of the network for particular languages or inputs.</p>
+<div class="beyond"><b>Going beyond the video.</b> The lecture doesn't say the name aloud; the scientist who coined "neuron" (1891) and "chromosome" (1888) is Heinrich Wilhelm Gottfried von Waldeyer-Hartz.</div>
+
+<h2>3 · The spring of AI (1943–1969)</h2>
+<ol class="steps">
+<li><b>1943, McCulloch and Pitts</b> (a neuroscientist and a logician) proposed a simplified model of a neuron: binary inputs, a binary decision. Example: is it raining, do I have money, do I have time, so do I go to a movie? This is the subject of <a href="L7-mcculloch-pitts.html">L7</a>.</li>
+<li><b>1957–58, Frank Rosenblatt's perceptron</b> added <b>weights</b>: some inputs matter more than others (having money matters more than being in the mood). Covered in <a href="L8-perceptron.html">L8</a>.</li>
+<li><b>1965–68, Ivakhnenko and his group</b> already proposed networks that look like a modern multi-layer deep network.</li>
+</ol>
+<p>The claims were huge. Rosenblatt said the perceptron may eventually be able to learn, make decisions and <b>translate languages</b>. Why translation? It was the post-war era, and translating messages between languages such as Russian and English was a pressing problem. Seventy years later we are still working on it: a recent Meta (Facebook) paper covers about 40,000 translation directions across 200 languages, at very uneven quality. A 1958 newspaper article even called it the embryo of a computer that would one day walk, talk, see, reproduce itself and be conscious of its existence. That is still the stuff of science fiction.</p>
+<div class="callout">A pattern that repeats through the whole history: <b>tall claims are made early, and it takes decades for them to be realised</b>, which leads to disappointment in between.</div>
+
+<h2>4 · The winter of AI (from 1969)</h2>
+<p>In <b>1969</b>, Minsky and Papert's book <i>Perceptrons</i> laid out the limits of what perceptrons can do. The claim had been: give me enough input–output pairs $(x_1,y_1),(x_2,y_2),\dots$ of some unknown function and I can train a model whose output is close to the true $y$. Minsky and Papert showed that a single perceptron cannot even learn the two-input <b>XOR</b> function. Try it below.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">A single perceptron draws one straight line and says "1" on one side. Turn the line and move it. Can you get all four points right?</p>
+  <div class="row"><button data-f="and">AND</button><button data-f="or">OR</button><button data-f="xor" class="on">XOR</button></div>
+  <div class="row"><label>angle <input type="range" id="ang" min="0" max="359" value="135" aria-label="line angle"></label><label>offset <input type="range" id="off" min="-100" max="100" value="0" aria-label="line offset"></label><button id="best">Best possible line</button></div>
+  <div class="pair">
+    <canvas id="xc" height="260" aria-label="Four boolean inputs and a separating line"></canvas>
+    <div><div class="stat"><div class="v" id="xok">–</div><div class="l">points classified correctly</div></div>
+    <p class="small" id="xTxt"></p></div>
+  </div>
+</div>
+<p>The disappointment was big: if a perceptron can't learn XOR, how could it handle translation or predicting heart disease from blood sugar and cholesterol? But Minsky and Papert's point was about a <b>single</b> perceptron. A <b>network</b> of perceptrons can represent such functions. That second half often got lost.</p>
+<p>What followed was roughly two decades of declining interest and funding for <b>connectionist</b> AI (networks of simple units), while <b>symbolic</b> AI continued. Today's AI is dominated by connectionist methods, and people are again looking at hybrids because deep learning has limits too.</p>
+
+<h2>5 · Work that continued through the winter</h2>
+<p><b>Backpropagation</b> was discovered and rediscovered several times in the 1960s and 70s (without the internet, people didn't know others had found it). In <b>1986</b>, Rumelhart, Hinton and others popularised it for training neural networks, and almost every modern network is still trained with it. At its heart is <b>gradient descent</b>, which is much older: Cauchy proposed it to compute the orbits of heavenly bodies.</p>
+<p>In <b>1989</b> came the <b>universal approximation theorem</b>: a network with one hidden layer and enough neurons can approximate any function $f$ to any desired precision, with the precision controlled by the number of neurons. It is almost the reverse of Minsky and Papert: not "even simple functions are impossible" but "any function is possible". The lecture's picture is a curve approximated by rectangular bars:</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">The orange curve is the unknown $f$. Each bar is what a pair of neurons can produce; their sum is the network's output. Add neurons and watch the error fall.</p>
+  <div class="row"><label>number of bars <input type="range" id="nb" min="1" max="60" value="6" aria-label="number of bars"></label><b id="nbV"></b><button id="nf">New function</button></div>
+  <canvas id="uc" height="240" aria-label="Function approximated by rectangular bars"></canvas>
+  <div class="row"><div class="stat"><div class="v" id="uerr">–</div><div class="l">average absolute error</div></div><div class="stat"><div class="v" id="uneu">–</div><div class="l">neurons used (2 per bar)</div></div></div>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> Each bar needs two very steep sigmoid neurons: one that switches on at the bar's left edge and one, subtracted, that switches on at its right edge. That is why the counter shows two neurons per bar. The 1989 theorem is usually credited to George Cybenko (for sigmoid networks), with related results by Hornik, Stinchcombe and White in the same year.</div>
+<p>So by 1989 two things were known: backpropagation can train deep networks, and deep networks are worth training. Yet for nearly two more decades, training deep networks with backpropagation in practice was <b>unstable</b> and often didn't converge, apart from some success with convolutional networks. That changes in <a href="L2-deep-revival.html">L2</a>.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The neuron doctrine (discrete cells joined by synapses) beat the reticular theory, settled only by 1950s electron microscopy. It is the blueprint for artificial networks.</li>
+<li>Spring: McCulloch–Pitts (1943), Rosenblatt's perceptron (1957–58) and early multi-layer networks (1965–68), with claims far ahead of reality.</li>
+<li>Winter: Minsky and Papert (1969) showed a single perceptron can't learn XOR. That a network can was often forgotten, and funding for connectionist AI fell for about two decades.</li>
+<li>Backpropagation (popularised 1986) and the universal approximation theorem (1989) showed deep networks are trainable in principle and powerful, but practical training stayed unstable until about 2006.</li>
+<li>Ideas often come before the data, compute and know-how to make them work.</li>
+</ol>
+
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAWERS = []; const onDraw = f => DRAWERS.push(f); const redraw = () => DRAWERS.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redraw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redraw(); });
+
+/* ---- timeline ---- */
+const ERAS = {bio: ['Biology', '--s3'], spring: ['Spring of AI', '--s1'], winter: ['Winter of AI', '--s2'], quiet: ['Work through the winter', '--faint']};
+const EV = [
+  ['bio', '1871', 'Reticular theory', 'Joseph von Gerlach proposes that the nervous system is one continuous network rather than separate cells.', 'Sets up the question every later model answers: networks of separate units joined by connections.'],
+  ['bio', '1870s', 'Golgi\'s staining technique', 'A chemical stain lets scientists examine nervous tissue. Golgi uses it and sides with the reticular theory.', 'A reminder that progress often comes from other fields: here, chemistry.'],
+  ['bio', '1888–91', 'Neuron doctrine', 'Cajal, using the same stain, concludes the nervous system is made of discrete cells forming a network.', 'The picture deep learning copies: many simple units, connected.'],
+  ['bio', '1891', 'The word “neuron”', 'The term neuron is coined and the neuron doctrine consolidated.', 'Artificial neurons take their name from here.'],
+  ['bio', '1906', 'Nobel Prize to both', 'Golgi and Cajal share the Nobel Prize in Medicine, so both theories keep their champions.', 'Scientific disagreements can last decades.'],
+  ['bio', '1950s', 'Electron microscopy settles it', 'Electron microscopes confirm the neuron doctrine: neurons are separate cells joined by synapses.', 'Synapses become weights in artificial networks (L4 compares their counts).'],
+  ['spring', '1943', 'McCulloch–Pitts neuron', 'A neuroscientist and a logician propose a simplified neuron: binary inputs, a binary decision.', 'Covered in detail in L7.'],
+  ['spring', '1957–58', 'Rosenblatt\'s perceptron', 'Adds weights to the inputs. Claimed to learn, make decisions and translate languages; newspapers predict conscious machines.', 'Covered in L8–L10.'],
+  ['spring', '1965–68', 'Ivakhnenko\'s deep networks', 'Ivakhnenko and his group propose networks that look like modern multi-layer deep networks.', 'Shows that “deep” networks are an old idea.'],
+  ['winter', '1969', 'Minsky & Papert, Perceptrons', 'Shows a single perceptron cannot learn XOR. The point that a network of perceptrons can was largely lost.', 'Try the XOR demo below; the multi-layer fix comes later in the course.'],
+  ['winter', '1970s–80s', 'Funding falls', 'Interest and funding in connectionist AI decline for about two decades; symbolic AI continues.', 'Expectations get rationalised.'],
+  ['quiet', '1960s–70s', 'Backpropagation (re)discovered', 'Backpropagation is found and re-found several times, independently.', 'The training algorithm used for almost every modern network.'],
+  ['quiet', '1986', 'Backprop popularised', 'Rumelhart, Hinton and others show backpropagation can train neural networks.', 'Built on gradient descent, which Cauchy proposed for computing orbits of heavenly bodies.'],
+  ['quiet', '1989', 'Universal approximation theorem', 'A network with enough neurons can approximate any function to any precision.', 'Try the bar-approximation demo below; an illustrative proof comes later in the course.'],
+  ['quiet', '1989–2006', 'Theory yes, practice no', 'Training deep networks with backpropagation is unstable and often fails to converge (convolutional networks are an exception).', 'The deadlock breaks in 2006: see L2.'],
+];
+let era = 'all', selEv = 9;
+function drawTL(){
+  $('eraBtns').innerHTML = [['all', 'All']].concat(Object.entries(ERAS).map(([k, v]) => [k, v[0]])).map(([k, n]) => `<button data-era="${k}" class="${k === era ? 'on' : ''}">${n}</button>`).join('');
+  $('tl').innerHTML = EV.map((e, i) => `<li data-i="${i}" class="${(era !== 'all' && e[0] !== era) ? 'hide' : ''} ${i === selEv ? 'sel' : ''}" style="--c:var(${ERAS[e[0]][1]})"><span class="yr">${e[1]}</span>${e[2]}</li>`).join('');
+  const e = EV[selEv];
+  $('tlTxt').innerHTML = `<b>${e[1]} · ${e[2]}</b> <span class="chip">${ERAS[e[0]][0]}</span><p style="margin:8px 0 6px">${e[3]}</p><p class="muted" style="margin:0"><b>Why it matters:</b> ${e[4]}</p>`;
+  document.querySelectorAll('#eraBtns button').forEach(b => b.onclick = () => { era = b.dataset.era; const first = EV.findIndex(x => era === 'all' || x[0] === era); if (era !== 'all' && EV[selEv][0] !== era) selEv = first; drawTL(); });
+  document.querySelectorAll('#tl li').forEach(li => li.onclick = () => { selEv = +li.dataset.i; drawTL(); });
+}
+drawTL();
+
+/* ---- XOR: one line cannot separate it ---- */
+const PTS = [[0, 0], [0, 1], [1, 0], [1, 1]];
+const FN = {and: (a, b) => a & b, or: (a, b) => a | b, xor: (a, b) => a ^ b};
+let fn = 'xor';
+const lineOf = () => { const t = +$('ang').value * Math.PI / 180; return {n: [Math.cos(t), Math.sin(t)], c: +$('off').value / 100}; };
+const score = (n, c) => PTS.reduce((s, [a, b]) => s + (((n[0] * (a - 0.5) + n[1] * (b - 0.5) - c) >= 0 ? 1 : 0) === FN[fn](a, b) ? 1 : 0), 0);
+function bestLine(){ let best = -1, arg = [0, 0];
+  for (let d = 0; d < 360; d += 1) for (let o = -100; o <= 100; o += 2) { const t = d * Math.PI / 180, s = score([Math.cos(t), Math.sin(t)], o / 100); if (s > best) { best = s; arg = [d, o]; } }
+  return [best, arg]; }
+function drawX(){
+  const [ctx, W, H] = setupCanvas($('xc')), S = Math.min(W, H) * 0.32, ox = W / 2, oy = H / 2;
+  const X = a => ox + (a - 0.5) * 2 * S, Y = b => oy - (b - 0.5) * 2 * S, {n, c} = lineOf();
+  // shade the half-plane that says 1
+  for (let px = 0; px < W; px += 6) for (let py = 0; py < H; py += 6) {
+    const a = (px - ox) / (2 * S) + 0.5, b = (oy - py) / (2 * S) + 0.5;
+    if (n[0] * (a - 0.5) + n[1] * (b - 0.5) - c >= 0) { ctx.fillStyle = cssv('--tint'); ctx.fillRect(px, py, 6, 6); } }
+  const d = [-n[1], n[0]], p0 = [0.5 + n[0] * c, 0.5 + n[1] * c];
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(p0[0] - d[0] * 5), Y(p0[1] - d[1] * 5)); ctx.lineTo(X(p0[0] + d[0] * 5), Y(p0[1] + d[1] * 5)); ctx.stroke();
+  ctx.font = '600 13px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  PTS.forEach(([a, b]) => { const y = FN[fn](a, b), pr = (n[0] * (a - 0.5) + n[1] * (b - 0.5) - c) >= 0 ? 1 : 0;
+    ctx.fillStyle = cssv(y ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(X(a), Y(b), 14, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(y, X(a), Y(b));
+    if (pr !== y) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(a), Y(b), 20, 0, 7); ctx.stroke(); }
+    ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText(`(${a},${b})`, X(a), Y(b) + (b ? -28 : 28)); ctx.font = '600 13px system-ui'; });
+  const s = score(n, c); $('xok').textContent = s + ' / 4';
+  $('xTxt').innerHTML = fn === 'xor'
+    ? (s === 4 ? '' : 'Shaded side = output 1; ringed points are wrong. For XOR the best any single line can do is <b>3 of 4</b>: the two 1s sit on opposite corners. Press "Best possible line" to confirm. A second layer fixes this, which is Minsky and Papert\'s overlooked point.')
+    : (s === 4 ? `All four correct: ${fn.toUpperCase()} is linearly separable, so one perceptron can learn it.` : `Shaded side = output 1. ${fn.toUpperCase()} can be separated by one line: keep turning it.`);
+}
+document.querySelectorAll('button[data-f]').forEach(b => b.onclick = () => { fn = b.dataset.f; document.querySelectorAll('button[data-f]').forEach(x => x.classList.toggle('on', x === b)); drawX(); });
+['ang', 'off'].forEach(id => $(id).addEventListener('input', drawX));
+$('best').onclick = () => { const [, [d, o]] = bestLine(); $('ang').value = d; $('off').value = o; drawX(); };
+onDraw(drawX);
+
+/* ---- universal approximation with bars ---- */
+let coef = [];
+function newF(){ coef = Array.from({length: 4}, (_, k) => [(Math.random() * 2 - 1) / (k + 1), Math.random() * 6.28]); }
+const f = x => 0.5 + 0.18 * coef.reduce((s, [a, p], k) => s + a * Math.sin((k + 1) * 2 * Math.PI * x + p), 0);
+function drawU(){
+  const nb = +$('nb').value; $('nbV').textContent = nb;
+  const [ctx, W, H] = setupCanvas($('uc')), pad = {l: 10, r: 10, t: 10, b: 10};
+  const X = x => pad.l + x * (W - pad.l - pad.r), Y = y => H - pad.b - y * (H - pad.t - pad.b);
+  let err = 0; const M = 400;
+  for (let i = 0; i < nb; i++) { const a = i / nb, b = (i + 1) / nb, h = f((a + b) / 2);
+    ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = 0.28; ctx.fillRect(X(a), Y(h), X(b) - X(a) - (nb < 40 ? 1 : 0), Y(0) - Y(h)); ctx.globalAlpha = 1;
+    ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(a), Y(h)); ctx.lineTo(X(b), Y(h)); ctx.stroke(); }
+  for (let i = 0; i < M; i++) { const x = (i + 0.5) / M, k = Math.min(nb - 1, Math.floor(x * nb)); err += Math.abs(f(x) - f((k + 0.5) / nb)) / M; }
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 300; i++) { const x = i / 300; i ? ctx.lineTo(X(x), Y(f(x))) : ctx.moveTo(X(x), Y(f(x))); } ctx.stroke();
+  $('uerr').textContent = err.toFixed(4); $('uneu').textContent = 2 * nb;
+}
+newF(); $('nb').addEventListener('input', drawU); $('nf').onclick = () => { newF(); drawU(); }; onDraw(drawU);
+
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Errors and Error Surfaces</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 9 · playlist video 9 (titled “L7” on YouTube) · McCulloch–Pitts neuron, perceptrons</div>
+<h1>Errors and Error Surfaces</h1>
+<p class="lede">Fix the bias, and the number of mistakes a perceptron makes becomes a <b>function of its weights</b>. Plot that function over the $(w_1,w_2)$ plane and you get an <b>error surface</b>: a staircase of flat regions at 0, 1, 2 or 3 errors. Any weights in the zero-error region implement the function. Reading this off a picture works in two dimensions; for $n$ inputs we need an algorithm, which is the next lecture.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=oIjsEzG6zR0" target="_blank" rel="noopener">this lecture on YouTube</a> (≈9 min). Previous: <a href="L8-perceptron.html">L8</a> · Next: <a href="L10-perceptron-learning.html">L10</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Counting errors for one choice of weights</h2>
+<p>Take the <b>AND</b> function: output 1 only for $(1,1)$, and 0 for the other three inputs. The perceptron outputs 1 iff $w_0+w_1x_1+w_2x_2\ge0$. Fix $w_0=-1$ and try a few $(w_1,w_2)$, counting the inputs that land in the wrong half-space:</p>
+<table>
+<tr><th>$(w_1,w_2)$</th><th>Line $-1+w_1x_1+w_2x_2=0$</th><th>What goes wrong</th><th>Errors</th></tr>
+<tr><td>$(-1,-1)$</td><td>$-1-x_1-x_2=0$</td><td>$(1,1)$ should be positive but falls in the negative half-space</td><td>1</td></tr>
+<tr><td>$(1.5,0)$</td><td>$-1+1.5x_1=0$</td><td>$(1,0)$ should be negative but falls in the positive half-space</td><td>1</td></tr>
+<tr><td>$(10,-10)$</td><td>$-1+10x_1-10x_2=0$</td><td>$(1,0)$ wrongly positive and $(1,1)$ wrongly negative</td><td>2</td></tr>
+</table>
+<div class="callout"><b>"Above" or "below" the line doesn't define the sides.</b> With $(w_1,w_2)=(-1,-1)$, all four inputs lie <i>above</i> the line, yet they're in its <b>negative</b> half-space. What decides the side is only which inequality a point satisfies: $\ge0$ (positive) or $&lt;0$ (negative).</div>
+
+<h2>2 · Error as a function of the weights</h2>
+<p>With $w_0$ fixed, the number of errors depends only on $w_1$ and $w_2$. So think of it as a function, $\text{error}(w_1,w_2)$. It can only take whole-number values, which makes its graph a <b>step function</b>: flat regions separated by sudden jumps. The lecture colours the levels 0, 1, 2 and 3.</p>
+<p>Why never 4? The lecture's argument: at worst every point falls in one half-space, and then either the positive point or the negative points are still right. More precisely, with $w_0=-1$ the input $(0,0)$ always gets $w_0&lt;0$, so it is always (correctly) classified 0.</p>
+<div class="callout"><b>A sharper count.</b> With $w_0=-1$ even 3 errors can't happen: all three of $(0,1),(1,0),(1,1)$ wrong would need $w_2\ge1$, $w_1\ge1$ and $w_1+w_2&lt;1$ at once, which is impossible. So for AND at $w_0=-1$ the surface only has levels 0, 1 and 2, which is what the demo shows. Other values of $w_0$ (try the slider) reach 3, and positive $w_0$ even 4.</div>
+
+<h2>3 · The error surface</h2>
+<p>The lecture plots this function for every $(w_1,w_2)$ in $[-4,4]^2$, by simply plugging the weights in and counting errors, which is exactly what the demo below does. The <b>dark blue</b> region has zero errors: pick any weights there and the perceptron implements AND. The other levels are the 1-, 2- and 3-error regions.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Left: the error surface, errors as a function of $(w_1,w_2)$ for the fixed $w_0$. <b>Click it</b> (or drag) to choose weights. Right: the decision line for the chosen weights, with errors ringed.</p>
+  <div class="row"><button data-f="and" class="on">AND</button><button data-f="or">OR</button><button data-f="nand">NAND</button><button data-f="xor">XOR</button>
+    <label>$w_0$ = <b id="w0v"></b> <input type="range" id="w0" min="-3" max="3" step="0.1" value="-1" aria-label="bias weight w0"></label></div>
+  <div class="row"><span class="small muted">The lecture's three tries:</span><button data-t="-1,-1">(−1, −1)</button><button data-t="1.5,0">(1.5, 0)</button><button data-t="10,-10">(10, −10)</button></div>
+  <div class="pair half">
+    <canvas id="es" height="300" aria-label="Error surface heatmap over w1 and w2"></canvas>
+    <canvas id="dl" height="300" aria-label="Decision line for the chosen weights"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--lv0)"></i>0 errors</span><span><i class="dot" style="background:var(--lv1)"></i>1</span><span><i class="dot" style="background:var(--lv2)"></i>2</span><span><i class="dot" style="background:var(--lv3)"></i>3</span><span><i class="dot" style="background:var(--lv4)"></i>4</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="wv">–</div><div class="l">chosen $(w_1,w_2)$</div></div>
+    <div class="stat"><div class="v" id="ev">–</div><div class="l">errors at this point</div></div>
+    <div class="stat"><div class="v" id="zv">–</div><div class="l">share of the map with 0 errors</div></div>
+  </div>
+  <p class="small" id="eTxt"></p>
+</div>
+<p>Looking at the picture and choosing a point in the zero region works for two weights. With $n$ inputs we can't even draw the surface. So we want an <b>algorithm</b> that, whenever the data are linearly separable, finds weights that put every positive point and every negative point on the correct side. That is the <a href="L10-perceptron-learning.html">perceptron learning algorithm</a>.</p>
+<div class="beyond"><b>Going beyond the video.</b> (1) The bound on errors relies on $w_0$ being negative. Make $w_0$ positive in the demo and $(0,0)$ flips to the positive side; then <b>4 errors</b> become possible for AND, for example $w_0=1,\ w_1=w_2=-0.9$ (which is a perfect NAND). (2) For XOR the zero region is empty for every $w_0$: that's what "not linearly separable" looks like on an error surface. (3) This surface is flat almost everywhere, so its gradient is zero or undefined. That's why later lectures replace the hard threshold with a smooth sigmoid, so that gradient descent has a slope to follow.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>For fixed weights, count the inputs in the wrong half-space: that's the error.</li>
+<li>Which side a point is on is decided by the sign of $w_0+w_1x_1+w_2x_2$, not by "above" or "below" the line.</li>
+<li>With $w_0$ fixed, error is a function of $(w_1,w_2)$; plotted, it's a step-shaped error surface.</li>
+<li>Any weights in the zero-error region implement the function, but finding them by eye doesn't scale to $n$ inputs, so we need a learning algorithm.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const FN = {and: [0, 0, 0, 1], or: [0, 1, 1, 1], nand: [1, 1, 1, 0], xor: [0, 1, 1, 0]}, PTS = [[0, 0], [0, 1], [1, 0], [1, 1]];
+const LV = ['--lv0', '--lv1', '--lv2', '--lv3', '--lv4'];
+let fn = 'and', w1 = -1, w2 = -1;
+const R = 4, errs = (w0, a, b) => PTS.reduce((e, [x, y], k) => e + ((w0 + a * x + b * y >= 0 ? 1 : 0) !== FN[fn][k] ? 1 : 0), 0);
+function frame(cv){ const [ctx, W, H] = setupCanvas(cv), pad = {l: 30, b: 24, t: 6, r: 6}, side = Math.min(W - pad.l - pad.r, H - pad.t - pad.b);
+  const ox = pad.l + (W - pad.l - pad.r - side) / 2, oy = pad.t; return {ctx, ox, oy, side, W, H}; }
+function draw(){
+  const w0 = +$('w0').value; $('w0v').textContent = w0.toFixed(1);
+  // error surface
+  const f = frame($('es')), {ctx, ox, oy, side} = f, n = 80, cell = side / n, cols = LV.map(cssv);
+  let zero = 0;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const a = -R + (i + 0.5) / n * 2 * R, b = R - (j + 0.5) / n * 2 * R, e = errs(w0, a, b); if (!e) zero++;
+    ctx.fillStyle = cols[e]; ctx.fillRect(ox + i * cell, oy + j * cell, cell + 0.6, cell + 0.6); }
+  ctx.font = '11px system-ui,sans-serif'; ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  [-4, -2, 0, 2, 4].forEach(v => { ctx.fillText(v, ox + (v + R) / (2 * R) * side, oy + side + 4); });
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; [-4, -2, 0, 2, 4].forEach(v => ctx.fillText(v, ox - 4, oy + (R - v) / (2 * R) * side));
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = cssv('--ink'); ctx.fillText('w₁ →', ox + side - 34, oy + side + 12 > f.H - 12 ? oy + side - 14 : oy + side + 12);
+  const cx = ox + (Math.max(-R, Math.min(R, w1)) + R) / (2 * R) * side, cy = oy + (R - Math.max(-R, Math.min(R, w2))) / (2 * R) * side;
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx, cy, 7, 0, 7); ctx.stroke(); ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(cx, cy, 7, 0, 7); ctx.stroke();
+  es._map = {ox, oy, side};
+  // decision line
+  const g = frame($('dl')), c = g.ctx, lo = -0.6, hi = 1.6, X = v => g.ox + (v - lo) / (hi - lo) * g.side, Y = v => g.oy + g.side - (v - lo) / (hi - lo) * g.side, st = 6;
+  c.globalAlpha = 0.18; for (let px = 0; px < g.side; px += st) for (let py = 0; py < g.side; py += st) { const a = lo + (px + st / 2) / g.side * (hi - lo), b = lo + (g.side - py - st / 2) / g.side * (hi - lo);
+    c.fillStyle = w0 + w1 * a + w2 * b >= 0 ? cssv('--s1') : cssv('--s2'); c.fillRect(g.ox + px, g.oy + py, st, st); }
+  c.globalAlpha = 1; c.strokeStyle = cssv('--grid'); c.strokeRect(g.ox, g.oy, g.side, g.side);
+  c.save(); c.beginPath(); c.rect(g.ox, g.oy, g.side, g.side); c.clip(); c.strokeStyle = cssv('--ink'); c.lineWidth = 2.5; c.beginPath();
+  if (Math.abs(w2) > 1e-9) { c.moveTo(X(lo), Y(-(w0 + w1 * lo) / w2)); c.lineTo(X(hi), Y(-(w0 + w1 * hi) / w2)); } else if (Math.abs(w1) > 1e-9) { c.moveTo(X(-w0 / w1), Y(lo)); c.lineTo(X(-w0 / w1), Y(hi)); }
+  c.stroke(); c.restore();
+  c.font = '11px system-ui,sans-serif'; c.textAlign = 'center'; c.textBaseline = 'top';
+  PTS.forEach(([a, b], k) => { const want = FN[fn][k], got = w0 + w1 * a + w2 * b >= 0 ? 1 : 0; c.fillStyle = want ? cssv('--s1') : cssv('--s2'); c.beginPath(); c.arc(X(a), Y(b), 7, 0, 7); c.fill();
+    if (want !== got) { c.strokeStyle = cssv('--ink'); c.lineWidth = 2; c.beginPath(); c.arc(X(a), Y(b), 12, 0, 7); c.stroke(); } c.fillStyle = cssv('--ink'); c.fillText(`(${a},${b})`, X(a), Y(b) + 14); });
+  const e = errs(w0, w1, w2); $('wv').textContent = `(${+w1.toFixed(2)}, ${+w2.toFixed(2)})`; $('ev').textContent = e; $('zv').textContent = (100 * zero / (n * n)).toFixed(1) + '%';
+  $('eTxt').innerHTML = (e === 0 ? `<b>Zero errors:</b> these weights implement ${fn.toUpperCase()}. ` : `${e} error${e > 1 ? 's' : ''} at these weights. `)
+    + (zero === 0 ? (fn === 'xor' ? 'There is no zero-error region at all: no line separates XOR, whatever the weights.' : `No zero-error region with w₀ = ${w0.toFixed(1)}; try another bias.`)
+    : `About ${(100 * zero / (n * n)).toFixed(0)}% of the map is dark blue: any weights there work.`) + (e === 4 ? ' Four errors: possible only because w₀ ≥ 0 puts (0,0) on the positive side.' : '');
+}
+const es = $('es');
+function pick(ev){ const m = es._map; if (!m) return; const r = es.getBoundingClientRect(), x = ev.clientX - r.left, y = ev.clientY - r.top;
+  const a = -R + (x - m.ox) / m.side * 2 * R, b = R - (y - m.oy) / m.side * 2 * R; if (Math.abs(a) > R || Math.abs(b) > R) return; w1 = a; w2 = b; draw(); }
+let down = false; es.addEventListener('pointerdown', e => { down = true; pick(e); }); es.addEventListener('pointermove', e => { if (down) pick(e); }); window.addEventListener('pointerup', () => down = false);
+document.querySelectorAll('button[data-f]').forEach(b => b.onclick = () => { fn = b.dataset.f; document.querySelectorAll('button[data-f]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+document.querySelectorAll('button[data-t]').forEach(b => b.onclick = () => { [w1, w2] = b.dataset.t.split(',').map(Number); fn = 'and'; $('w0').value = -1;
+  document.querySelectorAll('button[data-f]').forEach(x => x.classList.toggle('on', x.dataset.f === 'and')); draw(); });
+$('w0').addEventListener('input', draw);
+draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

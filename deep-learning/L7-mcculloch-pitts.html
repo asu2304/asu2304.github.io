@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The McCulloch–Pitts Neuron</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 7 · playlist video 7 (titled “L10” on YouTube) · From biological to artificial neurons</div>
+<h1>The McCulloch–Pitts Neuron and Thresholding Logic</h1>
+<p class="lede">The first model of a neuron (1943) is almost embarrassingly simple: Boolean inputs, <b>add them up</b>, and output 1 if the sum reaches a <b>threshold</b> $\theta$. Yet it already implements AND, OR, NOT and more, and it has a clean geometric meaning: it draws a <b>line</b> (a plane, a hyperplane) and says "yes" on one side. So it can implement exactly the <b>linearly separable</b> Boolean functions.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=-bxOadOFNYc" target="_blank" rel="noopener">this lecture on YouTube</a> (≈23 min). Previous: <a href="L6-biological-neuron.html">L6</a> · Next: <a href="L8-perceptron.html">L8</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The model</h2>
+<p>In 1943, <b>McCulloch</b> (a neuroscientist) and <b>Pitts</b> (a logician) proposed a highly simplified computational model of a neuron. The inputs $x_1,\dots,x_n$ are all <b>Boolean</b>: is it raining outside? am I feeling well? The output $y$ is Boolean too: shall I go to a movie today? The neuron has two parts:</p>
+<ol class="steps">
+<li>$g$ <b>aggregates</b> the inputs. It is just their sum, so it counts how many inputs are on: $$g(x)=g(x_1,\dots,x_n)=\sum_{i=1}^{n}x_i .$$</li>
+<li>$f$ <b>decides</b> based on that aggregate, using a threshold $\theta$: $$y=f(g(x))=\begin{cases}1 & g(x)\ge\theta\\ 0 & g(x)<\theta\end{cases}$$</li>
+</ol>
+<p>The cartoon from <a href="L6-biological-neuron.html">L6</a> (fire if at least two of "visual funny", "speech funny", "text funny" are on) is exactly this with $\theta=2$. Aggregating and comparing to a threshold is called <b>thresholding logic</b>.</p>
+<div class="callout"><b>What $\theta$ means.</b> It is how many favourable conditions you need before you act. A lazy person who goes out only when many things line up has a high $\theta$; an outgoing person looking for any excuse to go out has a low one. The right $\theta$ depends on the case (the data).</div>
+
+<h2>2 · Excitatory and inhibitory inputs</h2>
+<p>Inputs can be <b>excitatory</b> (if on, they help towards a "yes") or <b>inhibitory</b>. An inhibitory input is a "party spoiler": if it is on, the output is 0 <b>whatever</b> the other inputs are. Example: "do I have a high temperature (above 102)?" If yes, I'm not going to the movie, raining or not, free or not.</p>
+<p>So the full rule is: if any inhibitory input is 1, then $y=0$; otherwise $y=1$ exactly when $g(x)\ge\theta$. Prof. Khapra mentions inhibitory inputs here and then mostly drops them for the rest of the course.</p>
+
+<h2>3 · Implementing Boolean functions</h2>
+<p>To say a model <b>implements</b> (or represents) a Boolean function means: for <b>every</b> input, the model's output equals the function's output. For AND on two inputs, it must give 0, 0, 0, 1 on $00, 01, 10, 11$. Since the neuron's inputs and output are Boolean, it is itself a Boolean function; the only question is which $\theta$ (and which inputs are inhibitory) to choose.</p>
+<table>
+<tr><th>Function</th><th>Setting</th><th>Why</th></tr>
+<tr><td>AND, 3 inputs</td><td>$\theta=3$</td><td>Output 1 only when all three are on, i.e. when the sum is 3. For $110$ the sum is 2, below $\theta$, so 0.</td></tr>
+<tr><td>OR, 3 inputs</td><td>$\theta=1$</td><td>Output 1 if any input is on. Only $000$ (sum 0) gives 0.</td></tr>
+<tr><td>NOT, 1 input</td><td>input inhibitory, $\theta=0$</td><td>If the input is 1, inhibition forces 0. If it is 0, the sum $0\ge\theta=0$, so the neuron fires.</td></tr>
+<tr><td>NOR, 2 inputs</td><td>both inhibitory, $\theta=0$</td><td>Any 1 forces 0; with both 0 the sum $0\ge0$ fires. (The lecture leaves this one to check.)</td></tr>
+<tr><td>Tautology (always 1)</td><td>$\theta=0$</td><td>Even $00$ (sum 0) passes.</td></tr>
+</table>
+
+<h2>4 · The geometry: the neuron draws a line</h2>
+<p>Take OR on two inputs: fire when $x_1+x_2\ge1$. Replace "$\ge$" by "$=$" and you get the line $x_1+x_2=1$, through $(0,1)$ and $(1,0)$. In the Boolean world only four points exist, $00, 01, 10, 11$.</p>
+<ul>
+<li>The <b>positive half-space</b> $x_1+x_2\ge1$ holds $01, 10, 11$: output 1.</li>
+<li>The <b>negative half-space</b> $x_1+x_2<1$ holds only $00$: output 0.</li>
+</ul>
+<p>AND is the line $x_1+x_2=2$: only $11$ is in the positive half-space. The tautology is $x_1+x_2=0$: all four points are on or above it. In every case the neuron <b>splits the inputs with a line</b>, a linear decision boundary.</p>
+<p>With three inputs the line becomes a <b>plane</b>. OR is $x_1+x_2+x_3\ge1$: the plane $x_1+x_2+x_3=1$ cuts the unit cube so that $000$ lies below it and the other seven corners lie on or above it. With $n$ inputs it is a <b>hyperplane</b>; the picture is the same.</p>
+<div class="callout"><b>Linear separability.</b> A Boolean function is linearly separable if there is a line (plane, hyperplane) with all inputs whose output should be 1 on or above it, and all inputs whose output should be 0 below it. <b>A single McCulloch–Pitts neuron can represent Boolean functions that are linearly separable.</b> Do non-separable Boolean functions exist, and what then? The lecture leaves that for later.</div>
+
+<h2>5 · Playground</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Build a McCulloch–Pitts neuron: choose 1–3 inputs, mark inputs as inhibitory, set $\theta$. Pick a target function to compare against; the truth table marks every row where the neuron disagrees. The plot shows the inputs as corners of a square (or cube) and the neuron's line or plane.</p>
+  <div class="row">
+    <span>inputs: <span id="nb"><button data-n="1">1</button><button data-n="2" class="on">2</button><button data-n="3">3</button></span></span>
+    <span id="inh"></span>
+    <label>θ = <b id="thV"></b> <input type="range" id="th" min="0" max="3" step="1" value="1" aria-label="threshold"></label>
+  </div>
+  <div class="row"><label>target: <select id="tg"></select></label><button id="solve">Find a setting that works</button></div>
+  <div class="pair half">
+    <div id="tt"></div>
+    <canvas id="geo" height="260" aria-label="Inputs as corners with the neuron's decision line or plane"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>target says 1</span><span><i class="dot" style="background:var(--s2)"></i>target says 0</span><span><i style="background:var(--ink)"></i>the neuron's line / plane: sum = θ</span><span>ringed = neuron gets it wrong</span></div>
+  <p class="small" id="gTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The "find a setting" button tries every $\theta$ and every choice of inhibitory inputs. Two things it shows that the lecture saves for later: <b>XOR</b> has no setting (no line puts $01, 10$ on one side and $00, 11$ on the other), and <b>NAND</b> has none either for this neuron, because its inputs all count equally (no weights) and inhibition is all-or-nothing. Weights are exactly what the perceptron adds (<a href="L8-perceptron.html">L8</a>; see also my <a href="../machine-learning/L52-perceptron.html">ML notes, L52</a>).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>McCulloch–Pitts (1943): Boolean inputs, $g(x)=\sum_i x_i$, and $y=1$ iff $g(x)\ge\theta$. This is thresholding logic.</li>
+<li>Inhibitory inputs force the output to 0 when on; excitatory inputs count towards the threshold.</li>
+<li>Choosing $\theta$ implements AND ($\theta=n$), OR ($\theta=1$), the tautology ($\theta=0$); with inhibitory inputs, NOT and NOR.</li>
+<li>Geometrically the neuron draws the line $\sum_i x_i=\theta$ (a plane or hyperplane for more inputs) and outputs 1 on its positive side.</li>
+<li>So one McCulloch–Pitts neuron represents linearly separable Boolean functions; what to do about the others comes later.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+
+const TARGETS = {
+  1: {NOT: x => 1 - x[0], identity: x => x[0], tautology: () => 1, contradiction: () => 0},
+  2: {AND: x => x[0] & x[1], OR: x => x[0] | x[1], NOR: x => 1 - (x[0] | x[1]), NAND: x => 1 - (x[0] & x[1]), XOR: x => x[0] ^ x[1],
+      'x₁ AND NOT x₂': x => x[0] & (1 - x[1]), tautology: () => 1},
+  3: {AND: x => x[0] & x[1] & x[2], OR: x => x[0] | x[1] | x[2], 'at least 2 of 3': x => +(x[0] + x[1] + x[2] >= 2), NOR: x => 1 - (x[0] | x[1] | x[2]),
+      'XOR (odd number on)': x => (x[0] + x[1] + x[2]) % 2, tautology: () => 1},
+};
+const PRESET = {1: 'NOT', 2: 'OR', 3: 'OR'};
+let n = 2, inhib = [false, false, false];
+const rows = () => Array.from({length: 2 ** n}, (_, k) => Array.from({length: n}, (_, i) => (k >> (n - 1 - i)) & 1));
+const neuron = (x, th, inh = inhib) => x.some((v, i) => v && inh[i]) ? 0 : +(x.reduce((a, b) => a + b, 0) >= th);
+
+function buildControls(){
+  $('inh').innerHTML = Array.from({length: n}, (_, i) => `<label><input type="checkbox" data-i="${i}" ${inhib[i] ? 'checked' : ''}> x${'₁₂₃'[i]} inhibitory</label>`).join(' ');
+  $('inh').querySelectorAll('input').forEach(c => c.onchange = () => { inhib[+c.dataset.i] = c.checked; draw(); });
+  $('th').max = n; if (+$('th').value > n) $('th').value = n;
+  $('tg').innerHTML = Object.keys(TARGETS[n]).map(k => `<option${k === PRESET[n] ? ' selected' : ''}>${k}</option>`).join('');
+}
+function draw(){
+  const th = +$('th').value, tf = TARGETS[n][$('tg').value], R = rows(); $('thV').textContent = th;
+  let wrong = 0;
+  $('tt').innerHTML = '<table><tr>' + Array.from({length: n}, (_, i) => `<th>x${'₁₂₃'[i]}</th>`).join('') + '<th>sum</th><th>neuron</th><th>target</th></tr>' +
+    R.map(x => { const y = neuron(x, th), t = tf(x), ok = y === t; if (!ok) wrong++;
+      const sum = x.reduce((a, b) => a + b, 0), blocked = x.some((v, i) => v && inhib[i]);
+      return `<tr${ok ? '' : ' style="background:var(--warn-bg)"'}>` + x.map(v => `<td>${v}</td>`).join('') + `<td>${sum}${blocked ? ' <span class="muted">(inhibited)</span>' : ''}</td><td><b>${y}</b></td><td>${t}${ok ? '' : ' ✗'}</td></tr>`; }).join('') + '</table>';
+  drawGeo(th, tf);
+  $('gTxt').innerHTML = wrong ? `The neuron disagrees with <b>${$('tg').value}</b> on ${wrong} of ${R.length} inputs. Try another θ or inhibitory setting, or press "Find a setting".`
+    : `<b>This neuron implements ${$('tg').value}.</b> It matches the target on all ${R.length} inputs.`;
+}
+function drawGeo(th, tf){
+  const [ctx, W, H] = setupCanvas($('geo'));
+  ctx.font = '12px system-ui,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const dot = (p, x) => { const y = neuron(x, th), t = tf(x); ctx.fillStyle = cssv(t ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(p[0], p[1], 8, 0, 7); ctx.fill();
+    if (y !== t) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(p[0], p[1], 13, 0, 7); ctx.stroke(); }
+    ctx.fillStyle = cssv('--muted'); ctx.fillText(x.join(''), p[0], p[1] + 22); };
+  const anyInh = inhib.slice(0, n).some(Boolean);
+  if (n === 1) {
+    const X = v => 40 + v * (W - 80), y0 = H / 2;
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(-0.2), y0); ctx.lineTo(X(1.2), y0); ctx.stroke();
+    if (!anyInh) { ctx.strokeStyle = cssv('--ink'); ctx.beginPath(); ctx.moveTo(X(th), y0 - 50); ctx.lineTo(X(th), y0 + 50); ctx.stroke(); ctx.fillStyle = cssv('--ink'); ctx.fillText('x₁ = θ', X(th), y0 - 62); }
+    [0, 1].forEach(v => dot([X(v), y0], [v])); return; }
+  if (n === 2) {
+    const S = Math.min(W, H) - 60, ox = (W - S) / 2, oy = 20, X = v => ox + (v + 0.25) / 1.5 * S, Y = v => oy + S - (v + 0.25) / 1.5 * S;
+    // shade where the neuron fires (inputs read as on when > 0.5 for inhibition)
+    ctx.fillStyle = cssv('--tint'); const cell = 4;
+    for (let px = X(-0.25); px < X(1.25); px += cell) for (let py = Y(1.25); py < Y(-0.25); py += cell) {
+      const a = (px - ox) / S * 1.5 - 0.25, b = (oy + S - py) / S * 1.5 - 0.25;
+      const blocked = (inhib[0] && a > 0.5) || (inhib[1] && b > 0.5); if (!blocked && a + b >= th) ctx.fillRect(px, py, cell, cell); }
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(X(0), Y(1), X(1) - X(0), Y(0) - Y(1));
+    ctx.save(); ctx.beginPath(); ctx.rect(X(-0.25), Y(1.25), X(1.25) - X(-0.25), Y(-0.25) - Y(1.25)); ctx.clip();
+    ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(th + 2), Y(-2)); ctx.lineTo(X(th - 2), Y(2)); ctx.stroke(); ctx.restore();
+    ctx.fillStyle = cssv('--muted'); ctx.fillText('x₁', X(1.2), Y(-0.15)); ctx.fillText('x₂', X(-0.17), Y(1.2));
+    rows().forEach(x => dot([X(x[0]), Y(x[1])], x)); return; }
+  // n === 3: oblique projection of the unit cube and the plane x1+x2+x3 = θ
+  const S = Math.min(W * 0.62, H * 0.7), ox = W / 2 - S * 0.62, oy = H - 40;
+  const P = ([a, b, c]) => [ox + a * S + b * S * 0.45, oy - c * S - b * S * 0.35];
+  const E = [[0,0,0,1,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1],[1,1,1,0,1,1],[1,1,1,1,0,1],[1,1,1,1,1,0],[1,0,0,1,1,0],[1,0,0,1,0,1],[0,1,0,1,1,0],[0,1,0,0,1,1],[0,0,1,1,0,1],[0,0,1,0,1,1]];
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; E.forEach(e => { const p = P(e.slice(0, 3)), q = P(e.slice(3)); ctx.beginPath(); ctx.moveTo(...p); ctx.lineTo(...q); ctx.stroke(); });
+  if (!anyInh && th > 0 && th < 3) {   // polygon where the plane meets the cube edges
+    const pts = []; E.forEach(e => { const a = e.slice(0, 3), b = e.slice(3), sa = a[0] + a[1] + a[2], sb = b[0] + b[1] + b[2];
+      if ((sa - th) * (sb - th) <= 0 && sa !== sb) { const t = (th - sa) / (sb - sa); pts.push(a.map((v, i) => v + t * (b[i] - v))); } });
+    const uniq = pts.filter((p, i) => pts.findIndex(q => Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) < 1e-9) === i);
+    const c = uniq.reduce((s, p) => s.map((v, i) => v + p[i] / uniq.length), [0, 0, 0]);
+    const u = [1, -1, 0].map(v => v / Math.SQRT2), v2 = [1, 1, -2].map(v => v / Math.sqrt(6));
+    uniq.sort((p, q) => { const ang = r => Math.atan2((r[0] - c[0]) * v2[0] + (r[1] - c[1]) * v2[1] + (r[2] - c[2]) * v2[2], (r[0] - c[0]) * u[0] + (r[1] - c[1]) * u[1]); return ang(p) - ang(q); });
+    ctx.fillStyle = cssv('--s3'); ctx.globalAlpha = 0.28; ctx.beginPath(); uniq.forEach((p, i) => i ? ctx.lineTo(...P(p)) : ctx.moveTo(...P(p))); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1; ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.stroke(); }
+  rows().forEach(x => dot(P(x), x));
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.fillText(anyInh ? 'with an inhibitory input, the "yes" region is no longer one half-space' : (th === 0 || th === 3 ? 'θ = ' + th + ': the plane only touches a corner' : 'plane x₁ + x₂ + x₃ = ' + th), 8, 14);
+}
+function solve(){
+  const tf = TARGETS[n][$('tg').value], R = rows();
+  for (let mask = 0; mask < 2 ** n; mask++) for (let th = 0; th <= n; th++) {
+    const inh = Array.from({length: 3}, (_, i) => i < n && !!(mask >> i & 1));
+    if (R.every(x => neuron(x, th, inh) === tf(x))) { inhib = inh; $('th').value = th; buildControls(); $('tg').value = Object.keys(TARGETS[n]).find(k => TARGETS[n][k] === tf); draw();
+      $('gTxt').innerHTML = `<b>Found:</b> θ = ${th}` + (mask ? `, inhibitory: ${inh.map((v, i) => v ? 'x' + '₁₂₃'[i] : '').filter(Boolean).join(', ')}` : ', no inhibitory inputs') + `. This neuron implements ${$('tg').value}.`; return; } }
+  draw(); $('gTxt').innerHTML = `<b>No setting works for ${$('tg').value}.</b> I tried every θ from 0 to ${n} with every choice of inhibitory inputs. ${/XOR/.test($('tg').value) ? 'XOR is not linearly separable: no single line or plane puts the 1s on one side and the 0s on the other.' : 'A McCulloch–Pitts neuron gives every input the same importance and inhibition is all-or-nothing, so it can\'t express this function. Weights (the perceptron) fix that.'}`;
+}
+document.querySelectorAll('#nb button').forEach(b => b.onclick = () => { n = +b.dataset.n; inhib = [n === 1, false, false]; $('th').value = n === 1 ? 0 : 1;
+  document.querySelectorAll('#nb button').forEach(x => x.classList.toggle('on', x === b)); buildControls(); draw(); });
+$('th').oninput = draw; $('tg').onchange = draw; $('solve').onclick = solve;
+buildControls(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calls for Sanity: Interpretability, Fairness, Green AI</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 5 · playlist video 5 (titled “L4” on YouTube) · A brief history of deep learning, part 5</div>
+<h1>Calls for Sanity: Interpretability, Fairness, Green AI and Efficient Deep Learning</h1>
+<p class="lede">Big models trained on huge data now do remarkable things. That success brings a second set of questions that were side topics 10–15 years ago and are now mainstream: <b>why</b> does it work, is it <b>robust</b>, is it <b>fair</b>, what does it <b>cost the planet</b>, and can it run on a <b>phone</b>? The lecture ends on a hopeful note too: deep learning is now driving science itself.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=49F3moGjuwc" target="_blank" rel="noopener">this lecture on YouTube</a> (≈23 min). Previous: <a href="L4-transformers-madness.html">L4</a> · Next: <a href="L6-biological-neuron.html">L6</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The paradox of deep learning</h2>
+<p>A first course in machine learning teaches that a very complex model overfits: it learns the training data and fails on test data (my <a href="../machine-learning/L66-bias-variance.html">ML notes, L66</a>). Deep networks are enormous, yet they often generalise well. And that is despite several things that look like they should go wrong:</p>
+<table>
+<tr><th>Concern</th><th>What the lecture says</th></tr>
+<tr><td><b>High capacity</b></td><td>Very large models, which "should" overfit, mostly don't (though sometimes they do).</td></tr>
+<tr><td><b>Numerical instability</b></td><td>Vanishing and exploding gradients; GANs in particular are hard to train and go unstable.</td></tr>
+<tr><td><b>Sharp minima</b></td><td>The loss is not a nice convex function. It has many local minima, some very sharp, which makes training harder.</td></tr>
+<tr><td><b>Not robust</b></td><td>Put a few stickers on a <b>stop sign</b> and a human still reads "stop", but the network reads "speed limit 45". Researchers have also generated regular patterns that a classifier confidently calls a <b>king penguin</b> or a <b>starfish</b>.</td></tr>
+</table>
+<p>Despite all this, deep learning delivers in many real applications, and we still don't fully know why.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0"><b>Why can tiny changes fool a model?</b> A toy with a <b>linear</b> scorer $s(x)=w^\top x$ over $d$ "pixels". Nudge every pixel by at most $\varepsilon$ in the worst direction ($\Delta x_i=-\varepsilon\,\mathrm{sign}(w_i)$). Each pixel barely moves, but the score drops by $\varepsilon\sum_i|w_i|$, which grows with $d$.</p>
+  <div class="row">
+    <label>pixels d = <b id="dV"></b> <input type="range" id="d" min="0" max="100" value="60" aria-label="number of pixels, log scale"></label>
+    <label>max change per pixel ε = <b id="eV"></b> <input type="range" id="eps" min="1" max="100" value="20" aria-label="perturbation size"></label>
+    <button id="newW">New weights</button>
+  </div>
+  <canvas id="adv" height="190" aria-label="Score before and after a small perturbation"></canvas>
+  <div class="row">
+    <div class="stat"><div class="v" id="s0">–</div><div class="l">score of the clean input</div></div>
+    <div class="stat"><div class="v" id="s1">–</div><div class="l">score after the nudge</div></div>
+    <div class="stat"><div class="v" id="lab">–</div><div class="l">decision (score ≥ 0 means "stop sign")</div></div>
+  </div>
+  <p class="small" id="advTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The lecture shows the stop-sign and fooling-image examples but doesn't explain them. This demo is one standard explanation from the adversarial-examples literature (the "linearity" view): in high dimensions, many tiny coordinated changes add up. The clean input here is drawn so its score is a modest positive margin, like a correctly classified image.</div>
+
+<h2>2 · A push for explainability</h2>
+<p>Accuracy alone is no longer enough. You also need to say <b>why</b> the model gets it right, so you can understand failures like the stop sign. Research on the theory of why deep learning works, and on explaining individual models, has grown fast. The lecture's examples:</p>
+<ul>
+<li>A <b>workshop on human interpretability in machine learning</b>, started in 2016.</li>
+<li>The <b>CleverHans</b> toolkit. Clever Hans was a horse that seemed to do arithmetic, tapping its foot 7 times for "5 + 2". In fact it stopped when the audience's reaction cued it: the right answer for the wrong reason. The toolkit benchmarks models on <b>adversarial examples</b>, so you can tell whether a model really solves the task or leans on other cues.</li>
+<li><b>BlackboxNLP</b> workshops on analysing and interpreting neural networks used for language.</li>
+<li>The book <i>Interpretable Machine Learning: A Guide for Making Black Box Models Explainable</i>.</li>
+</ul>
+<div class="callout">Prof. Khapra flags this as a very active research area, worth considering if you are looking for problems to work on.</div>
+
+<h2>3 · Fairness and responsibility</h2>
+<p>Around 2011 there were hardly any papers on fairness or responsible AI. By 2017, when deep learning had taken over language, speech and vision, there was a sharp rise, and it has kept growing. The examples:</p>
+<ul>
+<li><b>Risk scores.</b> Software predicting whether a person might commit a crime rated one man <b>3/10, low risk</b> (record: two armed robberies, one attempted armed robbery, then a grand theft) and another <b>8/10, high risk</b> (four juvenile misdemeanours, then nothing). The difference tracked skin colour, not the record: a bias learned from biased training data.</li>
+<li><b>Face recognition.</b> Systems from large tech companies were close to 100% accurate for lighter-skinned men, worse for lighter-skinned women, and by far worst for darker-skinned women.</li>
+<li><b>Consequences.</b> Civil-rights and research groups wrote to Amazon's Jeff Bezos asking it to stop supplying face recognition to governments. Around 2020, IBM, Amazon and Microsoft stepped back from selling face recognition to police.</li>
+<li><b>Generative models.</b> Asked for images of "success", DALL·E 2 produced mostly men; for "sadness", mostly women.</li>
+<li><b>Loans.</b> A model trained on past repayment data can be biased against women, migrants or people of colour. Two people with the same profile who differ only in skin colour must not get different decisions.</li>
+<li>Stanford's <b>AI Audit Challenge</b> encourages models that are compliant and don't discriminate illegally.</li>
+</ul>
+
+<h2>4 · Green AI</h2>
+<p>The brain has about $10^{15}$ synapses and runs on roughly 15 watts. Training one of the models from the earlier lectures used 2,048 TPUs. From 2012 to 2018, the compute used to train the largest models grew about <b>300,000-fold</b>, doubling every few months.</p>
+<p>The lecture's CO₂ comparison: one passenger's New York–San Francisco flight, an average human's emissions for a year, and the emissions of a car over its whole lifetime, versus training a single large transformer model, which came to roughly five times the car's lifetime.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0"><b>What does 300,000× in six years mean?</b> Growth is exponential, so it's easiest to read as a doubling time. Drag the slider to compare a "doubling every $T$ months" curve with the lecture's figure (log scale).</p>
+  <div class="row"><label>doubling time T = <b id="tV"></b> months <input type="range" id="T" min="2" max="24" step="0.1" value="4" aria-label="doubling time in months"></label><button id="fitT">Fit to 300,000× over 2012–2018</button></div>
+  <canvas id="grow" height="230" aria-label="Exponential compute growth for a chosen doubling time"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>growth with doubling time T</span><span><i style="background:var(--faint)"></i>doubling every 24 months (Moore's-law pace)</span><span><i class="dot" style="background:var(--s2)"></i>300,000× by 2018</span></div>
+  <p class="small" id="growTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The lecture gives 300,000× and "doubling every few months". The doubling time follows from it: $\log_2 300{,}000\approx18.2$ doublings in 72 months, so about one doubling every 4 months. The 24-month curve is for comparison only.</div>
+<p>The lecture reads a quote from a well-known paper: is it fair that residents of the Maldives (likely underwater by 2100) or the 800,000 people in Sudan affected by drastic floods pay the environmental price of training ever larger <b>English</b> language models, when similar models are not being built for their own languages? Environment, responsibility and fairness mix. Hence the push for <b>green AI</b>: smaller models, and even rethinking hardware to make compute more efficient.</p>
+<div class="beyond"><b>Going beyond the video.</b> The lecture doesn't name the paper. The quote is from Bender, Gebru, McMillan-Major and Shmitchell, "On the Dangers of Stochastic Parrots" (FAccT 2021).</div>
+
+<h2>5 · Exciting times: AI driving science</h2>
+<ul>
+<li><b>Protein folding.</b> A protein is a sequence of amino acids, and we know these sequences. But the acids interact and fold the protein into a <b>3-D shape</b>, and that shape decides what it can bind to, which matters for drug design (think of the coronavirus's crown-shaped spike protein). DeepMind's <b>AlphaFold</b> (2020) sharply improved the accuracy of predicting 3-D structure. The problem isn't solved, but the jump from 2019 to 2022 is remarkable.</li>
+<li><b>Astronomy.</b> Models that age a human face can be applied at galaxy scale, generating how a galaxy might look as it ages, which helps scientists reason about the physics behind it.</li>
+<li><b>Discovering hidden variables</b> in experimental data.</li>
+</ul>
+
+<h2>6 · Efficient deep learning</h2>
+<p>Smartphone subscriptions keep rising; in India, mobile reach in rural areas is growing fast. Many people have phones but not computers. So: can AI models run <b>on the edge</b>, on a phone or a drone, under real constraints?</p>
+<ol class="steps">
+<li><b>Power and storage:</b> limited memory and compute on the device.</li>
+<li><b>Real time:</b> answers in milliseconds, not one or two seconds.</li>
+<li><b>Offline:</b> a drone may have no internet, so computation must happen on the device.</li>
+<li><b>The research question:</b> how do you take a multi-billion-parameter model and make it smaller <b>without</b> losing accuracy?</li>
+</ol>
+<div class="card">
+  <p class="small muted" style="margin-top:0"><b>Will it fit on a phone?</b> Memory just to store the weights is parameters × bits per weight. Pick a model size and a number format.</p>
+  <div class="row">
+    <label>parameters = <b id="pV"></b> <input type="range" id="P" min="0" max="100" value="62" aria-label="number of parameters, log scale"></label>
+    <span id="bits"><button data-b="32" class="on">32-bit float</button><button data-b="16">16-bit</button><button data-b="8">8-bit</button><button data-b="4">4-bit</button></span>
+  </div>
+  <canvas id="mem" height="150" aria-label="Weight memory compared with a phone's memory"></canvas>
+  <div class="row"><div class="stat"><div class="v" id="mb">–</div><div class="l">memory for the weights</div></div><div class="stat"><div class="v" id="fit">–</div><div class="l">fits in 8 GB of phone memory?</div></div></div>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The lecture names the goal but not the tools. Storing weights in fewer bits is <b>quantization</b> (a planned section of these notes); others are pruning and distillation. The 8 GB phone and the formula count only the weights, not activations or the app itself.</div>
+
+<p>Prof. Khapra closes the history here: from early neural networks to recurrent networks, transformers, GANs and diffusion models, with text-to-speech, voice conversion and speech recognition left out for time. From the next lecture, the course starts building neural networks from the neuron up.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Deep learning works despite high capacity, unstable training, sharp minima and poor robustness, and we don't fully know why.</li>
+<li>Small perturbations (stickers on a stop sign) can flip a model's decision, which drives research on explainability and adversarial robustness (CleverHans, BlackboxNLP).</li>
+<li>Models inherit bias from their data: risk scores, face recognition, generated images, loans. Fairness is now a mainstream research area.</li>
+<li>Training compute grew ~300,000× in 2012–2018; green AI asks who pays the environmental cost.</li>
+<li>AI now drives science (AlphaFold), and efficient deep learning aims to run big models on phones and drones.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const fmt = v => v >= 1e9 ? (v / 1e9).toFixed(v >= 1e10 ? 0 : 1) + 'B' : v >= 1e6 ? (v / 1e6).toFixed(v >= 1e7 ? 0 : 1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : String(Math.round(v));
+
+/* ---- demo 1: tiny coordinated changes in many pixels ---- */
+let Wt = [];
+const dOf = () => Math.round(10 ** (Math.log10(2) + (+$('d').value / 100) * (Math.log10(100000) - Math.log10(2))));
+function newW(){ Wt = Array.from({length: 100000}, () => randn() * 0.01); }
+function drawAdv(){
+  const d = dOf(), eps = +$('eps').value / 1000; $('dV').textContent = d.toLocaleString(); $('eV').textContent = eps.toFixed(3);
+  let l1 = 0, l2 = 0; for (let i = 0; i < d; i++){ l1 += Math.abs(Wt[i]); l2 += Wt[i] * Wt[i]; }
+  const s0 = 0.5 * Math.sqrt(l2) + 0.02, s1 = s0 - eps * l1;   // clean input with a small positive margin
+  $('s0').textContent = s0.toFixed(3); $('s1').textContent = s1.toFixed(3); $('lab').textContent = s1 >= 0 ? 'stop sign' : 'speed limit';
+  const [ctx, W, H] = setupCanvas($('adv')), pad = {l: 110, r: 16, t: 14, b: 22}, m = Math.max(Math.abs(s0), Math.abs(s1)) * 1.15 || 1;
+  const X = v => pad.l + (v + m) / (2 * m) * (W - pad.l - pad.r);
+  ctx.font = '13px system-ui,sans-serif'; ctx.textBaseline = 'middle';
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(0), pad.t); ctx.lineTo(X(0), H - pad.b); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.fillText('0 (decision boundary)', X(0), H - 8);
+  [[s0, 'clean input', '--s1', 0.32], [s1, 'nudged input', '--s2', 0.68]].forEach(([s, name, col, fy]) => {
+    const y = pad.t + fy * (H - pad.t - pad.b);
+    ctx.fillStyle = cssv(col); ctx.fillRect(Math.min(X(0), X(s)), y - 14, Math.abs(X(s) - X(0)), 28);
+    ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'right'; ctx.fillText(name, pad.l - 10, y); });
+  $('advTxt').innerHTML = s1 >= 0
+    ? `Each pixel moves by at most ${eps.toFixed(3)}, and the decision survives. Increase d: the same tiny nudge, spread over more pixels, adds up.`
+    : `<b>The decision flipped.</b> No pixel moved by more than ${eps.toFixed(3)}, but ${d.toLocaleString()} small changes all pushing the same way moved the score by ${(eps * l1).toFixed(2)}. Real images have hundreds of thousands of pixels.`;
+}
+$('d').oninput = drawAdv; $('eps').oninput = drawAdv; $('newW').onclick = () => { newW(); drawAdv(); };
+
+/* ---- demo 2: compute growth as a doubling time ---- */
+function drawGrow(){
+  const T = +$('T').value; $('tV').textContent = T.toFixed(1);
+  const [ctx, W, H] = setupCanvas($('grow')), pad = {l: 56, r: 14, t: 10, b: 28}, yMax = 7;   // log10 scale up to 10^7
+  const X = yr => pad.l + (yr - 2012) / 6 * (W - pad.l - pad.r), Y = lg => H - pad.b - lg / yMax * (H - pad.t - pad.b);
+  ctx.font = '12px system-ui,sans-serif'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let k = 0; k <= yMax; k++){ ctx.beginPath(); ctx.moveTo(pad.l, Y(k)); ctx.lineTo(W - pad.r, Y(k)); ctx.stroke(); ctx.textAlign = 'right'; ctx.textBaseline = 'middle'; ctx.fillText(k === 0 ? '1×' : '10' + '⁰¹²³⁴⁵⁶⁷'[k] + '×', pad.l - 6, Y(k)); }
+  for (let yr = 2012; yr <= 2018; yr++){ ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillText(yr, X(yr), H - pad.b + 6); }
+  const line = (dt, col, w) => { ctx.strokeStyle = cssv(col); ctx.lineWidth = w; ctx.beginPath();
+    for (let i = 0; i <= 120; i++){ const t = i / 120 * 72, lg = Math.min(yMax, t / dt * Math.log10(2)); i ? ctx.lineTo(X(2012 + t / 12), Y(lg)) : ctx.moveTo(X(2012), Y(lg)); } ctx.stroke(); };
+  line(24, '--faint', 2); line(T, '--s1', 2.8);
+  ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(2018), Y(Math.log10(3e5)), 6, 0, 7); ctx.fill();
+  const g = 2 ** (72 / T);
+  $('growTxt').innerHTML = `Doubling every ${T.toFixed(1)} months gives ${g >= 1e6 ? g.toExponential(1) : Math.round(g).toLocaleString()}× in six years. Moore's-law pace (every 24 months) gives only 8×. ${Math.abs(Math.log10(g / 3e5)) < 0.15 ? '<b>This matches the lecture\'s 300,000×.</b>' : 'Press the button to fit the lecture\'s figure.'}`;
+}
+$('T').oninput = drawGrow; $('fitT').onclick = () => { $('T').value = (72 / Math.log2(3e5)).toFixed(1); drawGrow(); };
+
+/* ---- demo 3: weight memory vs a phone ---- */
+let bits = 32;
+const pOf = () => 10 ** (6 + (+$('P').value / 100) * 5);   // 1M to 100B
+function drawMem(){
+  const p = pOf(), bytes = p * bits / 8, gb = bytes / 1e9; $('pV').textContent = fmt(p);
+  $('mb').textContent = gb >= 1 ? gb.toFixed(1) + ' GB' : (bytes / 1e6).toFixed(0) + ' MB'; $('fit').textContent = gb <= 8 ? 'yes' : 'no';
+  const [ctx, W, H] = setupCanvas($('mem')), pad = {l: 90, r: 16}, top = Math.max(16, gb * 1.1);
+  const X = v => pad.l + v / top * (W - pad.l - pad.r);
+  ctx.font = '13px system-ui,sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'right';
+  [[8, 'phone (8 GB)', '--faint', 40], [gb, `${bits}-bit weights`, gb <= 8 ? '--s3' : '--s2', 100]].forEach(([v, name, col, y]) => {
+    ctx.fillStyle = cssv(col); ctx.fillRect(pad.l, y - 16, Math.max(2, X(v) - pad.l), 32); ctx.fillStyle = cssv('--ink'); ctx.fillText(name, pad.l - 8, y); });
+}
+document.querySelectorAll('#bits button').forEach(b => b.onclick = () => { bits = +b.dataset.b; document.querySelectorAll('#bits button').forEach(x => x.classList.toggle('on', x === b)); drawMem(); });
+$('P').oninput = drawMem;
+
+function drawAll(){ drawAdv(); drawGrow(); drawMem(); }
+newW(); drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

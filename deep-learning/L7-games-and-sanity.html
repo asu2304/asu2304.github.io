@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Beating Humans at Their Own Games, the Madness, and the Need for Sanity</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.rev{grid-template-columns:minmax(0,2fr) minmax(0,1fr)} .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+@media (max-width:600px){.pair.rev,.trio{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.tl{list-style:none;padding:0;margin:14px 0;border-left:2px solid var(--grid)}
+.tl li{position:relative;padding:6px 0 10px 18px}
+.tl li::before{content:"";position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--s1)}
+.tl li.w::before{background:var(--s2)} .tl li.g::before{background:var(--s3)}
+.tl .yr{font-weight:700;font-variant-numeric:tabular-nums;margin-right:6px}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--grid);color:var(--muted);margin-left:4px}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 7 · A brief history of deep learning</div>
+<h1>Beating Humans at Their Own Games, the Madness, and the Need for Sanity</h1>
+<p class="lede">Deep reinforcement learning beat humans at Atari, Go, poker and Dota. Meanwhile the field exploded: GANs, ResNets, transformers, BERT, GPT and a new architecture every week (the "madness"). Then the hard questions arrived: why does any of this work, can we trust it, and why can an imperceptible change to an image fool it? That is the "need for sanity", and the reason this course insists on the fundamentals.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM&index=7" target="_blank" rel="noopener">lecture 7 of Prof. Khapra's Deep Learning playlist on YouTube</a>. Previous: <a href="L6-sequences.html">L6</a> · Next: <a href="L8-mcculloch-pitts.html">L8</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Beating humans at their own games</h2>
+<ul class="tl">
+<li class="g"><span class="yr">2015</span><b>Atari</b> (DeepMind's DQN, <i>Nature</i>): one network learns 49 Atari games from raw pixels and the score, reaching human-level play on many of them.</li>
+<li class="g"><span class="yr">2016</span><b>Go</b>: AlphaGo beats Lee Sedol 4–1. Go has far more possible positions than chess, so brute-force search was thought hopeless.</li>
+<li class="g"><span class="yr">2017</span><b>Poker</b>: DeepStack and Libratus beat professionals at heads-up no-limit Texas hold'em, a game of <i>imperfect</i> information (you can't see the other hand).</li>
+<li class="g"><span class="yr">2019</span><b>Dota 2 and StarCraft II</b>: OpenAI Five beats the world champion team; AlphaStar reaches Grandmaster level. Long horizons, teamwork, partial observation.</li>
+</ul>
+
+<h2>2 · The madness (2013 onward)</h2>
+<p>The number of deep learning papers, models and applications grew explosively. A small sample of what arrived in a few years:</p>
+<div class="trio">
+<div class="card" style="margin:0"><b>Generating data</b><br><span class="small">Variational autoencoders (2013), generative adversarial networks (2014), and later diffusion models: networks that produce realistic images, audio and text.</span></div>
+<div class="card" style="margin:0"><b>Going very deep</b><br><span class="small">ResNets (2015) use skip connections to train networks with 100+ layers; DenseNets and others follow.</span></div>
+<div class="card" style="margin:0"><b>Language</b><br><span class="small">Transformers (2017), BERT (2018), GPT-2 and GPT-3 (2019–20), and the large language models that followed.</span></div>
+</div>
+<p>Alongside: image captioning, visual question answering, video generation, neural machine translation in production, protein structure prediction, and models applied to almost every field.</p>
+
+<h2>3 · The need for sanity</h2>
+<ul>
+<li><b>Why does it work?</b> Deep networks are heavily over-parameterised and their losses are non-convex, yet they train and generalise. Theory is still catching up (the "paradox" of deep learning).</li>
+<li><b>Can we explain it?</b> Interpretability: which inputs led to this decision? Which neurons detect what?</li>
+<li><b>Is it robust?</b> <b>Adversarial examples</b> (Szegedy et al., 2013; Goodfellow et al., 2014): a perturbation too small for a human to see can flip a network's prediction, e.g. a "panda" confidently classified as a "gibbon".</li>
+<li><b>Is it fair and safe?</b> Bias in data and models, privacy and misuse.</li>
+</ul>
+<p>Prof. Khapra's point: with so much hype, a solid grasp of the fundamentals is what lets you separate real progress from noise. That is what the rest of the course builds.</p>
+
+<h2>4 · Why an invisible change can flip a decision</h2>
+<p>Even a <b>linear</b> classifier $s=w^\top x$ is vulnerable. Change every pixel by a tiny $\varepsilon$ in the direction of $-\text{sign}(w_i)$. Each pixel moves by at most $\varepsilon$, but the score drops by $\varepsilon\sum_i|w_i|=\varepsilon\|w\|_1$, which grows with the number of pixels $d$.</p>
+<div class="card">
+  <div class="row"><label>pixels $d$ <select id="dd"><option>16</option><option>64</option><option selected>784</option><option>3072</option></select></label><label>$\varepsilon$ per pixel <input type="range" id="eps" min="0" max="0.05" step="0.001" value="0.01"></label><span class="small muted" id="epsv"></span><button id="rnd">New image</button></div>
+  <canvas id="ac" height="200" aria-label="Original and perturbed image with classifier scores"></canvas>
+  <p class="small" id="aTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> This is Goodfellow et al.'s "linear explanation" of adversarial examples and the idea behind the fast gradient sign method, $x'=x+\varepsilon\,\text{sign}(\nabla_x \text{loss})$. Here the image and weights are random stand-ins, not a trained model.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Deep RL beat humans at Atari (2015), Go (2016), poker (2017), Dota 2 and StarCraft II (2019).</li>
+<li>The "madness": VAEs, GANs, ResNets, transformers, BERT, GPT and an explosion of papers and applications.</li>
+<li>The "need for sanity": why it works, interpretability, adversarial robustness, fairness and safety.</li>
+<li>High dimension alone makes tiny per-pixel changes add up to a large change in score.</li>
+</ol>
+
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const DRAWERS = []; const onDraw = f => DRAWERS.push(f); const redraw = () => DRAWERS.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redraw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redraw(); });
+
+let wv = [], xv = [];
+function gen(){ const d = +$('dd').value; wv = Array.from({length: d}, () => randn() / Math.sqrt(d) * 3);
+  xv = Array.from({length: d}, () => Math.random()); const s = wv.reduce((a, w, i) => a + w * xv[i], 0), tgt = 1.0;
+  // nudge the image so the clean score is +1 ("panda")
+  const n2 = wv.reduce((a, w) => a + w * w, 0); xv = xv.map((x, i) => x + (tgt - s) * wv[i] / n2); }
+function drawAd(){
+  const [ctx, W, H] = setupCanvas($('ac')), eps = +$('eps').value, d = wv.length; $('epsv').textContent = 'ε = ' + eps.toFixed(3);
+  const xa = xv.map((x, i) => x - eps * Math.sign(wv[i])), s0 = wv.reduce((a, w, i) => a + w * xv[i], 0), s1 = wv.reduce((a, w, i) => a + w * xa[i], 0), l1 = wv.reduce((a, w) => a + Math.abs(w), 0);
+  const side = Math.round(Math.sqrt(d)), sz = Math.min(H - 40, (W - 60) / 3), cs = sz / side;
+  const drawImg = (x, ox, lab, s) => { for (let i = 0; i < d; i++) { const v = Math.max(0, Math.min(1, x[i])), g = Math.round(40 + 200 * v); ctx.fillStyle = `rgb(${g},${g},${g})`; ctx.fillRect(ox + (i % side) * cs, 24 + Math.floor(i / side) * cs, Math.ceil(cs), Math.ceil(cs)); }
+    ctx.fillStyle = cssv('--ink'); ctx.font = '13px system-ui'; ctx.textAlign = 'left'; ctx.fillText(lab, ox, 16);
+    ctx.fillStyle = s >= 0 ? cssv('--s1') : cssv('--s2'); ctx.fillText(`score ${s.toFixed(2)} → ${s >= 0 ? '"panda"' : '"gibbon"'}`, ox, 24 + sz + 14); };
+  drawImg(xv, 8, 'original', s0); drawImg(xa, 8 + sz + 30, 'perturbed (±ε per pixel)', s1);
+  const ox = 8 + 2 * (sz + 30); ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText('largest pixel change', ox, 40); ctx.fillStyle = cssv('--ink'); ctx.font = '600 18px system-ui'; ctx.fillText(eps.toFixed(3), ox, 62);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText('score change ε‖w‖₁', ox, 92); ctx.fillStyle = cssv('--ink'); ctx.font = '600 18px system-ui'; ctx.fillText((eps * l1).toFixed(2), ox, 114);
+  const need = 1 / l1;
+  $('aTxt').innerHTML = `With d = ${d}, ‖w‖₁ ≈ ${l1.toFixed(1)}, so an ε of just <b>${need.toFixed(4)}</b> per pixel is enough to flip the label. ` + (s1 < 0 ? '<b>Flipped</b>, although the two images look the same.' : 'Increase ε, or increase d with ε fixed.') + ' More pixels → smaller ε needed.';
+}
+$('dd').addEventListener('change', () => { gen(); drawAd(); }); $('rnd').onclick = () => { gen(); drawAd(); }; $('eps').addEventListener('input', drawAd);
+gen(); onDraw(drawAd);
+
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

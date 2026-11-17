@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Deep Revival</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.rev{grid-template-columns:minmax(0,2fr) minmax(0,1fr)} .trio{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+@media (max-width:600px){.pair.rev,.trio{grid-template-columns:1fr}}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex-display{overflow-x:auto;overflow-y:hidden}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.tl{list-style:none;padding:0;margin:14px 0;border-left:2px solid var(--grid)}
+.tl li{position:relative;padding:6px 0 10px 18px}
+.tl li::before{content:"";position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--s1)}
+.tl li.w::before{background:var(--s2)} .tl li.g::before{background:var(--s3)}
+.tl .yr{font-weight:700;font-variant-numeric:tabular-nums;margin-right:6px}
+.chip{display:inline-block;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--grid);color:var(--muted);margin-left:4px}
+select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:5px 8px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 3 · A brief history of deep learning</div>
+<h1>The Deep Revival</h1>
+<p class="lede">By the 2000s we knew deep networks could represent almost anything, but training them was unstable. In 2006 Hinton and Salakhutdinov showed a trick (pre-train each layer without labels, then fine-tune) that made deep networks train well. Within six years deep learning was winning competitions in handwriting, speech and images.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM&index=3" target="_blank" rel="noopener">lecture 3 of Prof. Khapra's Deep Learning playlist on YouTube</a>. Previous: <a href="L2-spring-to-winter.html">L2</a> · Next: <a href="L4-cats-to-cnns.html">L4</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · 2006: unsupervised pre-training</h2>
+<p>Hinton and Salakhutdinov (<i>Science</i>, 2006) trained a deep network one layer at a time. Each layer was first trained, <b>without labels</b>, to model the layer below it (using restricted Boltzmann machines). The stacked layers then gave a good starting point, and ordinary supervised training fine-tuned the whole network.</p>
+<ol class="steps">
+<li>Train layer 1 to reconstruct / model the raw input.</li>
+<li>Freeze it; train layer 2 on layer 1's outputs. Repeat for every layer.</li>
+<li>Put a classifier on top and fine-tune all the weights with labelled data.</li>
+</ol>
+<p>Follow-up work (Bengio et al., 2007; Erhan et al., 2009–10) asked <b>why</b> it worked. Two answers: pre-training acts as a better <b>optimiser</b> (it starts the weights in a good region) and as a <b>regulariser</b> (it constrains the weights to explain the input, not just the labels).</p>
+<div class="callout">That question (why does this help?) pushed people to study optimisation, regularisation, initialisation and activation functions. Better answers there eventually made pre-training largely unnecessary. You will meet each of them later in the course.</div>
+
+<h2>2 · Wins in other domains</h2>
+<ul class="tl">
+<li class="g"><span class="yr">2009</span><b>Handwriting</b>: Graves et al. use LSTM networks to win international handwriting-recognition competitions (ICDAR).</li>
+<li class="g"><span class="yr">2010</span><b>Speech</b>: deep neural networks replace Gaussian mixtures in speech recognisers (Dahl, Hinton, Deng, Mohamed and others), with large error reductions; Microsoft and Google adopt them.</li>
+<li class="g"><span class="yr">2010</span><b>Handwritten digits</b>: Ciresan et al. reach 0.35% error on MNIST with a plain deep MLP trained on GPUs.</li>
+<li class="g"><span class="yr">2011</span><b>Traffic signs</b>: a GPU-trained deep network beats human accuracy on the German traffic-sign benchmark.</li>
+<li class="g"><span class="yr">2012–16</span><b>ImageNet</b>: deep CNNs win year after year (chart below).</li>
+</ul>
+
+<h2>3 · ImageNet: the error keeps falling</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Top-5 classification error of the winning entry in the ImageNet challenge (ILSVRC). Hover a bar. Toggle depth to see how many layers each network had.</p>
+  <div class="row"><button id="tDepth">Show depth</button></div>
+  <canvas id="ic" height="300" aria-label="ImageNet winning top-5 error by year"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>winning error</span><span><i style="background:var(--s2)"></i>rough human error (≈5%)</span></div>
+  <p class="small" id="iTxt">Hover or tap a bar.</p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The "human ≈ 5.1%" figure is a single annotator (Andrej Karpathy) labelling a test sample after training himself on the classes; it is a reference point, not a hard human limit. The 2010–11 winners did not use deep networks; that contrast is what made 2012 a shock.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>2006: layer-wise unsupervised pre-training made deep networks trainable.</li>
+<li>It helps as better initialisation (optimisation) and as a regulariser; studying why led to better optimisers, initialisers, activations and regularisers.</li>
+<li>2009–2011: deep nets win at handwriting, speech, digits and traffic signs.</li>
+<li>2012 onward: CNNs dominate ImageNet, with error falling from ≈26% to ≈3.6% in four years while networks went from 8 to 152 layers.</li>
+</ol>
+
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const DRAWERS = []; const onDraw = f => DRAWERS.push(f); const redraw = () => DRAWERS.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redraw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redraw(); });
+
+const D = [['2010','NEC-UIUC',28.2,'—'],['2011','XRCE',25.8,'—'],['2012','AlexNet',16.4,8],['2013','ZFNet',11.7,8],['2014','VGG (2nd)',7.3,19],['2014','GoogLeNet',6.7,22],['2015','ResNet',3.57,152]];
+let showDepth = false, hov = -1, geoI = null;
+function drawI(){
+  const [ctx, W, H] = setupCanvas($('ic')), L = 40, B = 40, T = 14, bw = (W - L - 10) / D.length;
+  const Y = v => H - B - v / 30 * (H - B - T);
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.textAlign = 'right'; ctx.lineWidth = 1;
+  [0,10,20,30].forEach(v => { ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(W - 10, Y(v)); ctx.stroke(); ctx.fillText(v + '%', L - 6, Y(v) + 4); });
+  ctx.textAlign = 'center';
+  D.forEach(([yr, nm, e, d], i) => { const x = L + i * bw + bw * 0.18, w = bw * 0.64;
+    ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = hov === -1 || hov === i ? 1 : 0.45; ctx.fillRect(x, Y(e), w, Y(0) - Y(e)); ctx.globalAlpha = 1;
+    ctx.fillStyle = cssv('--ink'); ctx.fillText(showDepth ? (d === '—' ? 'shallow' : d + ' layers') : e + '%', x + w / 2, Y(e) - 6);
+    ctx.fillStyle = cssv('--muted'); ctx.fillText(yr, x + w / 2, H - B + 16); ctx.fillText(nm, x + w / 2, H - B + 31); });
+  ctx.strokeStyle = cssv('--s2'); ctx.setLineDash([6, 4]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, Y(5.1)); ctx.lineTo(W - 10, Y(5.1)); ctx.stroke(); ctx.setLineDash([]);
+  geoI = {L, bw};
+}
+const hovI = e => { const r = $('ic').getBoundingClientRect(), i = Math.floor((e.clientX - r.left - geoI.L) / geoI.bw);
+  if (i >= 0 && i < D.length && i !== hov) { hov = i; const [yr, nm, er, d] = D[i]; $('iTxt').innerHTML = `<b>${yr} · ${nm}</b>: top-5 error ${er}%` + (d === '—' ? ', with hand-engineered features (no deep network).' : `, a ${d}-layer CNN.`) + (i ? ` Relative to the entry before: ${(100 * (1 - er / D[i-1][2])).toFixed(0)}% fewer errors.` : ''); drawI(); } };
+$('ic').addEventListener('mousemove', hovI); $('ic').addEventListener('click', hovI);
+$('ic').addEventListener('mouseleave', () => { hov = -1; drawI(); });
+$('tDepth').onclick = () => { showDepth = !showDepth; $('tDepth').classList.toggle('on', showDepth); $('tDepth').textContent = showDepth ? 'Show error' : 'Show depth'; drawI(); };
+onDraw(drawI);
+
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

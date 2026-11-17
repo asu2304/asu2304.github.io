@@ -12,7 +12,7 @@ Personal revision notes by Ashutosh Patidar, served with GitHub Pages. The notes
 | [Probability and Statistics](https://asu2304.github.io/probability-statistics/) | — | — | Coming soon |
 | [SQL for Data Science](https://asu2304.github.io/sql/) | Nitish Singh, CampusX | 12 chapters and a practice session, with quizzes and an in-browser SQL lab. | Complete |
 | [Machine Learning](https://asu2304.github.io/machine-learning/) | Arun Rajkumar, DA5400 (IIT Madras) | All 74 lectures: PCA and kernels, clustering, estimation and EM, regression, classification, ensembles, loss functions and neural networks. Plus my own notes and a 5-page detour on gradient boosting (XGBoost, LightGBM, CatBoost). | Complete |
-| [Deep Learning](https://asu2304.github.io/deep-learning/) | Mitesh Khapra, CS6910 (IIT Madras) | — | Coming soon |
+| [Deep Learning](https://asu2304.github.io/deep-learning/) | Mitesh Khapra, IIT Madras ([lecture playlist](https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM)) | First 10 lectures: a brief history of deep learning, the McCulloch–Pitts neuron, perceptrons, error surfaces and the perceptron learning algorithm. | In progress |
 | [Transformers](https://asu2304.github.io/transformers/) | — | — | Coming soon |
 | [Quantization](https://asu2304.github.io/quantization/) | — | — | Coming soon |
 | [LLMOps](https://asu2304.github.io/llmops/) | — | — | Coming soon |
@@ -36,7 +36,7 @@ linear-algebra/            MIT 18.06 notes
 probability-statistics/    coming soon
 sql/                       SQL notes and the SQL lab
 machine-learning/          DA5400 notes (L1–L74, N1–N3, D1–D5)
-deep-learning/             coming soon
+deep-learning/             Deep learning notes (Mitesh Khapra; L1–L10 so far)
 transformers/              coming soon
 quantization/              coming soon
 llmops/                    coming soon

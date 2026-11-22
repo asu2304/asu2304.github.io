@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Better Activation Functions: Sigmoid, tanh, ReLU and Its Variants</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 59 · playlist video 59 (titled “L61” on YouTube) · activation functions</div>
+<h1>Better Activation Functions: Sigmoid, tanh, ReLU and Its Variants</h1>
+<p class="lede">A deep network's power comes from its non-linearities, so the choice of activation function matters, and the thing to watch is its gradient. Sigmoid saturates, isn't zero-centred and is costly to compute. tanh fixes the centring. ReLU fixes saturation on the positive side and is cheap, but its neurons can die. Leaky ReLU, parametric ReLU and ELU keep some gradient flowing for negative inputs.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=4eQiXN69FdQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈34 min). Previous: <a href="L58-optimization-or-regularization.html">L58</a> · Next: <a href="L60-maxout.html">L60</a> (Maxout).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<p>Of the four axes from <a href="L58-optimization-or-regularization.html">L58</a> (optimization, regularization, activation functions, initialization), the first two are done. This lecture starts the third. He notes that much of the early material is adapted from Andrej Karpathy's course slides.</p>
+
+<h2>1 · Why activation functions matter</h2>
+<p>Take a thin deep network and replace every sigmoid with the identity: $a_i=W_ih_{i-1}$ and $h_i=a_i$ (no non-linearity). Then</p>
+<ol class="steps">
+<li>$h_1=W_1x$</li>
+<li>$h_2=W_2h_1=W_2W_1x$</li>
+<li>… and the output is $y=W_4W_3W_2W_1\,x=W x$ with $W=W_4W_3W_2W_1$.</li>
+</ol>
+<p>However deep, it is <b>one linear transformation</b>. It can only learn linear decision boundaries (a line, or a hyperplane). For data like brown points inside a ring of blue points, you need a circular boundary, and no line separates them without high error.</p>
+<div class="callout">Depth alone doesn't give a network its power: <b>the non-linearities do</b>. The universal approximation theorem (<a href="L20-representation-power-1d.html">L20</a>) needed only one sigmoid layer, but it did need it. The non-linearities come from the activation functions. Is any non-linear function fine, or do some have better properties? Since training is a game of gradients, we judge each by its <b>gradient</b>.</div>
+
+<h2>2 · Sigmoid (logistic)</h2>
+$$\sigma(x)=\frac{1}{1+e^{-x}},\qquad \sigma'(x)=\sigma(x)\big(1-\sigma(x)\big).$$
+<p>It is applied element-wise to the pre-activation vector $a$ and squashes each value into $(0,1)$. It has three problems.</p>
+<h3 style="font-size:17px;margin:18px 0 4px">Problem 1: saturated neurons kill gradients</h3>
+<p>A sigmoid neuron is <b>saturated</b> when its output is at (or close to) 0 or 1. Then $\sigma'=1\cdot(1-1)=0$ or $0\cdot(1-0)=0$, so the gradient vanishes. Backprop to any weight below a sigmoid passes through $\partial h_3/\partial a_3=\sigma'(a_3)$, so if that factor is ≈ 0, the weights get no update. Worse, a neuron saturated at 1 was <i>strongly</i> involved in the output, so it does affect the loss, but that signal never reaches its weights.</p>
+<p><b>Why would it saturate?</b> The neuron outputs $\sigma(\sum_i w_ix_i)$. Inputs are usually standardized, so they are small. But:</p>
+<ul>
+<li>if weights are initialized large (100, 200, …), $\sum_i w_ix_i$ is large and the neuron saturates. Already at 2.5 the sigmoid is close to 1 (≈ 0.92, with $\sigma'\approx0.07$); large negative weights saturate it at 0;</li>
+<li>even with small weights, a layer with <b>a thousand inputs</b> sums a thousand terms. Reaching 2 or 3 is not surprising.</li>
+</ul>
+<p>So weights must be initialized carefully: the link to the weight-initialization lectures.</p>
+
+<h3 style="font-size:17px;margin:18px 0 4px">Problem 2: not zero-centred</h3>
+<p>Outputs lie in $(0,1)$, centred around 0.5. Why does that hurt? Take an output neuron fed by two sigmoid neurons: $a_3=w_1h_{21}+w_2h_{22}$, then $h_3=\sigma(a_3)$. By the chain rule:</p>
+$$\frac{\partial\mathcal L}{\partial w_1}=\underbrace{\frac{\partial\mathcal L}{\partial y}\frac{\partial y}{\partial h_3}\frac{\partial h_3}{\partial a_3}}_{\text{common to both}}\,h_{21},\qquad \frac{\partial\mathcal L}{\partial w_2}=\underbrace{\frac{\partial\mathcal L}{\partial y}\frac{\partial y}{\partial h_3}\frac{\partial h_3}{\partial a_3}}_{\text{common to both}}\,h_{22}.$$
+<ol class="steps">
+<li>$h_{21},h_{22}$ are outputs of sigmoid neurons, so both are <b>positive</b>.</li>
+<li>The sign of each derivative is therefore the sign of the common factor, which is the same for both.</li>
+<li>So the gradient vector is either all positive or all negative. With $n$ inputs, the same argument holds for all $n$ derivatives.</li>
+</ol>
+<p>In the $(\partial\mathcal L/\partial w_1,\ \partial\mathcal L/\partial w_2)$ plane, only the first and third quadrants are possible: <b>half the directions are thrown away</b>. If the optimum lies in a direction with one component up and one down, you must <b>zig-zag</b> to it, taking more steps. (It's like being told to drive from A to B but forbidden certain kinds of turns.) If the inputs came from a function with range $(-1,1)$, the signs could differ and any direction would be possible.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Test it. A neuron $\hat y=w_1h_1+w_2h_2$ learns from random inputs; the target weights $w^*$ (star) need $w_1$ up and $w_2$ down. Orange: the inputs $h$ come from <b>sigmoid</b> neurons (always positive). Blue: they come from <b>tanh</b> neurons (either sign). Both use SGD with the same learning rate.</p>
+  <div class="row"><button id="zzRun">Run both</button><label>learning rate <input type="range" id="zzLr" min="0.1" max="1.5" step="0.1" value="0.8"> <b id="zzLrv"></b></label></div>
+  <div class="pair">
+    <canvas id="zzq" height="220" aria-label="Directions the gradient can take: quadrants allowed for sigmoid and tanh inputs"></canvas>
+    <canvas id="zzc" height="220" aria-label="Paths of the weights towards the optimum"></canvas>
+  </div>
+  <div class="legend"><span><i style="background:var(--s2)"></i>sigmoid inputs</span><span><i style="background:var(--s1)"></i>tanh inputs</span><span><i class="dot" style="background:var(--s3)"></i>optimum $w^*$</span></div>
+  <div class="row"><div class="stat"><div class="v" id="zzS">–</div><div class="l">steps to reach $w^*$ (sigmoid inputs)</div></div><div class="stat"><div class="v" id="zzT">–</div><div class="l">steps (tanh inputs)</div></div></div>
+  <p class="small" id="zzTxt"></p>
+</div>
+
+<h3 style="font-size:17px;margin:18px 0 4px">Problem 3: computationally expensive</h3>
+<p>Every evaluation needs an exponential. There are fast ways to compute it, but it is still work.</p>
+
+<h2>3 · tanh</h2>
+$$\tanh(x)=\frac{e^x-e^{-x}}{e^x+e^{-x}}\in(-1,1),\qquad \frac{d}{dx}\tanh(x)=1-\tanh^2(x).$$
+<p>tanh is not new (used since the 1990s), but it fixes one problem: it is <b>zero-centred</b>, so the limited-directions problem goes away. It still <b>saturates</b>: when $\tanh=\pm1$ the derivative $1-\tanh^2$ is 0, which is clear from the flat ends of the graph. It is still <b>expensive</b> (exponentials).</p>
+
+<h2>4 · ReLU (rectified linear unit)</h2>
+$$f(x)=\max(0,x),\qquad f'(x)=\begin{cases}0 &amp; x&lt;0\\1 &amp; x&gt;0\end{cases}$$
+<p>Proposed about a decade ago in the context of convolutional networks, and still a de facto choice across feed-forward networks, RNNs and Transformers (though GELU is perhaps the Transformer default). In a network, the pre-activation $a_{12}=\sum_iw_ix_i$ goes in: if positive it passes through unchanged, if negative it is clamped to 0.</p>
+<p><b>Is it really non-linear?</b> Yes: linear on each side but bent at 0. In fact, the <b>difference of two ReLU units</b> looks like a piecewise-linear sigmoid, close to a step function, and adjusting the parameters gives an even better step. (The capped version drawn on the slide is called <b>ReLU6</b>, after its maximum value of 6.)</p>
+<table>
+<tr><th>Advantages</th><th>Remaining problems</th></tr>
+<tr><td>Does not saturate for positive inputs (no clamping on that side)<br>Very cheap: no exponent, just "if &gt; 0, pass it"<br>Converged much faster than sigmoid and tanh in the original (CNN) paper</td><td>Saturates for negative inputs: roughly half the problem solved<br>Neurons can <b>die</b></td></tr>
+</table>
+<h3 style="font-size:17px;margin:18px 0 4px">Dead neurons</h3>
+<ol class="steps">
+<li>A neuron computes $a_1=w_1x_1+w_2x_2+b$, then $h_1=\max(0,a_1)$. Suppose one training example sends a <b>large gradient</b> into $b$, and the update makes $b$ <b>very negative</b>. Nothing contrived: this can happen.</li>
+<li>Now $a_1&lt;0$ whatever $x_1,x_2$ are, so $h_1=0$ and $\partial h_1/\partial a_1=0$.</li>
+<li>Every gradient through this neuron has that factor: $\partial\mathcal L/\partial w_1=\partial\mathcal L/\partial w_2=\partial\mathcal L/\partial b=0$. Nothing updates.</li>
+<li>Next example: $b$ is still very negative, so the neuron is dead again, and again… <b>Once dead, it stays dead forever.</b></li>
+</ol>
+<p>In practice, <b>more than 50% of ReLU units</b> can die if the learning rate is set too high (a large gradient times a large learning rate is exactly what pushes $b$ far negative). Remedies: set the learning rate carefully, <b>initialize the bias to a positive value</b> such as 0.01 (fairly large, given how many terms add into the sum), or use a variant.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">One ReLU neuron learning $t=x_1+x_2$ (if positive) from 200 inputs. Drag the bias, or hit it with a big gradient step, then train. Points where $a&gt;0$ are filled (alive); hollow points pass no gradient.</p>
+  <div class="row"><label>bias $b$ <input type="range" id="dbB" min="-8" max="2" step="0.1" value="0.5"> <b id="dbBv"></b></label>
+    <button id="dbHit">Big gradient: b ← b − 8</button><button id="dbTrain">Train 200 steps</button>
+    <label><input type="checkbox" id="dbLeaky"> leaky ReLU (slope 0.1)</label></div>
+  <canvas id="dbc" height="240" aria-label="Inputs coloured by whether the ReLU neuron is active, with its boundary line"></canvas>
+  <div class="row"><div class="stat"><div class="v" id="dbA">–</div><div class="l">inputs with $a&gt;0$</div></div><div class="stat"><div class="v" id="dbG">–</div><div class="l">$|\partial\mathcal L/\partial b|$ now</div></div><div class="stat"><div class="v" id="dbL">–</div><div class="l">training loss</div></div></div>
+  <p class="small" id="dbTxt"></p>
+</div>
+
+<h2>5 · ReLU variants</h2>
+<table>
+<tr><th>Variant</th><th>Formula</th><th>What it adds</th></tr>
+<tr><td><b>Leaky ReLU</b></td><td>$\max(0.1x,\ x)$</td><td>A small slope for $x&lt;0$: some gradient always flows, so it doesn't saturate or die; still cheap; outputs closer to zero-centred, so the one-direction problem is eased</td></tr>
+<tr><td><b>Parametric ReLU</b></td><td>$\max(\alpha x,\ x)$</td><td>Why 0.1? Make $\alpha$ a parameter: start at 0.1 and update it by backprop like any weight, $\alpha\leftarrow\alpha-\eta\,\partial\mathcal L/\partial\alpha$</td></tr>
+<tr><td><b>ELU</b> (exponential linear unit)</td><td>$x$ if $x&gt;0$; $\ a(e^x-1)$ otherwise</td><td>Smooth exponential decay on the negative side; ReLU's benefits, some gradient always, closer to zero-centred, but expensive again (exponent)</td></tr>
+</table>
+<p>Each was proposed in a specific context, and some came with theory explaining why they beat ReLU. But in practice <b>they are not very popular</b>: plain ReLU is still the default, or you use the newer <b>GELU</b> and <b>Swish</b> (<a href="L61-gelu-silu.html">L61</a>).</p>
+<div class="beyond"><b>Going beyond the video.</b> Most libraries default the leaky slope to 0.01, not 0.1; the lecture's 0.1 is just as valid. The "decade-old paper" is Krizhevsky, Sutskever and Hinton (AlexNet, 2012), which reported ReLU networks reaching a training-error target about six times faster than tanh ones.</div>
+
+<h2>6 · Explore the activations and their gradients</h2>
+<p>Pick a function to see it (solid) and its derivative (dashed). Shaded bands mark where the gradient is (almost) zero: <b>saturated</b> ($|f'|&lt;0.05$) or <b>dead</b> ($f'=0$). The second slider tests the "thousand inputs" claim: with standardized inputs and weights of a given size, how often is the pre-activation in a flat region?</p>
+<div class="card">
+  <div class="row" id="actBtns"></div>
+  <div class="row">
+    <label>input $x$ <input type="range" id="axX" min="-6" max="6" step="0.05" value="2.5"> <b id="axXv"></b></label>
+    <label id="alphaWrap">$\alpha$ (PReLU) <input type="range" id="axA" min="0" max="0.5" step="0.01" value="0.1"> <b id="axAv"></b></label>
+  </div>
+  <div class="row">
+    <label>inputs per neuron $n$ <input type="range" id="axN" min="1" max="3" step="0.05" value="3"> <b id="axNv"></b></label>
+    <label>weight std <input type="range" id="axW" min="0.01" max="0.3" step="0.01" value="0.1"> <b id="axWv"></b></label>
+  </div>
+  <canvas id="axc" height="300" aria-label="Activation function, its derivative, and its saturated regions"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>$f(x)$</span><span><i style="background:var(--s2)"></i>$f'(x)$ (dashed)</span><span><i style="background:var(--warn-bg);height:10px"></i>flat region</span><span><i style="background:var(--s3)"></i>distribution of the pre-activation $a=\sum_i w_ix_i$</span></div>
+  <div class="row"><div class="stat"><div class="v" id="axF">–</div><div class="l">$f(x)$</div></div><div class="stat"><div class="v" id="axD">–</div><div class="l">$f'(x)$</div></div><div class="stat"><div class="v" id="axS">–</div><div class="l">neurons in a flat region</div></div></div>
+  <p class="small" id="axTxt"></p>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Without non-linear activations a deep network collapses to one linear map; the activation functions supply its power, and their gradients decide how well it trains.</li>
+<li>Sigmoid: saturates at 0 and 1 (gradient $\sigma(1-\sigma)\to0$), is not zero-centred (all of a neuron's input-weight gradients share one sign, so updates zig-zag), and needs an exponent.</li>
+<li>Saturation comes from large weights or simply many inputs adding up, which is why initialization matters.</li>
+<li>tanh fixes zero-centring but still saturates; ReLU doesn't saturate for $x&gt;0$ and is cheap, but a very negative bias can kill a neuron permanently (watch the learning rate, start biases at a small positive value).</li>
+<li>Leaky ReLU, PReLU (learned slope) and ELU keep gradient flowing for $x&lt;0$, yet plain ReLU (and now GELU/Swish) remain the usual choices.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const sig = a => 1 / (1 + Math.exp(-a));
+const tmath = el => { if (window.renderMathInElement) renderMathInElement(el, {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false}); };
+function axes(ctx, W, H, X, Y, x0, x1, y0, y1){
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(x0), Y(0)); ctx.lineTo(X(x1), Y(0)); ctx.moveTo(X(0), Y(y0)); ctx.lineTo(X(0), Y(y1)); ctx.stroke(); }
+
+/* ---------- zig-zag demo ---------- */
+const WSTAR = [1.5, -1.5];
+let zz = null;
+function sgd(kind){ let w = [0, 0]; const path = [w.slice()], lr = +$('zzLr').value; let steps = null;
+  for (let t = 1; t <= 3000; t++) {
+    const z = [randn() * 1.5, randn() * 1.5], h = kind === 's' ? z.map(sig) : z.map(Math.tanh);
+    const e = (w[0] * h[0] + w[1] * h[1]) - (WSTAR[0] * h[0] + WSTAR[1] * h[1]);
+    w = [w[0] - lr * e * h[0], w[1] - lr * e * h[1]]; if (t <= 400) path.push(w.slice());
+    if (steps === null && Math.hypot(w[0] - WSTAR[0], w[1] - WSTAR[1]) < 0.1) { steps = t; if (t > 400) break; }
+    if (steps !== null && t >= Math.max(steps, 60)) break; }
+  return {path, steps}; }
+function runZZ(){ zz = {s: sgd('s'), t: sgd('t')}; drawZZ(); }
+function drawZZ(){
+  $('zzLrv').textContent = (+$('zzLr').value).toFixed(1);
+  { const [ctx, W, H] = setupCanvas($('zzq')), cx = W / 2, cy = H / 2, r = Math.min(W, H) / 2 - 22;
+    ctx.globalAlpha = 0.25; ctx.fillStyle = cssv('--s2'); ctx.fillRect(cx, cy - r, r, r); ctx.fillRect(cx - r, cy, r, r); ctx.globalAlpha = 1;
+    ctx.strokeStyle = cssv('--s1'); ctx.setLineDash([4, 3]); ctx.strokeRect(cx - r, cy - r, 2 * r, 2 * r); ctx.setLineDash([]);
+    ctx.strokeStyle = cssv('--muted'); ctx.beginPath(); ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r); ctx.stroke();
+    ctx.font = '12px system-ui'; ctx.fillStyle = cssv('--ink'); ctx.fillText('∂L/∂w₁', cx + r - 44, cy + 14); ctx.fillText('∂L/∂w₂', cx + 4, cy - r + 10);
+    ctx.fillStyle = cssv('--s2'); ctx.fillText('allowed', cx + 8, cy - r + 28); ctx.fillText('allowed', cx - r + 6, cy + r - 8);
+    ctx.fillStyle = cssv('--muted'); ctx.fillText('ruled out', cx - r + 6, cy - r + 14); ctx.fillText('ruled out', cx + 8, cy + r - 8); }
+  const [ctx, W, H] = setupCanvas($('zzc')), lo = -0.6, hi = 2.1, S = Math.min(W, H) / (hi - lo), ox = W / 2 - S * (WSTAR[0] / 2), oy = H / 2 + S * (WSTAR[1] / 2);
+  const X = v => ox + v * S, Y = v => oy - v * S;
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText('w₁', W - 18, Y(0) - 4); ctx.fillText('w₂', X(0) + 4, 12); ctx.fillText('start (0,0)', X(0) + 4, Y(0) - 6);
+  if (zz) [['t', '--s1'], ['s', '--s2']].forEach(([k, c]) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = 1.6; ctx.beginPath(); zz[k].path.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.stroke(); });
+  ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(X(WSTAR[0]), Y(WSTAR[1]), 6, 0, 7); ctx.fill();
+  if (zz) { const f = s => s.steps === null ? '&gt; 3000' : s.steps; $('zzS').innerHTML = f(zz.s); $('zzT').innerHTML = f(zz.t);
+    $('zzTxt').innerHTML = 'Every sigmoid-input step moves $w_1$ and $w_2$ the <b>same</b> way (both up or both down), so reaching "$w_1$ up, $w_2$ down" takes a staircase of alternating steps. tanh inputs allow steps straight towards the optimum. Re-run a few times: SGD is random, but the gap persists.'; tmath($('zzTxt')); }
+}
+$('zzRun').onclick = runZZ; $('zzLr').addEventListener('input', () => { zz = null; $('zzS').textContent = '–'; $('zzT').textContent = '–'; $('zzTxt').textContent = ''; drawZZ(); });
+
+/* ---------- dead ReLU demo ---------- */
+const DP = Array.from({length: 200}, () => [randn(), randn()]);
+let dw = [0.8, 0.6], db = 0.5, dmsg = '';
+const dAct = a => a > 0 ? a : ($('dbLeaky').checked ? 0.1 * a : 0), dDer = a => a > 0 ? 1 : ($('dbLeaky').checked ? 0.1 : 0);
+function dGrad(){ let gw = [0, 0], gb = 0, L = 0, alive = 0;
+  for (const x of DP) { const a = dw[0] * x[0] + dw[1] * x[1] + db, t = Math.max(0, x[0] + x[1]), e = dAct(a) - t; L += e * e / 2; if (a > 0) alive++;
+    const d = e * dDer(a); gw[0] += d * x[0]; gw[1] += d * x[1]; gb += d; }
+  const n = DP.length; return {gw: [gw[0] / n, gw[1] / n], gb: gb / n, L: L / n, alive}; }
+function drawDB(){
+  $('dbB').value = Math.max(-8, Math.min(2, db)); $('dbBv').textContent = db.toFixed(2);
+  const g = dGrad(), [ctx, W, H] = setupCanvas($('dbc')), S = Math.min(W, H) / 7, ox = W / 2, oy = H / 2, X = v => ox + v * S, Y = v => oy - v * S;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+  for (const x of DP) { const a = dw[0] * x[0] + dw[1] * x[1] + db; ctx.beginPath(); ctx.arc(X(x[0]), Y(x[1]), 3.5, 0, 7);
+    if (a > 0) { ctx.fillStyle = cssv('--s1'); ctx.fill(); } else { ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1.2; ctx.stroke(); } }
+  const n = Math.hypot(...dw) || 1, u = [dw[0] / n, dw[1] / n], p0 = [-u[0] * db / n, -u[1] * db / n], d = [-u[1], u[0]];
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(p0[0] - 10 * d[0]), Y(p0[1] - 10 * d[1])); ctx.lineTo(X(p0[0] + 10 * d[0]), Y(p0[1] + 10 * d[1])); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText(Math.abs(db / n) > 3.4 ? 'boundary a = 0 is off-screen' : 'a = 0', 8, 16);
+  $('dbA').textContent = g.alive + ' / 200'; $('dbG').textContent = Math.abs(g.gb) < 1e-12 ? '0' : Math.abs(g.gb).toFixed(4); $('dbL').textContent = g.L.toFixed(3);
+  $('dbTxt').innerHTML = dmsg;
+}
+$('dbB').addEventListener('input', () => { db = +$('dbB').value; dmsg = ''; drawDB(); });
+$('dbHit').onclick = () => { db -= 8; dmsg = 'A single large update pushed $b$ far negative. Now press Train.'; drawDB(); tmath($('dbTxt')); };
+$('dbTrain').onclick = () => { const b0 = db, w0 = dw.slice();
+  for (let i = 0; i < 200; i++) { const g = dGrad(); dw = [dw[0] - 0.1 * g.gw[0], dw[1] - 0.1 * g.gw[1]]; db -= 0.1 * g.gb; }
+  const moved = Math.abs(db - b0) + Math.abs(dw[0] - w0[0]) + Math.abs(dw[1] - w0[1]);
+  dmsg = moved < 1e-9 ? '<b>Nothing changed.</b> Every input has $a&lt;0$, every gradient is exactly 0, so $w_1,w_2,b$ never move: the neuron is dead for good.'
+    : `Trained: $b$ went from ${b0.toFixed(2)} to ${db.toFixed(2)}.` + ($('dbLeaky').checked && b0 < -3 ? ' With the leaky slope, a little gradient flows even when $a&lt;0$, so the neuron can climb back to life.' : '');
+  drawDB(); tmath($('dbTxt')); };
+$('dbLeaky').addEventListener('change', () => { dmsg = ''; drawDB(); });
+
+/* ---------- activation explorer ---------- */
+const ACTS = {
+  sigmoid: {f: x => sig(x), d: x => sig(x) * (1 - sig(x)), y: [-0.2, 1.2]},
+  tanh: {f: Math.tanh, d: x => 1 - Math.tanh(x) ** 2, y: [-1.2, 1.2]},
+  ReLU: {f: x => Math.max(0, x), d: x => x > 0 ? 1 : 0, y: [-1.5, 4]},
+  'Leaky ReLU': {f: x => Math.max(0.1 * x, x), d: x => x > 0 ? 1 : 0.1, y: [-1.5, 4]},
+  PReLU: {f: x => Math.max(+$('axA').value * x, x), d: x => x > 0 ? 1 : +$('axA').value, y: [-1.5, 4]},
+  ELU: {f: x => x > 0 ? x : Math.exp(x) - 1, d: x => x > 0 ? 1 : Math.exp(x), y: [-1.5, 4]}};
+let act = 'sigmoid';
+Object.keys(ACTS).forEach(k => { const b = document.createElement('button'); b.textContent = k; b.dataset.k = k; b.onclick = () => { act = k; drawAX(); }; $('actBtns').appendChild(b); });
+const AS = Array.from({length: 3000}, randn);
+function drawAX(){
+  document.querySelectorAll('#actBtns button').forEach(b => b.classList.toggle('on', b.dataset.k === act));
+  $('alphaWrap').style.display = act === 'PReLU' ? '' : 'none';
+  const A = ACTS[act], x = +$('axX').value, n = Math.round(10 ** +$('axN').value), ws = +$('axW').value, sd = Math.sqrt(n) * ws;
+  $('axXv').textContent = x.toFixed(2); $('axAv').textContent = (+$('axA').value).toFixed(2); $('axNv').textContent = n; $('axWv').textContent = ws.toFixed(2);
+  const [ctx, W, H] = setupCanvas($('axc')), x0 = -6, x1 = 6, [y0, y1] = A.y, pl = 8, pb = 18;
+  const X = v => pl + (W - 2 * pl) * (v - x0) / (x1 - x0), Y = v => (H - pb) * (1 - (v - y0) / (y1 - y0));
+  const flat = v => Math.abs(A.d(v)) < 0.05;
+  ctx.fillStyle = cssv('--warn-bg'); for (let px = 0; px < W - 2 * pl; px += 2) { const v = x0 + (x1 - x0) * px / (W - 2 * pl); if (flat(v)) ctx.fillRect(pl + px, 0, 2, H - pb); }
+  axes(ctx, W, H, X, Y, x0, x1, y0, y1);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; for (let t = -6; t <= 6; t += 2) ctx.fillText(t, X(t) - 4, H - 4);
+  // pre-activation density, scaled to the plot height
+  const dens = v => Math.exp(-v * v / (2 * sd * sd)) / (sd * Math.sqrt(2 * Math.PI)), peak = dens(0);
+  ctx.globalAlpha = 0.25; ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.moveTo(X(x0), Y(y0));
+  for (let v = x0; v <= x1; v += 0.05) ctx.lineTo(X(v), Y(y0) - (dens(v) / peak) * (H - pb) * 0.35); ctx.lineTo(X(x1), Y(y0)); ctx.fill(); ctx.globalAlpha = 1;
+  const curve = (g, c, dash) => { ctx.strokeStyle = c; ctx.lineWidth = 2.5; ctx.setLineDash(dash ? [6, 4] : []); ctx.beginPath(); let first = true;
+    for (let v = x0; v <= x1 + 1e-9; v += 0.02) { const yv = g(v), py = Y(Math.max(y0 - 1, Math.min(y1 + 1, yv))); first ? ctx.moveTo(X(v), py) : ctx.lineTo(X(v), py); first = false; } ctx.stroke(); ctx.setLineDash([]); };
+  curve(A.d, cssv('--s2'), true); curve(A.f, cssv('--s1'), false);
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(x), Y(A.f(x)), 5, 0, 7); ctx.fill();
+  ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(x), 0); ctx.lineTo(X(x), H - pb); ctx.stroke(); ctx.setLineDash([]);
+  const fs = AS.filter(z => flat(z * sd)).length / AS.length;
+  $('axF').textContent = A.f(x).toFixed(3); $('axD').textContent = A.d(x).toFixed(3); $('axS').textContent = (100 * fs).toFixed(0) + '%';
+  $('axTxt').innerHTML = `Pre-activation spread: $a$ has standard deviation $\\sqrt{n}\\cdot$ weight std = ${sd.toFixed(2)}. ` +
+    (act === 'sigmoid' || act === 'tanh' ? (fs > 0.2 ? `${(100 * fs).toFixed(0)}% of neurons sit in a flat region, so their gradients barely flow. Shrink the weights or the fan-in to fix it.` : 'Few neurons saturate at this scale.')
+      : act === 'ReLU' ? 'For ReLU about half the inputs always land on the flat side ($f\'=0$); that never changes with scale, but the positive side never saturates.'
+      : 'The negative side is not flat, so gradient flows for every input.');
+  tmath($('axTxt'));
+}
+['axX', 'axA', 'axN', 'axW'].forEach(id => $(id).addEventListener('input', drawAX));
+
+function drawAll(){ drawZZ(); drawDB(); drawAX(); }
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

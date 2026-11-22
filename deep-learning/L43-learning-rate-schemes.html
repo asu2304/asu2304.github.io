@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learning-Rate Schemes: Cyclical, Cosine Annealing, Warm Restarts and Warm-Up</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 43 · playlist video 43 (titled “L41” on YouTube) · Optimisation algorithms</div>
+<h1>Learning-Rate Schemes: Cyclical, Cosine Annealing, Warm Restarts and Warm-Up</h1>
+<p class="lede">A learning rate that only ever decays can leave training stuck near a saddle point, with a step size too small to get out. Adaptive methods can raise the rate there, but they pay for it by keeping histories. A cheaper idea is to make the schedule itself go up again: cyclically (triangular), with cosine annealing and warm restarts, or with a warm-up at the start, as Transformers do.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Lqauh9dJzNc" target="_blank" rel="noopener">this lecture on YouTube</a> (≈14 min). Previous: <a href="L42-nadam.html">L42</a> · Next: <a href="L44-bias-variance.html">L44</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The map of learning-rate schemes</h2>
+<p>The lecture opens with a chart of everything seen so far, plus three new entries:</p>
+<table>
+<tr><th>based on</th><th>schemes</th><th>where</th></tr>
+<tr><td><b>epochs / iterations</b></td><td>step decay (e.g. decay when the validation error goes up after an epoch), exponential decay every epoch</td><td><a href="L35-learning-rate-scheduling.html">L35</a></td></tr>
+<tr><td><b>validation</b></td><td>line search: try several learning rates and keep the one with the smallest loss; log search: the same on a log scale</td><td><a href="L35-learning-rate-scheduling.html">L35</a></td></tr>
+<tr><td><b>gradients</b> (adaptive)</td><td>AdaGrad, RMSProp, AdaDelta, Adam, Adamax, Nadam (AMSGrad and AdamW not covered)</td><td><a href="L37-adagrad.html">L37</a>–<a href="L42-nadam.html">L42</a></td></tr>
+<tr><td><b>epochs / iterations</b> (new)</td><td><b>cyclical</b>, <b>cosine annealing</b>, <b>warm restart</b></td><td>this lecture</td></tr>
+</table>
+<p>These schedules can be used <b>together with</b> the optimisers above; they are not alternatives to them.</p>
+
+<h2>2 · The problem: saddle points</h2>
+<p>Picture a saddle-shaped loss surface. Looking along one direction, a point at the end of a valley looks like a minimum. Looking along the other direction, you could still go further down: a better minimum lies beyond. Deep-learning loss surfaces are not convex, and multiple papers report that when training stalls or slows, it is often because it is stuck near such a saddle point.</p>
+<p>Now combine that with a decaying learning rate. We initialise at some point, come down the valley nicely, and by the time we reach the saddle the learning rate has decayed and become very small. The gradient there is small too, so the steps are tiny and we stay stuck.</p>
+<div class="callout">What if the learning rate were allowed to <b>increase</b> again after some iterations? Then there is at least a chance of escaping the saddle.</div>
+<p>Adaptive methods already try to do this: they raise the effective learning rate where gradients are small. But they keep a history per parameter and divide by it, which adds computation and complexity. The schemes below get the same effect from a simple schedule with no history at all.</p>
+
+<h2>3 · Cyclical learning rate (triangular)</h2>
+<p>Alternate: start small, go up to a high value, come back down, go up again, and so on. If you are in a bad region with a low rate, you just wait out the cycle until the rate grows and pushes you out. If you need a small rate, it will come back within a few steps.</p>
+$$\eta_t=\eta_{\min}+(\eta_{\max}-\eta_{\min})\cdot\max\!\Big(0,\ 1-\Big|\frac{t}{\mu}-2\Big\lfloor1+\frac{t}{2\mu}\Big\rfloor+1\Big|\Big)$$
+<p>Here $\mu$ is the half-period: the number of steps to climb from $\eta_{\min}$ to $\eta_{\max}$ (and then as many to come back). The lecture's example: $\mu=20$, $\eta_{\max}=0.5$, $\eta_{\min}=0.01$. The formula only looks complex. Substitute $t=20$:</p>
+<ol class="steps">
+<li>$\lfloor1+\tfrac{20}{40}\rfloor=\lfloor1.5\rfloor=1$, so $2\lfloor\cdot\rfloor=2$.</li>
+<li>$\tfrac{t}{\mu}=1$, so the inside is $1-2+1=0$, and $1-|0|=1$; $\max(0,1)=1$.</li>
+<li>$\eta_{20}=0.01+(0.5-0.01)\cdot1=0.5$: the peak, as on the plot.</li>
+<li>For $t=30$: $\lfloor1.75\rfloor=1$, the inside is $1.5-2+1=0.5$, the factor is $0.5$, so $\eta_{30}=0.01+0.49\times0.5=0.255$, halfway down.</li>
+</ol>
+<p>It is a very simple, baseline idea: you know that sometimes you want the rate up and sometimes down, so instead of an algorithm that decides when, just cycle.</p>
+
+<h2>4 · Cosine annealing with warm restarts</h2>
+<p>Another cyclic schedule, shaped by a cosine:</p>
+$$\eta_t=\eta_{\min}+\frac{\eta_{\max}-\eta_{\min}}{2}\Big(1+\cos\Big(\pi\,\frac{t \bmod (T+1)}{T}\Big)\Big)$$
+<p>$\eta_{\max}$ and $\eta_{\min}$ bound the rate, $t$ is the current epoch, and $T$ is the <b>restart interval</b>. Starting at $t=0$ gives $\cos0=1$, so $\eta=\eta_{\max}$. The rate then glides down. With the lecture's $T=50$, at $t=50$: $50\bmod51=50$, $\tfrac{50}{50}=1$, $\cos\pi=-1$, so $1+(-1)=0$ and $\eta=\eta_{\min}$. On the next step it jumps straight back to $\eta_{\max}$.</p>
+<p>That jump is why it is called a <b>warm restart</b>. The triangular schedule climbs back gradually; here you restart from a "warm" point, a high learning rate, and anneal down from there. "Warm restart" is a term you'll see in many modern papers.</p>
+
+<h2>5 · Warm-up (warm start)</h2>
+<p>Every schedule so far, and every adaptive method, starts at some learning rate and then <b>decays</b> (step decay, exponential decay, the adaptive divisions). Warm-up reverses the start: let the learning rate <b>increase</b> gradually to its maximum, and only then start the decay.</p>
+<p>The reasoning: at the start the parameters are random and you are not sure of your gradients, so keep the rate very small and avoid large updates. As you gain confidence, raise it to a high value, then decay from there. This is the default schedule for Transformer-based architectures. The <b>warm-up steps</b> are the number of steps for which the rate climbs. The lecture compares 2000 and 4000 warm-up steps: with 2000 the rate rises quickly and then falls; with 4000 it rises more smoothly and peaks lower and later.</p>
+<div class="beyond"><b>Going beyond the video: the exact Transformer schedule.</b> In "Attention Is All You Need", for step $s$, $$\eta=d_{\text{model}}^{-0.5}\cdot\min\big(s^{-0.5},\ s\cdot s_{\text{warm}}^{-1.5}\big):$$ a linear rise for $s_{\text{warm}}$ steps, then decay proportional to $1/\sqrt{s}$ (the lecture calls this part exponential; it is an inverse square root). The demo below uses this formula with $d_{\text{model}}=512$. A very common modern variant, linear warm-up followed by cosine decay, is also in the demo, marked as extra.</div>
+
+<h2>6 · Explore the schedules</h2>
+<div class="card">
+<p class="small muted" style="margin-top:0">Each scheme plots $\eta$ against the iteration $t$. Hover or tap the plot to read values. The dashed lines mark the lecture's checkpoints.</p>
+<div class="row" id="schBtns"></div>
+<div class="row" id="schCtl"></div>
+<canvas id="schC" height="270" aria-label="Learning rate against iteration for the chosen schedule"></canvas>
+<div class="legend" id="schLeg"></div>
+<p class="small" id="schTxt"></p>
+</div>
+
+<h2>7 · Does cycling get us past the saddle?</h2>
+<p>The lecture's experiment: from the same initialisation on a saddle surface, an exponentially decaying learning rate (black) comes into the valley and gets stuck there. The cyclical one (blue) also slows down at first, but because its rate rises again it gets a push and escapes into the valley below. Swapping a fixed learning rate for cosine annealing similarly converged much faster, with some oscillations left at the end that early stopping could take care of.</p>
+<p>You can test the claim on a toy saddle. The surface below is my construction, $f(x,y)=\tfrac12x^2+\tfrac14y^4-\tfrac12y^2$: a valley in $x$ that ends at a saddle at the origin, with two lower wells at $y=\pm1$. The start is a tiny distance $y_0$ off the ridge (in real training, mini-batch noise supplies such nudges). Near the saddle, each step multiplies $y$ by about $1+\eta_t$, so escape depends on how much learning rate is <b>left</b> once you arrive.</p>
+<div class="card">
+<div class="row"><label>$\eta_{\max}$ = <b id="sMV">0.50</b> <input type="range" id="sM" min="10" max="90" value="50"></label>
+<label>exp. decay rate $k$ = <b id="sKV">0.10</b> <input type="range" id="sK" min="1" max="20" value="10"></label>
+<label>offset $y_0$ = <b id="sYV">1e-4</b> <input type="range" id="sY" min="2" max="8" value="4"></label></div>
+<div class="row" id="sToggles"></div>
+<div class="pair"><canvas id="sadC" height="300" aria-label="Paths on the saddle surface"></canvas><canvas id="sadL" height="300" aria-label="Loss and learning rate against iteration"></canvas></div>
+<div class="legend" id="sLeg"></div>
+<div class="row" id="sStats"></div>
+<p class="small muted">Right panel: loss (thick lines) and each run's learning rate (thin lines, scale on the right) over 300 iterations. The saddle has loss 0 and the wells have loss −0.25, so a run that ends near 0 is stuck.</p>
+</div>
+<p>Notice what stays fixed: all runs use the same plain gradient step with no history. Only the schedule differs. Lower $k$ (slower decay) or a larger $y_0$ and the decaying run escapes too: the failure is specifically a rate that has decayed away before the saddle. In this toy a fixed rate also escapes, but a fixed rate never anneals; the cyclic schedules give you both small steps and big pushes.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Purely decaying schedules can arrive at a saddle point with a tiny learning rate and get stuck; saddle points are a big pain in deep networks.</li>
+<li>Adaptive optimisers can raise the rate there but keep per-parameter histories; cyclic schedules get a similar effect for free.</li>
+<li>Triangular cyclical rate: rise linearly from $\eta_{\min}$ to $\eta_{\max}$ over $\mu$ steps, fall back, repeat ($\mu=20$: $\eta_{20}=0.5$, $\eta_{30}=0.255$ in the lecture's example).</li>
+<li>Cosine annealing glides from $\eta_{\max}$ to $\eta_{\min}$ over the restart interval $T$, then jumps straight back up: a warm restart.</li>
+<li>Warm-up grows the rate from near zero for the first few thousand steps before decaying; it is the default for Transformers. Any schedule can be combined with any optimiser.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const fmt = v => v === 0 ? '0' : v < 0.01 ? v.toExponential(2) : v.toFixed(3);
+
+/* ---------- schedules ---------- */
+const tri = (t, mu, lo, hi) => lo + (hi - lo) * Math.max(0, 1 - Math.abs(t / mu - 2 * Math.floor(1 + t / (2 * mu)) + 1));
+const cosr = (t, T, lo, hi) => lo + (hi - lo) / 2 * (1 + Math.cos(Math.PI * (t % (T + 1)) / T));
+const noam = (t, w) => { const s = t + 1; return Math.pow(512, -0.5) * Math.min(Math.pow(s, -0.5), s * Math.pow(w, -1.5)); };
+const SCH = {
+  step: {name: 'step decay', N: 100, p: {eta0: [0.5, 0.05, 1, 0.05, 'η₀'], k: [10, 2, 40, 1, 'halve every k epochs']},
+    f: (t, p) => p.eta0 * Math.pow(0.5, Math.floor(t / p.k)), note: p => `$\\eta_t=\\eta_0\\cdot0.5^{\\lfloor t/k\\rfloor}$: the rate is halved every ${p.k} epochs (recap of L35).`},
+  exp: {name: 'exponential decay', N: 100, p: {eta0: [0.5, 0.05, 1, 0.05, 'η₀'], k: [0.05, 0.01, 0.2, 0.01, 'decay rate k']},
+    f: (t, p) => p.eta0 * Math.exp(-p.k * t), note: p => `$\\eta_t=\\eta_0e^{-kt}$: smooth decay that never comes back up (recap of L35).`},
+  tri: {name: 'cyclical (triangular)', N: 120, p: {mu: [20, 5, 50, 1, 'half-period μ'], hi: [0.5, 0.05, 1, 0.05, 'η_max'], lo: [0.01, 0, 0.2, 0.01, 'η_min']},
+    f: (t, p) => tri(t, p.mu, p.lo, p.hi), marks: [20, 30], note: p => `Lecture setting: μ = 20, η_max = 0.5, η_min = 0.01 gives η₂₀ = 0.5 and η₃₀ = 0.255.`},
+  cos: {name: 'cosine annealing + warm restarts', N: 160, p: {T: [50, 10, 100, 1, 'restart interval T'], hi: [0.5, 0.05, 1, 0.05, 'η_max'], lo: [0.01, 0, 0.2, 0.01, 'η_min']},
+    f: (t, p) => cosr(t, p.T, p.lo, p.hi), marks: [50, 51], note: p => `At t = T the cosine reaches −1 and η = η_min; at the next step it jumps back to η_max (the warm restart).`},
+  warm: {name: 'warm-up (Transformer)', N: 20000, p: {w: [4000, 500, 8000, 100, 'warm-up steps']},
+    f: (t, p) => noam(t, p.w), ref: [2000, 4000], note: p => `Linear rise for ${p.w} steps, then decay ∝ 1/√step (faint curves: the lecture's 2000 and 4000).`},
+  wcos: {name: 'extra: linear warm-up + cosine', extra: true, N: 1000, p: {w: [100, 0, 400, 10, 'warm-up steps'], hi: [0.5, 0.05, 1, 0.05, 'η_max']},
+    f: (t, p) => t < p.w ? p.hi * (t + 1) / (p.w + 1) : p.hi / 2 * (1 + Math.cos(Math.PI * (t - p.w) / Math.max(1, 1000 - p.w))),
+    note: p => `Going beyond the video: a common modern recipe, not covered in the lecture.`}
+};
+let cur = 'tri', hov = null; const P = {};
+Object.entries(SCH).forEach(([k, s]) => { P[k] = {}; Object.entries(s.p).forEach(([q, a]) => P[k][q] = a[0]);
+  const b = document.createElement('button'); b.textContent = s.name; b.dataset.k = k; if (s.extra) b.style.borderStyle = 'dashed';
+  b.addEventListener('click', () => { cur = k; hov = null; buildCtl(); drawSch(); }); $('schBtns').appendChild(b); });
+function buildCtl(){ document.querySelectorAll('#schBtns button').forEach(b => b.classList.toggle('on', b.dataset.k === cur));
+  const box = $('schCtl'); box.innerHTML = '';
+  Object.entries(SCH[cur].p).forEach(([q, [, lo, hi, st, lab]]) => { const l = document.createElement('label');
+    l.innerHTML = `${lab} = <b>${P[cur][q]}</b> <input type="range" min="${lo}" max="${hi}" step="${st}" value="${P[cur][q]}">`;
+    const inp = l.querySelector('input'); inp.addEventListener('input', () => { P[cur][q] = +inp.value; l.querySelector('b').textContent = inp.value; drawSch(); }); box.appendChild(l); }); }
+function drawSch(){
+  const s = SCH[cur], p = P[cur], N = s.N, [ctx, W, H] = setupCanvas($('schC')), L = 50, R = 10, T0 = 12, B = 24;
+  const n = Math.min(N, 600), ts = Array.from({length: n + 1}, (_, i) => Math.round(i * N / n));
+  const curves = [{v: ts.map(t => s.f(t, p)), c: cssv('--s1'), w: 2.4}];
+  (s.ref || []).forEach(w => curves.push({v: ts.map(t => noam(t, w)), c: cssv('--faint'), w: 1.3}));
+  const ymax = Math.max(...curves.flatMap(c => c.v)) * 1.08 || 1, x = t => L + t / N * (W - L - R), y = v => T0 + (1 - v / ymax) * (H - T0 - B);
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) { const v = ymax * i / 4; ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(W - R, y(v)); ctx.stroke(); ctx.fillText(v < 0.01 && v ? v.toExponential(1) : v.toFixed(2), 2, y(v) + 4); }
+  for (let i = 0; i <= 4; i++) { const t = Math.round(N * i / 4); ctx.fillText(t, x(t) - 8, H - 6); }
+  (s.marks || []).forEach(t => { ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--s2'); ctx.beginPath(); ctx.moveTo(x(t), T0); ctx.lineTo(x(t), H - B); ctx.stroke(); ctx.setLineDash([]); });
+  curves.slice().reverse().forEach(c => { ctx.strokeStyle = c.c; ctx.lineWidth = c.w; ctx.beginPath(); c.v.forEach((v, i) => i ? ctx.lineTo(x(ts[i]), y(v)) : ctx.moveTo(x(ts[i]), y(v))); ctx.stroke(); });
+  let txt = s.note(p);
+  if (hov !== null) { const t = Math.round(hov * N); ctx.strokeStyle = cssv('--muted'); ctx.beginPath(); ctx.moveTo(x(t), T0); ctx.lineTo(x(t), H - B); ctx.stroke();
+    ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(x(t), y(s.f(t, p)), 4, 0, 7); ctx.fill(); txt = `t = ${t}: η = ${fmt(s.f(t, p))}. ` + txt; }
+  $('schLeg').innerHTML = `<span><i style="background:var(--s1)"></i>${s.name}</span>` + (s.ref ? '<span><i style="background:var(--faint)"></i>2000 / 4000 warm-up steps</span>' : '') + (s.marks ? '<span><i style="background:var(--s2)"></i>checkpoints</span>' : '');
+  $('schTxt').innerHTML = txt;
+  if (window.renderMathInElement) renderMathInElement($('schTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+function schHover(e){ const r = $('schC').getBoundingClientRect(), t = e.touches ? e.touches[0] : e; hov = Math.max(0, Math.min(1, (t.clientX - r.left - 50) / (r.width - 60))); drawSch(); }
+$('schC').addEventListener('mousemove', schHover); $('schC').addEventListener('touchstart', schHover, {passive: true}); $('schC').addEventListener('mouseleave', () => { hov = null; drawSch(); });
+
+/* ---------- saddle experiment ---------- */
+const TS = 300, RUNS = [
+  {k: 'exp', name: 'exponential decay', c: '--ink', on: true},
+  {k: 'tri', name: 'cyclical (triangular, μ = 20)', c: '--s1', on: true},
+  {k: 'cos', name: 'cosine + warm restarts (T = 50)', c: '--s3', on: true},
+  {k: 'fix', name: 'fixed η = η_max', c: '--s2', on: false}];
+const fS = (x, y) => 0.5 * x * x + 0.25 * y ** 4 - 0.5 * y * y;
+function sched(k, t, hi, kk){ return k === 'exp' ? hi * Math.exp(-kk * t) : k === 'tri' ? tri(t, 20, 0.01, hi) : k === 'cos' ? cosr(t, 50, 0.01, hi) : hi; }
+function simulate(){ const hi = +$('sM').value / 100, kk = +$('sK').value / 100, y0 = Math.pow(10, -$('sY').value);
+  $('sMV').textContent = hi.toFixed(2); $('sKV').textContent = kk.toFixed(2); $('sYV').textContent = '1e-' + $('sY').value;
+  return RUNS.map(r => { let x = 2.6, y = y0; const path = [[x, y]], loss = [fS(x, y)], lr = []; let esc = -1;
+    for (let t = 0; t < TS; t++) { const e = sched(r.k, t, hi, kk); lr.push(e); const gx = x, gy = y ** 3 - y; x -= e * gx; y -= e * gy; path.push([x, y]); loss.push(fS(x, y)); if (esc < 0 && Math.abs(y) > 0.5) esc = t + 1; }
+    return {...r, path, loss, lr, esc}; }); }
+function drawSad(){
+  const res = simulate(); let [ctx, W, H] = setupCanvas($('sadC'));
+  const xr = [-0.6, 3], yr = [-1.6, 1.6], X = a => 10 + (a - xr[0]) / (xr[1] - xr[0]) * (W - 20), Y = b => 10 + (1 - (b - yr[0]) / (yr[1] - yr[0])) * (H - 20);
+  const nx = 60, ny = 50; ctx.lineWidth = 1;
+  for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) { const a = xr[0] + (i + 0.5) / nx * (xr[1] - xr[0]), b = yr[0] + (j + 0.5) / ny * (yr[1] - yr[0]), f = fS(a, b);
+    ctx.globalAlpha = Math.max(0.04, Math.min(0.5, (f + 0.3) / 4)); ctx.fillStyle = cssv('--faint'); ctx.fillRect(X(a) - (W - 20) / nx / 2, Y(b) - (H - 20) / ny / 2, (W - 20) / nx + 1, (H - 20) / ny + 1); }
+  ctx.globalAlpha = 1; ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui';
+  ctx.fillText('saddle', X(0) + 5, Y(0) - 5); ctx.fillText('well', X(0) + 5, Y(1) - 5); ctx.fillText('well', X(0) + 5, Y(-1) + 13); ctx.fillText('darker = higher loss', 14, H - 14);
+  res.filter(r => r.on).forEach(r => { ctx.strokeStyle = cssv(r.c); ctx.lineWidth = 2; ctx.beginPath(); r.path.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.stroke();
+    const e = r.path[TS]; ctx.fillStyle = cssv(r.c); ctx.beginPath(); ctx.arc(X(e[0]), Y(e[1]), 4.5, 0, 7); ctx.fill(); });
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(2.6), Y(0), 5, 0, 7); ctx.fill(); ctx.fillText('start', X(2.6) - 14, Y(0) - 9);
+  [ctx, W, H] = setupCanvas($('sadL')); const L = 40, Rr = 36, T0 = 10, B = 22, lo = -0.3, hi = 0.25 * 2.6 * 2.6 * 2 + 0.05;
+  const x = t => L + t / TS * (W - L - Rr), y = f => T0 + (1 - (Math.min(f, hi) - lo) / (hi - lo)) * (H - T0 - B), yl = e => T0 + (1 - e) * (H - T0 - B);
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.lineWidth = 1;
+  [-0.25, 0, 1, 2, 3].forEach(v => { ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(W - Rr, y(v)); ctx.stroke(); ctx.fillText(v, 4, y(v) + 4); });
+  [0, 0.5, 1].forEach(e => ctx.fillText('η ' + e, W - Rr + 3, yl(e) + 4));
+  for (let t = 0; t <= TS; t += 100) ctx.fillText(t, x(t) - 6, H - 6);
+  res.filter(r => r.on).forEach(r => { ctx.strokeStyle = cssv(r.c); ctx.globalAlpha = 0.45; ctx.lineWidth = 1; ctx.beginPath(); r.lr.forEach((e, t) => t ? ctx.lineTo(x(t), yl(e)) : ctx.moveTo(x(t), yl(e))); ctx.stroke();
+    ctx.globalAlpha = 1; ctx.lineWidth = 2.4; ctx.beginPath(); r.loss.forEach((f, t) => t ? ctx.lineTo(x(t), y(f)) : ctx.moveTo(x(t), y(f))); ctx.stroke(); });
+  $('sStats').innerHTML = res.filter(r => r.on).map(r => `<div class="stat"><div class="v" style="color:var(${r.c})">${r.esc > 0 ? 'escaped at ' + r.esc : 'stuck'}</div><div class="l">${r.name}: final loss ${r.loss[TS].toFixed(3)}</div></div>`).join('');
+  $('sLeg').innerHTML = res.filter(r => r.on).map(r => `<span><i style="background:var(${r.c})"></i>${r.name}</span>`).join('');
+}
+RUNS.forEach(r => { const l = document.createElement('label'); l.innerHTML = `<input type="checkbox" ${r.on ? 'checked' : ''}> ${r.name}`; l.querySelector('input').addEventListener('change', e => { r.on = e.target.checked; drawSad(); }); $('sToggles').appendChild(l); });
+['sM', 'sK', 'sY'].forEach(id => $(id).addEventListener('input', drawSad));
+
+buildCtl();
+function drawAll(){ drawSch(); drawSad(); }
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

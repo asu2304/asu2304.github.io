@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient Descent Recap</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 30 · playlist video 30 (titled “L30” on YouTube) · Optimisation, part 1</div>
+<h1>Gradient Descent Recap: Why It Crawls on Flat Ground</h1>
+<p class="lede">The step gradient descent takes is $\eta$ times the derivative, and the derivative is the slope. So on steep parts of the error surface it moves fast, and on gentle plateaus, including the region near the minimum, it crawls. Starting on a plateau can waste hundreds of iterations with almost no change in the loss. This recap sets up the problem that the next few lectures (momentum, NAG, adaptive rates) fix.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=gupSH0MU7vs" target="_blank" rel="noopener">this lecture on YouTube</a> (≈31 min). Previous: <a href="L29-backprop-pseudocode.html">L29</a> · Next: <a href="L31-contours.html">L31</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Where we are, and today's plan</h2>
+<p>We began with one sigmoid neuron with two parameters, $w$ and $b$, and learned them with gradient descent. Then we moved to deep networks with any number of layers and neurons, where the <b>same</b> gradient descent works because backpropagation computes all the partial derivatives efficiently, one layer at a time (<a href="L29-backprop-pseudocode.html">L29</a>).</p>
+<p>This part of the course is about <b>variants</b> of gradient descent. The pattern: spot a peculiarity of plain gradient descent, propose a fix, find the fix's own problem, fix that, and so on. First comes a brisk recap of gradient descent (from <a href="L16-learning-parameters-guesswork.html">L16</a>–<a href="L19-gradient-descent-derivation.html">L19</a>) and the first problem it has. (Prof. Khapra credits Ryan Harris's videos for some of the visualisations and Andrej Karpathy's CS231n for some content.)</p>
+
+<h2>2 · The toy problem, and why not guess or brute-force</h2>
+<p>One sigmoid neuron $f(x)=\sigma(wx+b)=\dfrac{1}{1+e^{-(wx+b)}}$, two training points $(0.5,\,0.2)$ and $(2.5,\,0.9)$, and the squared-error loss</p>
+$$L(w,b)=\tfrac12\sum_{i=1}^{2}\big(f(x_i)-y_i\big)^2 .$$
+<p>"Training" means finding $w,b$ so that the S-shaped curve passes through both points.</p>
+<table>
+<thead><tr><th>approach</th><th>what it does</th><th>why it fails</th></tr></thead>
+<tbody>
+<tr><td><b>Guesswork</b></td><td>nudge $w$ or $b$, keep the change if the loss drops (a guess gave loss 0.099, say)</td><td>no principled direction; some guesses climb the surface instead of descending</td></tr>
+<tr><td><b>Brute force</b></td><td>evaluate the loss on a grid (e.g. $w,b\in[-6,6]$) and pick the lowest</td><td>parameters really range over $(-\infty,\infty)$, and a real network has far too many of them</td></tr>
+</tbody></table>
+<p>While guessing, you were in fact walking on the <b>loss surface</b> without seeing it. We want a principled way to walk downhill on it.</p>
+
+<h2>3 · The gradient descent rule</h2>
+<p>From the current $\theta=(w,b)$, the Taylor series tells us the loss in a small neighbourhood. Requiring the new loss to be lower than the current one, $L(\theta+\eta u)&lt;L(\theta)$, leads to: move <b>opposite to the gradient</b>.</p>
+<div class="callout">
+$$w_{t+1}=w_t-\eta\,\nabla w_t,\qquad b_{t+1}=b_t-\eta\,\nabla b_t,\qquad \nabla w_t=\left.\frac{\partial L(w,b)}{\partial w}\right|_{w=w_t,\ b=b_t}$$
+</div>
+<p>$\nabla w_t$ means the partial derivative <b>evaluated at the current point</b>. For example, if $L=w^2$ then $\partial L/\partial w=2w$, and at $w_t=1$ the gradient is 2. For our neuron the derivative is (from <a href="L17-gradient-descent.html">L17</a>):</p>
+$$\nabla w=\sum_i\big(f(x_i)-y_i\big)\,f(x_i)\big(1-f(x_i)\big)\,x_i,\qquad \nabla b=\sum_i\big(f(x_i)-y_i\big)\,f(x_i)\big(1-f(x_i)\big).$$
+<p>The algorithm: initialise randomly, then repeat the update for a fixed number of iterations (say <code>max_iterations</code> = 1000).</p>
+
+<h2>4 · Watching it run: slow, fast, slow</h2>
+<p>In the lecture's animation, gradient descent starts near $w\approx-5,\ b\approx-5$, where the loss is high (≈0.4–0.5) and the surface is a flat plateau. The trail of $(w,b)$ points on the plane below is so dense it looks like a snake's body: each update barely moves. When the trail reaches the edge of the valley, consecutive points jump far apart. Inside the valley, on gentle ground again, the steps shrink.</p>
+<p>A second start, $w=-2,\ b=2$, is on a slope. It drops into the valley at once, with widely spaced points, then slows down on the gentle approach to the minimum. 100 iterations run out before reaching it, even though it is almost there.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The loss surface of the toy problem over $w,b\in[-6,6]$ (darker = higher loss). Tap anywhere to choose a start, or use a preset, then run. Dots are the iterates. Below: the loss and the <b>step length</b> $\eta\lVert(\nabla w,\nabla b)\rVert$ at each iteration (log scale).</p>
+  <div class="row"><button id="pA">Start on the plateau (−4, −4)</button><button id="pB">Start on a slope (−2, 2)</button><button id="go">Run</button>
+    <label>iterations <select id="its"><option>100</option><option selected>1000</option></select></label>
+    <label>η <input type="range" id="eta" min="0" max="2" step="0.05" value="0.3"> <span class="mono" id="etav"></span></label></div>
+  <canvas id="surf" height="320" aria-label="Loss surface with gradient descent iterates"></canvas>
+  <div class="pair half">
+    <canvas id="lossc" height="170" aria-label="Loss per iteration"></canvas>
+    <canvas id="stepc" height="170" aria-label="Step length per iteration, log scale"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s2)"></i>iterates</span><span><i class="dot" style="background:var(--s3)"></i>minimum</span><span><i style="background:var(--s1)"></i>loss (left), step length (right)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="tv">0</div><div class="l">iteration</div></div>
+    <div class="stat"><div class="v" id="wb">–</div><div class="l">(w, b)</div></div>
+    <div class="stat"><div class="v" id="lv">–</div><div class="l">loss</div></div>
+  </div>
+  <p class="small" id="gdTxt"></p>
+</div>
+<p class="small muted">The demo's surface uses the loss defined above and its own $\eta$ (shown as a power of 10, default $10^{0.3}\approx2$). It reproduces the behaviour, not the exact frames of the lecture's animation. From $(-5,-5)$ the plateau is so flat that even 1000 iterations hardly move. From $(-4,-4)$ at the default $\eta$, it takes about 900 iterations to get off the plateau; with $\eta=10$ about 180.</p>
+
+<h2>5 · Why: the derivative is the slope</h2>
+<p>The update is $w\leftarrow w-\eta\,\nabla w$. If $\nabla w\approx0$, the new $w$ is the old $w$. If $\nabla w$ is large, $w$ (and likewise $b$) jumps far. So the <b>magnitude of the gradient sets the size of the move</b>.</p>
+<p>The derivative measures how sensitive the function is to a change in its input, $\Delta y/\Delta x$ for a small $\Delta x$: the <b>slope</b>. Take $y=x^2$ and keep $\Delta x=0.5$ fixed:</p>
+<table>
+<thead><tr><th>move</th><th>$y$ changes</th><th>$\Delta y$</th><th>$\Delta y/\Delta x$</th></tr></thead>
+<tbody>
+<tr><td>$x: 1\to1.5$</td><td>$1\to2.25$</td><td>1.25</td><td>2.5</td></tr>
+<tr><td>$x: 2\to2.5$</td><td>$4\to6.25$</td><td>2.25</td><td>4.5</td></tr>
+</tbody></table>
+<p>Same $\Delta x$, bigger $\Delta y$ where the curve is steeper. Make the function $2x^2$ and it's steeper still: its derivative is $4x$ instead of $2x$.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">$f(x)=c\,x^2$. The secant from $x$ to $x+\Delta x$ has slope $\Delta y/\Delta x$; the tangent at $x$ has slope $f'(x)=2cx$. Move $x$ from a gentle region to a steep one and watch the slope, and hence the gradient descent step, grow.</p>
+  <div class="row">
+    <label>x <input type="range" id="sx" min="-3" max="2.5" step="0.05" value="1"> <span class="mono" id="sxv"></span></label>
+    <label>Δx <input type="range" id="sd" min="0.1" max="1" step="0.05" value="0.5"> <span class="mono" id="sdv"></span></label>
+    <label>c <select id="sc"><option>0.6</option><option selected>1</option><option>2</option></select></label>
+  </div>
+  <canvas id="sec" height="260" aria-label="Parabola with secant and tangent lines"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>f(x) = c x²</span><span><i style="background:var(--s2)"></i>secant (Δy/Δx)</span><span><i style="background:var(--s3)"></i>tangent (f′(x))</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="dy">–</div><div class="l">Δy</div></div>
+    <div class="stat"><div class="v" id="dydx">–</div><div class="l">Δy / Δx</div></div>
+    <div class="stat"><div class="v" id="fp">–</div><div class="l">f′(x) = 2cx</div></div>
+    <div class="stat"><div class="v" id="stp">–</div><div class="l">GD step with η = 0.1</div></div>
+  </div>
+</div>
+
+<h2>6 · The problem to solve</h2>
+<p>Steep region, large gradient, big move. Flat region, small gradient, tiny move. The repercussions:</p>
+<ul>
+<li><b>Unlucky start on a plateau.</b> If the flat region is wide in $(w,b)$, you can spend a very long time there. You might run 1000 iterations and see the loss go from 0.9 to 0.8999…, conclude that "nothing is happening", and give up. 10,000 iterations might get out, but you might not have that patience.</li>
+<li><b>Near convergence.</b> Close to a minimum the surface is gentle, so the last stretch is a slow crawl even though you're "almost there". This happens every time, whatever the start.</li>
+</ul>
+<div class="callout"><b>Goal for the coming lectures:</b> move <b>faster on gentle slopes</b>. First a detour through contour plots (<a href="L31-contours.html">L31</a>), the usual way of visualising these surfaces, then momentum-based gradient descent (<a href="L32-momentum.html">L32</a>).</div>
+<div class="beyond"><b>Going beyond the video.</b> Two plateaus show up in this toy problem. Far from the data, $\sigma(wx+b)$ saturates, so the factor $f(1-f)$ in the gradient is nearly 0 even though the loss is large. Near the minimum, the gradient is small simply because we're near a minimum. You can't fix both by raising $\eta$: a big enough $\eta$ to cross the plateau quickly can overshoot in the valley (try $\eta=100$ from $(-2,2)$: it reaches the valley in one step but never settles). That tension is what motivates momentum and adaptive learning rates. Same rule, other problems: my ML notes, <a href="../machine-learning/L31-gradient-descent.html">ML L31</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Guesswork and brute-force search over the loss surface don't scale; gradient descent gives a principled downhill direction from the Taylor series.</li>
+<li>Update: $\theta_{t+1}=\theta_t-\eta\nabla\theta_t$, with the gradient evaluated at the current point.</li>
+<li>The step size is proportional to the gradient's magnitude, i.e. the slope: fast on steep regions, slow on gentle ones.</li>
+<li>A start on a plateau can stall training for many iterations, and the approach to a minimum is always slow.</li>
+<li>Next: visualise surfaces with contours, then modify gradient descent to move faster through gentle regions.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const sig = z => 1 / (1 + Math.exp(-z)), DATA = [[0.5, 0.2], [2.5, 0.9]];
+const loss = (w, b) => DATA.reduce((s, [x, y]) => s + 0.5 * (sig(w * x + b) - y) ** 2, 0);
+const grad = (w, b) => DATA.reduce((s, [x, y]) => { const f = sig(w * x + b), d = (f - y) * f * (1 - f); return [s[0] + d * x, s[1] + d]; }, [0, 0]);
+const WMIN = 1.7918, BMIN = -2.2822, RNG = 6;
+let start = [-4, -4], path = [[-4, -4]], steps = [], losses = [loss(-4, -4)], timer = null;
+const eta = () => Math.pow(10, +$('eta').value);
+function reset(s){ stop(); start = s; path = [s.slice()]; steps = []; losses = [loss(...s)]; $('gdTxt').textContent = `Start at (w, b) = (${s[0].toFixed(1)}, ${s[1].toFixed(1)}). Press Run.`; draw(); }
+function stop(){ if (timer) { clearInterval(timer); timer = null; } $('go').textContent = 'Run'; }
+function run(){ if (timer) return stop(); const N = +$('its').value; if (path.length > N) reset(start);
+  $('go').textContent = 'Pause';
+  timer = setInterval(() => { const per = N > 100 ? 10 : 2;
+    for (let q = 0; q < per && path.length <= N; q++) { const [w, b] = path[path.length - 1], g = grad(w, b), e = eta();
+      const nw = [w - e * g[0], b - e * g[1]]; path.push(nw); steps.push(e * Math.hypot(g[0], g[1])); losses.push(loss(...nw)); }
+    if (path.length > N) { stop(); const big = steps.indexOf(Math.max(...steps)) + 1, L = losses[losses.length - 1];
+      $('gdTxt').textContent = `Done: ${N} iterations, final loss ${L.toExponential(2)}. Largest step at iteration ${big}. ` + (L > 0.3 ? 'Still stuck on the plateau.' : L > 1e-6 ? 'Out of the plateau, but still crawling towards the minimum.' : 'Reached the valley floor.'); }
+    draw(); }, 30); }
+let bg = null, bgKey = '';
+function surface(W, H){ const key = W + 'x' + H + cssv('--s1') + cssv('--card'); if (bg && bgKey === key) return bg;
+  bg = document.createElement('canvas'); bg.width = W; bg.height = H; const c = bg.getContext('2d'), cell = 4;
+  c.fillStyle = cssv('--card'); c.fillRect(0, 0, W, H); c.fillStyle = cssv('--s1');
+  for (let px = 0; px < W; px += cell) for (let py = 0; py < H; py += cell) { const w = -RNG + 2 * RNG * (px + cell / 2) / W, b = RNG - 2 * RNG * (py + cell / 2) / H;
+    c.globalAlpha = Math.min(0.85, 0.04 + 0.85 * Math.sqrt(loss(w, b) / 0.45)); c.fillRect(px, py, cell, cell); }
+  c.globalAlpha = 1; bgKey = key; return bg; }
+function draw(){
+  const [ctx, W, H] = setupCanvas($('surf')), X = w => (w + RNG) / (2 * RNG) * W, Y = b => (RNG - b) / (2 * RNG) * H;
+  ctx.drawImage(surface(Math.round(W), H), 0, 0, W, H);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+  ctx.fillStyle = cssv('--ink'); ctx.font = '12px system-ui'; ctx.fillText('w →', W - 32, Y(0) - 6); ctx.fillText('b ↑', X(0) + 6, 14);
+  ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(X(WMIN), Y(BMIN), 6, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--s2'); path.forEach(([w, b]) => { ctx.beginPath(); ctx.arc(X(w), Y(b), 2.4, 0, 7); ctx.fill(); });
+  const [w, b] = path[path.length - 1]; ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(w), Y(b), 6, 0, 7); ctx.stroke();
+  $('tv').textContent = path.length - 1; $('wb').textContent = `(${w.toFixed(2)}, ${b.toFixed(2)})`; $('lv').textContent = losses[losses.length - 1].toFixed(4); $('etav').textContent = eta().toFixed(2);
+  const N = +$('its').value;
+  chart($('lossc'), losses, false, N, 'loss'); chart($('stepc'), steps, true, N, 'step length (log)');
+  drawSec(); }
+function chart(cv, arr, logy, N, label){ const [c, W, H] = setupCanvas(cv), pad = 8, top = 18;
+  c.strokeStyle = cssv('--grid'); c.lineWidth = 1; c.strokeRect(pad, top, W - 2 * pad, H - top - pad);
+  c.fillStyle = cssv('--muted'); c.font = '12px system-ui'; c.fillText(label, pad, 13);
+  if (!arr.length) return; const tf = v => logy ? Math.log10(Math.max(v, 1e-8)) : v;
+  const vals = arr.map(tf), lo = logy ? Math.min(...vals) : 0, hi = Math.max(...vals, lo + 1e-9);
+  if (logy) c.fillText(`10^${Math.round(lo)} … 10^${Math.round(hi)}`, W - 110, 13);
+  c.strokeStyle = cssv('--s1'); c.lineWidth = 2; c.beginPath();
+  vals.forEach((v, i) => { const x = pad + (W - 2 * pad) * i / Math.max(1, N), y = top + (H - top - pad) * (1 - (v - lo) / (hi - lo)); i ? c.lineTo(x, y) : c.moveTo(x, y); }); c.stroke(); }
+$('pA').onclick = () => reset([-4, -4]); $('pB').onclick = () => reset([-2, 2]); $('go').onclick = run;
+$('its').addEventListener('change', () => reset(start)); $('eta').addEventListener('input', () => { $('etav').textContent = eta().toFixed(2); });
+$('surf').addEventListener('click', e => { const r = $('surf').getBoundingClientRect(); reset([-RNG + 2 * RNG * (e.clientX - r.left) / r.width, RNG - 2 * RNG * (e.clientY - r.top) / r.height]); });
+// ---- secant demo ----
+function drawSec(){ const x = +$('sx').value, d = +$('sd').value, c = +$('sc').value, f = v => c * v * v;
+  const [ctx, W, H] = setupCanvas($('sec')), XL = -3.2, XR = 3.6;
+  const ytop = c * 3.6 * 3.6, X = v => (v - XL) / (XR - XL) * W, Y = v => H - 16 - (v / ytop) * (H - 30);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i <= 200; i++) { const v = XL + (XR - XL) * i / 200; i ? ctx.lineTo(X(v), Y(f(v))) : ctx.moveTo(X(v), Y(f(v))); } ctx.stroke();
+  const x2 = x + d, m = (f(x2) - f(x)) / d, tp = 2 * c * x;
+  const line = (slope, x0, y0, col, dash) => { ctx.strokeStyle = cssv(col); ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(x0 - 1.2), Y(y0 - 1.2 * slope)); ctx.lineTo(X(x0 + 1.7), Y(y0 + 1.7 * slope)); ctx.stroke(); ctx.setLineDash([]); };
+  line(tp, x, f(x), '--s3', [5, 4]); line(m, x, f(x), '--s2', []);
+  ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(x), Y(f(x))); ctx.lineTo(X(x2), Y(f(x))); ctx.lineTo(X(x2), Y(f(x2))); ctx.stroke(); ctx.setLineDash([]);
+  [[x, f(x)], [x2, f(x2)]].forEach(([u, v]) => { ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(u), Y(v), 4, 0, 7); ctx.fill(); });
+  $('sxv').textContent = x.toFixed(2); $('sdv').textContent = d.toFixed(2);
+  $('dy').textContent = `${f(x).toFixed(2)} → ${f(x2).toFixed(2)} (${(f(x2) - f(x)).toFixed(2)})`; $('dydx').textContent = m.toFixed(2); $('fp').textContent = tp.toFixed(2); $('stp').textContent = (-0.1 * tp).toFixed(3); }
+['sx', 'sd'].forEach(id => $(id).addEventListener('input', drawSec)); $('sc').addEventListener('change', drawSec);
+reset([-4, -4]);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { bg = null; draw(); });
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

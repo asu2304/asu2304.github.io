@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learning Network Parameters</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 23 · playlist video 23 (titled “L22” on YouTube) · Feedforward networks and backpropagation</div>
+<h1>Learning the Parameters of a Network: the Intuition</h1>
+<p class="lede">Gradient descent for one sigmoid neuron updated a vector $\theta=[w,b]$ of two numbers. For a feedforward network, $\theta$ is just a much longer vector holding every weight and bias, and the update rule is unchanged. Two questions remain: which loss function to differentiate, and how to compute thousands of partial derivatives without deriving each one by hand.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=0Me1ywSlJE8" target="_blank" rel="noopener">this lecture on YouTube</a> (≈9 min). Previous: <a href="L22-feedforward-networks.html">L22</a> · Next: <a href="L24-output-and-loss-functions.html">L24</a> (output and loss functions).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Gradient descent, written compactly</h2>
+<p>For a single sigmoid neuron (one input, $w$ and $b$, output $\hat y$) we learned the parameters with gradient descent (<a href="L19-gradient-descent-derivation.html">L19</a>): initialise $w_0,b_0$, then repeatedly</p>
+$$w_{t+1}=w_t-\eta\,\nabla w_t,\qquad b_{t+1}=b_t-\eta\,\nabla b_t .$$
+<p>Collect the parameters into one vector $\theta=[w,b]$ and the update becomes a single vector equation:</p>
+$$\theta_{t+1}=\theta_t-\eta\,\nabla\theta_t,\qquad \nabla\theta_t=\left[\frac{\partial\mathcal L(\theta)}{\partial w},\ \frac{\partial\mathcal L(\theta)}{\partial b}\right]^{\!\top}_{\text{at } w=w_t,\ b=b_t}.$$
+<p>$\nabla\theta_t$ is shorthand for the gradient of the loss with respect to $\theta$, evaluated at the current values: just the collection of partial derivatives.</p>
+
+<h2>2 · Same algorithm, longer vector</h2>
+<p>In the feedforward network of <a href="L22-feedforward-networks.html">L22</a> ($n$ inputs, two hidden layers of $n$, $k$ outputs), $\theta$ is not two numbers but all of them:</p>
+$$\theta=\big[\,W_1,\ W_2,\ W_3,\ b_1,\ b_2,\ b_3\,\big]\quad\text{with}\quad \underbrace{n^2}_{W_1}+\underbrace{n^2}_{W_2}+\underbrace{nk}_{W_3}+\underbrace{n}_{b_1}+\underbrace{n}_{b_2}+\underbrace{k}_{b_3}\ \text{entries}.$$
+<p>So what? It's still a vector. Adding and subtracting million-dimensional vectors works exactly like 2-D ones, so the <b>same update rule applies</b>. Its gradient lists every partial derivative:</p>
+$$\nabla\theta=\left[\frac{\partial\mathcal L}{\partial W_{111}},\dots,\frac{\partial\mathcal L}{\partial W_{1nn}},\ \frac{\partial\mathcal L}{\partial W_{211}},\dots,\frac{\partial\mathcal L}{\partial W_{2nn}},\ \dots,\ \frac{\partial\mathcal L}{\partial W_{3kn}},\ \frac{\partial\mathcal L}{\partial b_{11}},\dots,\frac{\partial\mathcal L}{\partial b_{3k}}\right]$$
+<p>(Drawn on the slide as a grid, but it is a <b>collection</b>, not a well-formed matrix: layers can have different sizes, e.g. $m\times n$, then $p\times m$, then $k$ biases.)</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">How long is $\theta$ for the lecture's network? Each cell below is one parameter, coloured by block.</p>
+  <div class="row"><label>$n$ <input type="range" id="pn" min="1" max="12" value="3"> <span id="pnv" class="mono"></span></label><label>$k$ <input type="range" id="pk" min="1" max="10" value="4"> <span id="pkv" class="mono"></span></label></div>
+  <canvas id="pc" height="90" aria-label="The parameter vector theta as a strip of cells"></canvas>
+  <p class="small" id="pTxt"></p>
+</div>
+<p>The catch is computing every entry. For just $w$ and $b$ we derived $\partial\mathcal L/\partial w$ and $\partial\mathcal L/\partial b$ painfully by hand. Doing that for each of the $n^2$ weights of each layer is hopeless. So the quest is a formula that gives the partial derivatives for an <b>entire weight matrix at one go</b>, instead of one weight at a time.</p>
+
+<h2>3 · Two questions to answer</h2>
+<ol class="steps">
+<li><b>How to choose the loss function $\mathcal L(\theta)$?</b> We can't write down any partial derivative until we know what we are differentiating. → <a href="L24-output-and-loss-functions.html">L24</a>.</li>
+<li><b>How to compute every element of $\nabla\theta$</b>, the partial derivatives with respect to all weights and biases, efficiently? → backpropagation, starting with the intuition in <a href="L25-backpropagation-intuition.html">L25</a>.</li>
+</ol>
+<p>Answer both and we simply return to the gradient descent loop. Below, that loop trains a small network with $\theta$ treated as one flat vector. Nothing in the update knows or cares which entry is a weight and which is a bias:</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A 1 → $n$ → 1 network (sigmoid hidden layer, linear output) fitted to 40 points by $\theta\leftarrow\theta-\eta\nabla\theta$ on the mean squared error. The strips show $\theta$ and $\nabla\theta$ cell by cell (blue positive, orange negative). Try $\eta=3$ to see a step size that is too large.</p>
+  <div class="row"><label>hidden neurons $n$ <input type="range" id="hn" min="1" max="10" value="4"> <span id="hnv" class="mono"></span></label>
+    <label>$\eta$ <select id="eta"><option>0.05</option><option>0.2</option><option selected>0.5</option><option>1</option><option>3</option></select></label>
+    <label>target <select id="tgt"><option value="s">wave</option><option value="b">bump</option><option value="t">step</option></select></label></div>
+  <div class="row"><button id="g1">One update</button><button id="gr">Run</button><button id="g0">Re-initialise θ</button></div>
+  <div class="pair half"><canvas id="fc" height="230" aria-label="Network fit to data"></canvas><canvas id="lc" height="230" aria-label="Loss against iterations"></canvas></div>
+  <canvas id="sc" height="74" aria-label="Theta and gradient strips"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s2)"></i>data</span><span><i style="background:var(--s1)"></i>network $\hat f(x)$</span><span><i style="background:var(--s3)"></i>loss $\mathcal L(\theta_t)$</span></div>
+  <div class="row"><div class="stat"><div class="v" id="th">–</div><div class="l">entries in θ and in ∇θ</div></div><div class="stat"><div class="v" id="it">0</div><div class="l">updates</div></div><div class="stat"><div class="v" id="ls">–</div><div class="l">loss</div></div></div>
+</div>
+<div class="beyond"><b>Going beyond the video: why not just estimate each partial numerically?</b> The demo cheats: it gets $\nabla\theta$ by nudging each entry: $$\frac{\partial\mathcal L}{\partial\theta_j}\approx\frac{\mathcal L(\theta+\epsilon e_j)-\mathcal L(\theta-\epsilon e_j)}{2\epsilon}.$$ That needs <b>two full forward passes per parameter</b>. Fine for the 31 parameters here; for a network with millions it means millions of forward passes per update. Backpropagation gets the whole gradient for roughly the cost of one forward and one backward pass, which is why the next lectures matter. (Numerical gradients remain useful for <i>checking</i> a backprop implementation.)</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Gradient descent in vector form: $\theta_{t+1}=\theta_t-\eta\nabla\theta_t$, where $\nabla\theta_t$ collects all partial derivatives at the current point.</li>
+<li>For a network, $\theta$ holds every weight and bias ($n^2+n^2+nk+n+n+k$ in the example): a longer vector, same algorithm.</li>
+<li>$\nabla\theta$ is a collection, not a single matrix: layers may differ in size.</li>
+<li>Two things are needed: a loss function, and an efficient way to get the partial derivatives a whole matrix at a time.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const sig = z => 1 / (1 + Math.exp(-z));
+const fmt = (v, d = 2) => (Math.abs(v) < 0.5 * Math.pow(10, -d) ? 0 : v).toFixed(d);
+// ---------- parameter strip ----------
+function drawP(){ const n = +$('pn').value, k = +$('pk').value; $('pnv').textContent = n; $('pkv').textContent = k;
+  const blocks = [['W₁', n * n, '--s1'], ['W₂', n * n, '--s3'], ['W₃', n * k, '--s2'], ['b₁', n, '--s1'], ['b₂', n, '--s3'], ['b₃', k, '--s2']];
+  const tot = blocks.reduce((s, b) => s + b[1], 0), [ctx, W, H] = setupCanvas($('pc')), cw = (W - 4) / tot;
+  let x = 2; ctx.font = '12px system-ui';
+  blocks.forEach(([name, c, col], bi) => { ctx.fillStyle = cssv(col); ctx.globalAlpha = bi < 3 ? 0.85 : 0.45;
+    for (let i = 0; i < c; i++) ctx.fillRect(x + i * cw, 30, Math.max(0.6, cw - (cw > 3 ? 1 : 0)), 30);
+    ctx.globalAlpha = 1; ctx.fillStyle = cssv('--muted'); if (c * cw > 18){ ctx.fillText(name, x + 2, 24); ctx.fillText(c, x + 2, 78); } x += c * cw; });
+  $('pTxt').innerHTML = `|θ| = ${n}² + ${n}² + ${n}·${k} + ${n} + ${n} + ${k} = <b>${tot}</b> parameters, so ∇θ has ${tot} partial derivatives to compute at every step.`; }
+['pn', 'pk'].forEach(id => $(id).addEventListener('input', drawP));
+
+// ---------- training a 1-n-1 network on a flat theta ----------
+const X = Array.from({length: 40}, (_, i) => -1 + 2 * i / 39);
+const T = {s: x => 0.5 + 0.35 * Math.sin(3.2 * x), b: x => 0.15 + 0.7 * Math.exp(-12 * x * x), t: x => x > 0.1 ? 0.8 : 0.2};
+let th = [], hist = [], its = 0, timer = null, Y = [];
+const nH = () => +$('hn').value;
+// theta layout (as in the lecture: weights first, then biases): W1 (n), W2 (n), b1 (n), b2 (1)
+function predict(t, x){ const n = nH(); let y = t[3 * n]; for (let j = 0; j < n; j++) y += t[n + j] * sig(t[j] * x + t[2 * n + j]); return y; }
+function loss(t){ let s = 0; for (let i = 0; i < X.length; i++){ const d = predict(t, X[i]) - Y[i]; s += d * d; } return s / X.length; }
+function grad(t){ const g = [], e = 1e-4; for (let j = 0; j < t.length; j++){ const p = t.slice(), m = t.slice(); p[j] += e; m[j] -= e; g.push((loss(p) - loss(m)) / (2 * e)); } return g; }
+let lastG = [];
+function init(){ const n = nH(); Y = X.map(T[$('tgt').value]); th = [];
+  for (let j = 0; j < n; j++) th.push((Math.random() * 2 - 1) * 6); for (let j = 0; j < n; j++) th.push((Math.random() * 2 - 1) * 0.5);
+  for (let j = 0; j < n; j++) th.push((Math.random() * 2 - 1) * 3); th.push(0.5); hist = [loss(th)]; its = 0; lastG = th.map(() => 0); $('hnv').textContent = n; }
+function update(){ const g = grad(th), eta = +$('eta').value; th = th.map((v, j) => v - eta * g[j]); lastG = g; its++; const L = loss(th); hist.push(isFinite(L) ? L : 1e9); if (hist.length > 4000) hist.shift(); }
+function strip(ctx, W, y, vals, label){ const n = vals.length, cw = (W - 40) / n, m = Math.max(1e-9, ...vals.map(Math.abs));
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText(label, 0, y + 15);
+  vals.forEach((v, j) => { ctx.fillStyle = cssv(v >= 0 ? '--s1' : '--s2'); ctx.globalAlpha = 0.1 + 0.9 * Math.abs(v) / m; ctx.fillRect(36 + j * cw, y, Math.max(1, cw - 1), 22); }); ctx.globalAlpha = 1; }
+function drawT(){
+  { const [ctx, W, H] = setupCanvas($('fc')), p = 14, Xp = x => p + (x + 1) / 2 * (W - 2 * p), Yp = y => H - p - (y + 0.1) / 1.2 * (H - 2 * p);
+    ctx.strokeStyle = cssv('--grid'); ctx.strokeRect(p, p, W - 2 * p, H - 2 * p);
+    ctx.fillStyle = cssv('--s2'); X.forEach((x, i) => { ctx.beginPath(); ctx.arc(Xp(x), Yp(Y[i]), 3, 0, 7); ctx.fill(); });
+    ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i <= 200; i++){ const x = -1 + i / 100, y = Math.max(-0.3, Math.min(1.4, predict(th, x))); i ? ctx.lineTo(Xp(x), Yp(y)) : ctx.moveTo(Xp(x), Yp(y)); } ctx.stroke(); }
+  { const [ctx, W, H] = setupCanvas($('lc')), p = 14, mx = Math.max(...hist.slice(0, 3)), lmin = Math.log10(Math.max(1e-5, Math.min(...hist))), lmax = Math.log10(Math.max(1e-4, mx));
+    ctx.strokeStyle = cssv('--grid'); ctx.strokeRect(p, p, W - 2 * p, H - 2 * p);
+    ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2; ctx.beginPath();
+    hist.forEach((l, i) => { const x = p + i / Math.max(1, hist.length - 1) * (W - 2 * p), y = p + (lmax - Math.log10(Math.max(1e-5, l))) / Math.max(0.3, lmax - lmin) * (H - 2 * p); i ? ctx.lineTo(x, Math.min(H - p, Math.max(p, y))) : ctx.moveTo(x, Math.min(H - p, Math.max(p, y))); }); ctx.stroke();
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('loss (log scale) vs updates', p + 4, p + 13); }
+  { const [ctx, W] = setupCanvas($('sc')); strip(ctx, W, 4, th, 'θ'); strip(ctx, W, 40, lastG, '∇θ'); }
+  $('th').textContent = th.length; $('it').textContent = its; { const L = hist[hist.length - 1]; $('ls').textContent = L < 1e4 ? L.toFixed(4) : L.toExponential(2); }
+}
+function stop(){ if (timer){ cancelAnimationFrame(timer); timer = null; $('gr').textContent = 'Run'; } }
+function loop(){ for (let i = 0, k = Math.max(6, Math.round(100 / nH())); i < k; i++) update(); drawT(); if (its >= 20000) stop(); else timer = requestAnimationFrame(loop); }
+$('g1').onclick = () => { stop(); update(); drawT(); };
+$('gr').onclick = () => { if (timer) stop(); else { $('gr').textContent = 'Pause'; timer = requestAnimationFrame(loop); } };
+$('g0').onclick = () => { stop(); init(); drawT(); };
+['hn', 'tgt'].forEach(id => $(id).addEventListener(id === 'hn' ? 'input' : 'change', () => { stop(); init(); drawT(); }));
+init();
+function redrawAll(){ drawP(); drawT(); }
+
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

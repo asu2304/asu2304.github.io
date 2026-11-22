@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backpropagation Intuition</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 25 · playlist video 25 (titled “L24” on YouTube) · Feedforward networks and backpropagation</div>
+<h1>Backpropagation: the Intuition</h1>
+<p class="lede">To learn a weight deep inside the network we need $\partial\mathcal L/\partial W$, and the weight is far from the loss. The chain rule connects them through every layer in between, and the chain's upper part is shared by all the weights below it, so it can be computed once and reused. Read in plain words, it is a hunt for blame: the output points to the layer below it, that layer to the one below, and the responsibility ends up with the weights and biases.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=i0YC2jZuxUI" target="_blank" rel="noopener">this lecture on YouTube</a> (≈14 min). Previous: <a href="L24-output-and-loss-functions.html">L24</a> · Next: <a href="L26-gradient-output-units.html">L26</a> (gradients w.r.t. the output units).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · What we need</h2>
+<p>We have a loss (<a href="L24-output-and-loss-functions.html">L24</a>). If we know the derivative of the loss with respect to every parameter, we plug it into the gradient descent loop (<a href="L23-learning-parameters-intuition.html">L23</a>) and we're done. In a deep network that takes slightly more work than for a single neuron. Focus on one weight, $W_{112}$ (layer 1, deep in the network): we need a formula for $\partial\mathcal L(\theta)/\partial W_{112}$.</p>
+<p>The plan: first build intuition for what that formula looks like; then do the hard work; and finally reach formulas that give the derivatives for a <b>whole layer at once</b>, and for <b>every layer</b> in the same way, instead of a separate formula per weight.</p>
+
+<h2>2 · A thin, deep network and the chain rule</h2>
+<p>Take a network that is deep but thin: one neuron per layer, one weight between layers.</p>
+$$x\ \xrightarrow{W_{111}}\ a_{11}\to h_{11}\ \xrightarrow{W_{211}}\ a_{21}\to h_{21}\ \xrightarrow{W_{L11}}\ a_{L1}\to\hat y\to\mathcal L(\theta)$$
+<p>$W_{111}$ is far from the loss ($W_{L11}$ is close). But the chain rule handles a long chain the same way you'd differentiate $\sin(\cos(\tan(e^{\log x})))$: one link at a time.</p>
+$$\frac{\partial\mathcal L(\theta)}{\partial W_{111}}=\frac{\partial\mathcal L(\theta)}{\partial\hat y}\,\frac{\partial\hat y}{\partial a_{L1}}\,\frac{\partial a_{L1}}{\partial h_{21}}\,\frac{\partial h_{21}}{\partial a_{21}}\,\frac{\partial a_{21}}{\partial h_{11}}\,\frac{\partial h_{11}}{\partial a_{11}}\,\frac{\partial a_{11}}{\partial W_{111}}$$
+<p>Compress everything except the last two links into one factor:</p>
+$$\frac{\partial\mathcal L(\theta)}{\partial W_{111}}=\underbrace{\frac{\partial\mathcal L(\theta)}{\partial h_{11}}}_{\text{already computed?}}\ \frac{\partial h_{11}}{\partial W_{111}}$$
+<div class="callout"><b>The key idea.</b> If $\partial\mathcal L/\partial h_{11}$ (the long upper part of the chain) has already been computed, reuse it: only the last small piece is new. In a wide layer, many weights hang off the same upper chain, so one computation serves all of them. The same reasoning gives $\partial\mathcal L/\partial W_{211}$ and $\partial\mathcal L/\partial W_{L11}$, with shorter chains.</div>
+
+<h2>3 · The blame game</h2>
+<p>An intuitive reading, before any maths. Mid-training, with the current $W_1,W_2,W_3,b_1,b_2,b_3$, we feed $x$, compute $\hat y$ and get a non-zero loss. <b>Who is responsible?</b></p>
+<ol class="steps">
+<li><b>Ask the output layer.</b> "You produced the wrong output." The output says: "I just applied softmax to what the last pre-activation handed me. If the layer before me had given me the right values, I'd have been right. Ask them."</li>
+<li><b>Ask the last hidden layer and its weights.</b> The weights $W_L$ and biases $b_L$ say: "Fair, we're the adjustable parts and maybe we're not set well." But $h_{L-1}$ says: "I'm only a function of the layer below and the weights feeding me. Ask them."</li>
+<li><b>Keep going down.</b> At every layer the weights and biases admit responsibility, and the activations pass the blame further back.</li>
+<li><b>Stop at the input.</b> The input is given; we can't ask it to change. So all the responsibility lands on the <b>weights and biases</b>: the only things that can be adjusted. The activations are wrong only because the weights and biases are.</li>
+</ol>
+<p>We wanted the responsibility of the very first weight. Instead of asking it directly (hard: that's the long composite function), we asked the output layer, then each hidden layer, then the weight: exactly the chain rule.</p>
+
+<h2>4 · From blame to derivatives</h2>
+<p>Why is "responsibility" a derivative? $\partial\mathcal L/\partial W$ says <b>how much the loss changes if $W$ changes a little</b>. If a tiny change to $W$ changes the loss a lot, $W$ has a strong influence on the loss and is more responsible, and adjusting it can reduce the loss a lot. So partial derivatives are the natural way to assign responsibility, and "asking each layer in turn" is the chain rule.</p>
+<p>Test that below: a thin network with $L$ layers (sigmoid hidden units, a sigmoid output and, for this demo only, the squared error loss). Pass the blame backward one link at a time, then nudge a weight and check that the loss changes by derivative × nudge.</p>
+
+<div class="card">
+  <div class="row"><label>layers $L$ <input type="range" id="nl" min="2" max="8" value="3"> <span id="nlv" class="mono"></span></label>
+    <label>target $y$ <select id="ty"><option>1</option><option>0</option></select></label>
+    <button id="bk">Ask the next one back</button><button id="ba">Pass blame all the way</button><button id="nw">New weights</button></div>
+  <canvas id="cc" height="210" aria-label="Thin deep network with blame flowing backward"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>$a$ / $h$ nodes</span><span><i class="dot" style="background:var(--s2)"></i>weights $W_{i11}$ (bar = $\lvert\partial\mathcal L/\partial W\rvert$)</span><span><i style="background:var(--s3)"></i>blame known so far</span></div>
+  <p class="small" id="cTxt"></p>
+  <div class="row"><label>nudge <select id="nwsel"></select> by</label><select id="dl"><option>0.01</option><option>0.1</option><option>0.5</option></select><button id="nd">Nudge it</button></div>
+  <div class="row"><div class="stat"><div class="v" id="pr">–</div><div class="l">predicted ΔL = ∂L/∂W · nudge</div></div><div class="stat"><div class="v" id="ac">–</div><div class="l">actual ΔL (re-run forward)</div></div><div class="stat"><div class="v" id="mc">–</div><div class="l">multiplications: reuse vs from scratch</div></div></div>
+</div>
+<div class="beyond"><b>Going beyond the video: what the reuse buys.</b> Computing each weight's chain from scratch in this thin network costs $2(L-i)+2$ multiplications for $W_{i11}$, so $L^2+L$ in total; reusing the upper chain costs one multiplication per link, about $3L$. In a wide network the saving is far bigger, because one $\partial\mathcal L/\partial h$ is shared by a whole row of weights. Notice also the bars shrinking towards the input: each $\sigma'$ factor is at most $1/4$, so long chains of sigmoids pass back very little blame. That is the vanishing-gradient problem, which later lectures take up.</div>
+
+<h2>5 · The plan for the next lectures</h2>
+<p>Three families of quantities, computed in this order:</p>
+<table>
+<tr><th>Gradient w.r.t.</th><th>Example</th><th>Lecture</th></tr>
+<tr><td>output units</td><td>$\partial\mathcal L/\partial a_L$, $\partial\mathcal L/\partial\hat y$</td><td><a href="L26-gradient-output-units.html">L26</a></td></tr>
+<tr><td>hidden units</td><td>$\partial\mathcal L/\partial h_i$, $\partial\mathcal L/\partial a_i$</td><td><a href="L27-gradient-hidden-units.html">L27</a></td></tr>
+<tr><td>weights and biases</td><td>$\partial\mathcal L/\partial W_i$, $\partial\mathcal L/\partial b_i$</td><td><a href="L28-gradient-parameters.html">L28</a></td></tr>
+</table>
+<p>Each derived so that a formula for one weight generalises to the whole matrix and to every layer, then assembled into an algorithm in <a href="L29-backprop-pseudocode.html">L29</a>. The focus is classification: <b>softmax output, cross-entropy loss</b>. (My ML notes do backprop too: <a href="../machine-learning/L73-backpropagation.html">ML L73</a>.)</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Gradient descent needs $\partial\mathcal L/\partial W$ for every weight; for a deep weight, the chain rule links it to the loss through every layer above.</li>
+<li>$\partial\mathcal L/\partial W_{111}$ is $\partial\mathcal L/\partial h_{11}$ times $\partial h_{11}/\partial W_{111}$: the upper part of the chain can be computed once and reused.</li>
+<li>Intuition: blame flows from the output back through the layers; it ends with the weights and biases, never the input.</li>
+<li>A partial derivative measures responsibility: how much the loss changes for a small change in that parameter.</li>
+<li>Next: gradients w.r.t. output units, hidden units, then weights and biases, for softmax + cross entropy.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const sig = z => 1 / (1 + Math.exp(-z));
+const fmt = (v, d = 2) => (Math.abs(v) < 0.5 * Math.pow(10, -d) ? 0 : v).toFixed(d);
+let N = {}, known = 0, nudgeMsg = '';
+const rw = () => Math.round(((Math.random() * 2 - 1) * 2.2) * 100) / 100;
+function newNet(){ const L = +$('nl').value; N = {L, x: 1, W: [null], b: [null]}; for (let i = 1; i <= L; i++){ N.W.push(rw()); N.b.push(Math.round((Math.random() - 0.5) * 100) / 100); } known = 0; fwd(); fillSel(); }
+function fwd(W = N.W){ const L = N.L, a = [null], h = [N.x]; for (let i = 1; i <= L; i++){ a.push(W[i] * h[i - 1] + N.b[i]); h.push(sig(a[i])); }
+  const y = +$('ty').value, yh = h[L]; return {a, h, yh, loss: (yh - y) ** 2}; }
+function grads(){ const L = N.L, F = fwd(), y = +$('ty').value, g = {};
+  g.yh = 2 * (F.yh - y);                       // dL/dŷ
+  const da = [], dh = [], dW = []; da[L] = g.yh * F.yh * (1 - F.yh);     // ŷ = σ(a_L)
+  for (let i = L; i >= 1; i--){ dW[i] = da[i] * F.h[i - 1]; if (i > 1){ dh[i - 1] = da[i] * N.W[i]; da[i - 1] = dh[i - 1] * F.h[i - 1] * (1 - F.h[i - 1]); } }
+  return {F, gy: g.yh, da, dh, dW}; }
+// backward order of "who is asked": ŷ, a_L, (W_L), h_{L-1}, a_{L-1}, (W_{L-1}), ..., a_1, (W_1)
+function order(){ const L = N.L, o = [{k: 'yh'}, {k: 'a', i: L}, {k: 'W', i: L}]; for (let i = L - 1; i >= 1; i--) o.push({k: 'h', i}, {k: 'a', i}, {k: 'W', i}); return o; }
+function fillSel(){ $('nwsel').innerHTML = ''; for (let i = 1; i <= N.L; i++){ const o = document.createElement('option'); o.value = i; o.textContent = 'W' + i + '11'; $('nwsel').appendChild(o); } $('nwsel').value = '1'; }
+const say = {
+  yh: () => 'Asked the output ŷ: "I only squashed what a<sub>L1</sub> gave me. Ask it." We start from ∂L/∂ŷ.',
+  a: i => i === N.L ? `a<sub>L1</sub> is computed from h<sub>${i - 1}1</sub>, W<sub>${i}11</sub> and b<sub>${i}1</sub>. One more link: ∂L/∂a = ∂L/∂ŷ · σ'(a).` : `a<sub>${i}1</sub>: reuse ∂L/∂h<sub>${i}1</sub> and multiply by one local factor σ'(a<sub>${i}1</sub>).`,
+  W: i => `W<sub>${i}11</sub> admits responsibility: ∂L/∂W<sub>${i}11</sub> = ∂L/∂a<sub>${i}1</sub> · h<sub>${i - 1}1</sub>, a single multiplication on top of what is already known.`,
+  h: i => `h<sub>${i}1</sub> says "I'm only as good as the layer below me": ∂L/∂h<sub>${i}1</sub> = ∂L/∂a<sub>${i + 1}1</sub> · W<sub>${i + 1}11</sub>.`};
+function draw(){
+  const G = grads(), L = N.L, O = order(), [ctx, W, H] = setupCanvas($('cc'));
+  $('nlv').textContent = L;
+  const nodes = [{lab: 'x', v: N.x, d: null}]; for (let i = 1; i <= L; i++){ nodes.push({lab: 'a' + i, v: G.F.a[i], k: 'a', i}); nodes.push({lab: i === L ? 'ŷ' : 'h' + i, v: G.F.h[i], k: i === L ? 'yh' : 'h', i}); }
+  nodes.push({lab: 'L', v: G.F.loss, k: 'loss'});
+  const done = new Set(O.slice(0, known).map(o => o.k + (o.i || ''))); done.add('loss');
+  const gOf = nd => nd.k === 'yh' ? G.gy : nd.k === 'a' ? G.da[nd.i] : nd.k === 'h' ? G.dh[nd.i] : null;
+  const n = nodes.length, sx = (W - 30) / (n - 1), X = j => 15 + j * sx, yN = 56, r = Math.max(7, Math.min(14, sx * 0.32));
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), yN); ctx.lineTo(X(n - 1), yN); ctx.stroke();
+  const allW = []; for (let i = 1; i <= L; i++) allW.push(Math.abs(G.dW[i])); const mW = Math.max(1e-12, ...allW);
+  const allN = nodes.map(gOf).filter(v => v !== null).map(Math.abs), mN = Math.max(1e-12, ...allN);
+  const bar = (x, v, m, col) => { const hh = 60 * Math.sqrt(Math.abs(v) / m); ctx.fillStyle = cssv(col); ctx.fillRect(x - 5, 190 - hh, 10, Math.max(1, hh)); };
+  nodes.forEach((nd, j) => { const x = X(j), isDone = nd.k === 'loss' || done.has(nd.k + (nd.i || ''));
+    if (nd.k === 'a'){ const xm = (X(j - 1) + x) / 2; ctx.fillStyle = cssv('--s2'); ctx.font = '11px system-ui'; ctx.textAlign = 'center'; if (sx > 26) ctx.fillText('W' + nd.i, xm, yN - 14);
+      ctx.beginPath(); ctx.arc(xm, yN, 3.5, 0, 7); ctx.fill(); if (done.has('W' + nd.i)) bar(xm, G.dW[nd.i], mW, '--s2'); }
+    ctx.beginPath(); ctx.arc(x, yN, r, 0, 7); ctx.fillStyle = cssv(nd.k === 'loss' ? '--s2' : nd.lab === 'x' ? '--faint' : '--card'); ctx.fill();
+    ctx.lineWidth = isDone && nd.k !== 'loss' && nd.lab !== 'x' ? 3 : 1.2; ctx.strokeStyle = cssv(isDone && nd.lab !== 'x' ? '--s3' : '--muted'); ctx.stroke();
+    ctx.fillStyle = cssv('--ink'); ctx.font = (r > 10 ? '12' : '10') + 'px system-ui'; ctx.textAlign = 'center'; ctx.fillText(nd.lab, x, yN + 4);
+    ctx.fillStyle = cssv('--muted'); ctx.font = '10px system-ui'; if (sx > 30 || j % 2 === 0) ctx.fillText(nd.v.toFixed(2), x, yN + r + 13);
+    if (isDone && gOf(nd) !== null) bar(x, gOf(nd), mN, '--s1'); });
+  ctx.fillStyle = cssv('--faint'); ctx.font = '11px system-ui'; ctx.textAlign = 'left'; ctx.fillText('bars: |∂L/∂·| (sqrt scale) known so far', 4, 128); ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(4, 190.5); ctx.lineTo(W - 4, 190.5); ctx.stroke();
+  // text
+  let t = known === 0 ? `Forward pass done: ŷ = ${G.F.yh.toFixed(3)}, target ${$('ty').value}, loss L = ${G.F.loss.toFixed(4)}. Who is responsible? Press "Ask the next one back".` : say[O[known - 1].k](O[known - 1].i);
+  if (known >= O.length){ let best = 1; for (let i = 2; i <= L; i++) if (Math.abs(G.dW[i]) > Math.abs(G.dW[best])) best = i;
+    t += ` <b>Done:</b> blame has reached every weight. Most responsible: W<sub>${best}11</sub> (∂L/∂W = ${G.dW[best].toExponential(2)}). The input x is never blamed.`; }
+  const rows = []; for (let i = L; i >= 1; i--) rows.push(`∂L/∂W<sub>${i}11</sub> = ${O.findIndex(o => o.k === 'W' && o.i === i) < known ? G.dW[i].toExponential(2) : '?'}`);
+  $('cTxt').innerHTML = t + (nudgeMsg ? '<br>' + nudgeMsg : '') + '<br><span class="mono">' + rows.join(' · ') + '</span>';
+  $('mc').textContent = (3 * L - 1) + ' vs ' + (L * L + L);
+}
+$('bk').onclick = () => { known = Math.min(order().length, known + 1); nudgeMsg = ''; draw(); };
+$('ba').onclick = () => { known = order().length; nudgeMsg = ''; draw(); };
+$('nw').onclick = () => { newNet(); nudgeMsg = ''; $('pr').textContent = '–'; $('ac').textContent = '–'; draw(); };
+$('nl').addEventListener('input', () => { newNet(); nudgeMsg = ''; draw(); });
+$('ty').addEventListener('change', () => { known = 0; draw(); });
+$('nd').onclick = () => { const i = +$('nwsel').value, d = +$('dl').value, G = grads(), W2 = N.W.slice(); W2[i] += d;
+  const pred = G.dW[i] * d, act = fwd(W2).loss - G.F.loss; N.W = W2;
+  $('pr').textContent = pred.toExponential(2); $('ac').textContent = act.toExponential(2);
+  nudgeMsg = `Nudged W<sub>${i}11</sub> by ${d}: predicted ${pred.toExponential(2)}, actual ${act.toExponential(2)}. ` + (d <= 0.01 ? 'For a small nudge they agree: the derivative really is the responsibility.' : 'For a bigger nudge they drift apart: the derivative is a local (first-order) measure.');
+  draw(); };
+newNet();
+function redrawAll(){ draw(); }
+
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

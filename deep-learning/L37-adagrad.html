@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AdaGrad: A Learning Rate for Every Parameter</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 37 · playlist video 37 (titled “L42” on YouTube) · Optimisation algorithms</div>
+<h1>AdaGrad: A Learning Rate for Every Parameter</h1>
+<p class="lede">A weight attached to a sparse feature gets small gradients, so plain gradient descent barely moves it. AdaGrad gives every parameter its own learning rate: $\eta$ divided by the square root of that parameter's accumulated squared gradients. Parameters that have had few or small updates keep a large rate; parameters that have had many large updates get a small one.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=WSvxne3oGr0" target="_blank" rel="noopener">this lecture on YouTube</a> (≈25 min). Previous: <a href="L36-adaptive-learning-rate.html">L36</a> · Next: <a href="L38-rmsprop.html">L38</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The intuition: decay the rate in proportion to the update history</h2>
+<p>The previous lecture (<a href="L36-adaptive-learning-rate.html">L36</a>) showed why sparse features are a problem. The gradient for weight $w_i$ is a sum over training points of a term multiplied by $x_i$. If $x_i$ is zero for most points, most terms vanish and the gradient is small. Then the updates are small too.</p>
+<ul>
+<li><b>Dense feature:</b> large derivatives, large updates at step 1, 2, 3, … It has been moving plenty, so we can afford to be <b>conservative</b> and decay its learning rate.</li>
+<li><b>Sparse feature:</b> small updates at every pass. Let its learning rate stay <b>high</b>, so it at least moves a bit aggressively in that direction.</li>
+</ul>
+<p>To do this automatically, without if–else rules for millions of features, keep a history of the updates made to each parameter and divide the learning rate by it.</p>
+
+<h2>2 · The update rule</h2>
+<div class="callout">
+$$v_t=v_{t-1}+(\nabla w_t)^2$$
+$$w_{t+1}=w_t-\frac{\eta}{\sqrt{v_t+\epsilon}}\,\nabla w_t$$
+and the same pair of equations for $b$, with its own history.</div>
+<p>$v_t$ is a running sum of squared derivatives: $v_0=(\nabla w_0)^2$, $v_1=(\nabla w_0)^2+(\nabla w_1)^2$, and so on. Squaring means it measures the <b>magnitude</b> of past updates, whatever their sign. The <b>effective learning rate</b> of each parameter is</p>
+$$\eta_t=\frac{\eta}{\sqrt{v_t+\epsilon}} .$$
+<ul>
+<li>A dense parameter piles up large terms, so $v_t$ grows and $\eta_t$ shrinks quickly.</li>
+<li>A sparse parameter may have accumulated almost nothing even by $t=100$, so its $\eta_t$ hardly decays. If $\sqrt{v_t}&lt;1$ it is even <b>larger</b> than $\eta$.</li>
+</ul>
+<p>In code this changes two lines of gradient descent: accumulate <span class="mono">v_w += dw**2</span>, then use <span class="mono">eta / sqrt(v_w + eps)</span> in place of <span class="mono">eta</span>. $\epsilon$ is a tiny constant that keeps the denominator from being zero.</p>
+
+<h2>3 · Making a toy problem with a sparse feature</h2>
+<p>To see this on a 2-D plot we only have two parameters, the sigmoid neuron's $w$ and $b$ (the toy model used throughout this part of the course; see <a href="L31-contours.html">L31</a>). The input for $b$ is always 1, so $b$ is <b>dense</b> whatever we do. The only option is to make $x$ sparse:</p>
+<ol class="steps">
+<li>Generate 500 random $(x,y)$ pairs.</li>
+<li>For roughly 80% of them, set $x=0$. A feature that is zero for most data points is what "sparse" means.</li>
+<li>Run gradient descent, momentum and Nesterov (<a href="L32-momentum.html">L32</a>, <a href="L33-nesterov.html">L33</a>) from the same starting point.</li>
+</ol>
+
+<h2>4 · What the earlier algorithms do: a right-angled path</h2>
+<p>Read the contour plot the usual way. Red is high loss, with the contour lines far apart: fairly flat plateaus. Blue is a low valley. Between them the contour lines are crowded, so the slope into the valley is steep.</p>
+<p>The horizontal axis is $w$ and the vertical axis is $b$. Prof. Khapra's joke is that these algorithms "went to a school where no one taught them Pythagoras". All three first move almost only in $b$, down into the valley, with $w$ barely changing. Only once they are in the valley, where the $b$-gradient has died, do they start inching along $w$ towards the minimum.</p>
+<ul>
+<li>$b$ is dense: large gradients, large moves.</li>
+<li>$w$ is sparse: small gradients, small moves.</li>
+</ul>
+<p>What we wanted was the direct, diagonal route: <b>proportionate</b> movement in both directions, with the learning rate for $w$ somehow jacked up to make up for its small derivatives. This isn't a contrived case. Large networks have thousands of input features and many of them are sparse.</p>
+
+<h2>5 · AdaGrad on the same data</h2>
+<p>AdaGrad moves in the $w$ direction from the start. The history for $w$ is small, so $\sqrt{v_t}$ is small. Dividing $\eta$ by a number less than 1 increases it, and $w$ moves proportionately. Momentum and Nesterov still reach the minimum first here: momentum has its own advantage, mistakes and all. AdaGrad has no momentum term. Combining the two ideas comes later in the course (Adam, <a href="L40-adam.html">L40</a>).</p>
+<p>Watch AdaGrad <b>near the end</b>, though: it slows down a lot. By then even the sparse $w$ has built up some history, and the effective learning rate keeps being divided by it.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The toy: a sigmoid neuron, loss $\tfrac12\sum_i(\sigma(wx_i+b)-y_i)^2$ over 500 points, start at $(w,b)=(-4,4)$ (black dot), minimum at $(2,-1)$ (×). The lecture doesn't give its data generator, so mine is: $x$ uniform in $[0,1]$, a fraction of them set to 0, $y=\sigma(2x-1)$. GD, momentum and NAG use $\eta=0.003$ (momentum $\beta=0.9$); AdaGrad uses $\eta=0.1$.</p>
+  <div class="row">
+    <label><input type="checkbox" id="cGD" checked> GD</label><label><input type="checkbox" id="cMOM" checked> Momentum</label><label><input type="checkbox" id="cNAG" checked> NAG</label><label><input type="checkbox" id="cADA" checked> AdaGrad</label>
+  </div>
+  <canvas id="surf" height="360" aria-label="Loss contours over w and b with optimiser paths"></canvas>
+  <div class="legend"><span><i style="background:var(--ink)"></i>gradient descent</span><span><i style="background:var(--s2)"></i>momentum</span><span><i style="background:var(--lv1)"></i>Nesterov</span><span><i style="background:var(--s3)"></i>AdaGrad</span></div>
+  <div class="row"><button id="play">▶ Play</button><label>iteration <input type="range" id="tS" min="0" max="499" value="0"></label><span class="mono" id="tV">t = 0</span></div>
+  <div class="row"><label>share of $x$ set to 0: <input type="range" id="sp" min="0" max="95" step="5" value="80"></label><span class="mono" id="spV">80%</span>
+    <label><input type="checkbox" id="nosq"> AdaGrad with $\eta/v_t$ (no square root)</label></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="ratio">–</div><div class="l">|∂L/∂b| ÷ |∂L/∂w| at the start</div></div>
+    <div class="stat"><div class="v" id="lGD">–</div><div class="l">GD loss at t</div></div>
+    <div class="stat"><div class="v" id="lADA">–</div><div class="l">AdaGrad loss at t</div></div>
+  </div>
+  <p class="small" id="msgA"></p>
+</div>
+<p class="small muted">Try it: drag the sparsity down to 0% and the right-angled path mostly disappears, because $w$'s gradients are no longer starved. Push it to 95% and GD hardly moves in $w$ at all within 500 steps.</p>
+
+<h2>6 · Looking inside: history and effective learning rate</h2>
+<p>The lecture plots three things over the iterations for each parameter: the derivative $\nabla w_t$, the history $v_t$ and the effective rate $\eta_t$.</p>
+<ul>
+<li><b>The derivative</b> first grows in magnitude (negative, as the path goes down an ever steeper slope), then shrinks back to about zero near the minimum. That is just the shape of the loss surface.</li>
+<li><b>The history $v_t$</b> keeps increasing. When the derivatives reach about zero, nothing more is added and it <b>saturates</b>, but it never comes back down.</li>
+<li><b>The effective rate</b> keeps decreasing, roughly exponentially.</li>
+</ul>
+<table>
+<tr><th></th><th>$w$ (sparse)</th><th>$b$ (dense)</th></tr>
+<tr><td>$\eta$ set by hand</td><td>0.1</td><td>0.1</td></tr>
+<tr><td>first history $v_0$</td><td>≈ 0.019</td><td>84.45</td></tr>
+<tr><td>first effective rate $\eta_0$</td><td><b>0.72</b> (above $\eta$)</td><td><b>0.010</b> (far below $\eta$)</td></tr>
+<tr><td>later</td><td>decays as history slowly builds</td><td>history reaches five digits; the rate is killed</td></tr>
+</table>
+<p class="small muted">Numbers from the lecture's run.</p>
+<p>That is the behaviour we asked for. Let the sparse parameter start with a high rate and decay as gradients accumulate. Give the dense parameter a small rate from the start, because large gradients will arrive anyway.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">AdaGrad's internals for the run above (same iteration slider). Log scale. Blue = $w$, orange = $b$; the dashed line on the right is $\eta=0.1$.</p>
+  <div class="pair half">
+    <div><canvas id="cV" height="200" aria-label="History v_t for w and b"></canvas><p class="small muted" style="margin:2px 0 0">history $v_t$</p></div>
+    <div><canvas id="cE" height="200" aria-label="Effective learning rate for w and b"></canvas><p class="small muted" style="margin:2px 0 0">effective rate $\eta/\sqrt{v_t+\epsilon}$</p></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>$w$</span><span><i style="background:var(--s2)"></i>$b$</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="e0">–</div><div class="l">first effective rate: w | b</div></div>
+    <div class="stat"><div class="v" id="et">–</div><div class="l">effective rate at t: w | b</div></div>
+    <div class="stat"><div class="v" id="gt">–</div><div class="l">gradient at t: w | b</div></div>
+  </div>
+</div>
+
+<h2>7 · Why the square root?</h2>
+<p>Dividing by $v_t$ instead of $\sqrt{v_t}$ would give the same qualitative effect: an effective rate inversely related to the accumulated history. In practice the algorithm then works much worse. Prof. Khapra's guess is that without the square root the denominator becomes very large very quickly and kills the learning rate in an unfavourable way. He adds that he has not seen a clear theoretical justification. Tick "no square root" in the demo: the dense $b$'s rate collapses at once and the run goes nowhere.</p>
+
+<h2>8 · The flip side</h2>
+<p>Near the minimum the derivatives are about zero, but the history is a running sum, so <b>it stays large</b>. Small gradients times a small effective rate means very slow progress in flat regions near the minimum.</p>
+<p>For $b$ this is serious. Its history built up so fast that its effective rate became tiny. In the lecture's run AdaGrad lined up with the right value of $w$ but then took a long time to find the right value of $b$. The other algorithms did the reverse: they found $b$ first and took long over $w$. Can we keep the per-parameter rates but stop the history growing without limit? That is RMSProp (<a href="L38-rmsprop.html">L38</a>).</p>
+<div class="beyond"><b>Going beyond the video.</b> The diagonal-matrix view: AdaGrad rescales each coordinate of the gradient separately, so it is invariant to rescaling individual features but not to rotations. It helps most when sparsity or scale differences are aligned with the axes, as with one-hot or bag-of-words inputs. That is why it became popular for sparse linear models and word embeddings (GloVe is trained with AdaGrad). For gradient descent itself, see my ML notes, <a href="../machine-learning/L31-gradient-descent.html">L31</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Sparse features get small gradients, so with a single global $\eta$ their weights barely move. On a $(w,b)$ contour plot this shows up as a right-angled path: dense $b$ first, sparse $w$ later.</li>
+<li>AdaGrad: $v_t=v_{t-1}+(\nabla w_t)^2$, $w_{t+1}=w_t-\frac{\eta}{\sqrt{v_t+\epsilon}}\nabla w_t$, separately for every parameter.</li>
+<li>Small history means a large effective rate (even above $\eta$); large history means a small one. The path becomes the more direct diagonal.</li>
+<li>The square root matters in practice; dividing by $v_t$ itself kills the rate too fast.</li>
+<li>The history never decreases, so effective rates only ever shrink. Dense parameters stall, and progress near the minimum becomes slow. That motivates RMSProp.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+// ---- the lecture's toy problem: a sigmoid neuron f(x)=σ(wx+b), 500 (x,y) pairs, most x set to 0 ----
+const sig = z => 1 / (1 + Math.exp(-z));
+const rng = s => () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+const N = 500, WS = 2, BS = -1, W0 = -4, B0 = 4, BOX = [-6, 6, -6, 6];
+function makeData(sp){ const R = rng(7), X = [], Y = []; let n0 = 0;
+  for (let i = 0; i < N; i++) { let x = R(); if (R() < sp) x = 0; if (x === 0) n0++; else { X.push(x); Y.push(sig(WS * x + BS)); } }
+  return {X, Y, n0, y0: sig(BS), sp}; }   // the x = 0 points all share y = σ(b*), so they are summed in one go
+function grad(D, w, b){ const X = D.X, Y = D.Y, f0 = sig(b), e0 = f0 - D.y0, d0 = e0 * f0 * (1 - f0);
+  let gw = 0, gb = D.n0 * d0, L = D.n0 * 0.5 * e0 * e0;
+  for (let i = 0; i < X.length; i++) { const f = sig(w * X[i] + b), e = f - Y[i], d = e * f * (1 - f); gw += d * X[i]; gb += d; L += 0.5 * e * e; }
+  return [gw, gb, L]; }
+// one optimiser run; j = 0 is w, j = 1 is b. Records gradient, history v (and u), effective learning rate per step.
+function run(D, m, T){ T = T || 500; const P = [W0, B0], v = [0, 0], u = [0, 0], mm = [0, 0], h = [0, 0];
+  const o = {path: [], g: [[], []], v: [[], []], u: [[], []], eta: [[], []]};
+  for (let t = 0; t < T; t++) { const cur = grad(D, P[0], P[1]); o.path.push([P[0], P[1], cur[2]]);
+    const G = m.k === 'nag' ? grad(D, P[0] - m.beta * h[0], P[1] - m.beta * h[1]) : cur;
+    for (let j = 0; j < 2; j++) { const g = G[j]; let d, e;
+      if (m.k === 'gd') { e = m.eta; d = -e * g; }
+      else if (m.k === 'mom' || m.k === 'nag') { h[j] = m.beta * h[j] + m.eta * g; e = m.eta; d = -h[j]; }
+      else if (m.k === 'ada') { v[j] += g * g; e = m.eta / (m.nosqrt ? v[j] + m.eps : Math.sqrt(v[j] + m.eps)); d = -e * g; }
+      else if (m.k === 'rms') { v[j] = m.beta * v[j] + (1 - m.beta) * g * g; e = m.eta / Math.sqrt(v[j] + m.eps); d = -e * g; }
+      else if (m.k === 'adad') { v[j] = m.beta * v[j] + (1 - m.beta) * g * g; o.u[j].push(u[j]); e = Math.sqrt(u[j] + m.eps) / Math.sqrt(v[j] + m.eps); d = -e * g; u[j] = m.beta * u[j] + (1 - m.beta) * d * d; }
+      else { const n = t + 1; mm[j] = m.beta1 * mm[j] + (1 - m.beta1) * g; v[j] = m.beta2 * v[j] + (1 - m.beta2) * g * g;
+        const mh = m.nobc ? mm[j] : mm[j] / (1 - Math.pow(m.beta1, n)), vh = m.nobc ? v[j] : v[j] / (1 - Math.pow(m.beta2, n));
+        e = m.eta / (Math.sqrt(vh) + m.eps); d = -e * mh; }
+      o.g[j].push(g); o.v[j].push(v[j]); o.eta[j].push(e); P[j] += d; }
+    if (!isFinite(P[0]) || !isFinite(P[1]) || Math.abs(P[0]) > 1e4 || Math.abs(P[1]) > 1e4) break; }
+  return o; }
+// ---- drawing helpers ----
+const hexRgb = c => { c = c.replace('#', ''); if (c.length === 3) c = c.split('').map(x => x + x).join(''); return [0, 2, 4].map(i => parseInt(c.substr(i, 2), 16) || 0); };
+const isDark = () => { const [r, g, b] = hexRgb(cssv('--surface') || '#fcfcfb'); return r + g + b < 300; };
+function surfGrid(D, G){ G = G || 90; const Z = new Float32Array(G * G); let zmax = 0;
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const w = BOX[0] + (BOX[1] - BOX[0]) * (i + 0.5) / G, b = BOX[3] - (BOX[3] - BOX[2]) * (j + 0.5) / G;
+    const z = grad(D, w, b)[2]; Z[j * G + i] = z; if (z > zmax) zmax = z; } return {G, Z, zmax}; }
+const fmt = v => !isFinite(v) ? '–' : Math.abs(v) >= 1000 ? v.toExponential(1).replace('e+', 'e') : Math.abs(v) >= 10 ? v.toFixed(1) : Math.abs(v) >= 1 ? v.toFixed(2) : Math.abs(v) >= 0.01 ? v.toFixed(3) : v === 0 ? '0' : v.toExponential(1);
+// draws the loss surface (red = high, blue = low, banded like contours) with axes; returns [ctx, X, Y] mappers
+function drawSurface(cv, S){ const [ctx, W, H] = setupCanvas(cv), l = 30, r = 8, t = 8, bm = 26, pw = W - l - r, ph = H - t - bm;
+  const X = w => l + (w - BOX[0]) / (BOX[1] - BOX[0]) * pw, Y = b => t + (BOX[3] - b) / (BOX[3] - BOX[2]) * ph;
+  const off = document.createElement('canvas'); off.width = S.G; off.height = S.G; const oc = off.getContext('2d'), img = oc.createImageData(S.G, S.G);
+  const dk = isDark(), lo = dk ? [28, 52, 92] : [196, 218, 246], mid = dk ? [38, 38, 36] : [250, 250, 247], hi = dk ? [104, 44, 30] : [245, 190, 166];
+  for (let k = 0; k < S.Z.length; k++) { const q = Math.round(Math.sqrt(S.Z[k] / S.zmax) * 14) / 14, a = q < 0.5 ? lo : mid, c = q < 0.5 ? mid : hi, s = q < 0.5 ? q * 2 : (q - 0.5) * 2;
+    for (let n = 0; n < 3; n++) img.data[k * 4 + n] = a[n] + (c[n] - a[n]) * s; img.data[k * 4 + 3] = 255; }
+  oc.putImageData(img, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(off, l, t, pw, ph);
+  ctx.strokeStyle = cssv('--grid'); ctx.strokeRect(l, t, pw, ph); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  for (let v = -6; v <= 6; v += 2) { ctx.fillText(v, X(v), t + ph + 13); ctx.textAlign = 'right'; ctx.fillText(v, l - 4, Y(v) + 4); ctx.textAlign = 'center'; }
+  ctx.font = 'italic 13px system-ui'; ctx.fillText('w', l + pw - 8, t + ph + 24); ctx.fillText('b', 9, t + 14);
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, pw, ph); ctx.clip();
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(W0), Y(B0), 4, 0, 7); ctx.fill();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(WS) - 6, Y(BS) - 6); ctx.lineTo(X(WS) + 6, Y(BS) + 6); ctx.moveTo(X(WS) + 6, Y(BS) - 6); ctx.lineTo(X(WS) - 6, Y(BS) + 6); ctx.stroke();
+  return [ctx, X, Y]; }
+function drawPath(ctx, X, Y, path, upto, col, dash){ const n = Math.min(upto, path.length - 1); if (n < 0) return;
+  ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.setLineDash(dash ? [5, 4] : []); ctx.beginPath();
+  for (let i = 0; i <= n; i++) { const p = path[i]; i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])); } ctx.stroke(); ctx.setLineDash([]);
+  const p = path[n]; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 5, 0, 7); ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1.5; ctx.stroke(); }
+// line chart over iterations. series: [{y:[...], col, dash, w}]; o: {n, log, t, ylab, hline}
+function chart(cv, series, o){ const [ctx, W, H] = setupCanvas(cv), l = 50, r = 10, t = 10, bm = 24, pw = W - l - r, ph = H - t - bm;
+  const tr = o.log ? v => Math.log10(Math.max(v, 1e-12)) : v => v; let lo = Infinity, hi = -Infinity;
+  series.forEach(s => s.y.forEach(v => { if (!isFinite(v) || (o.log && v <= 0)) return; const z = tr(v); if (z < lo) lo = z; if (z > hi) hi = z; }));
+  if (o.hline !== undefined) { lo = Math.min(lo, tr(o.hline)); hi = Math.max(hi, tr(o.hline)); }
+  if (!isFinite(lo)) { lo = 0; hi = 1; } if (o.zero && !o.log) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); } if (hi - lo < 1e-9) { hi += 0.5; lo -= 0.5; }
+  const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+  const X = i => l + i / Math.max(1, o.n - 1) * pw, Y = v => t + (hi - tr(v)) / (hi - lo) * ph;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right';
+  const ticks = []; if (o.log) { for (let e = Math.ceil(lo); e <= Math.floor(hi); e++) ticks.push(e); while (ticks.length > 6) for (let i = ticks.length - 2; i > 0; i -= 2) ticks.splice(i, 1); }
+  else { const st = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4))), s2 = (hi - lo) / st > 20 ? st * 5 : (hi - lo) / st > 8 ? st * 2 : st; for (let v = Math.ceil(lo / s2) * s2; v <= hi; v += s2) ticks.push(v); }
+  ticks.forEach(z => { const y = t + (hi - z) / (hi - lo) * ph; ctx.beginPath(); ctx.moveTo(l, y); ctx.lineTo(l + pw, y); ctx.stroke(); ctx.fillText(o.log ? fmt(Math.pow(10, z)) : fmt(+z.toPrecision(6)), l - 5, y + 4); });
+  ctx.textAlign = 'center'; for (let k = 0; k <= 4; k++) { const i = Math.round((o.n - 1) * k / 4); ctx.fillText(i, X(i), t + ph + 15); }
+  if (o.hline !== undefined) { ctx.setLineDash([3, 4]); ctx.strokeStyle = cssv('--muted'); ctx.beginPath(); ctx.moveTo(l, Y(o.hline)); ctx.lineTo(l + pw, Y(o.hline)); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, pw, ph); ctx.clip();
+  series.forEach(s => { ctx.strokeStyle = s.col; ctx.lineWidth = s.w || 2; ctx.setLineDash(s.dash ? [5, 4] : []); ctx.beginPath(); let on = false;
+    s.y.forEach((v, i) => { if (!isFinite(v) || (o.log && v <= 0)) { on = false; return; } on ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)); on = true; }); ctx.stroke(); });
+  ctx.setLineDash([]); ctx.restore();
+  if (o.t !== undefined) { ctx.strokeStyle = cssv('--ink'); ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(X(o.t), t); ctx.lineTo(X(o.t), t + ph); ctx.stroke(); ctx.globalAlpha = 1; }
+  if (o.ylab) { ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.fillText(o.ylab, l + 6, t + 12); } }
+// play/pause driver for an iteration slider
+function player(btn, slider, onT, speed){ let raf = 0; const stop = () => { cancelAnimationFrame(raf); raf = 0; btn.textContent = '▶ Play'; };
+  const tick = () => { const v = Math.min(+slider.max, +slider.value + speed); slider.value = v; onT(); if (v >= +slider.max) stop(); else raf = requestAnimationFrame(tick); };
+  btn.onclick = () => { if (raf) return stop(); if (+slider.value >= +slider.max) slider.value = 0; btn.textContent = '❚❚ Pause'; raf = requestAnimationFrame(tick); };
+  slider.addEventListener('input', () => { onT(); }); return stop; }
+function boot(draw){ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); }); }
+const COL = {gd: '--ink', mom: '--s2', nag: '--lv1', ada: '--s3'};
+let D, S, R = {}, T = 500;
+function compute(){ const sp = +$('sp').value / 100; D = makeData(sp); S = surfGrid(D);
+  R.gd = run(D, {k: 'gd', eta: 0.003}, T); R.mom = run(D, {k: 'mom', eta: 0.003, beta: 0.9}, T); R.nag = run(D, {k: 'nag', eta: 0.003, beta: 0.9}, T);
+  R.ada = run(D, {k: 'ada', eta: 0.1, eps: 1e-8, nosqrt: $('nosq').checked}, T);
+  const g = grad(D, W0, B0); $('ratio').textContent = (Math.abs(g[1]) / Math.max(1e-12, Math.abs(g[0]))).toFixed(1) + '×'; $('spV').textContent = Math.round(sp * 100) + '%'; }
+function draw(){ const t = +$('tS').value; $('tV').textContent = 't = ' + t;
+  const [ctx, X, Y] = drawSurface($('surf'), S);
+  [['gd', 'cGD'], ['mom', 'cMOM'], ['nag', 'cNAG'], ['ada', 'cADA']].forEach(([k, c]) => { if ($(c).checked) drawPath(ctx, X, Y, R[k].path, t, cssv(COL[k])); }); ctx.restore();
+  const L = k => { const p = R[k].path; return p[Math.min(t, p.length - 1)][2]; };
+  $('lGD').textContent = fmt(L('gd')); $('lADA').textContent = fmt(L('ada'));
+  const pa = R.ada.path[Math.min(t, R.ada.path.length - 1)], pg = R.gd.path[Math.min(t, R.gd.path.length - 1)];
+  $('msgA').innerHTML = `At t = ${t}: GD is at (w, b) = (${pg[0].toFixed(2)}, ${pg[1].toFixed(2)}); AdaGrad is at (${pa[0].toFixed(2)}, ${pa[1].toFixed(2)}). Target (2, −1).` +
+    ($('nosq').checked ? ` <b>Without the square root</b> b's effective rate starts at ${fmt(R.ada.eta[1][0])} and only falls, so the run is stuck near the start.` : '');
+  const a = R.ada, i = Math.min(t, a.v[0].length - 1), w = cssv('--s1'), b = cssv('--s2');
+  chart($('cV'), [{y: a.v[0], col: w}, {y: a.v[1], col: b}], {n: T, log: true, t});
+  chart($('cE'), [{y: a.eta[0], col: w}, {y: a.eta[1], col: b}], {n: T, log: true, t, hline: 0.1});
+  $('e0').textContent = fmt(a.eta[0][0]) + ' | ' + fmt(a.eta[1][0]); $('et').textContent = fmt(a.eta[0][i]) + ' | ' + fmt(a.eta[1][i]);
+  $('gt').textContent = fmt(a.g[0][i]) + ' | ' + fmt(a.g[1][i]); }
+compute();
+player($('play'), $('tS'), draw, 4);
+['cGD', 'cMOM', 'cNAG', 'cADA'].forEach(id => $(id).addEventListener('change', draw));
+$('sp').addEventListener('input', () => { compute(); draw(); }); $('nosq').addEventListener('change', () => { compute(); draw(); });
+boot(draw);
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

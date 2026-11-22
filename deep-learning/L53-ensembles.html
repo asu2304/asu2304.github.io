@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ensembles and Bagging</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 53 · playlist video 53 (titled “L51” on YouTube) · Regularisation</div>
+<h1>Ensemble Methods and Bagging</h1>
+<p class="lede">Don't rely on one model: train several and average their outputs. Bagging does this with copies of the same model, each trained on its own sample (with replacement) of the training data, so each overfits differently. How much the average helps depends on one number, the covariance between the models' errors: with $k$ models the expected squared error is $V/k+\frac{k-1}{k}C$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Njytanc4oHY" target="_blank" rel="noopener">this lecture on YouTube</a> (≈13 min). Previous: <a href="L52-early-stopping.html">L52</a> · Next: <a href="L54-dropout.html">L54</a> (dropout).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Combine the outputs of several models</h2>
+<p>Train, say, a logistic regression, an SVM and a naive Bayes classifier separately on the same data. At test time ask all three and combine their answers, by <b>voting</b> or by <b>averaging</b>: for a two-class problem each model outputs a distribution over $\{0,1\}$, and the final prediction is the average of the three distributions. This acts as a regulariser because no single model's quirks decide the answer.</p>
+<p>The members can differ in many ways:</p>
+<table>
+<tr><th>source of diversity</th><th>example</th></tr>
+<tr><td>different model families</td><td>logistic regression, SVM, naive Bayes</td></tr>
+<tr><td>same model, different hyperparameters</td><td>neural networks with different numbers of layers or neurons per layer</td></tr>
+<tr><td>different features</td><td>each network sees a different subset of $m&lt;n$ of the $n$ input features</td></tr>
+<tr><td>different samples of the training data</td><td>several networks, each trained on a random 900k sample of 1M points</td></tr>
+</table>
+
+<h2>2 · Bagging</h2>
+<p><b>Bagging</b> is the ensemble of <b>different instances of the same classifier</b>. From the one training set, build $k$ training sets $T_1,\dots,T_k$ by <b>sampling with replacement</b>: draw a sample for the first network, put it back, draw again from the full original set for the second network, and so on. Model $i$ is trained on $T_i$.</p>
+<p>Each model now overfits to a <b>different</b> sample, and none has been able to overfit the whole training set. Combine them and the idiosyncrasies of each can average out, giving a better generalisation error. My ML notes treat bagging from the bias–variance angle, together with random forests: <a href="../machine-learning/L67-bagging.html">ML L67</a> (and <a href="../machine-learning/L66-bias-variance.html">ML L66</a> for the trade-off itself).</p>
+
+<h2>3 · When does averaging help?</h2>
+<p>Take $k$ models (the lecture uses logistic regression). On a test example, model $i$ makes an error $\varepsilon_i$. Assume the errors come from a zero-mean multivariate normal with</p>
+$$\mathbb E[\varepsilon_i^2]=V,\qquad\mathbb E[\varepsilon_i\varepsilon_j]=C\quad(i\ne j).$$
+<p>$V$ is each model's variance (its own mean squared error) and $C$ the covariance between two models' errors. Averaging the $k$ predictions gives an ensemble whose error is the average of the individual errors, $\frac1k\sum_i\varepsilon_i$.</p>
+<ol class="steps">
+<li>Expected squared error of the ensemble; pull the constant $1/k$ out as $1/k^2$:
+$$\mathrm{MSE}=\mathbb E\Big[\Big(\tfrac1k\textstyle\sum_i\varepsilon_i\Big)^2\Big]=\frac1{k^2}\,\mathbb E\Big[\Big(\textstyle\sum_i\varepsilon_i\Big)^2\Big].$$</li>
+<li>Expand $(\varepsilon_1+\dots+\varepsilon_k)^2$ into the squares ($i=j$) and the cross terms ($i\ne j$):
+$$=\frac1{k^2}\,\mathbb E\Big[\textstyle\sum_i\varepsilon_i^2+\sum_i\sum_{j\ne i}\varepsilon_i\varepsilon_j\Big].$$</li>
+<li>Expectation of a sum is the sum of expectations. There are $k$ squares, each with expectation $V$, and $k(k-1)$ cross terms, each with expectation $C$:
+$$=\frac1{k^2}\big(kV+k(k-1)C\big).$$</li>
+</ol>
+<div class="callout">
+$$\mathrm{MSE}_{\text{ensemble}}=\frac{V}{k}+\frac{k-1}{k}\,C$$
+<table style="margin-top:6px">
+<tr><th>errors are…</th><th>then</th><th>ensemble MSE</th><th>meaning</th></tr>
+<tr><td>perfectly correlated</td><td>$C=V$</td><td>$V$</td><td>no gain: 100 models making the same mistakes make that mistake on average too</td></tr>
+<tr><td>uncorrelated</td><td>$C=0$</td><td>$V/k$</td><td>error falls in proportion to the number of models</td></tr>
+<tr><td>in between (reality)</td><td>$0&lt;C&lt;V$</td><td>between</td><td>the smaller the correlation, the bigger the benefit</td></tr>
+</table>
+</div>
+<p>A regulariser is supposed to improve the expected error on test instances; this formula shows there is room to do so unless the models are perfectly correlated. Hence the push for <b>diverse</b> members: different data samples, different features, different architectures.</p>
+
+<h2>4 · Test the formula</h2>
+<p><b>(a) The formula itself.</b> Draw $k$ errors with variance $V=1$ and pairwise correlation $\rho$ (so $C=\rho$), average them, repeat 4,000 times, and compare the measured MSE with $V/k+\frac{k-1}{k}C$.</p>
+<div class="card">
+  <div class="row">
+    <label>correlation ρ = C/V <input type="range" id="rho" min="0" max="1" step="0.01" value="0.3"> <b id="rhov">0.30</b></label>
+    <label>models k <input type="range" id="kk" min="1" max="50" step="1" value="10"> <b id="kkv">10</b></label>
+  </div>
+  <canvas id="mc" height="240" aria-label="Ensemble mean squared error against number of models"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>formula $V/k+\frac{k-1}{k}C$</span><span><i class="dot" style="background:var(--s2)"></i>Monte Carlo (4,000 draws)</span><span><i style="background:var(--faint)"></i>floor $C$ and the uncorrelated case $V/k$</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="fm">–</div><div class="l">formula at this k</div></div>
+    <div class="stat"><div class="v" id="ms">–</div><div class="l">measured at this k</div></div>
+  </div>
+</div>
+<p><b>(b) Real bagging.</b> Fit high-degree polynomials (degree 7) to 30 noisy points, each on its own bootstrap sample, and average them. The error of model $i$ at a test input $x$ is $\varepsilon_i(x)=f_i(x)-f(x)$. Measuring $V$ and $C$ from the fitted models and plugging them into the formula reproduces the ensemble's error, and shows why bagging stops improving: the models share most of their training points, so $C$ is far from 0.</p>
+<div class="card">
+  <div class="row"><button id="bag">New bootstrap models</button><button id="ndb">New data</button>
+    <label>models k <input type="range" id="kb" min="1" max="40" step="1" value="15"> <b id="kbv">15</b></label></div>
+  <canvas id="bc" height="260" aria-label="Bootstrap polynomial fits and their average"></canvas>
+  <div class="legend"><span><i style="background:var(--faint)"></i>individual models (each on a bootstrap sample)</span><span><i style="background:var(--s2)"></i>bagged average</span><span><i style="background:var(--s3)"></i>true function</span><span><i class="dot" style="background:var(--s1)"></i>training points</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="bv">–</div><div class="l">V: mean squared error of one model</div></div>
+    <div class="stat"><div class="v" id="bcov">–</div><div class="l">C: covariance between two models (ρ = C/V)</div></div>
+    <div class="stat"><div class="v" id="bens">–</div><div class="l">ensemble MSE: measured / formula</div></div>
+  </div>
+</div>
+
+<div class="beyond"><b>Going beyond the video.</b> As $k\to\infty$ the formula tends to $C$, not 0: correlation sets a floor no amount of averaging removes. Random forests attack $C$ directly by adding the "different features" idea on top of bagging: each split considers only a random subset of features, which decorrelates the trees (see <a href="../machine-learning/L67-bagging.html">ML L67</a>). The formula needs $V$ and $C$ to be second moments of the errors; if the models share a bias, that bias also shows up in $C$ and is not averaged away either.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Ensembles combine several models' outputs (vote or average) to reduce generalisation error.</li>
+<li>Diversity can come from different model families, hyperparameters, feature subsets, or training samples.</li>
+<li>Bagging: the same model trained on $k$ datasets sampled with replacement from the training set; each overfits a different sample.</li>
+<li>With error variance $V$ and pairwise covariance $C$, averaging $k$ models gives $\mathrm{MSE}=V/k+\frac{k-1}{k}C$.</li>
+<li>Perfectly correlated errors ($C=V$): no gain. Uncorrelated ($C=0$): $V/k$. The less the models' errors are correlated, the more averaging helps.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// ---------- (a) formula vs Monte Carlo ----------
+const KS = [1, 2, 3, 5, 8, 12, 20, 30, 50];
+let mcPts = [];
+const formula = (k, r) => 1 / k + (k - 1) / k * r;
+function mcAt(k, r){ const T = 4000, a = Math.sqrt(r), b = Math.sqrt(1 - r); let s = 0;
+  for (let t = 0; t < T; t++) { const z0 = randn(); let m = 0; for (let i = 0; i < k; i++) m += a * z0 + b * randn(); m /= k; s += m * m; } return s / T; }
+function recomputeMC(){ const r = +$('rho').value; mcPts = KS.map(k => [k, mcAt(k, r)]); }
+function drawMC(){
+  const r = +$('rho').value, k = Math.round(+$('kk').value), [ctx, W, H] = setupCanvas($('mc')), pl = 34, pb = 26, pt = 10;
+  const X = v => pl + (W - pl - 10) * (v - 1) / 49, Y = v => pt + (H - pt - pb) * (1 - v / 1.05);
+  ctx.font = '12px system-ui'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 0.25, 0.5, 0.75, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pl, Y(v)); ctx.lineTo(W - 10, Y(v)); ctx.stroke(); ctx.fillText(v, 4, Y(v) + 4); });
+  [1, 10, 20, 30, 40, 50].forEach(v => ctx.fillText(v, X(v) - 6, H - 8)); ctx.fillText('k →', W - 32, H - 30);
+  const curve = (f, col, lw, dash) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash || []); ctx.beginPath(); for (let v = 1; v <= 50; v += 0.25) { v > 1 ? ctx.lineTo(X(v), Y(f(v))) : ctx.moveTo(X(v), Y(f(v))); } ctx.stroke(); ctx.setLineDash([]); };
+  curve(v => 1 / v, cssv('--faint'), 1.5, [4, 4]); curve(() => r, cssv('--faint'), 1.5, [2, 3]); curve(v => formula(v, r), cssv('--s1'), 3);
+  mcPts.forEach(([kk, m]) => { ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(kk), Y(m), 4.5, 0, 7); ctx.fill(); });
+  ctx.strokeStyle = cssv('--ink'); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(k), pt); ctx.lineTo(X(k), H - pb); ctx.stroke(); ctx.setLineDash([]);
+  $('fm').textContent = formula(k, r).toFixed(3); }
+function updK(){ const k = Math.round(+$('kk').value), r = +$('rho').value; $('kkv').textContent = k; $('ms').textContent = mcAt(k, r).toFixed(3); drawMC(); }
+$('rho').addEventListener('input', () => { $('rhov').textContent = (+$('rho').value).toFixed(2); recomputeMC(); updK(); });
+$('kk').addEventListener('input', updK);
+
+// ---------- (b) bagging polynomials ----------
+const DEG = 7, NP = 30, KMAX = 40, NG = 200, f = x => Math.sin(3 * x) + 0.3 * x;
+let pts = [], models = [], grid = Array.from({length: NG}, (_, i) => -0.95 + 1.9 * i / (NG - 1));
+function solve(A, b){ const n = b.length, M = A.map((r, i) => r.concat([b[i]]));
+  for (let c = 0; c < n; c++) { let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]]; for (let r = 0; r < n; r++) if (r !== c) { const g = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= g * M[c][k]; } }
+  return M.map((r, i) => r[n] / r[i]); }
+const pw = x => Array.from({length: DEG + 1}, (_, j) => x ** j);
+function fitPoly(sample){ const A = Array.from({length: DEG + 1}, () => Array(DEG + 1).fill(0)), b = Array(DEG + 1).fill(0);
+  sample.forEach(p => { const v = pw(p.x); for (let i = 0; i <= DEG; i++) { b[i] += v[i] * p.y; for (let j = 0; j <= DEG; j++) A[i][j] += v[i] * v[j]; } });
+  for (let i = 0; i <= DEG; i++) A[i][i] += 1e-2; const c = solve(A, b); return grid.map(x => pw(x).reduce((s, v, i) => s + v * c[i], 0)); }
+function newPts(){ pts = Array.from({length: NP}, () => { const x = Math.random() * 2 - 1; return {x, y: f(x) + 0.3 * randn()}; }); newModels(); }
+function newModels(){ models = Array.from({length: KMAX}, () => fitPoly(Array.from({length: NP}, () => pts[Math.floor(Math.random() * NP)]))); }
+function drawBag(){
+  const k = Math.round(+$('kb').value), [ctx, W, H] = setupCanvas($('bc')), X = x => 8 + (W - 16) * (x + 0.95) / 1.9, Y = v => H / 2 - v * (H / 2 - 10) / 2.2;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  const line = (arr, col, lw, alpha) => { ctx.globalAlpha = alpha; ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); arr.forEach((v, i) => { const y = Y(Math.max(-9, Math.min(9, v))); i ? ctx.lineTo(X(grid[i]), y) : ctx.moveTo(X(grid[i]), y); }); ctx.stroke(); ctx.globalAlpha = 1; };
+  const use = models.slice(0, k), avg = grid.map((_, g) => use.reduce((s, m) => s + m[g], 0) / k);
+  use.forEach(m => line(m, cssv('--faint'), 1, 0.6)); line(grid.map(f), cssv('--s3'), 2.5, 1); line(avg, cssv('--s2'), 3, 1); ctx.restore();
+  pts.forEach(p => { ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 4.5, 0, 7); ctx.fill(); });
+  // V, C, ensemble MSE on the grid; errors eps_i(x) = f_i(x) - f(x)
+  const E = use.map(m => m.map((v, g) => v - f(grid[g])));
+  let V = 0, C = 0, nc = 0, ens = 0;
+  for (let g = 0; g < NG; g++) { let s = 0; for (let i = 0; i < k; i++) { V += E[i][g] ** 2; s += E[i][g]; for (let j = 0; j < k; j++) if (j !== i) { C += E[i][g] * E[j][g]; nc++; } } ens += (s / k) ** 2; }
+  V /= k * NG; ens /= NG; if (nc) C /= nc;
+  $('kbv').textContent = k; $('bv').textContent = V.toFixed(3);
+  $('bcov').textContent = k > 1 ? `${C.toFixed(3)} (ρ = ${(C / V).toFixed(2)})` : '– (need k ≥ 2)';
+  $('bens').textContent = `${ens.toFixed(3)} / ${(V / k + (k > 1 ? (k - 1) / k * C : 0)).toFixed(3)}`; }
+$('kb').addEventListener('input', drawBag); $('bag').onclick = () => { newModels(); drawBag(); }; $('ndb').onclick = () => { newPts(); drawBag(); };
+
+function drawAll(){ drawMC(); drawBag(); }
+recomputeMC(); newPts(); updK(); drawBag();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

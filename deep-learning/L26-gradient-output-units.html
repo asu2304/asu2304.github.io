@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient w.r.t. Output Units</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 26 · playlist video 26 (titled “L26” on YouTube) · Backpropagation, part 1 of 3</div>
+<h1>Gradient w.r.t. the Output Units: Softmax + Cross-Entropy</h1>
+<p class="lede">Backpropagation starts at the top. With a softmax output and the loss $L(\theta)=-\log\hat y_\ell$, the gradient of the loss with respect to the output pre-activations comes out remarkably simple: $\nabla_{a_L}L(\theta)=-(e(\ell)-\hat y)$, the predicted distribution minus the one-hot true label. Getting there is one chain rule plus one quotient rule.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=T6kfyQ3_JQ8" target="_blank" rel="noopener">this lecture on YouTube</a> (≈26 min). Previous: <a href="L25-backpropagation-intuition.html">L25</a> · Next: <a href="L27-gradient-hidden-units.html">L27</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Talking to the output layer</h2>
+<p>The <a href="L25-backpropagation-intuition.html">previous lecture</a> split backpropagation into three conversations: talk to the <b>output layer</b>, talk to the <b>hidden layers</b>, talk to the <b>weights</b>. This lecture does the first.</p>
+<p>The setup, from <a href="L22-feedforward-networks.html">L22</a>: the network has $L$ layers. The output layer has a pre-activation $a_L=(a_{L1},\dots,a_{Lk})$ for $k$ classes, and the output is the softmax $\hat y=O(a_L)$. In the lecture's running example $L=3$, so $h_3=\hat y$. The loss is the cross-entropy for the true class $\ell$:</p>
+$$L(\theta)=-\log \hat y_\ell .$$
+<p>"Output layer" here means the pre-activations $a_L$. We want the gradient</p>
+$$\nabla_{a_L}L(\theta)=\left[\frac{\partial L(\theta)}{\partial a_{L1}},\ \dots,\ \frac{\partial L(\theta)}{\partial a_{Lk}}\right]^{\top}.$$
+<div class="callout"><b>The recipe used for the rest of backprop.</b> To get a gradient with respect to a vector, first find the partial derivative with respect to <b>one generic element</b> of it. Then stack those partials into the vector and look for a compact way to write it.</div>
+
+<h2>2 · Warm-up: the gradient w.r.t. $\hat y$</h2>
+<p>Before $a_L$, the lecture does the easier step: differentiate with respect to the outputs $\hat y_1,\dots,\hat y_k$.</p>
+<p>$-\log\hat y_\ell$ involves only <b>one</b> of the outputs, the one for the true class. Say $\ell=2$: then the loss is $-\log\hat y_2$. Its derivative with respect to $\hat y_1$ is 0 (no $\hat y_1$ in it), with respect to $\hat y_2$ it is $-1/\hat y_2$ (since $\tfrac{d}{dx}\log x=1/x$), and with respect to $\hat y_3,\dots,\hat y_k$ it is 0 again. That is an if/else, written with an <b>indicator variable</b> $\mathbf 1_{(i=\ell)}$, which is 1 when the condition holds and 0 otherwise:</p>
+$$\frac{\partial L(\theta)}{\partial \hat y_i}=-\frac{\mathbf 1_{(i=\ell)}}{\hat y_\ell}.$$
+<p>Stack these for $i=1,\dots,k$. The factor $-1/\hat y_\ell$ is the same in every entry; only the indicator changes, and it is 1 in exactly one position. A vector with a single 1 is a <b>one-hot vector</b>; call it $e(\ell)$ (for $\ell=2$: $e(\ell)=[0,1,0,\dots,0]$). So</p>
+$$\nabla_{\hat y}L(\theta)=-\frac{1}{\hat y_\ell}\,e(\ell).$$
+<p>Nothing new, just notation. But it is not what we want: we need the gradient with respect to $a_L$, one step further down.</p>
+
+<h2>3 · Why $a_L$ is different: every output depends on every pre-activation</h2>
+<p>Split by the chain rule: $\dfrac{\partial L}{\partial a_{Li}}=\dfrac{\partial L}{\partial \hat y_\ell}\cdot\dfrac{\partial \hat y_\ell}{\partial a_{Li}}$. Does $\hat y_\ell$ depend on $a_{Li}$ for every $i$? Yes. The softmax gives</p>
+$$\hat y_\ell=\frac{\exp(a_{L\ell})}{\sum_{i'=1}^{k}\exp(a_{Li'})},$$
+<p>and <b>every</b> $a_{Li'}$ appears in the denominator. So, unlike in §2, no entry of the gradient is automatically zero.</p>
+
+<h2>4 · The derivation, step by step</h2>
+<ol class="steps">
+<li><b>Through the log.</b> Like $\tfrac{d}{dx}\log(x^2)=\tfrac{1}{x^2}\cdot\tfrac{d}{dx}x^2$:
+$$\frac{\partial}{\partial a_{Li}}\big(-\log\hat y_\ell\big)=-\frac{1}{\hat y_\ell}\,\frac{\partial \hat y_\ell}{\partial a_{Li}} .$$</li>
+<li><b>Substitute the softmax.</b> $\hat y_\ell=\operatorname{softmax}(a_L)_\ell$ is a ratio $g/h$ with $g=\exp(a_{L\ell})$ and $h=\sum_{i'}\exp(a_{Li'})$. Use the quotient rule
+$$\frac{\partial}{\partial x}\frac{g}{h}=\frac{1}{h}\frac{\partial g}{\partial x}-\frac{g}{h^2}\frac{\partial h}{\partial x}.$$</li>
+<li><b>Numerator term.</b> $\exp(a_{L\ell})$ depends only on $a_{L\ell}$, and $\tfrac{d}{dx}e^x=e^x$:
+$$\frac{\partial \exp(a_{L\ell})}{\partial a_{Li}}=\mathbf 1_{(\ell=i)}\exp(a_{L\ell}).$$</li>
+<li><b>Denominator term.</b> In $e^{a_{L1}}+\dots+e^{a_{Lk}}$ only the $i$-th term depends on $a_{Li}$:
+$$\frac{\partial}{\partial a_{Li}}\sum_{i'}\exp(a_{Li'})=\exp(a_{Li}).$$</li>
+<li><b>Recognise softmax entries.</b> Put them together, splitting the squared denominator in two:
+$$\frac{\partial \hat y_\ell}{\partial a_{Li}}=\mathbf 1_{(\ell=i)}\frac{\exp(a_{L\ell})}{\sum_{i'}\exp(a_{Li'})}-\frac{\exp(a_{L\ell})}{\sum_{i'}\exp(a_{Li'})}\cdot\frac{\exp(a_{Li})}{\sum_{i'}\exp(a_{Li'})}=\mathbf 1_{(\ell=i)}\,\hat y_\ell-\hat y_\ell\,\hat y_i .$$</li>
+<li><b>Cancel.</b> Multiply by $-1/\hat y_\ell$ from step 1. The $\hat y_\ell$ cancels:
+$$\frac{\partial L(\theta)}{\partial a_{Li}}=-\big(\mathbf 1_{(\ell=i)}-\hat y_i\big).$$</li>
+</ol>
+<p>Now stack over $i=1,\dots,k$. The indicators form the one-hot $e(\ell)$, and the $\hat y_i$ form $\hat y$:</p>
+<div class="callout">
+$$\nabla_{a_L}L(\theta)=-\begin{bmatrix}\mathbf 1_{(\ell=1)}-\hat y_1\\ \vdots\\ \mathbf 1_{(\ell=k)}-\hat y_k\end{bmatrix}=-\big(e(\ell)-\hat y\big)$$
+</div>
+<p>Each entry tells you how $L(\theta)$ changes when you nudge one pre-activation $a_{Li}$. The true class gets $\hat y_\ell-1&lt;0$: raising its score lowers the loss. Every other class gets $+\hat y_i&gt;0$: raising its score raises the loss, and more so the more probability it already steals. Nothing in this formula is hard to compute: $\hat y$ comes from the forward pass and $e(\ell)$ from the label.</p>
+<div class="beyond"><b>Going beyond the video.</b> (1) The entries always <b>sum to zero</b>, because both $\hat y$ and $e(\ell)$ sum to 1. (2) Every entry lies in $(-1,1)$, and the gradient stays large exactly when the prediction is badly wrong ($\hat y_\ell\to0$ gives $-1$ in the true-class slot). That is one reason softmax + cross-entropy trains well. (3) It's the same "prediction minus target" form as logistic regression in my ML notes (<a href="../machine-learning/L56-logistic-regression.html">L56</a>).</div>
+
+<h2>5 · Try it: the gradient at the output layer</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Set the four pre-activations $a_{L1..4}$ and the true class $\ell$. Bars show $\hat y$ (blue), $e(\ell)$ (outline) and the gradient $\hat y-e(\ell)$ (green = negative, orange = positive). The table compares the formula with a finite-difference estimate, $\big(L(a+\epsilon e_i)-L(a-\epsilon e_i)\big)/2\epsilon$. "Gradient step" moves $a_L\leftarrow a_L-\eta\nabla_{a_L}L$ with $\eta=1$.</p>
+  <div class="row" id="sl"></div>
+  <div class="row"><span class="small">true class $\ell$:</span><span id="cls"></span><button id="gstep">Gradient step on $a_L$</button><button id="rnd">Random $a_L$</button></div>
+  <canvas id="bars" height="260" aria-label="Bar chart of softmax output, one-hot label and gradient"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>$\hat y_i$</span><span><i style="background:var(--muted)"></i>$e(\ell)_i$ (outline)</span><span><i style="background:var(--s3)"></i>gradient &lt; 0</span><span><i style="background:var(--s2)"></i>gradient &gt; 0</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="lossv">–</div><div class="l">$L(\theta)=-\log\hat y_\ell$</div></div>
+    <div class="stat"><div class="v" id="sumv">–</div><div class="l">sum of gradient entries</div></div>
+    <div class="stat"><div class="v" id="fdv">–</div><div class="l">max |formula − finite diff.|</div></div>
+  </div>
+  <table><thead><tr><th>$i$</th><th>$\hat y_i$</th><th>$\partial L/\partial\hat y_i$</th><th>$\partial L/\partial a_{Li}$ (formula)</th><th>finite difference</th></tr></thead><tbody id="tb"></tbody></table>
+  <p class="small" id="msg"></p>
+</div>
+<p>Things to check: $\nabla_{\hat y}L$ is zero except in one slot, while $\nabla_{a_L}L$ is nonzero everywhere, because every $\hat y_\ell$ depends on every $a_{Li}$ (§3). Press "Gradient step" a few times: the true class's score rises, the others fall, and the loss drops.</p>
+
+<h2>6 · Where this leaves us</h2>
+<p>Step one of three is done: we know how the loss responds to each output pre-activation. The next two lectures reuse this vector. <a href="L27-gradient-hidden-units.html">L27</a> pushes it down to the hidden layers, and <a href="L28-gradient-parameters.html">L28</a> turns it into gradients for $W_L$ and $b_L$.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Recipe: differentiate with respect to one generic element, then stack the results into a vector or matrix.</li>
+<li>$\partial L/\partial\hat y_i=-\mathbf 1_{(i=\ell)}/\hat y_\ell$, so $\nabla_{\hat y}L=-e(\ell)/\hat y_\ell$ is zero except in the true-class slot.</li>
+<li>$\hat y_\ell$ depends on every $a_{Li}$ through the softmax denominator, so the gradient w.r.t. $a_L$ is dense.</li>
+<li>Chain rule plus quotient rule gives $\partial\hat y_\ell/\partial a_{Li}=\hat y_\ell(\mathbf 1_{(\ell=i)}-\hat y_i)$.</li>
+<li>Result: $\nabla_{a_L}L(\theta)=-(e(\ell)-\hat y)$. It needs only the forward-pass output and the label.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const K = 4; let a = [1.2, 0.3, -0.5, 0.8], ell = 1, msg = 'Class 2 is the true class. Its gradient entry is the only negative one.';
+const softmax = v => { const M = Math.max(...v), e = v.map(x => Math.exp(x - M)), s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); };
+const loss = v => -Math.log(softmax(v)[ell]);
+function buildUI(){
+  $('sl').innerHTML = a.map((v, i) => `<label>a<sub>L${i + 1}</sub> <input type="range" min="-4" max="4" step="0.1" id="s${i}" value="${v}"> <span class="mono" id="sv${i}"></span></label>`).join('');
+  a.forEach((_, i) => $('s' + i).addEventListener('input', e => { a[i] = +e.target.value; msg = ''; draw(); }));
+  $('cls').innerHTML = a.map((_, i) => `<button id="c${i}">${i + 1}</button>`).join(' ');
+  a.forEach((_, i) => $('c' + i).onclick = () => { ell = i; msg = `True class is now ${i + 1}.`; draw(); });
+}
+function draw(){
+  const y = softmax(a), g = y.map((v, i) => v - (i === ell ? 1 : 0)), eps = 1e-5;
+  const fd = a.map((_, i) => { const p = a.slice(), m = a.slice(); p[i] += eps; m[i] -= eps; return (loss(p) - loss(m)) / (2 * eps); });
+  a.forEach((v, i) => { $('s' + i).value = v; $('sv' + i).textContent = v.toFixed(1); $('c' + i).className = i === ell ? 'on' : ''; });
+  const [ctx, W, H] = setupCanvas($('bars')); const top = 18, mid = H * 0.56, sc = (H * 0.5 - top), bot = H - 26;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke();
+  ctx.font = '12px system-ui'; ctx.fillStyle = cssv('--muted'); ctx.fillText('+1', 2, mid - sc + 4); ctx.fillText('−1', 2, bot + 4);
+  const gw = (W - 30) / K, bw = Math.min(26, gw / 3.4);
+  for (let i = 0; i < K; i++) { const x0 = 30 + i * gw + gw / 2 - bw * 1.6;
+    ctx.fillStyle = cssv('--s1'); ctx.fillRect(x0, mid - y[i] * sc, bw, y[i] * sc);
+    if (i === ell) { ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1.5; ctx.strokeRect(x0 + bw * 1.1, mid - sc, bw, sc); }
+    const gx = x0 + bw * 2.2, gh = g[i] * (bot - mid); ctx.fillStyle = cssv(g[i] < 0 ? '--s3' : '--s2');
+    ctx.fillRect(gx, g[i] < 0 ? mid : mid - g[i] * sc, bw, g[i] < 0 ? -gh : g[i] * sc);
+    ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'center'; ctx.font = (i === ell ? '700 ' : '') + '13px system-ui';
+    ctx.fillText('class ' + (i + 1) + (i === ell ? ' (ℓ)' : ''), 30 + i * gw + gw / 2, H - 6); ctx.textAlign = 'left'; }
+  $('lossv').textContent = loss(a).toFixed(3);
+  $('sumv').textContent = Math.abs(g.reduce((p, q) => p + q, 0)) < 5e-13 ? '0.000' : g.reduce((p, q) => p + q, 0).toExponential(1);
+  $('fdv').textContent = Math.max(...g.map((v, i) => Math.abs(v - fd[i]))).toExponential(1);
+  $('tb').innerHTML = y.map((v, i) => `<tr><td>${i + 1}${i === ell ? ' (ℓ)' : ''}</td><td>${v.toFixed(3)}</td><td>${i === ell ? (-1 / y[ell]).toFixed(3) : '0'}</td><td>${g[i].toFixed(4)}</td><td>${fd[i].toFixed(4)}</td></tr>`).join('');
+  $('msg').innerHTML = msg;
+}
+$('gstep').onclick = () => { const y = softmax(a), L0 = loss(a); a = a.map((v, i) => Math.max(-4, Math.min(4, v - (y[i] - (i === ell ? 1 : 0)))));
+  msg = `One step with η = 1: loss ${L0.toFixed(3)} → ${loss(a).toFixed(3)}; ŷ<sub>ℓ</sub> ${y[ell].toFixed(3)} → ${softmax(a)[ell].toFixed(3)}.`; draw(); };
+$('rnd').onclick = () => { a = a.map(() => Math.round((Math.random() * 6 - 3) * 10) / 10); msg = ''; draw(); };
+buildUI(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

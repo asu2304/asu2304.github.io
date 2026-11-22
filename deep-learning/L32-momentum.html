@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Momentum-Based Gradient Descent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+.s4{color:var(--s4)}
+:root{--s4:#8a5cc9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--s4:#a27ee0}}
+:root[data-theme="dark"]{--s4:#a27ee0}
+.ctl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:8px 0;font-size:14px}
+.ctl output{font-variant-numeric:tabular-nums;min-width:3.2em;display:inline-block}
+.box{border:2px solid var(--s1);border-radius:10px;padding:4px 14px;margin:14px 0;background:var(--card)}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 32 · playlist video 32 (titled “L32” on YouTube) · Optimisation algorithms</div>
+<h1>Momentum-Based Gradient Descent</h1>
+<p class="lede">Gradient descent crawls across gentle slopes because it only listens to the current, tiny gradient. Momentum keeps a running history $u_t$ of all past gradients, exponentially weighted, and moves by that instead. If you keep being pushed the same way, the steps grow. The price: it builds up so much speed that it overshoots the minimum and makes U-turns. It still gets there much sooner.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=R3jlvdclAHI" target="_blank" rel="noopener">this lecture on YouTube</a> (≈20 min). Previous: <a href="L31-contours.html">L31</a> · Next: <a href="L33-nesterov.html">L33</a> (Nesterov accelerated gradient).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The problem: gentle slopes take forever</h2>
+<p>From <a href="L30-gradient-descent-recap.html">L30</a> and <a href="L31-contours.html">L31</a>: gradient descent takes a long time to cross regions with a gentle slope (on a contour map, successive rings far apart). There the gradients are small, so the updates $\eta\,\nabla w_t$ are small, and it takes a huge number of tiny steps to get off the flat surface.</p>
+
+<h2>2 · The intuition: ask for directions</h2>
+<p>You stand at the Velachery gate of IIT Madras and ask how to get to the Phoenix Market City mall. "Turn right." Being cautious, you take a few small steps that way. After a while you ask someone else: "Go right." Now you're more confident and walk a bit faster. A third person also says "right", and you speed up again. <b>If you are repeatedly told to go in the same direction, you should gain confidence and take bigger steps in that direction.</b></p>
+<p>On a gentle slope each individual gradient is small, but they all point the same way. If we accumulate them, we can move fast and get off the plateau quickly, just as a ball rolling down a slope gains momentum: slow at first on the gentle part, then faster and faster because it is constantly being pushed the same way.</p>
+
+<h2>3 · The update rule</h2>
+<div class="box">
+$$u_t=\beta\,u_{t-1}+\nabla w_t,\qquad w_{t+1}=w_t-\eta\,u_t$$
+<p class="small" style="margin-top:0">with $u_{-1}=0$ and $0\le\beta&lt;1$. The same two lines are applied to $b$. Here $\nabla w_t$ is the partial derivative of the loss with respect to $w$, evaluated at $w=w_t,\ b=b_t$.</p>
+</div>
+<p>$u_t$ is the <b>history vector</b>. Plain gradient descent, $w_{t+1}=w_t-\eta\,\nabla w_t$, only follows the current instruction; momentum also respects the fact that you've been told to go this way many times. Unroll the recursion to see what $u_t$ contains:</p>
+<ol class="steps">
+<li>$u_0=\beta\,u_{-1}+\nabla w_0=\nabla w_0$ (there is no history yet).</li>
+<li>$u_1=\beta\,u_0+\nabla w_1=\beta\,\nabla w_0+\nabla w_1$.</li>
+<li>$u_2=\beta\,u_1+\nabla w_2=\beta^2\,\nabla w_0+\beta\,\nabla w_1+\nabla w_2$.</li>
+<li>In general $\displaystyle u_t=\sum_{\tau=0}^{t}\beta^{\,t-\tau}\,\nabla w_\tau$.</li>
+</ol>
+<p>So $u_t$ is an <b>exponentially weighted sum of the current and all past gradients</b>. With the typical $\beta=0.9$, the current gradient gets weight 1, the previous one 0.9, the one before $0.9^2=0.81$, and so on: old gradients count for less and less, but everything is accumulated. Because $u_t$ contains the current gradient plus the history, on a flat surface where all the gradients agree it is larger than the current gradient alone, so the steps are larger.</p>
+<div class="card">
+  <div class="ctl"><label>β = <input type="range" id="hb" min="0" max="0.99" step="0.01" value="0.9"> <output id="hbO"></output></label><label>current step t = <input type="range" id="ht" min="0" max="40" value="9"> <output id="htO"></output></label></div>
+  <canvas id="hist" height="170" aria-label="Weights given to past gradients"></canvas>
+  <p class="small" id="hTxt" style="margin-bottom:0"></p>
+</div>
+<div class="beyond"><b>Going beyond the video: how much faster?</b> If the gradient stays at a constant $g$ (a uniform gentle slope), $u_t=g\,(1+\beta+\dots+\beta^t)\to g/(1-\beta)$. With $\beta=0.9$ the steps become up to <b>10×</b> those of gradient descent; with $\beta=0.99$, 100×. The "current step" readout above shows this sum approaching its limit.</div>
+
+<h2>4 · The code</h2>
+<p>The lecture's code is the gradient descent code with two extra lines. For convenience it initialises $w=b=-2$, keeps $\eta=1$, sets $\beta=0.9$, and starts the histories at zero:</p>
+<div class="card"><p class="mono" style="margin:0;white-space:pre-wrap">w, b, η, β = −2, −2, 1.0, 0.9
+v_w, v_b = 0, 0                    # u_{−1} = 0
+for epoch in 1 … max_epochs:
+    dw, db = 0, 0
+    for (x, y) in data:            # true gradient: sum over all points
+        dw += grad_w(w, b, x, y);  db += grad_b(w, b, x, y)
+    v_w = β·v_w + dw;   v_b = β·v_b + db      # accumulate history
+    w = w − η·v_w;      b = b − η·v_b         # move by the history</p></div>
+
+<h2>5 · Running it on the toy problem</h2>
+<p>Same toy as before: one sigmoid neuron that should pass through $(0.5,\,0.2)$ and $(2.5,\,0.9)$, with squared-error loss. Run plain gradient descent and momentum side by side from the same starting point:</p>
+<div class="card">
+  <div class="row"><button id="mPlay">▶ Play</button><button id="mStep">Step ×1</button><button id="mReset">Reset</button>
+    <label>Start <select id="mStart"><option value="-2,-2">(−2, −2), as in the code</option><option value="-4,-4">(−4, −4), deep on the plateau</option><option value="-2,2">(−2, 2), on a slope</option></select></label></div>
+  <div class="ctl"><label>β = <input type="range" id="mB" min="0" max="0.99" step="0.01" value="0.9"> <output id="mBO"></output></label><label>Speed <input type="range" id="mSpd" min="2" max="100" value="25"></label><span class="small muted">η = 1 for both. Click the map to start elsewhere.</span></div>
+  <div class="pair"><div><canvas id="mSig" height="170" aria-label="Current sigmoids and the two data points"></canvas><canvas id="mLoss" height="150" aria-label="Loss against iteration"></canvas></div><canvas id="mMap" height="330" aria-label="Paths of gradient descent and momentum on the contour map"></canvas></div>
+  <div class="legend"><span><i style="background:var(--s3)"></i>gradient descent</span><span><i style="background:var(--s1)"></i>momentum</span><span><i class="dot" style="background:var(--ink)"></i>start / data points</span></div>
+  <div class="row"><div class="stat"><div class="v" id="mIt">0</div><div class="l">iteration t</div></div><div class="stat"><div class="v" id="mLg">–</div><div class="l">loss, gradient descent</div></div><div class="stat"><div class="v" id="mLm">–</div><div class="l">loss, momentum</div></div><div class="stat"><div class="v" id="mU">0</div><div class="l">overshoots (U-turns) by momentum</div></div></div>
+  <p class="small" id="mTxt" style="margin-bottom:0"></p>
+</div>
+<p>Two things happen, and the lecture points out both:</p>
+<ul>
+<li><b>It is fast.</b> Even in the gentle regions momentum takes large steps, because the history carries it along. In the lecture's animation (25 iterations per second), after 50 iterations momentum is already at a very low loss while gradient descent is still at a high loss. Check the readouts at $t=50$.</li>
+<li><b>It overshoots.</b> It rushes down into the valley, shoots past the minimum and up the other side, makes a U-turn, comes back, overshoots again, and so on. It oscillates in and out of the minimum valley before settling.</li>
+</ul>
+<p>Set $\beta=0$ and the two paths coincide: momentum with no history is gradient descent. Push $\beta$ towards 0.99 and the U-turns get longer.</p>
+
+<h2>6 · Is moving fast always good?</h2>
+<p>Back to the mall. After many people have said "go right", you're on a scooter going fast. You zoom past the mall, take a U-turn, people now say "go left", you speed up again, overshoot again, U-turn again… The U-turns on the contour map are exactly this. The lecture shows the same thing on a second input where flat regions surround a narrow, steep valley: like a ball released on the rim, momentum rolls down, up the far side, back again, many times.</p>
+<div class="callout"><b>Verdict.</b> Momentum-based gradient descent oscillates in and out of the minimum valley as the momentum carries it out, and it takes several U-turns before converging. <b>Despite these U-turns it still converges faster than vanilla gradient descent</b>, just as the person on the scooter still reaches the mall before the person walking. The next question: can we keep the speed but reduce the oscillations? That is <a href="L33-nesterov.html">Nesterov accelerated gradient descent</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Gradient descent is slow on gentle slopes because each update $\eta\,\nabla w_t$ is tiny.</li>
+<li>Momentum: $u_t=\beta u_{t-1}+\nabla w_t$, $w_{t+1}=w_t-\eta u_t$, with $u_{-1}=0$ and typically $\beta=0.9$.</li>
+<li>Unrolled, $u_t=\sum_{\tau=0}^{t}\beta^{t-\tau}\nabla w_\tau$: an exponentially weighted sum of the current and all past gradients.</li>
+<li>Consistent gradients add up, so momentum escapes plateaus quickly; $\beta=0$ recovers plain gradient descent.</li>
+<li>The built-up speed makes it overshoot and U-turn around the minimum, yet it still converges faster than gradient descent.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const fmt = (v, d = 3) => (isFinite(v) ? v.toFixed(d) : '–');
+
+// ---- The lecture's toy problem: one sigmoid neuron f(x) = σ(wx + b), squared error ----
+const sg = z => 1 / (1 + Math.exp(-z));
+function Toy(X, Y, mean){ const n = X.length, s = mean ? 1 / n : 1;
+  return { X, Y, n,
+    L(w, b){ let t = 0; for (let i = 0; i < n; i++) { const f = sg(w * X[i] + b); t += 0.5 * (f - Y[i]) ** 2; } return t * s; },
+    G(w, b, idx){ let gw = 0, gb = 0; const m = idx ? idx.length : n;
+      for (let k = 0; k < m; k++) { const i = idx ? idx[k] : k, f = sg(w * X[i] + b), d = (f - Y[i]) * f * (1 - f); gw += d * X[i]; gb += d; }
+      const sc = mean ? 1 / m : 1; return [gw * sc, gb * sc]; } }; }
+const TOY = Toy([0.5, 2.5], [0.2, 0.9], false);   // the two points used throughout the lecture
+const RANGE = [-6, 6, -6, 6];                     // w from −6 to 6, b from −6 to 6
+
+// ---- Optimiser steps (notation as in the lecture: u_t history, η, β) ----
+// o = {w, b, uw, ub}; P = {eta, beta}; idx = optional mini-batch indices
+const STEP = {
+  gd(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx); o.w -= P.eta * g[0]; o.b -= P.eta * g[1]; },
+  mom(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx);
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; },
+  nag(o, toy, P, idx){ const g = toy.G(o.w - P.eta * P.beta * o.uw, o.b - P.eta * P.beta * o.ub, idx);   // look ahead first
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; } };
+
+// number of times the loss turned from falling to rising (an overshoot / U-turn)
+function overshoots(l){ let c = 0; for (let i = 2; i < l.length; i++) if (l[i] > l[i - 1] + 1e-9 && l[i - 1] <= l[i - 2]) c++; return c; }
+
+// ---- Contour map: colour-coded loss (blue = low, red = high) + level rings at equal loss intervals ----
+const HEAT = {};
+function lossGrid(toy, key, nx, ny, R = RANGE){
+  const k = key + nx + 'x' + ny; if (HEAT[k]) return HEAT[k];
+  const g = new Float64Array(nx * ny); let mx = -Infinity, mn = Infinity;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const w = R[0] + (R[1] - R[0]) * i / (nx - 1), b = R[3] - (R[3] - R[2]) * j / (ny - 1), v = toy.L(w, b);
+    g[j * nx + i] = v; if (v > mx) mx = v; if (v < mn) mn = v; }
+  return (HEAT[k] = { g, nx, ny, mx, mn }); }
+function isoSegs(G, lev){ G.seg = G.seg || {}; if (G.seg[lev]) return G.seg[lev]; const { g, nx, ny } = G, out = G.seg[lev] = [];
+  const at = (i, j) => g[j * nx + i];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], v = c.map(p => at(p[0], p[1])), pts = [];
+    for (let e = 0; e < 4; e++) { const a = v[e], b = v[(e + 1) % 4];
+      if ((a < lev) !== (b < lev)) { const t = (lev - a) / (b - a), p = c[e], q = c[(e + 1) % 4];
+        pts.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]); } }
+    if (pts.length === 2) out.push(pts); else if (pts.length === 4) { out.push([pts[0], pts[1]]); out.push([pts[2], pts[3]]); } }
+  return out; }
+function heatRGB(t){ const lo = [42, 110, 214], hi = [214, 64, 40];
+  return lo.map((c, k) => Math.round(c + (hi[k] - c) * t)); }
+function drawContour(ctx, W, H, toy, key, opt = {}){
+  const R = opt.range || RANGE, pad = opt.pad || 28, levels = opt.levels || [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7];
+  const pw = W - pad - 8, ph = H - pad - 8, X = w => pad + (w - R[0]) / (R[1] - R[0]) * pw, Y = b => 8 + (R[3] - b) / (R[3] - R[2]) * ph;
+  const nx = 90, ny = 90, G = lossGrid(toy, key, nx, ny, R);
+  const cw = pw / (nx - 1), chh = ph / (ny - 1);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad, 8, pw, ph); ctx.clip();
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const t = Math.pow((G.g[j * nx + i] - G.mn) / (G.mx - G.mn || 1), opt.gamma || 0.5), c = heatRGB(t);
+    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.55)`; ctx.fillRect(X(R[0]) + (i - 0.5) * cw, 8 + (j - 0.5) * chh, cw + 0.6, chh + 0.6); }
+  ctx.strokeStyle = cssv('--ink'); ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+  levels.forEach(lev => { if (opt.hi === lev) return; ctx.beginPath(); isoSegs(G, lev).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); });
+  ctx.globalAlpha = 1;
+  if (opt.hi != null) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 3; ctx.beginPath();
+    isoSegs(G, opt.hi).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(pad, 8, pw, ph);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  for (let v = R[0]; v <= R[1]; v += 2) ctx.fillText(v, X(v), H - pad + 16);
+  ctx.textAlign = 'right'; for (let v = R[2]; v <= R[3]; v += 2) ctx.fillText(v, pad - 4, Y(v) + 4);
+  ctx.textAlign = 'left'; ctx.fillText('w →', W - 34, H - pad + 16); ctx.fillText('b', 4, 16);
+  return { X, Y, inv: (px, py) => [R[0] + (px - pad) / pw * (R[1] - R[0]), R[3] - (py - 8) / ph * (R[3] - R[2])], pad, pw, ph }; }
+
+// ---- Sigmoid panel: current σ(wx+b) of each runner, with the data points ----
+function drawSigmoid(ctx, W, H, toy, curves){
+  const x0 = -1, x1 = 4, X = x => 30 + (x - x0) / (x1 - x0) * (W - 40), Y = y => H - 22 - y * (H - 34);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(30, Y(0)); ctx.lineTo(W - 10, Y(0)); ctx.moveTo(30, Y(1)); ctx.lineTo(W - 10, Y(1)); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(1)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText('1', 26, Y(1) + 4); ctx.fillText('0', 26, Y(0) + 4);
+  ctx.textAlign = 'center'; for (let x = 0; x <= 4; x++) ctx.fillText(x, X(x), H - 6); ctx.textAlign = 'left';
+  curves.forEach(c => { ctx.strokeStyle = c.color; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let k = 0; k <= 100; k++) { const x = x0 + (x1 - x0) * k / 100, y = sg(c.w * x + c.b); k ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); });
+  const r = toy.n > 10 ? 3 : 6; ctx.fillStyle = cssv('--ink');
+  for (let i = 0; i < toy.n; i++) { ctx.beginPath(); ctx.arc(X(toy.X[i]), Y(toy.Y[i]), r, 0, 7); ctx.fill(); } }
+
+// ---- A race of optimisers on one contour map (+ loss curve, + sigmoid fit) ----
+function Race(cfg){
+  const S = { it: 0, playing: false, start: cfg.start.slice(), runners: [] };
+  const key = cfg.key || 'toy', toy = cfg.toy;
+  function reset(st){ if (st) S.start = st.slice(); S.it = 0;
+    S.runners = cfg.runners().map(r => Object.assign({ w: S.start[0], b: S.start[1], uw: 0, ub: 0, path: [[S.start[0], S.start[1]]], loss: [toy.L(S.start[0], S.start[1])], last: 0 }, r));
+    if (cfg.onReset) cfg.onReset(S); draw(); }
+  function stepAll(){ if (S.it >= cfg.maxIter) return false;
+    S.runners.forEach(r => { if (r.on === false) return; const w0 = r.w, b0 = r.b; r.step(r, S.it);
+      if (!isFinite(r.w) || !isFinite(r.b)) { r.w = w0; r.b = b0; }
+      r.last = Math.hypot(r.w - w0, r.b - b0); r.path.push([r.w, r.b]); r.loss.push(toy.L(r.w, r.b)); });
+    S.it++; return true; }
+  function draw(){
+    const [ctx, W, H] = setupCanvas(cfg.map); ctx.clearRect(0, 0, W, H);
+    const M = drawContour(ctx, W, H, toy, key, cfg.contourOpt); S.M = M;
+    ctx.save(); ctx.beginPath(); ctx.rect(M.pad, 8, M.pw, M.ph); ctx.clip();
+    S.runners.forEach(r => { if (r.on === false) return; const col = cssv(r.color); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6;
+      ctx.beginPath(); r.path.forEach((p, k) => k ? ctx.lineTo(M.X(p[0]), M.Y(p[1])) : ctx.moveTo(M.X(p[0]), M.Y(p[1]))); ctx.stroke();
+      const dots = r.path.length < 400; r.path.forEach((p, k) => { if (dots || k % 4 === 0) { ctx.beginPath(); ctx.arc(M.X(p[0]), M.Y(p[1]), 2, 0, 7); ctx.fill(); } });
+      ctx.beginPath(); ctx.arc(M.X(r.w), M.Y(r.b), 5.5, 0, 7); ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1.5; ctx.stroke(); });
+    ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(M.X(S.start[0]), M.Y(S.start[1]), 4, 0, 7); ctx.fill();
+    ctx.restore();
+    if (cfg.lossCv) drawLoss();
+    if (cfg.sigCv) { const [c2, W2, H2] = setupCanvas(cfg.sigCv); drawSigmoid(c2, W2, H2, toy, S.runners.filter(r => r.on !== false).map(r => ({ w: r.w, b: r.b, color: cssv(r.color) }))); }
+    if (cfg.onDraw) cfg.onDraw(S); }
+  function drawLoss(){
+    const [ctx, W, H] = setupCanvas(cfg.lossCv), n = Math.max(cfg.lossX || 100, S.it), pad = 34;
+    const top = Math.max(...S.runners.map(r => r.loss[0])) * 1.05 || 1;
+    const X = i => pad + i / n * (W - pad - 10), Y = v => 8 + (1 - Math.min(v, top) / top) * (H - 30);
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, 8); ctx.lineTo(pad, H - 22); ctx.lineTo(W - 10, H - 22); ctx.stroke();
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText(top.toFixed(2), pad - 4, 14); ctx.fillText('0', pad - 4, H - 22);
+    ctx.textAlign = 'center'; ctx.fillText((cfg.lossLabel || 'iteration') + ' (0 – ' + n + ')', (W + pad) / 2, H - 6); ctx.textAlign = 'left';
+    S.runners.forEach(r => { if (r.on === false) return; ctx.strokeStyle = cssv(r.color); ctx.lineWidth = 2; ctx.beginPath();
+      const stride = Math.max(1, Math.floor(r.loss.length / 600));
+      for (let k = 0; k < r.loss.length; k += stride) k ? ctx.lineTo(X(k), Y(r.loss[k])) : ctx.moveTo(X(k), Y(r.loss[k]));
+      ctx.lineTo(X(r.loss.length - 1), Y(r.loss[r.loss.length - 1])); ctx.stroke(); }); }
+  let raf = null, acc = 0, tPrev = 0;
+  function loop(ts){ if (!S.playing) return; const dt = tPrev ? Math.min(100, ts - tPrev) : 16; tPrev = ts;
+    acc += dt / 1000 * (cfg.speed ? cfg.speed() : 25); let k = 0;
+    while (acc >= 1 && k < 400) { acc -= 1; k++; if (!stepAll()) { S.playing = false; break; } }
+    draw(); if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  function play(on){ S.playing = on == null ? !S.playing : on; tPrev = 0; acc = 0; if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  cfg.map.addEventListener('click', e => { if (!S.M) return; const r = cfg.map.getBoundingClientRect(), p = S.M.inv(e.clientX - r.left, e.clientY - r.top);
+    if (p[0] < RANGE[0] || p[0] > RANGE[1] || p[1] < RANGE[2] || p[1] > RANGE[3]) return; play(false); reset([+p[0].toFixed(2), +p[1].toFixed(2)]); });
+  return { S, reset, draw, play, step(n = 1){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); }, run(n){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); } }; }
+
+// redraw hooks
+const REDRAW = [];
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => REDRAW.forEach(f => f()), 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => REDRAW.forEach(f => f()));
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); REDRAW.forEach(f => f()); });
+
+// ---------- history weights ----------
+function drawHist(){
+  const be = +$('hb').value, t = +$('ht').value; $('hbO').textContent = be.toFixed(2); $('htO').textContent = t;
+  const [ctx, W, H] = setupCanvas($('hist')); ctx.clearRect(0, 0, W, H);
+  const pad = 30, n = t + 1, bw = Math.min(26, (W - pad - 10) / n), Y = v => H - 22 - v * (H - 40);
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(pad, Y(0)); ctx.lineTo(W - 10, Y(0)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText('1', pad - 4, Y(1) + 4); ctx.fillText('0', pad - 4, Y(0) + 4);
+  let s = 0; for (let tau = 0; tau <= t; tau++) { const v = Math.pow(be, t - tau); s += v; const x = pad + tau * bw;
+    ctx.fillStyle = cssv(tau === t ? '--s2' : '--s1'); ctx.fillRect(x + 1, Y(v), Math.max(1, bw - 2), Y(0) - Y(v)); }
+  ctx.textAlign = 'left'; ctx.fillStyle = cssv('--muted'); ctx.fillText('weight β^(t−τ) on ∇w_τ, for τ = 0 … t (orange = current gradient)', pad, 12);
+  $('hTxt').innerHTML = `At step t = ${t}: the current gradient has weight 1, the one before ${be.toFixed(2)}, the one before that ${(be * be).toFixed(3)}. ` +
+    `If all gradients were equal to g, u<sub>t</sub> would be ${fmt(s, 2)}·g` + (be < 1 && be > 0 ? ` (limit 1/(1−β) = ${fmt(1 / (1 - be), 1)}·g).` : '.'); }
+['hb', 'ht'].forEach(id => $(id).addEventListener('input', drawHist)); REDRAW.push(drawHist);
+
+// ---------- race: GD vs momentum ----------
+const race = Race({ map: $('mMap'), lossCv: $('mLoss'), sigCv: $('mSig'), toy: TOY, start: [-2, -2], maxIter: 1000, lossX: 300,
+  speed: () => +$('mSpd').value,
+  runners: () => [{ color: '--s3', step: o => STEP.gd(o, TOY, { eta: 1 }) },
+                  { color: '--s1', step: o => STEP.mom(o, TOY, { eta: 1, beta: +$('mB').value }) }],
+  onPlay: p => { $('mPlay').textContent = p ? '❚❚ Pause' : '▶ Play'; },
+  onDraw: S => { const [g, m] = S.runners, lg = g.loss[g.loss.length - 1], lm = m.loss[m.loss.length - 1];
+    const u = overshoots(m.loss); $('mIt').textContent = S.it; $('mLg').textContent = fmt(lg, 4); $('mLm').textContent = fmt(lm, 4); $('mU').textContent = u;
+    $('mTxt').textContent = S.it === 0 ? 'Press Play. Both start from the same point with η = 1.'
+      : (S.it >= 50 ? `At t = 50 the losses were ${fmt(m.loss[50], 4)} (momentum) and ${fmt(g.loss[50], 4)} (gradient descent). ` : '')
+      + (u > 0 ? 'Momentum has overshot: each count above is a moment its loss turned from falling to rising, i.e. it shot past the valley floor and had to U-turn.'
+               : 'Momentum accelerates along the plateau while gradient descent creeps.'); } });
+$('mPlay').onclick = () => race.play(); $('mStep').onclick = () => { race.play(false); race.step(1); };
+$('mReset').onclick = () => { race.play(false); race.reset($('mStart').value.split(',').map(Number)); };
+$('mStart').addEventListener('change', () => $('mReset').onclick());
+$('mB').addEventListener('input', () => { $('mBO').textContent = (+$('mB').value).toFixed(2); $('mReset').onclick(); });
+$('mBO').textContent = '0.90'; race.reset(); REDRAW.push(race.draw);
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

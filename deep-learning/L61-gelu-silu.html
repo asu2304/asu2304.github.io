@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>From GELU to SiLU: Activations for Modern Networks</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 61 · playlist video 61 (titled “L59” on YouTube) · activation functions</div>
+<h1>From GELU to SiLU: Activations for Modern Networks</h1>
+<p class="lede">ReLU multiplies its input by 1 or 0 depending on the input's sign; dropout multiplies by 1 or 0 at random. GELU combines the two: multiply $x$ by a Bernoulli variable whose probability of being 1 grows with $x$, then take the expected value, $x\,\Phi(x)\approx x\,\sigma(1.702x)$. An automated search over activation functions later found the same shape, $x\,\sigma(\beta x)$, called Swish; with $\beta=1$ it is SiLU.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=srcPpAV6Yfs" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L60-maxout.html">L60</a> · Next: <a href="L62-cnn-intro.html">L62</a> (convolutional neural networks).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Three functions that "multiply by 1 or 0"</h2>
+<p>GELU, the <b>Gaussian error linear unit</b>, is motivated by noticing a similarity between three things:</p>
+<table>
+<tr><th>Function</th><th>Written as</th><th>What decides 1 vs 0</th></tr>
+<tr><td>Hard threshold</td><td>$1$ if $x&gt;0$, else $0$</td><td>the sign of $x$</td></tr>
+<tr><td>ReLU</td><td>$1\cdot x$ if $x&gt;0$, else $0\cdot x$</td><td>the sign of $x$</td></tr>
+<tr><td>Dropout mask</td><td>$1\cdot x$ with probability $p$, else $0\cdot x$</td><td>a coin toss</td></tr>
+</table>
+<p>The functional form is the same; only the condition differs. ReLU brings the dependence on the input (like hard thresholding), and dropout brings <b>stochasticity</b>. Can we combine the two ideas?</p>
+
+<h2>2 · A stochastic ReLU</h2>
+<p>Define the activation as</p>
+$$f(x)=m\cdot x,\qquad m\sim\text{Bernoulli}\big(\Phi(x)\big).$$
+<p>So $m=1$ with probability $\Phi(x)$ and $m=0$ otherwise, and the probability itself depends on the input. To be precise about "$x$": in a hidden layer, neuron 21 has pre-activation $a_{21}$, and its activation is $h_{21}=f(a_{21})=m\cdot a_{21}$ with $m\sim\text{Bernoulli}(\Phi(a_{21}))$. The $x$ here <b>is the neuron's pre-activation</b>.</p>
+<p>$\Phi$ must output a probability in $[0,1]$. Two natural choices:</p>
+<ul>
+<li>the <b>logistic</b> function, $\Phi(x)=\sigma(x)=1/(1+e^{-x})$;</li>
+<li>since we're in the world of probability, the <b>CDF of the standard normal</b>: $\Phi(x)=P(X\le x)$ for $X\sim\mathcal N(0,1)$. The bell-shaped density integrates to an S-shaped curve that goes from 0 at $-\infty$ to 1 at $+\infty$.</li>
+</ul>
+
+<h2>3 · Take the expectation</h2>
+<ol class="steps">
+<li>$\mathbb E[f(x)]=\mathbb E[m\,x]$</li>
+<li>$=\Phi(x)\cdot(1\cdot x)+\big(1-\Phi(x)\big)\cdot(0\cdot x)$</li>
+<li>$=x\,\Phi(x)$</li>
+</ol>
+<p>With the normal CDF, $\Phi$ has no closed form, but good approximations exist. One is the "nasty formula" on the slide; the other is much simpler:</p>
+$$\Phi(x)\approx\tfrac12\Big(1+\tanh\!\Big[\sqrt{2/\pi}\,\big(x+0.044715\,x^3\big)\Big]\Big)\qquad\text{or}\qquad \Phi(x)\approx\sigma(1.702\,x).$$
+<p>Both are very close to the true CDF. Taking the second:</p>
+<div class="callout">$$\text{GELU}(x)=x\,\Phi(x)\approx x\,\sigma(1.702\,x)$$
+A weird-looking formula on its own, but well motivated: it is the <b>expected output of a ReLU-like gate that opens at random, more often for larger inputs</b>.</div>
+<p>Test the expectation yourself. Each click draws, for every $x$ on a grid, a random $m$ and plots $m\cdot x$. Every single sample lies on either $y=x$ or $y=0$, yet the running average per $x$ traces out the smooth curve.</p>
+<div class="card">
+  <div class="row"><button id="smp">Draw 20 samples per x</button><button id="smp10">Draw 500</button><button id="smpR">Reset</button>
+    <label><input type="checkbox" id="smpLog"> use the logistic $\sigma(x)$ instead of the normal CDF</label></div>
+  <canvas id="sc" height="300" aria-label="Random samples of m times x and their running average compared with x times Phi of x"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--faint)"></i>samples $m\cdot x$</span><span><i style="background:var(--s2)"></i>running average</span><span><i style="background:var(--s1)"></i>$x\,\Phi(x)$ (theory)</span></div>
+  <div class="row"><div class="stat"><div class="v" id="sN">0</div><div class="l">samples per $x$</div></div><div class="stat"><div class="v" id="sE">–</div><div class="l">largest gap, average vs theory</div></div></div>
+  <p class="small" id="sTxt"></p>
+</div>
+
+<h2>4 · SELU: fixing zero-centring inside the activation</h2>
+<p>Plot ReLU, ELU and GELU together. <b>None is zero-centred</b> (recall from <a href="L59-better-activations.html">L59</a> why that matters). ReLU can take very large positive values but only 0 on the negative side. ELU is a bit better, with some mass below zero; GELU too. Still, all are tilted towards positive.</p>
+<p>One remedy is normalization techniques (later in the course). Another is to build the normalization into the activation itself. That is the <b>scaled exponential linear unit</b>:</p>
+$$\text{SELU}(x)=\lambda\begin{cases}x &amp; x&gt;0\\ \alpha\,(e^x-1) &amp; x\le0\end{cases}\qquad \lambda\approx1.0507,\ \ \alpha\approx1.6733 .$$
+<p>With the right scaling, the outputs become roughly balanced around zero. (The lecture quotes the two empirically derived numbers as "1.05 or 1.67"; they are not alternatives but the two constants: $\lambda\approx1.05$ and $\alpha\approx1.67$.)</p>
+
+<h2>5 · Searching for activation functions: Swish and SiLU</h2>
+<p>How long can we keep inventing these by hand? Could we <b>search</b> for them automatically? One line of work observed that activation functions are built from two kinds of operations:</p>
+<ul>
+<li><b>unary</b> (one input): $-x$, $\lvert x\rvert$, $a\cdot x$, $e^x$, …</li>
+<li><b>binary</b> (two inputs): $\max(x_1,x_2)$, $x_1\cdot\sigma(x_2)$, …</li>
+</ul>
+<p>Restrict the search to a limited set of each, try many combinations, and keep what performs best. Exploring that space efficiently used ideas from reinforcement learning (beyond our scope). Many functions came out, some resembling the ELU/GELU family, and the conclusion was that any function of the form</p>
+$$\text{Swish}(x)=x\,\sigma(\beta x)$$
+<p>is a good activation function. Look at the special cases:</p>
+<table>
+<tr><th>$\beta$</th><th>Function</th><th>Name</th></tr>
+<tr><td>learnable</td><td>$x\,\sigma(\beta x)$</td><td><b>Swish</b></td></tr>
+<tr><td>$1.702$</td><td>$x\,\sigma(1.702x)$</td><td><b>GELU</b> (its sigmoid approximation)</td></tr>
+<tr><td>$1$</td><td>$x\,\sigma(x)$</td><td><b>SiLU</b>, the sigmoid-weighted linear unit</td></tr>
+</table>
+<p>The search landed on the same form GELU was derived to have. Explore the family:</p>
+<div class="card">
+  <div class="row"><label>Swish $\beta$ <input type="range" id="bB" min="0" max="10" step="0.01" value="1"> <b id="bBv"></b></label>
+    <button data-b="0">β = 0</button><button data-b="1">β = 1 (SiLU)</button><button data-b="1.702">β = 1.702 (≈ GELU)</button><button data-b="10">β = 10</button>
+    <label><input type="checkbox" id="bD"> show derivatives</label></div>
+  <div class="row small" id="bChk"></div>
+  <canvas id="bc" height="320" aria-label="Swish with adjustable beta compared with GELU, ReLU, ELU and SELU"></canvas>
+  <div class="row"><div class="stat"><div class="v" id="bMin">–</div><div class="l">minimum of Swish$_\beta$ (and where)</div></div><div class="stat"><div class="v" id="bErr">–</div><div class="l">max gap to exact GELU on [−4, 4]</div></div><div class="stat"><div class="v" id="bTanh">–</div><div class="l">max gap: tanh formula vs exact</div></div></div>
+  <p class="small" id="bTxt"></p>
+</div>
+
+<h2>6 · Which one should I use?</h2>
+<p>Recap of everything covered: sigmoid, tanh, ReLU, leaky ReLU, parametric ReLU, ELU, maxout, GELU, Swish (generalizing GELU) and SiLU (a special case). A Papers-with-Code plot of usage over time shows GELU rising with Transformers and ReLU staying popular for more than a decade.</p>
+<table>
+<tr><th>Activation</th><th>Where it's used today</th></tr>
+<tr><td><b>ReLU</b></td><td>More or less the standard for <a href="L62-cnn-intro.html">convolutional networks</a>; its variants exist but are less popular</td></tr>
+<tr><td><b>GELU</b></td><td>Transformers</td></tr>
+<tr><td><b>tanh</b></td><td>LSTMs and RNNs</td></tr>
+<tr><td><b>sigmoid</b></td><td>Generally bad as a hidden activation, but whenever a value must lie in $(0,1)$ and act like a probability (gates, some attention functions)</td></tr>
+</table>
+<p>This ends the activation functions. The fourth axis from the 2006–2009 investigations, <b>weight initialization</b>, comes next.</p>
+<div class="beyond"><b>Going beyond the video.</b> The lecture says GELU was introduced with the first Transformer (2017). In fact GELU was proposed by Hendrycks and Gimpel in 2016, and the original Transformer used ReLU. GELU became the Transformer default through BERT and GPT. Swish/SiLU came from Ramachandran, Zoph and Le (2017); SiLU had been proposed earlier (Elfwing et al.). Note that $x\sigma(1.702x)$ only approximates $x\Phi(x)$ (the gap is under about 0.02, as the demo shows), and PyTorch exposes both: <span class="mono">nn.GELU()</span> exact or <span class="mono">approximate='tanh'</span>. As $\beta\to\infty$, Swish tends to ReLU; at $\beta=0$ it is the line $x/2$.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>ReLU is "$1\cdot x$ or $0\cdot x$ by the sign of $x$"; dropout is "$1\cdot x$ or $0\cdot x$ by a coin toss". GELU uses a coin whose bias depends on $x$: $m\sim\text{Bernoulli}(\Phi(x))$.</li>
+<li>Its expectation is $x\,\Phi(x)$ with $\Phi$ the standard-normal CDF, approximated by $x\,\sigma(1.702x)$ (or a tanh formula).</li>
+<li>ReLU, ELU and GELU aren't zero-centred; SELU scales ELU ($\lambda\approx1.05$, $\alpha\approx1.67$) to fix that inside the activation.</li>
+<li>An automated search over unary/binary compositions found $x\,\sigma(\beta x)$ (Swish); $\beta=1.702$ gives (approx.) GELU and $\beta=1$ gives SiLU.</li>
+<li>In practice: ReLU for CNNs, GELU for Transformers, tanh in RNNs/LSTMs, sigmoid where a 0–1 output is needed.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const sig = a => 1 / (1 + Math.exp(-a));
+function erf(x){ const s = Math.sign(x), a = Math.abs(x), t = 1 / (1 + 0.3275911 * a);
+  return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-a * a)); }
+const Phi = x => 0.5 * (1 + erf(x / Math.SQRT2));
+const gelu = x => x * Phi(x), geluTanh = x => 0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * x ** 3)));
+const elu = x => x > 0 ? x : Math.exp(x) - 1, selu = x => 1.0507 * (x > 0 ? x : 1.6733 * (Math.exp(x) - 1));
+const dnum = f => x => (f(x + 1e-4) - f(x - 1e-4)) / 2e-4;
+function plotFrame(ctx, W, H, X, Y, x0, x1, y0, y1){
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(x0), Y(0)); ctx.lineTo(X(x1), Y(0)); ctx.moveTo(X(0), Y(y0)); ctx.lineTo(X(0), Y(y1)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; for (let t = Math.ceil(x0); t <= x1; t++) if (t) ctx.fillText(t, X(t) - 4, Y(0) + 13); }
+function curve(ctx, f, X, Y, x0, x1, col, lw, dash){ ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash || []); ctx.beginPath();
+  for (let i = 0; i <= 300; i++) { const x = x0 + (x1 - x0) * i / 300; i ? ctx.lineTo(X(x), Y(f(x))) : ctx.moveTo(X(x), Y(f(x))); } ctx.stroke(); ctx.setLineDash([]); }
+
+/* ---------- sampling demo ---------- */
+const GX = Array.from({length: 41}, (_, i) => -3 + i * 0.15);
+let sums = GX.map(() => 0), cnt = 0, recent = [];
+const pOf = x => $('smpLog').checked ? sig(x) : Phi(x), theo = x => x * pOf(x);
+function sample(n){ recent = []; for (let r = 0; r < n; r++) GX.forEach((x, i) => { const m = Math.random() < pOf(x) ? 1 : 0; sums[i] += m * x; if (r < 20) recent.push([x, m * x]); }); cnt += n; drawS(); }
+function drawS(){
+  const [ctx, W, H] = setupCanvas($('sc')), x0 = -3.2, x1 = 3.2, y0 = -3.2, y1 = 3.2, X = v => 10 + (W - 20) * (v - x0) / (x1 - x0), Y = v => 8 + (H - 16) * (1 - (v - y0) / (y1 - y0));
+  plotFrame(ctx, W, H, X, Y, x0, x1, y0, y1);
+  ctx.globalAlpha = 0.25; curve(ctx, x => x, X, Y, x0, x1, cssv('--faint'), 1, [3, 3]); ctx.globalAlpha = 1;
+  ctx.fillStyle = cssv('--faint'); recent.forEach(p => { ctx.beginPath(); ctx.arc(X(p[0] + (Math.random() - 0.5) * 0.06), Y(p[1]), 2.5, 0, 7); ctx.fill(); });
+  curve(ctx, theo, X, Y, x0, x1, cssv('--s1'), 2.5);
+  let gap = 0;
+  if (cnt) { ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); GX.forEach((x, i) => { const a = sums[i] / cnt; gap = Math.max(gap, Math.abs(a - theo(x))); i ? ctx.lineTo(X(x), Y(a)) : ctx.moveTo(X(x), Y(a)); }); ctx.stroke();
+    GX.forEach((x, i) => { ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(x), Y(sums[i] / cnt), 2.5, 0, 7); ctx.fill(); }); }
+  $('sN').textContent = cnt; $('sE').textContent = cnt ? gap.toFixed(3) : '–';
+  const name = $('smpLog').checked ? 'x·σ(x), i.e. SiLU' : 'x·Φ(x), i.e. GELU';
+  $('sTxt').innerHTML = cnt ? `Every sample is either $x$ (gate open) or $0$ (gate closed). Averaged over ${cnt} draws, the result approaches ${name}; the gap shrinks roughly like $1/\\sqrt{n}$.` : `Theory curve: ${name}. Draw samples to see the average converge to it.`;
+  if (window.renderMathInElement) renderMathInElement($('sTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+$('smp').onclick = () => sample(20); $('smp10').onclick = () => sample(500);
+$('smpR').onclick = () => { sums = GX.map(() => 0); cnt = 0; recent = []; drawS(); };
+$('smpLog').addEventListener('change', () => { sums = GX.map(() => 0); cnt = 0; recent = []; drawS(); });
+
+/* ---------- Swish family explorer ---------- */
+const OTH = [['GELU (exact)', gelu, '--s2', true], ['ReLU', x => Math.max(0, x), '--faint', true], ['ELU', elu, '--lv1', false], ['SELU', selu, '--lv2', false]];
+OTH.forEach(([n, , c, on], i) => { const l = document.createElement('label'); l.innerHTML = `<input type="checkbox" id="oc${i}"${on ? ' checked' : ''}> <span style="color:var(${c})">■</span> ${n}`; $('bChk').appendChild(l); });
+OTH.forEach((_, i) => $('oc' + i).addEventListener('change', drawB));
+function drawB(){
+  const b = +$('bB').value, sw = x => x * sig(b * x), der = $('bD').checked; $('bBv').textContent = b.toFixed(3);
+  const [ctx, W, H] = setupCanvas($('bc')), x0 = -4, x1 = 4, y0 = der ? -0.6 : -2, y1 = der ? 1.4 : 4, X = v => 10 + (W - 20) * (v - x0) / (x1 - x0), Y = v => 8 + (H - 16) * (1 - (v - y0) / (y1 - y0));
+  plotFrame(ctx, W, H, X, Y, x0, x1, y0, y1);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  OTH.forEach(([n, f, c], i) => { if ($('oc' + i).checked) curve(ctx, der ? dnum(f) : f, X, Y, x0, x1, cssv(c), 2, [6, 4]); });
+  curve(ctx, der ? dnum(sw) : sw, X, Y, x0, x1, cssv('--s1'), 3); ctx.restore();
+  ctx.fillStyle = cssv('--s1'); ctx.font = '600 12px system-ui'; ctx.fillText(der ? 'derivatives' : `Swish, β = ${b.toFixed(2)}`, 14, 18);
+  let mn = Infinity, at = 0, gap = 0, gt = 0; for (let i = 0; i <= 800; i++) { const x = -4 + 8 * i / 800, v = sw(x); if (v < mn) { mn = v; at = x; } gap = Math.max(gap, Math.abs(v - gelu(x))); gt = Math.max(gt, Math.abs(geluTanh(x) - gelu(x))); }
+  $('bMin').textContent = `${mn.toFixed(3)} at x = ${at.toFixed(2)}`; $('bErr').textContent = gap.toFixed(4); $('bTanh').textContent = gt.toExponential(1);
+  $('bTxt').innerHTML = b === 0 ? 'β = 0: σ(0) = ½, so Swish is just the line x/2, linear and useless as a non-linearity.'
+    : Math.abs(b - 1.702) < 0.01 ? 'β = 1.702: practically indistinguishable from exact GELU (gap under 0.02).'
+    : Math.abs(b - 1) < 0.01 ? 'β = 1: SiLU, x·σ(x). Slightly softer than GELU, dipping to about −0.28 before rising.'
+    : b > 6 ? 'Large β: σ(βx) becomes a hard step, so Swish approaches ReLU.'
+    : 'Unlike ReLU, the curve is smooth and dips slightly below zero for negative inputs (it is not monotonic), so small negative inputs still pass a little gradient.';
+}
+$('bB').addEventListener('input', drawB); $('bD').addEventListener('change', drawB);
+document.querySelectorAll('[data-b]').forEach(e => e.onclick = () => { $('bB').value = e.dataset.b; drawB(); });
+
+function drawAll(){ drawS(); drawB(); }
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

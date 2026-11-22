@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bias and Variance</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 44 · playlist video 44 (titled “L45” on YouTube) · Bias, variance and regularisation</div>
+<h1>Bias and Variance: Simple vs Complex Models</h1>
+<p class="lede">Fit the same noisy sine data many times, each time on a different random sample. A straight line gives nearly the same answer every time, but it is always wrong: <b>high bias, low variance</b>. A degree-25 polynomial is right on average but changes wildly from sample to sample: <b>low bias, high variance</b>. Deep networks are the extreme of the second kind, and that is why we need regularisation.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Wrscc4tVmVs" target="_blank" rel="noopener">this lecture on YouTube</a> (≈28 min). Previous: <a href="L43-learning-rate-schemes.html">L43</a> · Next: <a href="L45-train-vs-test-error.html">L45</a> (training vs test error).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Why this comes up now</h2>
+<p>Everything so far has been about <b>optimisation</b>: how to minimise the training loss, how to do it faster, how not to overshoot the minimum. But deep learning models are usually <b>over-parameterised</b>: they have hundreds of millions of parameters, often more than there are training points.</p>
+<p>Such models can drive the training error to zero. They memorise the training data, and then may not <b>generalise</b> to data they haven't seen. This lecture starts the regularisation chapter by building the intuition: bias, variance, and how both relate to the <b>capacity</b> of a model. Deep networks have very high capacity.</p>
+
+<h2>2 · The experiment: fitting a sine curve</h2>
+<p>The data are points $(x,y)$ taken from a sinusoid. For once we know the true relation $y=f(x)$, which makes it easy to judge an approximation. But we pretend we don't, and fit an approximation $\hat f(x)$ in two ways:</p>
+<table>
+<tr><th>Model</th><th>$\hat f(x)$</th><th>Parameters</th></tr>
+<tr><td>Simple (degree 1)</td><td>$w_1x+w_0$</td><td>2</td></tr>
+<tr><td>Complex (degree 25)</td><td>$w_{25}x^{25}+w_{24}x^{24}+\dots+w_1x+w_0$</td><td>26</td></tr>
+</table>
+<p>The complex model has more capacity. A 10-layer network with many neurons per layer would have far more still.</p>
+<p>Both are trained by minimising the squared error over the $m$ training points, with gradient descent or any of its variants:</p>
+$$\min_{w}\ \sum_{i=1}^{m}\big(y_i-\hat f(x_i)\big)^2 .$$
+<p>The procedure: from 500 available points, draw a random sample of about 400, fit both models, and <b>repeat $K$ times</b> (30 in the lecture) with a different random sample each time. Using the full 500 every time would give nearly the same solution each time. With different samples, each run gives slightly different $w$'s, so a different line or curve.</p>
+
+<h2>3 · What the 30 fits show</h2>
+<ul>
+<li><b>Simple models</b> trained on different samples barely differ from each other. But they are all far from the true sine: a line can only run through the middle, balancing points above and below. At a given $x$ there is a clear gap between prediction and truth. They <b>underfit</b>: even the training error isn't small.</li>
+<li><b>Complex models</b> differ a lot from each other. But on average across the $x$-axis the gap to the truth is much smaller; at least they have the sinusoidal shape. They can <b>overfit</b>: close to zero training error.</li>
+</ul>
+<p>Try it. Each panel draws one model fitted to the same 30 random samples:</p>
+
+<div class="card">
+  <div class="row"><button id="redraw">New 30 samples</button><button id="anim">Animate the 30 fits</button>
+    <label>sample size <input type="range" id="ss" min="30" max="400" step="10" value="150"> <b id="ssV"></b></label>
+    <label>noise σ <input type="range" id="sig" min="0.1" max="1" step="0.05" value="0.5"> <b id="sigV"></b></label>
+    <label>right-hand degree <input type="range" id="deg" min="2" max="25" step="1" value="25"> <b id="degV"></b></label></div>
+  <div class="pair half">
+    <div><canvas id="cS" height="250" aria-label="Thirty degree-1 fits with their average and the true sine"></canvas>
+      <div class="row"><div class="stat"><div class="v" id="bS">–</div><div class="l">bias²</div></div><div class="stat"><div class="v" id="vS">–</div><div class="l">variance</div></div><div class="stat"><div class="v" id="tS">–</div><div class="l">training error</div></div></div></div>
+    <div><canvas id="cC" height="250" aria-label="Thirty high-degree fits with their average and the true sine"></canvas>
+      <div class="row"><div class="stat"><div class="v" id="bC">–</div><div class="l">bias²</div></div><div class="stat"><div class="v" id="vC">–</div><div class="l">variance</div></div><div class="stat"><div class="v" id="tC">–</div><div class="l">training error</div></div></div></div>
+  </div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>one fitted $\hat f$ per sample</span><span><i style="background:var(--s3)"></i>average $\mathbb E[\hat f(x)]$</span><span><i style="background:var(--s2)"></i>true $f(x)=\sin x$</span></div>
+  <p class="small muted" id="cTxt" style="margin-bottom:0"></p>
+</div>
+<p class="small muted">Bias² and variance are averaged over $x$ in the middle 90% of the range: near the ends a high-degree polynomial is pinned down by very few points and can shoot off the chart. The lecture uses 400 of 500 points; at that size the degree-25 fits move less, so the default here is smaller. Drag the sample size up and watch the variance fall.</p>
+
+<h2>4 · Bias</h2>
+<p>Plug one $x$ into each of the 30 models, get 30 predictions, and average them. Doing this for every $x$ gives the <b>average curve</b> (green above). The mean is the empirical version of the expectation, so this curve is $\mathbb E[\hat f(x)]$.</p>
+<p>Where does the randomness come from? From the training sample: a different random sample gives different parameters, hence a different $\hat f$.</p>
+<div class="callout">$$\text{Bias}\big(\hat f(x)\big)=\mathbb E\big[\hat f(x)\big]-f(x)$$ The gap between the <b>average</b> model and the truth.</div>
+<p>For the simple model the average line is far from the sine, so the bias is <b>high</b>. For the complex model the average curve is close to the sine, so the bias is <b>low</b>.</p>
+
+<h2>5 · Variance</h2>
+<p>Now compare each individual fit with the average curve, square the gap, and average over the fits:</p>
+<div class="callout">$$\text{Variance}\big(\hat f(x)\big)=\mathbb E\Big[\big(\hat f(x)-\mathbb E[\hat f(x)]\big)^2\Big]$$</div>
+<p>This is the ordinary statistical variance $\mathbb E[(Z-\mathbb E[Z])^2]$ of the random variable $Z=\hat f(x)$. The simple fits all hug their average: <b>low variance</b>. For the complex model, at the same $x$ one fit predicts a value here and another a value far away: <b>high variance</b>.</p>
+
+<h2>6 · The trade-off</h2>
+<table>
+<tr><th></th><th>Bias</th><th>Variance</th><th>Training error</th></tr>
+<tr><td>Simple model</td><td>high</td><td>low</td><td>high (underfits)</td></tr>
+<tr><td>Complex model</td><td>low</td><td>high</td><td>near zero (overfits)</td></tr>
+</table>
+<p>So why not always pick the complex model? Because high variance means the model you get depends heavily on which training data you happened to receive. Had you been given a different sample, your $\hat f$ would have looked quite different, so a test point that resembles that other sample will be predicted badly.</p>
+<p>Low variance alone isn't enough either: if it comes with high bias, all the fits agree with each other and are all far from the truth, which is useless. What we want is a balance, <b>reasonable bias and reasonable variance</b>: models that don't differ much from each other and aren't far from the true function.</p>
+<p>Both quantities feed into the mean squared error on unseen data. That connection is the next video.</p>
+<div class="beyond"><b>Going beyond the video.</b> My ML notes cover the same trade-off from the regression side, with model complexity as the dial: <a href="../machine-learning/L66-bias-variance.html">ML L66 · bias–variance</a>. Bagging (<a href="../machine-learning/L67-bagging.html">ML L67</a>) attacks the variance term directly by averaging many high-variance models, which is exactly what the green average curve in the right panel is.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Deep networks are over-parameterised, high-capacity models: they can memorise the training data and fail to generalise.</li>
+<li>Retrain on different random samples and look at the spread of the fitted functions: that spread is the variance; the gap between their average and the truth is the bias.</li>
+<li>$\text{Bias}=\mathbb E[\hat f(x)]-f(x)$ and $\text{Variance}=\mathbb E[(\hat f(x)-\mathbb E[\hat f(x)])^2]$; the expectation is over training samples.</li>
+<li>Simple models: high bias, low variance, underfit. Complex models: low bias, high variance, overfit.</li>
+<li>Aim for the middle: medium bias and medium variance.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// ---- polynomial least squares (Chebyshev basis on [0, 2π] for numerical stability) ----
+const X0 = 0, X1 = 2 * Math.PI, ftrue = x => Math.sin(x), tx = x => 2 * (x - X0) / (X1 - X0) - 1;
+const unif = () => X0 + Math.random() * (X1 - X0);
+function feats(x, p){ const t = tx(x), r = [1]; if (p > 0) r.push(t); for (let k = 2; k <= p; k++) r.push(2 * t * r[k - 1] - r[k - 2]); return r; }
+function cholesky(G){ const n = G.length, L = G.map(r => r.slice());
+  for (let j = 0; j < n; j++) { let s = L[j][j]; for (let k = 0; k < j; k++) s -= L[j][k] * L[j][k]; L[j][j] = Math.sqrt(Math.max(s, 1e-300));
+    for (let i = j + 1; i < n; i++) { let t = L[i][j]; for (let k = 0; k < j; k++) t -= L[i][k] * L[j][k]; L[i][j] = t / L[j][j]; } } return L; }
+function cholSolve(L, b){ const n = b.length, y = [], x = [];
+  for (let i = 0; i < n; i++) { let t = b[i]; for (let k = 0; k < i; k++) t -= L[i][k] * y[k]; y[i] = t / L[i][i]; }
+  for (let i = n - 1; i >= 0; i--) { let t = y[i]; for (let k = i + 1; k < n; k++) t -= L[k][i] * x[k]; x[i] = t / L[i][i]; } return x; }
+// least-squares fit of a degree-p polynomial; returns {c, L} (L = Cholesky factor of the Gram matrix)
+function polyfit(xs, ys, p){ const q = p + 1, G = Array.from({length: q}, () => new Array(q).fill(0)), b = new Array(q).fill(0);
+  for (let i = 0; i < xs.length; i++) { const a = feats(xs[i], p); for (let r = 0; r < q; r++) { b[r] += a[r] * ys[i]; for (let c = 0; c <= r; c++) G[r][c] += a[r] * a[c]; } }
+  for (let r = 0; r < q; r++) { for (let c = 0; c < r; c++) G[c][r] = G[r][c]; G[r][r] += 1e-8 * xs.length; }
+  const L = cholesky(G); return {c: cholSolve(L, b), L, p}; }
+const peval = (m, x) => { const a = feats(x, m.p); let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * m.c[i]; return s; };
+const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+const K = 30, GX = Array.from({length: 120}, (_, i) => X0 + (i + 0.5) * (X1 - X0) / 120);
+const inner = x => x > X0 + 0.05 * (X1 - X0) && x < X1 - 0.05 * (X1 - X0);
+const pick = (n, s) => { const a = [...Array(n).keys()]; for (let i = 0; i < s; i++) { const j = i + Math.floor(Math.random() * (n - i)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, s); };
+let pool = [], FS = [], FC = [], shown = K, timer = null;
+function newPool(){ const sg = +$('sig').value; pool = Array.from({length: 500}, () => { const x = unif(); return [x, ftrue(x) + sg * randn()]; }); }
+function oneFit(xs, ys, p){ const m = polyfit(xs, ys, p); return {y: GX.map(x => peval(m, x)), tr: mean(xs.map((x, i) => (ys[i] - peval(m, x)) ** 2))}; }
+function runFits(){ const s = +$('ss').value, d = +$('deg').value; FS = []; FC = [];
+  for (let k = 0; k < K; k++) { const idx = pick(pool.length, s), xs = idx.map(i => pool[i][0]), ys = idx.map(i => pool[i][1]);
+    FS.push(oneFit(xs, ys, 1)); FC.push(oneFit(xs, ys, d)); } }
+function stats(F, n){ const use = F.slice(0, n), avg = GX.map((_, j) => mean(use.map(f => f.y[j]))); let b = 0, v = 0, c = 0;
+  GX.forEach((x, j) => { if (!inner(x)) return; c++; b += (avg[j] - ftrue(x)) ** 2; v += mean(use.map(f => (f.y[j] - avg[j]) ** 2)); });
+  return {avg, b: b / c, v: n > 1 ? v / c : 0, tr: mean(use.map(f => f.tr))}; }
+const fmt = v => v >= 100 ? v.toExponential(1) : v >= 1 ? v.toFixed(2) : v.toFixed(3);
+function panel(id, F, n, label){
+  const [ctx, W, H] = setupCanvas($(id)), pad = 6, YR = 2.4, X = x => pad + (x - X0) / (X1 - X0) * (W - 2 * pad), Y = y => H / 2 - y / YR * (H / 2 - pad);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+  ctx.fillStyle = cssv('--faint'); pool.forEach(p => { if (Math.abs(p[1]) < YR) ctx.fillRect(X(p[0]) - 1, Y(p[1]) - 1, 2, 2); });
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  const line = (ys, col, lw, a) => { ctx.globalAlpha = a; ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+    GX.forEach((x, j) => { const y = Math.max(-50, Math.min(50, ys[j])); j ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); }); ctx.stroke(); ctx.globalAlpha = 1; };
+  F.slice(0, n).forEach(f => line(f.y, cssv('--s1'), 1.2, 0.45));
+  line(GX.map(ftrue), cssv('--s2'), 2.5, 1);
+  const st = stats(F, n); if (n > 1) line(st.avg, cssv('--s3'), 3, 1); ctx.restore();
+  ctx.fillStyle = cssv('--ink'); ctx.font = '600 13px system-ui'; ctx.fillText(label, 10, 18); return st; }
+function drawAll(){ const d = +$('deg').value;
+  $('ssV').textContent = $('ss').value; $('sigV').textContent = (+$('sig').value).toFixed(2); $('degV').textContent = d;
+  const a = panel('cS', FS, shown, 'degree 1 · 2 parameters'), b = panel('cC', FC, shown, `degree ${d} · ${d + 1} parameters`);
+  $('bS').textContent = fmt(a.b); $('vS').textContent = fmt(a.v); $('tS').textContent = fmt(a.tr);
+  $('bC').textContent = fmt(b.b); $('vC').textContent = fmt(b.v); $('tC').textContent = fmt(b.tr);
+  $('cTxt').innerHTML = `${shown} of ${K} fits shown, each on a random sample of ${$('ss').value} of the 500 points. ` +
+    (shown < 2 ? '' : b.v > a.v ? `The degree-${d} fits vary ${(b.v / Math.max(a.v, 1e-9)).toFixed(0)}× more than the lines` + (b.b < a.b ? `, yet their average sits ${(a.b / Math.max(b.b, 1e-9)).toFixed(0)}× closer (in bias²) to the sine.` : '.') : 'At this setting the two spreads are similar.'); }
+function full(){ clearInterval(timer); timer = null; runFits(); shown = K; drawAll(); }
+$('redraw').onclick = full;
+$('ss').addEventListener('input', full); $('deg').addEventListener('input', full);
+$('sig').addEventListener('input', () => { newPool(); full(); });
+$('anim').onclick = () => { clearInterval(timer); runFits(); shown = 1; drawAll(); timer = setInterval(() => { shown++; drawAll(); if (shown >= K) { clearInterval(timer); timer = null; } }, 90); };
+newPool(); runFits();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

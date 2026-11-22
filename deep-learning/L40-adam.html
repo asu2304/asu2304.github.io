@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Adam and Bias Correction</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 40 · playlist video 40 (titled “L39” on YouTube) · Optimisation algorithms</div>
+<h1>Adam and Bias Correction</h1>
+<p class="lede">Adam ("adaptive moments") does everything RMSProp does and adds classical momentum, using an exponentially weighted average of the gradients in place of the current gradient alone. The one genuinely new ingredient is <b>bias correction</b>. Both averages start at zero, so early on they underestimate what they track. Dividing by $1-\beta^t$ fixes that and prevents huge first steps.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=m9g9Hij1h1A" target="_blank" rel="noopener">this lecture on YouTube</a> (≈30 min). Previous: <a href="L39-adadelta.html">L39</a> · Next: <a href="L41-adamax-maxprop.html">L41</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Where we are, and the idea</h2>
+<p>Three adaptive methods so far. AdaGrad (<a href="L37-adagrad.html">L37</a>) kills the learning rate. RMSProp (<a href="L38-rmsprop.html">L38</a>) fixes that with an exponentially weighted history but depends on $\eta_0$. Adadelta (<a href="L39-adadelta.html">L39</a>) removes $\eta_0$ with a ratio of two histories. Adam takes a different route: <b>RMSProp's denominator plus momentum's numerator</b> (<a href="L32-momentum.html">L32</a>). It also keeps an $\eta$.</p>
+
+<h2>2 · The update rules</h2>
+<div class="callout">
+$$m_t=\beta_1 m_{t-1}+(1-\beta_1)\nabla w_t \qquad \hat m_t=\frac{m_t}{1-\beta_1^{\,t}}$$
+$$v_t=\beta_2 v_{t-1}+(1-\beta_2)(\nabla w_t)^2 \qquad \hat v_t=\frac{v_t}{1-\beta_2^{\,t}}$$
+$$w_{t+1}=w_t-\frac{\eta}{\sqrt{\hat v_t}+\epsilon}\,\hat m_t$$
+Typical values: $\beta_1=0.9$, $\beta_2=0.999$.</div>
+<ul>
+<li>$m_t$ is the classical momentum idea: an exponentially weighted history of gradients instead of relying only on the current one.</li>
+<li>$v_t$ is exactly RMSProp's history, the denominator that adapts the rate.</li>
+<li>$v_t$ contains every $(\nabla w_\tau)^2$ from the start, each with its decay factor. Treat the past gradients as a vector: $v_t$ is like its squared L2 norm, only exponentially weighted. (This "L2 norm" reading matters in the next lecture, <a href="L41-adamax-maxprop.html">L41</a>.)</li>
+<li>With $\beta_2=0.999$, $1-\beta_2$ is tiny, so each step adds only a very small fraction of the current squared gradient.</li>
+</ul>
+<p>On the toy problem, Adam reaches the minimum faster than most of the others and without RMSProp's oscillation; Adadelta also gets there fast in the lecture's run. Prof. Khapra stresses this is not a claim that Adam always wins. It's just how Adam behaves here.</p>
+
+<h2>3 · Why bias correction? What $m_t$ should estimate</h2>
+<p>We average gradients because the current one might be a sudden, unrepresentative spike. With mini-batches, or stochastic updates in the worst case, each gradient comes from a few points. Ideally we'd use the <b>expected value</b> of the gradient, the "true" gradient over all data. $m_t$ is our cheap stand-in for it, so we would like</p>
+$$\mathbb E[m_t]=\mathbb E[\nabla w_t].$$
+<p>Is it? Unroll $m_t$ from $m_0=0$:</p>
+<ol class="steps">
+<li>$m_1=(1-\beta_1)\nabla w_1$</li>
+<li>$m_2=\beta_1 m_1+(1-\beta_1)\nabla w_2=(1-\beta_1)\big(\beta_1\nabla w_1+\nabla w_2\big)$</li>
+<li>$m_3=(1-\beta_1)\big(\beta_1^2\nabla w_1+\beta_1\nabla w_2+\nabla w_3\big)$, and in general
+$$m_t=(1-\beta_1)\sum_{\tau=1}^{t}\beta_1^{\,t-\tau}\,\nabla w_\tau .$$
+It's the momentum formula from L32, but with the extra factor $(1-\beta_1)$.</li>
+<li>Take expectations. Constants come out, and the expectation of a sum is the sum of expectations:
+$$\mathbb E[m_t]=(1-\beta_1)\sum_{\tau=1}^{t}\beta_1^{\,t-\tau}\,\mathbb E[\nabla w_\tau].$$</li>
+<li><b>Simplifying assumption:</b> the gradient's randomness comes from the data point(s) picked, and its distribution is the same at every time step. Then $\mathbb E[\nabla w_\tau]=\mathbb E[\nabla w]$ for all $\tau$, which comes out of the sum.</li>
+<li>What remains is a geometric series: $\sum_{\tau=1}^{t}\beta_1^{\,t-\tau}=1+\beta_1+\dots+\beta_1^{\,t-1}=\dfrac{1-\beta_1^{\,t}}{1-\beta_1}$. So
+$$\mathbb E[m_t]=\mathbb E[\nabla w]\,(1-\beta_1^{\,t}).$$</li>
+</ol>
+<div class="callout">$m_t$ is a <b>biased</b> estimate: too small by the factor $1-\beta_1^t$. Dividing it out gives $\mathbb E[\hat m_t]=\mathbb E[\nabla w]$. The same derivation applies to $v_t$ with $\beta_2$. For $t$ large, $\beta^t\to0$ and the correction fades away; it matters at the <b>start</b>.</div>
+
+<h2>4 · A number: what goes wrong without it</h2>
+<p>Take $\eta=1$ (for the arithmetic), $\beta_2=0.999$ and a first gradient $\nabla w=0.1$:</p>
+<table>
+<tr><th></th><th>no correction</th><th>with correction</th></tr>
+<tr><td>first step</td><td>$v=0.001\times0.1^2=10^{-5}$, rate $1/\sqrt{10^{-5}}\approx$ <b>316</b></td><td>$\hat v=10^{-5}/(1-0.999)=0.01$, rate $1/\sqrt{0.01}=$ <b>10</b></td></tr>
+<tr><td>next step, gradient 0</td><td>$v=0.999\times10^{-5}$, rate still ≈ <b>316</b></td><td>$\hat v=v/(1-0.999^2)\approx0.005$, rate ≈ <b>14</b></td></tr>
+</table>
+<p>Without bias correction the early effective learning rates are enormous, so, as the Adam paper warns, the <b>initial steps can be very large</b>. On the toy problem, Adam without correction rushes far past the valley and has to come back. Here it still converges, but in general such a first leap can land in a region of the loss surface from which recovery is hard, or whose best minimum is much worse. The lecture's plot of effective rates shows it too: the uncorrected run starts with much higher rates, while the corrected one starts smaller and, for the sparse $w$, keeps growing as it goes into the valley, which is what we want.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">First-step calculator ($\eta=1$, $\beta_1=0.9$, $\beta_2=0.999$, $t=1$). Change the first gradient.</p>
+  <div class="row"><label>first gradient $\nabla w_1$ <input type="range" id="g1" min="-3" max="1" step="0.05" value="-1"></label><span class="mono" id="g1V"></span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="rNo">–</div><div class="l">rate η/√v₁ (no correction)</div></div>
+    <div class="stat"><div class="v" id="rBC">–</div><div class="l">rate η/√v̂₁ (corrected)</div></div>
+    <div class="stat"><div class="v" id="sNo">–</div><div class="l">first step |Δw|, no correction</div></div>
+    <div class="stat"><div class="v" id="sBC">–</div><div class="l">first step |Δw|, corrected</div></div>
+  </div>
+  <div class="beyond" style="margin-bottom:0"><b>Going beyond the video.</b> The step sizes don't depend on the gradient at all. At $t=1$, $\hat m_1/\sqrt{\hat v_1}=\nabla w_1/|\nabla w_1|$, so the corrected first step is exactly $\eta$. Uncorrected, it is $\frac{0.1}{\sqrt{0.001}}\eta\approx3.16\,\eta$. Adam's step size is set by $\eta$, not by the gradient's scale.</div>
+</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The sparse toy from L37 (start $(-4,4)$, minimum ×). Adam with $\eta=0.1$, $\beta_1=0.9$, $\beta_2=0.999$, with and without bias correction. RMSProp ($\eta_0=0.1$) and Adadelta ($\epsilon=10^{-4}$) for comparison. The right panel shows the effective rate $\eta/(\sqrt{\cdot}+\epsilon)$ for the chosen parameter.</p>
+  <div class="row"><label><input type="checkbox" id="c_bc" checked> Adam (corrected)</label><label><input type="checkbox" id="c_nobc" checked> Adam (no correction)</label>
+    <label><input type="checkbox" id="c_rms"> RMSProp</label><label><input type="checkbox" id="c_adad"> Adadelta</label></div>
+  <div class="pair">
+    <div><canvas id="cE" height="300" aria-label="Effective learning rate over iterations"></canvas><p class="small muted" style="margin:2px 0 0">effective rate for <select id="par"><option value="0">w (sparse)</option><option value="1">b (dense)</option></select>, log scale</p></div>
+    <div><canvas id="surf" height="300" aria-label="Loss contours with Adam paths"></canvas></div>
+  </div>
+  <div class="legend"><span><i style="background:#b8860b"></i>Adam, corrected</span><span><i style="background:var(--muted)"></i>Adam, no correction (dashed)</span><span><i style="background:var(--s1)"></i>RMSProp</span><span><i style="background:#c2409a"></i>Adadelta</span></div>
+  <div class="row"><button id="play">▶ Play</button><label>iteration <input type="range" id="tS" min="0" max="499" value="0"></label><span class="mono" id="tV">t = 0</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="ovBC">–</div><div class="l">furthest w reached, corrected</div></div>
+    <div class="stat"><div class="v" id="ovNo">–</div><div class="l">furthest w reached, uncorrected</div></div>
+    <div class="stat"><div class="v" id="lt">–</div><div class="l">loss at t: corrected | uncorrected</div></div>
+  </div>
+</div>
+
+<h2>5 · A second picture: averaging noisy gradients</h2>
+<p>The next class reopens bias correction from a different angle. Plot iterations on the x-axis. Suppose the red curve is the derivative you'd get from the full batch. From mini-batches you get noisy blue points around it, one per time step. One way to cope with the noise is to replace each point by an exponentially weighted average of the history so far, $m_t=\beta m_{t-1}+(1-\beta)\nabla w_t$. That works roughly like averaging within a window, since points far back have negligible weight.</p>
+<p>Without bias correction, the averaged curve sits well below the true curve during the first time steps. With $\beta=0.999$ and $m$ initialised at 0, the first update adds only $0.001\times$ the current value (about 1), so $m$ stays near 0. Then it keeps happening: every step adds a sliver while the history (≈ 0) dominates. Only after many steps, when large powers of $\beta$ have washed out the initial zeros, does the average catch up with the true curve.</p>
+<p>With correction, take a first value of 0.5: $m_1=(1-\beta)\,0.5$ and $\hat m_1=\frac{(1-\beta)\,0.5}{1-\beta}=0.5$. The estimate starts at the right place and stays close to the function from then on, because there's no weight of zero pulling it down.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Red: the "true" (full-batch) derivative over 100 steps; blue dots: noisy mini-batch estimates; black: the exponentially weighted average, with or without bias correction.</p>
+  <canvas id="ema" height="240" aria-label="Exponentially weighted average of noisy gradients, with or without bias correction"></canvas>
+  <div class="row"><label>$\beta$ <select id="beta"><option value="0.9">0.9</option><option value="0.97">0.97</option><option value="0.99" selected>0.99</option><option value="0.999">0.999</option></select></label>
+    <label><input type="checkbox" id="bc"> bias correction</label><button id="noise">New noise</button></div>
+  <p class="small" id="emaMsg"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> Adam (Kingma &amp; Ba, 2015) is the default optimiser in much of deep learning; $\eta=10^{-3}$ with $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-8}$ is the usual starting point. Two practical notes. (1) A common variant, <b>AdamW</b>, applies weight decay directly to the weights rather than adding it to the gradient, because inside Adam an L2 term gets rescaled by $\sqrt{\hat v}$ and stops acting like ordinary weight decay. (2) Large models are often trained with a short learning-rate <b>warm-up</b>, which serves the same goal as bias correction: no outsized steps while the moment estimates are still unreliable.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Adam = RMSProp's denominator $v_t$ + momentum's numerator $m_t$, both exponentially weighted; $\beta_1=0.9$, $\beta_2=0.999$.</li>
+<li>Update: $w_{t+1}=w_t-\frac{\eta}{\sqrt{\hat v_t}+\epsilon}\hat m_t$, with $\hat m_t=m_t/(1-\beta_1^t)$ and $\hat v_t=v_t/(1-\beta_2^t)$.</li>
+<li>Starting from zero, $\mathbb E[m_t]=(1-\beta_1^t)\,\mathbb E[\nabla w]$ (if gradients share one distribution), so dividing by $1-\beta_1^t$ makes the estimate unbiased; likewise for $v_t$.</li>
+<li>Without correction, the tiny early $v_t$ gives huge effective rates (316 vs 10 for $\nabla w=0.1$) and big early jumps that may land somewhere bad.</li>
+<li>The correction matters only at the start: $\beta^t\to0$ as $t$ grows.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+// ---- the lecture's toy problem: a sigmoid neuron f(x)=σ(wx+b), 500 (x,y) pairs, most x set to 0 ----
+const sig = z => 1 / (1 + Math.exp(-z));
+const rng = s => () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+const N = 500, WS = 2, BS = -1, W0 = -4, B0 = 4, BOX = [-6, 6, -6, 6];
+function makeData(sp){ const R = rng(7), X = [], Y = []; let n0 = 0;
+  for (let i = 0; i < N; i++) { let x = R(); if (R() < sp) x = 0; if (x === 0) n0++; else { X.push(x); Y.push(sig(WS * x + BS)); } }
+  return {X, Y, n0, y0: sig(BS), sp}; }   // the x = 0 points all share y = σ(b*), so they are summed in one go
+function grad(D, w, b){ const X = D.X, Y = D.Y, f0 = sig(b), e0 = f0 - D.y0, d0 = e0 * f0 * (1 - f0);
+  let gw = 0, gb = D.n0 * d0, L = D.n0 * 0.5 * e0 * e0;
+  for (let i = 0; i < X.length; i++) { const f = sig(w * X[i] + b), e = f - Y[i], d = e * f * (1 - f); gw += d * X[i]; gb += d; L += 0.5 * e * e; }
+  return [gw, gb, L]; }
+// one optimiser run; j = 0 is w, j = 1 is b. Records gradient, history v (and u), effective learning rate per step.
+function run(D, m, T){ T = T || 500; const P = [W0, B0], v = [0, 0], u = [0, 0], mm = [0, 0], h = [0, 0];
+  const o = {path: [], g: [[], []], v: [[], []], u: [[], []], eta: [[], []]};
+  for (let t = 0; t < T; t++) { const cur = grad(D, P[0], P[1]); o.path.push([P[0], P[1], cur[2]]);
+    const G = m.k === 'nag' ? grad(D, P[0] - m.beta * h[0], P[1] - m.beta * h[1]) : cur;
+    for (let j = 0; j < 2; j++) { const g = G[j]; let d, e;
+      if (m.k === 'gd') { e = m.eta; d = -e * g; }
+      else if (m.k === 'mom' || m.k === 'nag') { h[j] = m.beta * h[j] + m.eta * g; e = m.eta; d = -h[j]; }
+      else if (m.k === 'ada') { v[j] += g * g; e = m.eta / (m.nosqrt ? v[j] + m.eps : Math.sqrt(v[j] + m.eps)); d = -e * g; }
+      else if (m.k === 'rms') { v[j] = m.beta * v[j] + (1 - m.beta) * g * g; e = m.eta / Math.sqrt(v[j] + m.eps); d = -e * g; }
+      else if (m.k === 'adad') { v[j] = m.beta * v[j] + (1 - m.beta) * g * g; o.u[j].push(u[j]); e = Math.sqrt(u[j] + m.eps) / Math.sqrt(v[j] + m.eps); d = -e * g; u[j] = m.beta * u[j] + (1 - m.beta) * d * d; }
+      else { const n = t + 1; mm[j] = m.beta1 * mm[j] + (1 - m.beta1) * g; v[j] = m.beta2 * v[j] + (1 - m.beta2) * g * g;
+        const mh = m.nobc ? mm[j] : mm[j] / (1 - Math.pow(m.beta1, n)), vh = m.nobc ? v[j] : v[j] / (1 - Math.pow(m.beta2, n));
+        e = m.eta / (Math.sqrt(vh) + m.eps); d = -e * mh; }
+      o.g[j].push(g); o.v[j].push(v[j]); o.eta[j].push(e); P[j] += d; }
+    if (!isFinite(P[0]) || !isFinite(P[1]) || Math.abs(P[0]) > 1e4 || Math.abs(P[1]) > 1e4) break; }
+  return o; }
+// ---- drawing helpers ----
+const hexRgb = c => { c = c.replace('#', ''); if (c.length === 3) c = c.split('').map(x => x + x).join(''); return [0, 2, 4].map(i => parseInt(c.substr(i, 2), 16) || 0); };
+const isDark = () => { const [r, g, b] = hexRgb(cssv('--surface') || '#fcfcfb'); return r + g + b < 300; };
+function surfGrid(D, G){ G = G || 90; const Z = new Float32Array(G * G); let zmax = 0;
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const w = BOX[0] + (BOX[1] - BOX[0]) * (i + 0.5) / G, b = BOX[3] - (BOX[3] - BOX[2]) * (j + 0.5) / G;
+    const z = grad(D, w, b)[2]; Z[j * G + i] = z; if (z > zmax) zmax = z; } return {G, Z, zmax}; }
+const fmt = v => !isFinite(v) ? '–' : Math.abs(v) >= 1000 ? v.toExponential(1).replace('e+', 'e') : Math.abs(v) >= 10 ? v.toFixed(1) : Math.abs(v) >= 1 ? v.toFixed(2) : Math.abs(v) >= 0.01 ? v.toFixed(3) : v === 0 ? '0' : v.toExponential(1);
+// draws the loss surface (red = high, blue = low, banded like contours) with axes; returns [ctx, X, Y] mappers
+function drawSurface(cv, S){ const [ctx, W, H] = setupCanvas(cv), l = 30, r = 8, t = 8, bm = 26, pw = W - l - r, ph = H - t - bm;
+  const X = w => l + (w - BOX[0]) / (BOX[1] - BOX[0]) * pw, Y = b => t + (BOX[3] - b) / (BOX[3] - BOX[2]) * ph;
+  const off = document.createElement('canvas'); off.width = S.G; off.height = S.G; const oc = off.getContext('2d'), img = oc.createImageData(S.G, S.G);
+  const dk = isDark(), lo = dk ? [28, 52, 92] : [196, 218, 246], mid = dk ? [38, 38, 36] : [250, 250, 247], hi = dk ? [104, 44, 30] : [245, 190, 166];
+  for (let k = 0; k < S.Z.length; k++) { const q = Math.round(Math.sqrt(S.Z[k] / S.zmax) * 14) / 14, a = q < 0.5 ? lo : mid, c = q < 0.5 ? mid : hi, s = q < 0.5 ? q * 2 : (q - 0.5) * 2;
+    for (let n = 0; n < 3; n++) img.data[k * 4 + n] = a[n] + (c[n] - a[n]) * s; img.data[k * 4 + 3] = 255; }
+  oc.putImageData(img, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(off, l, t, pw, ph);
+  ctx.strokeStyle = cssv('--grid'); ctx.strokeRect(l, t, pw, ph); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  for (let v = -6; v <= 6; v += 2) { ctx.fillText(v, X(v), t + ph + 13); ctx.textAlign = 'right'; ctx.fillText(v, l - 4, Y(v) + 4); ctx.textAlign = 'center'; }
+  ctx.font = 'italic 13px system-ui'; ctx.fillText('w', l + pw - 8, t + ph + 24); ctx.fillText('b', 9, t + 14);
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, pw, ph); ctx.clip();
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(W0), Y(B0), 4, 0, 7); ctx.fill();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(WS) - 6, Y(BS) - 6); ctx.lineTo(X(WS) + 6, Y(BS) + 6); ctx.moveTo(X(WS) + 6, Y(BS) - 6); ctx.lineTo(X(WS) - 6, Y(BS) + 6); ctx.stroke();
+  return [ctx, X, Y]; }
+function drawPath(ctx, X, Y, path, upto, col, dash){ const n = Math.min(upto, path.length - 1); if (n < 0) return;
+  ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.setLineDash(dash ? [5, 4] : []); ctx.beginPath();
+  for (let i = 0; i <= n; i++) { const p = path[i]; i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])); } ctx.stroke(); ctx.setLineDash([]);
+  const p = path[n]; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 5, 0, 7); ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1.5; ctx.stroke(); }
+// line chart over iterations. series: [{y:[...], col, dash, w}]; o: {n, log, t, ylab, hline}
+function chart(cv, series, o){ const [ctx, W, H] = setupCanvas(cv), l = 50, r = 10, t = 10, bm = 24, pw = W - l - r, ph = H - t - bm;
+  const tr = o.log ? v => Math.log10(Math.max(v, 1e-12)) : v => v; let lo = Infinity, hi = -Infinity;
+  series.forEach(s => s.y.forEach(v => { if (!isFinite(v) || (o.log && v <= 0)) return; const z = tr(v); if (z < lo) lo = z; if (z > hi) hi = z; }));
+  if (o.hline !== undefined) { lo = Math.min(lo, tr(o.hline)); hi = Math.max(hi, tr(o.hline)); }
+  if (!isFinite(lo)) { lo = 0; hi = 1; } if (o.zero && !o.log) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); } if (hi - lo < 1e-9) { hi += 0.5; lo -= 0.5; }
+  const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+  const X = i => l + i / Math.max(1, o.n - 1) * pw, Y = v => t + (hi - tr(v)) / (hi - lo) * ph;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right';
+  const ticks = []; if (o.log) { for (let e = Math.ceil(lo); e <= Math.floor(hi); e++) ticks.push(e); while (ticks.length > 6) for (let i = ticks.length - 2; i > 0; i -= 2) ticks.splice(i, 1); }
+  else { const st = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4))), s2 = (hi - lo) / st > 20 ? st * 5 : (hi - lo) / st > 8 ? st * 2 : st; for (let v = Math.ceil(lo / s2) * s2; v <= hi; v += s2) ticks.push(v); }
+  ticks.forEach(z => { const y = t + (hi - z) / (hi - lo) * ph; ctx.beginPath(); ctx.moveTo(l, y); ctx.lineTo(l + pw, y); ctx.stroke(); ctx.fillText(o.log ? fmt(Math.pow(10, z)) : fmt(+z.toPrecision(6)), l - 5, y + 4); });
+  ctx.textAlign = 'center'; for (let k = 0; k <= 4; k++) { const i = Math.round((o.n - 1) * k / 4); ctx.fillText(i, X(i), t + ph + 15); }
+  if (o.hline !== undefined) { ctx.setLineDash([3, 4]); ctx.strokeStyle = cssv('--muted'); ctx.beginPath(); ctx.moveTo(l, Y(o.hline)); ctx.lineTo(l + pw, Y(o.hline)); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, pw, ph); ctx.clip();
+  series.forEach(s => { ctx.strokeStyle = s.col; ctx.lineWidth = s.w || 2; ctx.setLineDash(s.dash ? [5, 4] : []); ctx.beginPath(); let on = false;
+    s.y.forEach((v, i) => { if (!isFinite(v) || (o.log && v <= 0)) { on = false; return; } on ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)); on = true; }); ctx.stroke(); });
+  ctx.setLineDash([]); ctx.restore();
+  if (o.t !== undefined) { ctx.strokeStyle = cssv('--ink'); ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(X(o.t), t); ctx.lineTo(X(o.t), t + ph); ctx.stroke(); ctx.globalAlpha = 1; }
+  if (o.ylab) { ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.fillText(o.ylab, l + 6, t + 12); } }
+// play/pause driver for an iteration slider
+function player(btn, slider, onT, speed){ let raf = 0; const stop = () => { cancelAnimationFrame(raf); raf = 0; btn.textContent = '▶ Play'; };
+  const tick = () => { const v = Math.min(+slider.max, +slider.value + speed); slider.value = v; onT(); if (v >= +slider.max) stop(); else raf = requestAnimationFrame(tick); };
+  btn.onclick = () => { if (raf) return stop(); if (+slider.value >= +slider.max) slider.value = 0; btn.textContent = '❚❚ Pause'; raf = requestAnimationFrame(tick); };
+  slider.addEventListener('input', () => { onT(); }); return stop; }
+function boot(draw){ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); }); }
+const D = makeData(0.8), S = surfGrid(D), T = 500;
+const R = {bc: run(D, {k: 'adam', eta: 0.1, beta1: 0.9, beta2: 0.999, eps: 1e-8}, T), nobc: run(D, {k: 'adam', eta: 0.1, beta1: 0.9, beta2: 0.999, eps: 1e-8, nobc: true}, T),
+  rms: run(D, {k: 'rms', eta: 0.1, beta: 0.9, eps: 1e-8}, T), adad: run(D, {k: 'adad', beta: 0.9, eps: 1e-4}, T)};
+const STY = {bc: ['#b8860b', false], nobc: ['--muted', true], rms: ['--s1', false], adad: ['#c2409a', false]};
+const col = k => STY[k][0].startsWith('--') ? cssv(STY[k][0]) : STY[k][0];
+function drawToy(){ const t = +$('tS').value, j = +$('par').value; $('tV').textContent = 't = ' + t;
+  const on = Object.keys(R).filter(k => $('c_' + k).checked);
+  const [ctx, X, Y] = drawSurface($('surf'), S); on.forEach(k => drawPath(ctx, X, Y, R[k].path, t, col(k), STY[k][1])); ctx.restore();
+  chart($('cE'), on.map(k => ({y: R[k].eta[j], col: col(k), dash: STY[k][1]})), {n: T, log: true, t});
+  const mx = k => Math.max(...R[k].path.map(p => p[0])), L = k => R[k].path[Math.min(t, R[k].path.length - 1)][2];
+  $('ovBC').textContent = mx('bc').toFixed(2); $('ovNo').textContent = mx('nobc').toFixed(2); $('lt').textContent = fmt(L('bc')) + ' | ' + fmt(L('nobc')); }
+function drawCalc(){ const g = Math.pow(10, +$('g1').value), v = 0.001 * g * g, vh = v / (1 - 0.999), m = 0.1 * g, mh = m / (1 - 0.9);
+  $('g1V').textContent = '∇w₁ = ' + fmt(g); $('rNo').textContent = fmt(1 / Math.sqrt(v)); $('rBC').textContent = fmt(1 / Math.sqrt(vh));
+  $('sNo').textContent = fmt(m / Math.sqrt(v)); $('sBC').textContent = fmt(mh / Math.sqrt(vh)); }
+// noisy gradient sequence for the EMA picture
+let noise = [];
+const truth = i => 0.55 + 0.45 * Math.cos(i / 16) - 0.002 * i;
+const newNoise = () => { noise = []; for (let i = 0; i < 100; i++) { let u = 0, v = 0; while (!u) u = Math.random(); v = Math.random(); noise.push(0.12 * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)); } };
+function drawEma(){ const b = +$('beta').value, bc = $('bc').checked, [ctx, W, H] = setupCanvas($('ema')), l = 34, r = 8, tp = 8, bm = 22, pw = W - l - r, ph = H - tp - bm;
+  const X = i => l + i / 99 * pw, Y = v => tp + (1.25 - v) / 1.55 * ph;
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right';
+  [-0.25, 0, 0.5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(l, Y(v)); ctx.lineTo(l + pw, Y(v)); ctx.stroke(); ctx.fillText(v, l - 4, Y(v) + 4); });
+  ctx.textAlign = 'center'; [0, 25, 50, 75, 99].forEach(i => ctx.fillText(i, X(i), H - 6));
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i < 100; i++) i ? ctx.lineTo(X(i), Y(truth(i))) : ctx.moveTo(X(i), Y(truth(i))); ctx.stroke();
+  ctx.fillStyle = cssv('--s1'); const obs = noise.map((n, i) => truth(i) + n); obs.forEach((v, i) => { ctx.beginPath(); ctx.arc(X(i), Y(v), 2.6, 0, 7); ctx.fill(); });
+  let m = 0, err = 0; const est = obs.map((g, i) => { m = b * m + (1 - b) * g; const e = bc ? m / (1 - Math.pow(b, i + 1)) : m; if (i < 20) err += Math.abs(e - truth(i)); return e; });
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); est.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v))); ctx.stroke();
+  $('emaMsg').innerHTML = `First estimate: ${fmt(est[0])} (first noisy value ${fmt(obs[0])}). Average gap from the red curve over the first 20 steps: <b>${fmt(err / 20)}</b>. ` +
+    (bc ? 'Corrected: it starts at the first observation instead of near 0.' : `Uncorrected: it starts at (1−β)× the first value and is dragged towards the initial 0 for roughly 1/(1−β) ≈ ${Math.round(1 / (1 - b))} steps.`) +
+    (b >= 0.99 ? ' With β this large the window is long, so even the corrected curve lags behind the turns of the red curve.' : ''); }
+newNoise();
+player($('play'), $('tS'), drawToy, 4);
+Object.keys(R).forEach(k => $('c_' + k).addEventListener('change', drawToy)); $('par').addEventListener('change', drawToy);
+$('g1').addEventListener('input', drawCalc); $('beta').addEventListener('change', drawEma); $('bc').addEventListener('change', drawEma);
+$('noise').addEventListener('click', () => { newNoise(); drawEma(); });
+boot(() => { drawToy(); drawCalc(); drawEma(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

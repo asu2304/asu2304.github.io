@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why We Want Adaptive Learning Rates</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+.s4{color:var(--s4)}
+:root{--s4:#8a5cc9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--s4:#a27ee0}}
+:root[data-theme="dark"]{--s4:#a27ee0}
+.ctl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:8px 0;font-size:14px}
+.ctl output{font-variant-numeric:tabular-nums;min-width:3.2em;display:inline-block}
+.box{border:2px solid var(--s1);border-radius:10px;padding:4px 14px;margin:14px 0;background:var(--card)}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 36 · playlist video 36 (titled “L33” on YouTube) · Optimisation algorithms</div>
+<h1>Why We Want Adaptive Learning Rates</h1>
+<p class="lede">The gradient is what it is: large on steep slopes, small on gentle ones. What we <i>can</i> change is the multiplier, the learning rate. Sparse features give a second, sharper reason to do so. The gradient of a weight is a sum over training points of terms multiplied by that weight's input, so a feature that is almost always 0 gets a tiny gradient and its weight barely learns, even when the feature is important. We want a learning rate per parameter that adapts to this automatically.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=oqkfhBf71gc" target="_blank" rel="noopener">this lecture on YouTube</a> (≈13 min). Previous: <a href="L35-learning-rate-scheduling.html">L35</a> · Next: <a href="L37-adagrad.html">L37</a> (AdaGrad).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Where we are</h2>
+<p>So far: <a href="L32-momentum.html">momentum</a> to move faster, <a href="L33-nesterov.html">NAG</a> to correct momentum's overshooting, <a href="L34-stochastic-vs-batch.html">stochastic and mini-batch</a> versions, and <a href="L35-learning-rate-scheduling.html">learning-rate schedules</a>. Along the way a wish kept coming up: on steep regions we want a <b>small</b> learning rate, on gentle regions a <b>large</b> one. The rate should look at the history and the current position and speed up or slow down accordingly.</p>
+<p>We can't change the gradients: in a steep region they are large, in a gentle region small. But the multiplying factor, the learning rate, can be changed, and that scales the updates up or down.</p>
+
+<h2>2 · A neuron with several inputs</h2>
+<p>A new piece of notation. Instead of one input, the neuron now has four inputs $x^1,x^2,x^3,x^4$ (plus a bias, ignored for the moment), with weights $w^1,\dots,w^4$, and $f(\mathbf{x})=\sigma(\mathbf{w}^\top\mathbf{x})$. Subscripts still index training points ($\mathbf{x}_1,\dots,\mathbf{x}_m$); superscripts index the features within one point. So movie 1 is $\mathbf{x}_1=(x_1^1,x_1^2,x_1^3,x_1^4)$.</p>
+<p>For a single training point $(\mathbf{x},y)$ with squared-error loss, the derivative is the same as for the one-input neuron, except the final factor is the input that this weight multiplies:</p>
+$$\frac{\partial\mathscr{L}}{\partial w^1}=\underbrace{(f(\mathbf{x})-y)\,f(\mathbf{x})\,(1-f(\mathbf{x}))}_{\text{same for every weight}}\;x^1,\qquad \frac{\partial\mathscr{L}}{\partial w^2}=(f(\mathbf{x})-y)\,f(\mathbf{x})\,(1-f(\mathbf{x}))\;x^2 .$$
+<p>That last factor appears because, when the chain rule reaches $\mathbf{w}^\top\mathbf{x}=w^1x^1+w^2x^2+\dots$, the derivative with respect to $w^2$ kills every term except $w^2x^2$ and leaves $x^2$. Over $m$ training points we just sum:</p>
+<div class="box">$$\nabla w^2=\sum_{i=1}^{m}\big(f(\mathbf{x}_i)-y_i\big)\,f(\mathbf{x}_i)\,\big(1-f(\mathbf{x}_i)\big)\;x_i^2$$</div>
+
+<h2>3 · Sparse features get tiny gradients</h2>
+<p>A feature is <b>sparse</b> if it is 0 for most training points. Example: data on the last 1000 Bollywood movies with the feature "is the actor Aamir Khan?". He acts in very few films, so the feature is 1 for maybe four or five movies and 0 for all the others. Real-world data are full of such features.</p>
+<ol class="steps">
+<li>In the sum for $\nabla w^2$, every term is multiplied by $x_i^2$. If 990 of 1000 values are 0, then 990 of the terms vanish.</li>
+<li>So the total derivative for a weight attached to a sparse feature is <b>small</b>.</li>
+<li>The update $w_{\text{new}}=w_{\text{old}}-\eta\,\nabla w$ is therefore small too: that weight barely moves.</li>
+</ol>
+<p><b>Why not just let it be?</b> Because sparse features can be <b>important</b>. Christopher Nolan directs a film every few years, so "is the director Nolan?" is a sparse feature. But his films are generally good, so when the feature <i>is</i> present it strongly decides the outcome. $w$ decides how much the feature contributes to $\mathbf{w}^\top\mathbf{x}$; if its weight starts small and, over 1000 steps, gets only a few tiny updates, the model never uses that information.</p>
+<div class="callout"><b>The wish.</b> Since we know the derivatives of sparse features will be small, give those parameters a <b>larger learning rate</b>; there is no need to be conservative with updates that are rare anyway. Dense features can keep a smaller rate. So: a <b>different learning rate for each parameter</b>, depending on how frequent its feature is.</div>
+<p>Test the claim. 200 training points; features $x^1,x^3,x^4$ are dense (uniform in $[-1,1]$), $x^2$ is a 0/1 feature that is on in only a few points but has the <b>largest</b> true weight. Plain gradient descent, all weights starting at 0, one shared $\eta$:</p>
+<div class="card">
+  <div class="row"><button id="pPlay">▶ Play</button><button id="pStep">Step ×10</button><button id="pReset">Reset</button></div>
+  <div class="ctl"><label>x² is on in <input type="range" id="pP" min="0" max="6" value="2"> <output id="pPO"></output> of points</label>
+    <label>η = <input type="range" id="pE" min="1" max="10" value="5"> <output id="pEO"></output></label>
+    <label>extra multiplier on η for w² = <input type="range" id="pM" min="0" max="5" value="0"> <output id="pMO"></output></label></div>
+  <div class="pair"><canvas id="pBar" height="260" aria-label="Size of each weight's gradient"></canvas><canvas id="pW" height="260" aria-label="Each weight against iteration, with its true value"></canvas></div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>w¹ (dense)</span><span><i style="background:var(--s2)"></i>w² (sparse)</span><span><i style="background:var(--s3)"></i>w³ (dense)</span><span><i style="background:var(--s4)"></i>w⁴ (dense)</span><span><i style="background:var(--faint)"></i>dashed: true weights</span></div>
+  <div class="row"><div class="stat"><div class="v" id="pIt">0</div><div class="l">iteration</div></div><div class="stat"><div class="v" id="pW2">–</div><div class="l">w² now (true 2.5)</div></div><div class="stat"><div class="v" id="pErr">–</div><div class="l">mean error |f − y| where x² = 1 / elsewhere</div></div></div>
+  <p class="small" id="pTxt" style="margin-bottom:0"></p>
+</div>
+<p>With x² on in 5% of points, the dense weights settle in about 100 iterations while $w^2$ is still far from its true value hundreds of iterations later, and the model's predictions on exactly those "Nolan movies" stay poor. Raise the frequency to 50% and $w^2$ learns as fast as the rest. Then go back to a sparse setting and turn up the multiplier on $w^2$'s learning rate alone: the lag disappears. That is the wish, done by hand.</p>
+
+<h2>4 · What we need</h2>
+<p>Hand-tuning won't scale: there can be millions of features, and we cannot write if-else rules ("if this feature is sparse, raise its rate"). We need <b>update equations</b> that, without heuristics, automatically give a high learning rate to parameters of sparse features and a lower one to dense ones, and more generally adapt to the slope. Turning this intuition into an update rule is the job of the next lecture, <a href="L37-adagrad.html">AdaGrad</a>.</p>
+<div class="beyond"><b>Going beyond the video: a hint of the answer.</b> A parameter's own gradient history already "knows" whether its feature is sparse: its past gradients are mostly zero. AdaGrad divides each parameter's step by the square root of the sum of its past squared gradients, so rarely-updated parameters get relatively large steps. That is the per-parameter multiplier in the demo, computed automatically.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Gradients are fixed by the surface; the learning rate is the knob we can adapt.</li>
+<li>We want small rates on steep regions and large rates on gentle ones.</li>
+<li>With several inputs, $\nabla w^j=\sum_i(f(\mathbf{x}_i)-y_i)f(\mathbf{x}_i)(1-f(\mathbf{x}_i))\,x_i^j$: each term is multiplied by that weight's own input.</li>
+<li>For a sparse feature most terms are zero, so its weight gets small gradients and small updates, even if the feature is important (the Nolan example).</li>
+<li>Goal: a separate, automatically adapted learning rate per parameter, large for sparse features. That leads to AdaGrad.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const fmt = (v, d = 3) => (isFinite(v) ? v.toFixed(d) : '–');
+
+// ---- The lecture's toy problem: one sigmoid neuron f(x) = σ(wx + b), squared error ----
+const sg = z => 1 / (1 + Math.exp(-z));
+function Toy(X, Y, mean){ const n = X.length, s = mean ? 1 / n : 1;
+  return { X, Y, n,
+    L(w, b){ let t = 0; for (let i = 0; i < n; i++) { const f = sg(w * X[i] + b); t += 0.5 * (f - Y[i]) ** 2; } return t * s; },
+    G(w, b, idx){ let gw = 0, gb = 0; const m = idx ? idx.length : n;
+      for (let k = 0; k < m; k++) { const i = idx ? idx[k] : k, f = sg(w * X[i] + b), d = (f - Y[i]) * f * (1 - f); gw += d * X[i]; gb += d; }
+      const sc = mean ? 1 / m : 1; return [gw * sc, gb * sc]; } }; }
+const TOY = Toy([0.5, 2.5], [0.2, 0.9], false);   // the two points used throughout the lecture
+const RANGE = [-6, 6, -6, 6];                     // w from −6 to 6, b from −6 to 6
+
+// ---- Optimiser steps (notation as in the lecture: u_t history, η, β) ----
+// o = {w, b, uw, ub}; P = {eta, beta}; idx = optional mini-batch indices
+const STEP = {
+  gd(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx); o.w -= P.eta * g[0]; o.b -= P.eta * g[1]; },
+  mom(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx);
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; },
+  nag(o, toy, P, idx){ const g = toy.G(o.w - P.eta * P.beta * o.uw, o.b - P.eta * P.beta * o.ub, idx);   // look ahead first
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; } };
+
+// number of times the loss turned from falling to rising (an overshoot / U-turn)
+function overshoots(l){ let c = 0; for (let i = 2; i < l.length; i++) if (l[i] > l[i - 1] + 1e-9 && l[i - 1] <= l[i - 2]) c++; return c; }
+
+// ---- Contour map: colour-coded loss (blue = low, red = high) + level rings at equal loss intervals ----
+const HEAT = {};
+function lossGrid(toy, key, nx, ny, R = RANGE){
+  const k = key + nx + 'x' + ny; if (HEAT[k]) return HEAT[k];
+  const g = new Float64Array(nx * ny); let mx = -Infinity, mn = Infinity;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const w = R[0] + (R[1] - R[0]) * i / (nx - 1), b = R[3] - (R[3] - R[2]) * j / (ny - 1), v = toy.L(w, b);
+    g[j * nx + i] = v; if (v > mx) mx = v; if (v < mn) mn = v; }
+  return (HEAT[k] = { g, nx, ny, mx, mn }); }
+function isoSegs(G, lev){ G.seg = G.seg || {}; if (G.seg[lev]) return G.seg[lev]; const { g, nx, ny } = G, out = G.seg[lev] = [];
+  const at = (i, j) => g[j * nx + i];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], v = c.map(p => at(p[0], p[1])), pts = [];
+    for (let e = 0; e < 4; e++) { const a = v[e], b = v[(e + 1) % 4];
+      if ((a < lev) !== (b < lev)) { const t = (lev - a) / (b - a), p = c[e], q = c[(e + 1) % 4];
+        pts.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]); } }
+    if (pts.length === 2) out.push(pts); else if (pts.length === 4) { out.push([pts[0], pts[1]]); out.push([pts[2], pts[3]]); } }
+  return out; }
+function heatRGB(t){ const lo = [42, 110, 214], hi = [214, 64, 40];
+  return lo.map((c, k) => Math.round(c + (hi[k] - c) * t)); }
+function drawContour(ctx, W, H, toy, key, opt = {}){
+  const R = opt.range || RANGE, pad = opt.pad || 28, levels = opt.levels || [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7];
+  const pw = W - pad - 8, ph = H - pad - 8, X = w => pad + (w - R[0]) / (R[1] - R[0]) * pw, Y = b => 8 + (R[3] - b) / (R[3] - R[2]) * ph;
+  const nx = 90, ny = 90, G = lossGrid(toy, key, nx, ny, R);
+  const cw = pw / (nx - 1), chh = ph / (ny - 1);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad, 8, pw, ph); ctx.clip();
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const t = Math.pow((G.g[j * nx + i] - G.mn) / (G.mx - G.mn || 1), opt.gamma || 0.5), c = heatRGB(t);
+    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.55)`; ctx.fillRect(X(R[0]) + (i - 0.5) * cw, 8 + (j - 0.5) * chh, cw + 0.6, chh + 0.6); }
+  ctx.strokeStyle = cssv('--ink'); ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+  levels.forEach(lev => { if (opt.hi === lev) return; ctx.beginPath(); isoSegs(G, lev).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); });
+  ctx.globalAlpha = 1;
+  if (opt.hi != null) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 3; ctx.beginPath();
+    isoSegs(G, opt.hi).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(pad, 8, pw, ph);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  for (let v = R[0]; v <= R[1]; v += 2) ctx.fillText(v, X(v), H - pad + 16);
+  ctx.textAlign = 'right'; for (let v = R[2]; v <= R[3]; v += 2) ctx.fillText(v, pad - 4, Y(v) + 4);
+  ctx.textAlign = 'left'; ctx.fillText('w →', W - 34, H - pad + 16); ctx.fillText('b', 4, 16);
+  return { X, Y, inv: (px, py) => [R[0] + (px - pad) / pw * (R[1] - R[0]), R[3] - (py - 8) / ph * (R[3] - R[2])], pad, pw, ph }; }
+
+// ---- Sigmoid panel: current σ(wx+b) of each runner, with the data points ----
+function drawSigmoid(ctx, W, H, toy, curves){
+  const x0 = -1, x1 = 4, X = x => 30 + (x - x0) / (x1 - x0) * (W - 40), Y = y => H - 22 - y * (H - 34);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(30, Y(0)); ctx.lineTo(W - 10, Y(0)); ctx.moveTo(30, Y(1)); ctx.lineTo(W - 10, Y(1)); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(1)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText('1', 26, Y(1) + 4); ctx.fillText('0', 26, Y(0) + 4);
+  ctx.textAlign = 'center'; for (let x = 0; x <= 4; x++) ctx.fillText(x, X(x), H - 6); ctx.textAlign = 'left';
+  curves.forEach(c => { ctx.strokeStyle = c.color; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let k = 0; k <= 100; k++) { const x = x0 + (x1 - x0) * k / 100, y = sg(c.w * x + c.b); k ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); });
+  const r = toy.n > 10 ? 3 : 6; ctx.fillStyle = cssv('--ink');
+  for (let i = 0; i < toy.n; i++) { ctx.beginPath(); ctx.arc(X(toy.X[i]), Y(toy.Y[i]), r, 0, 7); ctx.fill(); } }
+
+// ---- A race of optimisers on one contour map (+ loss curve, + sigmoid fit) ----
+function Race(cfg){
+  const S = { it: 0, playing: false, start: cfg.start.slice(), runners: [] };
+  const key = cfg.key || 'toy', toy = cfg.toy;
+  function reset(st){ if (st) S.start = st.slice(); S.it = 0;
+    S.runners = cfg.runners().map(r => Object.assign({ w: S.start[0], b: S.start[1], uw: 0, ub: 0, path: [[S.start[0], S.start[1]]], loss: [toy.L(S.start[0], S.start[1])], last: 0 }, r));
+    if (cfg.onReset) cfg.onReset(S); draw(); }
+  function stepAll(){ if (S.it >= cfg.maxIter) return false;
+    S.runners.forEach(r => { if (r.on === false) return; const w0 = r.w, b0 = r.b; r.step(r, S.it);
+      if (!isFinite(r.w) || !isFinite(r.b)) { r.w = w0; r.b = b0; }
+      r.last = Math.hypot(r.w - w0, r.b - b0); r.path.push([r.w, r.b]); r.loss.push(toy.L(r.w, r.b)); });
+    S.it++; return true; }
+  function draw(){
+    const [ctx, W, H] = setupCanvas(cfg.map); ctx.clearRect(0, 0, W, H);
+    const M = drawContour(ctx, W, H, toy, key, cfg.contourOpt); S.M = M;
+    ctx.save(); ctx.beginPath(); ctx.rect(M.pad, 8, M.pw, M.ph); ctx.clip();
+    S.runners.forEach(r => { if (r.on === false) return; const col = cssv(r.color); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6;
+      ctx.beginPath(); r.path.forEach((p, k) => k ? ctx.lineTo(M.X(p[0]), M.Y(p[1])) : ctx.moveTo(M.X(p[0]), M.Y(p[1]))); ctx.stroke();
+      const dots = r.path.length < 400; r.path.forEach((p, k) => { if (dots || k % 4 === 0) { ctx.beginPath(); ctx.arc(M.X(p[0]), M.Y(p[1]), 2, 0, 7); ctx.fill(); } });
+      ctx.beginPath(); ctx.arc(M.X(r.w), M.Y(r.b), 5.5, 0, 7); ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1.5; ctx.stroke(); });
+    ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(M.X(S.start[0]), M.Y(S.start[1]), 4, 0, 7); ctx.fill();
+    ctx.restore();
+    if (cfg.lossCv) drawLoss();
+    if (cfg.sigCv) { const [c2, W2, H2] = setupCanvas(cfg.sigCv); drawSigmoid(c2, W2, H2, toy, S.runners.filter(r => r.on !== false).map(r => ({ w: r.w, b: r.b, color: cssv(r.color) }))); }
+    if (cfg.onDraw) cfg.onDraw(S); }
+  function drawLoss(){
+    const [ctx, W, H] = setupCanvas(cfg.lossCv), n = Math.max(cfg.lossX || 100, S.it), pad = 34;
+    const top = Math.max(...S.runners.map(r => r.loss[0])) * 1.05 || 1;
+    const X = i => pad + i / n * (W - pad - 10), Y = v => 8 + (1 - Math.min(v, top) / top) * (H - 30);
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, 8); ctx.lineTo(pad, H - 22); ctx.lineTo(W - 10, H - 22); ctx.stroke();
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText(top.toFixed(2), pad - 4, 14); ctx.fillText('0', pad - 4, H - 22);
+    ctx.textAlign = 'center'; ctx.fillText((cfg.lossLabel || 'iteration') + ' (0 – ' + n + ')', (W + pad) / 2, H - 6); ctx.textAlign = 'left';
+    S.runners.forEach(r => { if (r.on === false) return; ctx.strokeStyle = cssv(r.color); ctx.lineWidth = 2; ctx.beginPath();
+      const stride = Math.max(1, Math.floor(r.loss.length / 600));
+      for (let k = 0; k < r.loss.length; k += stride) k ? ctx.lineTo(X(k), Y(r.loss[k])) : ctx.moveTo(X(k), Y(r.loss[k]));
+      ctx.lineTo(X(r.loss.length - 1), Y(r.loss[r.loss.length - 1])); ctx.stroke(); }); }
+  let raf = null, acc = 0, tPrev = 0;
+  function loop(ts){ if (!S.playing) return; const dt = tPrev ? Math.min(100, ts - tPrev) : 16; tPrev = ts;
+    acc += dt / 1000 * (cfg.speed ? cfg.speed() : 25); let k = 0;
+    while (acc >= 1 && k < 400) { acc -= 1; k++; if (!stepAll()) { S.playing = false; break; } }
+    draw(); if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  function play(on){ S.playing = on == null ? !S.playing : on; tPrev = 0; acc = 0; if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  cfg.map.addEventListener('click', e => { if (!S.M) return; const r = cfg.map.getBoundingClientRect(), p = S.M.inv(e.clientX - r.left, e.clientY - r.top);
+    if (p[0] < RANGE[0] || p[0] > RANGE[1] || p[1] < RANGE[2] || p[1] > RANGE[3]) return; play(false); reset([+p[0].toFixed(2), +p[1].toFixed(2)]); });
+  return { S, reset, draw, play, step(n = 1){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); }, run(n){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); } }; }
+
+// redraw hooks
+const REDRAW = [];
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => REDRAW.forEach(f => f()), 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => REDRAW.forEach(f => f()));
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); REDRAW.forEach(f => f()); });
+
+function rng(s){ return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const WT = [1.5, 2.5, -1, 0.5], PS = [0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5], MS = [1, 2, 5, 10, 20, 50], M = 200, TMAX = 1000, COL = ['--s1', '--s2', '--s3', '--s4'];
+let D, st, playing = false;
+function makeData(){ const R = rng(3), p = PS[+$('pP').value], X = [], Y = [];
+  for (let i = 0; i < M; i++) { const x = [R() * 2 - 1, R() < p ? 1 : 0, R() * 2 - 1, R() * 2 - 1]; X.push(x); Y.push(sg(x.reduce((a, v, j) => a + v * WT[j], 0))); }
+  if (!X.some(x => x[1])) X[0][1] = 1, Y[0] = sg(X[0].reduce((a, v, j) => a + v * WT[j], 0));
+  return { X, Y, on: X.filter(x => x[1]).length }; }
+function grad(w){ const g = [0, 0, 0, 0], nz = [0, 0, 0, 0];
+  for (let i = 0; i < M; i++) { const x = D.X[i], f = sg(x.reduce((a, v, j) => a + v * w[j], 0)), d = (f - D.Y[i]) * f * (1 - f);
+    for (let j = 0; j < 4; j++) { g[j] += d * x[j] / M; if (x[j] !== 0) nz[j]++; } }
+  return [g, nz]; }
+function reset(){ D = makeData(); st = { w: [0, 0, 0, 0], hist: [[0, 0, 0, 0]], t: 0 }; draw(); }
+function step(n){ const eta = +$('pE').value, mult = MS[+$('pM').value];
+  for (let k = 0; k < n && st.t < TMAX; k++) { const [g] = grad(st.w); st.w = st.w.map((v, j) => v - eta * (j === 1 ? mult : 1) * g[j]); st.t++; st.hist.push(st.w.slice()); } }
+function errs(){ let a = 0, na = 0, b = 0, nb = 0;
+  D.X.forEach((x, i) => { const e = Math.abs(sg(x.reduce((s, v, j) => s + v * st.w[j], 0)) - D.Y[i]); if (x[1]) { a += e; na++; } else { b += e; nb++; } });
+  return [na ? a / na : NaN, nb ? b / nb : NaN]; }
+function draw(){
+  $('pPO').textContent = Math.round(PS[+$('pP').value] * 100) + '%'; $('pEO').textContent = $('pE').value; $('pMO').textContent = '×' + MS[+$('pM').value];
+  const [g, nz] = grad(st.w), [ctx, W, H] = setupCanvas($('pBar')); ctx.clearRect(0, 0, W, H);
+  const top = Math.max(...g.map(Math.abs), 1e-9), bw = (W - 40) / 4;
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText('|∇wʲ| at the current weights', 8, 14);
+  g.forEach((v, j) => { const h = Math.abs(v) / top * (H - 90), x = 20 + j * bw;
+    ctx.fillStyle = cssv(COL[j]); ctx.fillRect(x + 8, H - 50 - h, bw - 16, h);
+    ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'center'; ctx.font = '12px system-ui'; ctx.fillText('w' + '¹²³⁴'[j], x + bw / 2, H - 34);
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText(Math.abs(v).toExponential(1), x + bw / 2, H - 56 - h); ctx.fillText(`${nz[j]}/${M} terms ≠ 0`, x + bw / 2, H - 18); });
+  ctx.textAlign = 'left';
+  const [c2, W2, H2] = setupCanvas($('pW')); c2.clearRect(0, 0, W2, H2);
+  const pad = 30, X = t => pad + t / TMAX * (W2 - pad - 10), Y = v => 10 + (3 - v) / 4.5 * (H2 - 36);
+  c2.strokeStyle = cssv('--grid'); c2.lineWidth = 1; c2.beginPath(); c2.moveTo(pad, Y(0)); c2.lineTo(W2 - 10, Y(0)); c2.moveTo(pad, 10); c2.lineTo(pad, H2 - 26); c2.stroke();
+  c2.fillStyle = cssv('--muted'); c2.font = '11px system-ui'; c2.textAlign = 'right'; [-1, 0, 1, 2, 3].forEach(v => c2.fillText(v, pad - 4, Y(v) + 4));
+  c2.textAlign = 'center'; [0, 250, 500, 750, 1000].forEach(t => c2.fillText(t, X(t), H2 - 12)); c2.fillText('iteration', (W2 + pad) / 2, H2 - 1); c2.textAlign = 'left';
+  WT.forEach((v, j) => { c2.strokeStyle = cssv(COL[j]); c2.globalAlpha = 0.6; c2.setLineDash([4, 4]); c2.beginPath(); c2.moveTo(pad, Y(v)); c2.lineTo(W2 - 10, Y(v)); c2.stroke(); c2.setLineDash([]); c2.globalAlpha = 1;
+    c2.lineWidth = j === 1 ? 3 : 2; c2.beginPath(); st.hist.forEach((w, t) => t ? c2.lineTo(X(t), Y(w[j])) : c2.moveTo(X(t), Y(w[j]))); c2.stroke(); });
+  const [ea, eb] = errs(); $('pIt').textContent = st.t; $('pW2').textContent = fmt(st.w[1], 2); $('pErr').textContent = `${fmt(ea, 3)} / ${fmt(eb, 3)}`;
+  const dense = Math.max(Math.abs(st.w[0] - WT[0]), Math.abs(st.w[2] - WT[2]), Math.abs(st.w[3] - WT[3]));
+  $('pTxt').textContent = `x² is 1 in ${D.on} of the ${M} points, so ${M - D.on} of the ${M} terms in ∇w² are zero. ` +
+    (st.t === 0 ? 'Press Play.' : dense < 0.1 && Math.abs(st.w[1] - WT[1]) > 0.3 ? `The dense weights are within ${fmt(dense, 2)} of their true values, but w² is still ${fmt(WT[1] - st.w[1], 2)} short.` :
+     Math.abs(st.w[1] - WT[1]) <= 0.3 ? 'w² has (nearly) caught up.' : 'Learning…'); }
+function loop(){ if (!playing) return; step(5); draw(); if (st.t >= TMAX) { playing = false; $('pPlay').textContent = '▶ Play'; return; } requestAnimationFrame(loop); }
+$('pPlay').onclick = () => { playing = !playing; $('pPlay').textContent = playing ? '❚❚ Pause' : '▶ Play'; if (playing) requestAnimationFrame(loop); };
+$('pStep').onclick = () => { step(10); draw(); };
+$('pReset').onclick = () => { playing = false; $('pPlay').textContent = '▶ Play'; reset(); };
+['pP', 'pE', 'pM'].forEach(id => $(id).addEventListener('input', () => $('pReset').onclick()));
+reset(); REDRAW.push(draw);
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

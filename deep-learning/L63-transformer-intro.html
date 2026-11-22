@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why Transformers: The RNN Bottleneck</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 63 · playlist video 63 (titled “L1” on YouTube) · Transformers</div>
+<h1>Why Transformers? The Sequential Bottleneck of RNNs</h1>
+<p class="lede">An RNN encoder is handed the whole sentence at once, yet it computes $h_1, h_2, \dots, h_T$ one after another. That recurrence is what makes the representations contextual, and also what makes them slow. Attention already has a parallel streak: at a fixed decoder step, all the weights $\alpha_{t1},\dots,\alpha_{tT}$ can be computed together. The aim of the coming videos is to keep attention and contextual representations while dropping the recurrence.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=cVbGNL0N2RI" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L62-cnn-intro.html">L62</a> · Next: <a href="L64-attention-is-all-you-need.html">L64</a> (Attention is all you need).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+<p class="callout small"><b>About the numbering.</b> This is the first of five transformer videos (playlist videos 63–67). On YouTube they are titled L1, L4, L3, L2 and L65, but the content runs in <b>playlist order</b>: each video picks up exactly where the previous one stops. These notes follow that order.</p>
+
+<h2>1 · Building blocks so far</h2>
+<p>The course has met three architectures, and each was understood through its <b>basic building block</b>. Once you understand the block, a deep, wide network is just many copies of it.</p>
+<table>
+<tr><th>Architecture</th><th>Building block</th></tr>
+<tr><td>Feed-forward network</td><td>a sigmoid (or other non-linear) neuron: weighted sum of inputs, then a non-linearity</td></tr>
+<tr><td>Convolutional network</td><td>the convolution operation (and max pooling)</td></tr>
+<tr><td>Recurrent network</td><td>the recurrence $h_t=f(h_{t-1},x_t)$</td></tr>
+<tr><td>Attention-based RNN</td><td>the attention function on top of the recurrence</td></tr>
+</table>
+<p>Transformers are built from <b>self-attention</b> and <b>cross-attention</b> layers. This video sets them up by looking at what is wrong with RNN-based models.</p>
+
+<h2>2 · The input arrives at once; the computation doesn't</h2>
+<p>Take translation of “I enjoyed the movie Transformers”. The whole sentence is given at one go; it does not trickle in one word at a time. But an RNN encoder still processes it sequentially:</p>
+<ol class="steps">
+<li>$x_1$ is the embedding of “I”. Compute $h_1=f(h_0,x_1)$.</li>
+<li>Only now can you compute $h_2=f(h_1,x_2)$, then $h_3$, $h_4$, $h_5$, one step at a time.</li>
+</ol>
+<p>Why wait? Each word already has an embedding (from word2vec, fastText, GloVe, or simply a learnable parameter of the network). But that embedding is computed from a corpus, independently of this sentence. What we want is the representation of the word <b>in the context of this sentence</b>, and the yellow boxes $h_t$ provide that because they take input from the rest of the sentence.</p>
+<p>A forward RNN only sees the left context. A <b>bidirectional</b> RNN/LSTM also runs right to left (“Transformers movie the enjoyed I”) and concatenates the two states, so the representation of “movie” sees both sides.</p>
+<div class="callout"><b>The good and the bad.</b> Contextual representations are exactly what we want. Sequential computation is not: each step waits for the previous one, so there is no parallelism within a sentence. Wish: get the same contextual representations from a model that is <b>not recurrent</b>.</div>
+<p>The decoder is a different story. It produces the first output word, which is fed in to produce the next, so its input is itself being generated one step at a time. Some sequential work there is unavoidable. The question is whether the <b>encoder</b> can be sped up.</p>
+
+<h2>3 · From one final state to attention</h2>
+<p>In the plain encoder–decoder, only the last state $h_5$ goes to the decoder, and the whole output is produced from that single vector. There is no notion of <b>alignment</b>: nothing says that when the decoder produces the first word of the translation it should focus on “I”.</p>
+<p>The attention-based model fixes that. Run the encoder once, keep all its outputs $h_1,\dots,h_T$ (you can now throw the RNN away), and at every decoder step feed a fresh <b>context vector</b> (also called the thought vector):</p>
+$$e_{ti}=f_{\text{ATT}}(s_{t-1},h_i),\qquad \alpha_{ti}=\frac{\exp(e_{ti})}{\sum_{j=1}^{T}\exp(e_{tj})},\qquad c_t=\sum_{i=1}^{T}\alpha_{ti}\,h_i .$$
+<p>$\alpha_{ti}$ is the attention paid to input $i$ at output step $t$; the softmax makes each row a distribution. Stack the $h_i$ as columns of a matrix and $c_t$ is just that matrix times the vector $(\alpha_{t1},\dots,\alpha_{tT})$: a linear combination of the columns. The alignment function used earlier in the course was</p>
+$$f_{\text{ATT}}(s_{t-1},h_i)=V_{att}^{\top}\tanh\!\big(U_{att}\,s_{t-1}+W_{att}\,h_i\big).$$
+<p>Plot all the $\alpha_{ti}$ as a $T_1\times T_2$ <b>heat map</b> (input length by output length) and the bright cells show which input word each output word focused on. For a translation with nearly one-to-one word correspondences, the bright cells line up along the alignment.</p>
+
+<h2>4 · What can run in parallel?</h2>
+<p>Two questions lead straight to transformers.</p>
+<ol class="steps">
+<li><b>At a fixed step $t$, can $\alpha_{t1},\dots,\alpha_{tT}$ be computed in parallel?</b> Yes. Each $e_{ti}$ needs only $s_{t-1}$ (already available) and $h_i$ (already available). Compute all scores at once, then normalise them at once. No matter how long the sentence, nothing waits on position $i-1$.</li>
+<li><b>Can the weights for all steps $t$ be computed in parallel?</b> No. $\alpha_{4\cdot}$ needs $s_3$; $s_3$ needs the context $c_3$; $c_3$ needs all of $\alpha_{3\cdot}$. Unless $\alpha_{3\cdot}$ is done, $\alpha_{4\cdot}$ cannot start.</li>
+</ol>
+<div class="callout">Attention is parallel <b>within</b> a time step but not <b>across</b> time steps, and the culprit is the recurrent connection through $s_{t-1}$. If we could get rid of recurrence and rely only on the part that parallelises, we'd have a new architecture.</div>
+<p>Count the sequential ticks yourself. Each box is one quantity; a box can be computed on the tick after all its inputs are ready. Click any box to see what it waits for.</p>
+
+<div class="card">
+  <div class="row"><button id="mRnn" class="on">RNN encoder + attention decoder</button><button id="mPar">Preview: attention without recurrence</button></div>
+  <div class="row"><label>sentence length $T$ = <b id="tV">5</b> <input type="range" id="tS" min="3" max="10" value="5"></label>
+    <button id="tick">Next tick</button><button id="runAll">Run all</button><button id="rst">Reset</button></div>
+  <canvas id="dc" height="360" aria-label="Grid of quantities in an attention model, coloured by the tick on which each can be computed"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--faint)"></i>given (embeddings)</span><span><i class="dot" style="background:var(--s1)"></i>computed earlier</span><span><i class="dot" style="background:var(--s2)"></i>computed this tick</span><span><i class="dot" style="background:var(--s3)"></i>selected box and what it waits for</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="tNow">0</div><div class="l">tick</div></div>
+    <div class="stat"><div class="v" id="tTot">–</div><div class="l">sequential ticks needed</div></div>
+    <div class="stat"><div class="v" id="tMax">–</div><div class="l">most boxes done in one tick</div></div>
+  </div>
+  <p class="small" id="dTxt"></p>
+</div>
+<p class="small muted">Simplifications: $s_0$ is initialised from $h_T$, and a whole score-plus-softmax counts as one tick. With these rules the RNN model needs $4T$ ticks: $T$ for the encoder, then 3 per output word ($\alpha_{t\cdot}\to c_t\to s_t$). The preview mode is where the next video goes: if every weight depends only on the input representations, everything is done in 2 ticks whatever $T$ is.</p>
+
+<h2>5 · The wish list</h2>
+<p>RNN-based encoder–decoders with attention work very well (machine translation, summarisation, image and video captioning). The only complaint is that, for one training example, the sequence of computations cannot be parallelised. So:</p>
+<ul>
+<li><b>Keep attention.</b> It is what computes contextual representations, and it already parallelises within a time step.</li>
+<li><b>Keep the idea</b> behind recurrence: every word's representation should depend on the words around it.</li>
+<li><b>Drop the computational cost</b> of recurrence: no step should wait for the previous one.</li>
+</ul>
+<p>The <a href="L64-attention-is-all-you-need.html">next video</a> introduces the architecture that does this, from the paper “Attention Is All You Need”. For the history of how transformers took over, see <a href="L4-transformers-madness.html">L4</a>.</p>
+<div class="beyond"><b>Going beyond the video: parallel isn't free.</b> Removing recurrence makes the number of <i>sequential</i> steps constant per layer, which is what GPUs reward. The price is that every word now compares itself with every other word, so the work per layer grows like $T^2$ rather than $T$. For sentences that is a great trade; for very long documents it is the main cost of transformers. My <a href="../transformers/index.html">transformer revision notes</a> go further.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Each architecture is understood through its building block; for transformers these are self-attention and cross-attention.</li>
+<li>An RNN encoder gets the whole sentence at once but computes $h_1,\dots,h_T$ sequentially. The recurrence buys contextual representations and costs parallelism.</li>
+<li>Attention gives a context vector $c_t=\sum_i\alpha_{ti}h_i$ per decoder step, adding the alignment that a single final state lacks.</li>
+<li>At a fixed $t$ all $\alpha_{ti}$ can be computed in parallel; across $t$ they cannot, because $\alpha_{t\cdot}$ needs $s_{t-1}$, which needs $c_{t-1}$.</li>
+<li>Goal: an architecture that keeps attention and contextual representations but has no recurrent connection.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+
+let mode = 'rnn', T = 5, tick = 0, nodes = [], sel = null, rects = [];
+const sub = n => String(n).split('').map(c => '₀₁₂₃₄₅₆₇₈₉'[+c]).join('');
+function build(){
+  nodes = []; const add = (id, lab, row, col, deps, given) => { const n = {id, lab, row, col, deps, given: !!given}; nodes.push(n); return n; };
+  const N = {};
+  for (let i = 1; i <= T; i++) N['x' + i] = add('x' + i, 'x' + sub(i), 0, i - 1, [], true);
+  if (mode === 'rnn') {
+    for (let i = 1; i <= T; i++) N['h' + i] = add('h' + i, 'h' + sub(i), 1, i - 1, i > 1 ? ['h' + (i - 1), 'x' + i] : ['x1']);
+    for (let t = 1; t <= T; t++) {
+      const sPrev = t === 1 ? 'h' + T : 's' + (t - 1);
+      for (let i = 1; i <= T; i++) add('a' + t + '_' + i, 'α' + sub(t) + ',' + sub(i), 1 + t, i - 1, [sPrev, 'h' + i]);
+      const row = []; for (let i = 1; i <= T; i++) row.push('a' + t + '_' + i);
+      add('c' + t, 'c' + sub(t), 1 + t, T + 0.3, row);
+      add('s' + t, 's' + sub(t), 1 + t, T + 1.3, ['c' + t, sPrev]);
+    }
+  } else {
+    for (let i = 1; i <= T; i++) add('h' + i, 'h' + sub(i), 1, i - 1, ['x' + i], true);
+    for (let t = 1; t <= T; t++) {
+      for (let i = 1; i <= T; i++) add('a' + t + '_' + i, 'α' + sub(t) + ',' + sub(i), 1 + t, i - 1, ['h' + t, 'h' + i]);
+      const row = []; for (let i = 1; i <= T; i++) row.push('a' + t + '_' + i);
+      add('z' + t, 'out' + sub(t), 1 + t, T + 0.3, row);
+    }
+  }
+  const byId = {}; nodes.forEach(n => byId[n.id] = n);
+  const lvl = n => { if (n.level !== undefined) return n.level; if (n.given) return n.level = 0; let m = 0; n.deps.forEach(d => m = Math.max(m, lvl(byId[d]))); return n.level = m + 1; };
+  nodes.forEach(lvl); nodes.byId = byId;
+}
+function total(){ return Math.max(...nodes.map(n => n.level)); }
+function reset(){ build(); tick = 0; sel = null; msg(); draw(); }
+function msg(){
+  const tot = total(), cnt = {}; nodes.forEach(n => { if (!n.given) cnt[n.level] = (cnt[n.level] || 0) + 1; });
+  $('tNow').textContent = tick; $('tTot').textContent = tot; $('tMax').textContent = Math.max(...Object.values(cnt));
+  let s;
+  if (sel) { const n = nodes.byId[sel];
+    s = n.given ? `<b>${n.lab}</b> is given: it's a word embedding, available before any computation.`
+      : `<b>${n.lab}</b> waits for ${n.deps.length > 4 ? 'the whole row ' + nodes.byId[n.deps[0]].lab + ' … ' + nodes.byId[n.deps[n.deps.length - 1]].lab : n.deps.map(d => nodes.byId[d].lab).join(' and ')}, so the earliest tick it can be computed on is <b>${n.level}</b>.`;
+    if (mode === 'rnn' && n.id[0] === 'a' && n.level > T + 1) s += ' Notice the chain: this row needs the previous decoder state, which needs the previous context vector, which needs the whole previous row of α.';
+    if (mode === 'par' && n.id[0] === 'a') s += ' It depends only on input representations, so it is ready on tick 1 together with every other α.';
+  } else s = mode === 'rnn'
+    ? `RNN mode: the encoder takes ${T} ticks; then every output word needs 3 more (α row → c → s). Total ${tot} ticks. Within a tick, a whole row of α is computed at once.`
+    : `Without recurrence: all ${T * T} weights are computed on tick 1 and all ${T} outputs on tick 2. The tick count no longer grows with T.`;
+  if (tick >= tot && !sel) s += ' <b>Done.</b>';
+  $('dTxt').innerHTML = s;
+}
+function draw(){
+  const [ctx, W] = setupCanvas($('dc'));
+  const rows = T + 2, cols = T + (mode === 'rnn' ? 2.3 : 1.3), lw = 34;
+  const cs = Math.min(40, (W - lw - 4) / cols), ch = Math.min(28, (+$('dc').dataset.h - 8) / rows);
+  const ink = cssv('--ink'), sel1 = sel ? nodes.byId[sel] : null, hl = new Set(sel1 ? sel1.deps : []);
+  rects = [];
+  ctx.font = '600 12px system-ui'; ctx.textBaseline = 'middle'; ctx.fillStyle = cssv('--muted');
+  const rl = ['x', mode === 'rnn' ? 'h' : 'h=x']; for (let t = 1; t <= T; t++) rl.push('t=' + t);
+  rl.forEach((l, r) => ctx.fillText(l, 2, 4 + r * ch + ch / 2));
+  nodes.forEach(n => {
+    const x = lw + n.col * cs + 1, y = 4 + n.row * ch + 1, w = cs - 3, h = ch - 3;
+    rects.push([x, y, w, h, n.id]);
+    const done = n.level <= tick, now = n.level === tick && !n.given && tick > 0;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, 4) : ctx.rect(x, y, w, h);
+    if (n.given) { ctx.fillStyle = cssv('--faint'); ctx.globalAlpha = 0.45; ctx.fill(); ctx.globalAlpha = 1; }
+    else if (now) { ctx.fillStyle = cssv('--s2'); ctx.fill(); }
+    else if (done) { ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1; }
+    else { ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.stroke(); }
+    if (n.id === sel || hl.has(n.id)) { ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = n.id === sel ? 3 : 2; ctx.setLineDash(n.id === sel ? [] : [3, 2]); ctx.stroke(); ctx.setLineDash([]); }
+    if (cs >= 22) { ctx.fillStyle = (now || done) && !n.given ? '#fff' : ink; ctx.font = (cs < 30 ? '10px' : '11px') + ' system-ui'; ctx.textAlign = 'center';
+      ctx.fillText(cs >= 32 ? n.lab : (n.given || !done ? n.lab.replace(/,.*/, '') : String(n.level)), x + w / 2, y + h / 2 + 1); ctx.textAlign = 'left'; }
+  });
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  const yb = 4 + 2 * ch - 5;
+  if (mode === 'rnn') { ctx.fillText('c', lw + (T + 0.3) * cs + cs / 2 - 1, yb); ctx.fillText('s', lw + (T + 1.3) * cs + cs / 2 - 1, yb); }
+  else ctx.fillText('out', lw + (T + 0.3) * cs + cs / 2 - 1, yb);
+  ctx.textAlign = 'left';
+}
+$('dc').addEventListener('click', e => { const r = $('dc').getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  const hit = rects.find(q => x >= q[0] && x <= q[0] + q[2] && y >= q[1] && y <= q[1] + q[3]); sel = hit ? (sel === hit[4] ? null : hit[4]) : null; msg(); draw(); });
+$('tick').onclick = () => { if (tick < total()) tick++; msg(); draw(); };
+$('runAll').onclick = () => { tick = total(); msg(); draw(); };
+$('rst').onclick = reset;
+$('tS').oninput = () => { T = Math.max(3, Math.min(10, Math.round(+$('tS').value) || 5)); $('tV').textContent = T; reset(); };
+$('mRnn').onclick = () => { mode = 'rnn'; $('mRnn').classList.add('on'); $('mPar').classList.remove('on'); reset(); };
+$('mPar').onclick = () => { mode = 'par'; $('mPar').classList.add('on'); $('mRnn').classList.remove('on'); reset(); };
+reset();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

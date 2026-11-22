@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Perceptron Convergence Proof</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 11 · playlist video 11 (titled “L12” on YouTube) · McCulloch–Pitts neuron, perceptrons</div>
+<h1>Why the Perceptron Learning Algorithm Converges</h1>
+<p class="lede">In L10 we worried that the corrections might undo each other forever. They can't, if the data are linearly separable. Let $w^*$ be a unit-length separating vector and track the cosine of the angle between $w^*$ and the current $w$. After $k$ updates the numerator of that cosine has grown by at least $k\delta$, while the squared denominator has grown by at most $k$. So the cosine grows like $\sqrt{k}$. A cosine can never go above 1, so $k$ must be finite.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=9AmGI-tVCSQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L10-perceptron-learning.html">L10</a> · Next: <a href="L12-linearly-separable-functions.html">L12</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The definition and the theorem</h2>
+<p><b>Definition.</b> Two sets $P$ and $N$ of points in $n$-dimensional space are <b>absolutely linearly separable</b> if there exist $n+1$ real numbers $w_0,w_1,\dots,w_n$ such that</p>
+$$\textstyle\sum_{i=1}^n w_ix_i\ \ge\ w_0\ \text{ for every } x\in P,\qquad \sum_{i=1}^n w_ix_i\ &lt;\ w_0\ \text{ for every } x\in N .$$
+<p>These numbers are exactly the weights we want to find. (Here $w_0$ plays the role of the threshold, as in L8 before we folded it into the sum.)</p>
+<div class="callout"><b>Theorem.</b> If the sets $P$ and $N$ are <b>finite</b> and <b>linearly separable</b>, the perceptron learning algorithm updates the weight vector only a finite number of times. In other words, if the vectors in $P$ and $N$ are tested cyclically one after the other, a weight vector $w_t$ that separates $P$ from $N$ is found after a finite number of steps $t$.</div>
+<p>So the loop <span class="mono">while not converged</span> from L10 is not an infinite loop, provided the data are finite and separable.</p>
+
+<h2>2 · Setting up: one set, unit vectors, and $w^*$</h2>
+<p>Three changes of notation make the proof short. None of them changes the problem.</p>
+<ol class="steps">
+<li><b>Flip the negatives.</b> If $x\in N$ we want $w^\top x&lt;0$, which is the same as $w^\top(-x)&gt;0$. So $-x$ behaves like a positive point. Let $N^-$ be the set of negations of all points in $N$, and $P'=P\cup N^-$. Now there is only <b>one</b> condition: $w^\top p\ge0$ for every $p\in P'$.</li>
+<li><b>One update rule.</b> The algorithm becomes: pick a random $p\in P'$; if $w^\top p&lt;0$, set $w\leftarrow w+p$. The second <span class="mono">if</span> (subtract a negative point) has disappeared, because subtracting $x$ is adding $-x$.</li>
+<li><b>Normalise the inputs.</b> Replace every $p$ by $p/\lVert p\rVert$. Since $\lVert p\rVert&gt;0$, the sign of $w^\top p$ is unchanged, so the same $w$ works. Now $\lVert p\rVert=1$ for every point.</li>
+<li><b>Name the answer.</b> The data are separable, so some separating vector exists. Call its normalised version $w^*$, so $\lVert w^*\rVert=1$. We don't know $w^*$, but we may use the fact that it exists.</li>
+</ol>
+
+<h2>3 · The quantity to watch: the angle to $w^*$</h2>
+<p>Suppose at time step $t$ we inspect the point $p_i$ and find the condition violated, $w_t^\top p_i\le0$. We correct: $w_{t+1}=w_t+p_i$. Let $\beta$ be the angle between $w^*$ and $w_{t+1}$:</p>
+$$\cos\beta=\frac{w^*\cdot w_{t+1}}{\lVert w_{t+1}\rVert}.$$
+<p>There is no $\lVert w^*\rVert$ in the denominator because $w^*$ is a unit vector. The idea is to bound the numerator from below and the denominator from above.</p>
+<p><b>One more definition.</b> Take the dot product of $w^*$ with every point $p_1,\dots,p_m$ of $P'$. Each is a real number; let $\delta$ be the smallest:</p>
+$$\delta=\min_{j}\ w^*\cdot p_j,\qquad\text{so}\qquad w^*\cdot p_j\ \ge\ \delta\ \text{ for every } j .$$
+
+<h2>4 · The numerator grows at least linearly</h2>
+<ol class="steps">
+<li>Substitute the update:
+$$w^*\cdot w_{t+1}=w^*\cdot(w_t+p_i)=w^*\cdot w_t+w^*\cdot p_i .$$</li>
+<li>Whichever point $p_i$ was picked, $w^*\cdot p_i\ge\delta$. So $w^*\cdot w_{t+1}\ge w^*\cdot w_t+\delta$.</li>
+<li>$w_t$ itself came from an earlier correction, $w_t=w_{t-1}+p_j$. Expanding again: $w^*\cdot w_{t+1}\ge w^*\cdot w_{t-1}+2\delta$.</li>
+<li>Keep going back to $w_0$. Each <b>correction</b> contributes one $\delta$:
+$$w^*\cdot w_{t+1}\ \ge\ w^*\cdot w_0+k\delta .$$</li>
+</ol>
+<p>Here $w_0$ is the <b>initial weight vector</b> (the random start), not the bias from section 1; the lecture uses the same symbol for both.</p>
+<p>Why $k$ and not $t$? We don't correct at every time step: if the picked point already satisfies the condition, $w$ is unchanged and no $\delta$ appears. So $k$, the number of corrections, satisfies $k\le t$.</p>
+
+<h2>5 · The denominator grows at most like $\sqrt{k}$</h2>
+<ol class="steps">
+<li>Work with the square:
+$$\begin{aligned}\lVert w_{t+1}\rVert^2&amp;=(w_t+p_i)\cdot(w_t+p_i)\\&amp;=\lVert w_t\rVert^2+2\,w_t\cdot p_i+\lVert p_i\rVert^2 .\end{aligned}$$</li>
+<li>We only corrected because $w_t\cdot p_i\le0$, so the middle term is $\le0$. Dropping it can only make the sum bigger:
+$$\lVert w_{t+1}\rVert^2\le\lVert w_t\rVert^2+\lVert p_i\rVert^2 .$$</li>
+<li>The inputs are normalised, so $\lVert p_i\rVert^2=1$: $\lVert w_{t+1}\rVert^2\le\lVert w_t\rVert^2+1$.</li>
+<li>By the same induction, each correction adds at most 1:
+$$\lVert w_{t+1}\rVert^2\ \le\ \lVert w_0\rVert^2+k .$$</li>
+</ol>
+
+<h2>6 · Putting them together</h2>
+<p>The numerator is at least something and the denominator is at most something, so the fraction is at least their ratio:</p>
+<div class="callout">$$\cos\beta\ \ge\ \frac{w^*\cdot w_0+k\delta}{\sqrt{\lVert w_0\rVert^2+k}}$$
+For large $k$ this lower bound grows roughly like $\delta\sqrt{k}$.</div>
+<p>If the algorithm never converged, $k$ would grow without limit, and so would this lower bound on $\cos\beta$. But $\cos\beta\le1$. So $k$ cannot go to infinity: there is a maximum number of corrections, and after them every point satisfies the condition. That proves the theorem.</p>
+<p>The intuition in L10 left a worry: fix one point, then another, and why aren't these updates counterproductive? The proof answers it. Individual updates may well undo each other's effect on particular points, but every update turns $w$ measurably closer to the fixed direction $w^*$, and that can only happen finitely often.</p>
+<div class="beyond"><b>Going beyond the video: how many updates, at most?</b> Take $w_0=0$ for simplicity. Then the bound reads $\cos\beta\ge\delta\sqrt{k}$, and $\cos\beta\le1$ gives
+$$k\ \le\ \frac{1}{\delta^2}.$$
+$\delta$ is the smallest cosine between $w^*$ and any (normalised) data point: how comfortably the data are separated. A thin gap means a small $\delta$ and possibly many updates. This also shows why the definition needs the strict "$&lt;$": it makes $\delta&gt;0$, without which the bound says nothing. My ML notes prove the same result in the form "at most $R^2/\gamma^2$ mistakes" (<a href="../machine-learning/L54-perceptron-convergence.html">L54</a>), which is this bound without normalising the inputs.</div>
+
+<h2>7 · Watch the bound at work</h2>
+<p>The demo runs exactly the simplified algorithm: points in $P'$ (negatives flipped), normalised, picked at random; correct only when $w^\top p&lt;0$. As in the L10 demo the data are separable by a line through the origin, so vectors can be drawn as arrows. The right panel plots, after every correction, the actual $\cos\beta$ and the lower bound from section 6. The bound must stay below the actual value, and it must stay below 1, which is what caps $k$.</p>
+<div class="card">
+  <div class="row"><button id="step">Next correction</button><button id="run">Run to convergence</button><button id="reset">New data</button>
+    <button id="view">Show P′ (flipped, normalised)</button></div>
+  <div class="row"><label>separation margin <input type="range" id="mg" min="0.03" max="0.5" step="0.01" value="0.2"> <span id="mgv" class="mono"></span></label></div>
+  <div class="pair half">
+    <canvas id="dc" height="300" aria-label="Data points, the separating vector w star and the current weight vector w"></canvas>
+    <canvas id="bc" height="300" aria-label="Cosine of the angle between w star and w after each correction, with the lecture's lower bound"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>P</span><span><i class="dot" style="background:var(--s2)"></i>N (or −N in P′ view)</span><span><i style="background:var(--s3)"></i>w now</span><span><i style="background:var(--ink)"></i>w* (dashed)</span><span><i style="background:var(--s1)"></i>actual cos β</span><span><i style="background:var(--s2)"></i>lower bound</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="sk">0</div><div class="l">corrections k</div></div>
+    <div class="stat"><div class="v" id="sd">–</div><div class="l">δ = min w*·p</div></div>
+    <div class="stat"><div class="v" id="sc">–</div><div class="l">cos β: actual ≥ bound</div></div>
+    <div class="stat"><div class="v" id="sm">–</div><div class="l">largest k the bound allows</div></div>
+  </div>
+  <p class="small" id="dTxt"></p>
+</div>
+<p>Things to try: shrink the margin and the bound allows many more corrections (it scales like $1/\delta^2$); switch to the $P'$ view and every point lands within 90° of $w^*$, which is the whole point of the flipping trick. In practice the algorithm usually stops far earlier than the worst case.</p>
+
+<h2>8 · Back to the questions we started with</h2>
+<table>
+<tr><th>Question (from L8)</th><th>Answer now</th></tr>
+<tr><td>What about non-boolean inputs?</td><td>Real-valued inputs are allowed in the perceptron.</td></tr>
+<tr><td>Do we always need to hand-code the threshold?</td><td>No. We learn all the parameters: the threshold $w_0$ and also $w_1,\dots,w_n$.</td></tr>
+<tr><td>Are all inputs equal?</td><td>No. The perceptron gives each input a weight.</td></tr>
+<tr><td>What about functions that are not linearly separable?</td><td><b>Still not possible</b> with a single perceptron: its boundary is linear, and the convergence proof needs separable data. Handling this is what the rest of the course is about, starting with <a href="L12-linearly-separable-functions.html">L12</a>.</td></tr>
+</table>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Theorem: for finite, linearly separable $P$ and $N$, the perceptron learning algorithm makes only finitely many updates.</li>
+<li>Flip the negatives ($P'=P\cup N^-$) and normalise the inputs: one condition, $w^\top p\ge0$, and one update, $w\leftarrow w+p$.</li>
+<li>With $\delta=\min_j w^*\cdot p_j$: the numerator $w^*\cdot w$ grows by at least $\delta$ per correction; $\lVert w\rVert^2$ grows by at most 1.</li>
+<li>Hence $\cos\beta$ is at least $(w^*\cdot w_0+k\delta)/\sqrt{\lVert w_0\rVert^2+k}$, which grows like $\sqrt{k}$; since $\cos\beta\le1$, $k$ is bounded.</li>
+<li>The guarantee is only for separable data; non-separable functions need something more than one perceptron.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], nrm = a => Math.hypot(a[0], a[1]);
+
+let D = [], ws = [1, 0], w = [0, 0], w0 = [0, 0], k = 0, delta = 0, hist = [], showP = false, last = null, msg = '';
+function newData(){
+  const th = Math.random() * 2 * Math.PI, m = +$('mg').value; ws = [Math.cos(th), Math.sin(th)]; D = [];
+  let guard = 0;
+  while (D.length < 22 && guard++ < 5000) {
+    const a = th + (Math.random() * 2 - 1) * Math.PI, r = 0.8 + Math.random() * 2.2, x = [r * Math.cos(a), r * Math.sin(a)];
+    const c = dot(ws, x) / nrm(x); if (Math.abs(c) < m) continue;
+    const y = c > 0 ? 1 : 0, p = y ? x : [-x[0], -x[1]], n = nrm(p);
+    D.push({x, y, p: [p[0] / n, p[1] / n]});
+  }
+  // make sure the smallest cosine is close to the chosen margin, so the slider means what it says
+  const pa = th + (Math.random() < 0.5 ? 1 : -1) * Math.acos(m + 0.002), r = 1.5 + Math.random();
+  const x = [r * Math.cos(pa), r * Math.sin(pa)]; D[0] = {x, y: 1, p: [x[0] / r, x[1] / r]};
+  delta = Math.min(...D.map(d => dot(ws, d.p)));
+  const a0 = th + Math.PI + (Math.random() - 0.5) * 1.2, r0 = 0.6 + Math.random() * 0.8;   // start pointing roughly the wrong way
+  w0 = [r0 * Math.cos(a0), r0 * Math.sin(a0)]; w = w0.slice(); k = 0; last = null; hist = [{k: 0, c: dot(ws, w) / nrm(w), b: bound(0)}];
+  msg = 'Fresh start: w₀ points roughly away from w*. Press "Next correction".'; draw();
+}
+function bound(kk){ return (dot(ws, w0) + kk * delta) / Math.sqrt(dot(w0, w0) + kk); }
+function kmax(){ const a = dot(ws, w0), b = dot(w0, w0), d = delta, B = 1 - 2 * a * d, disc = B * B - 4 * d * d * (a * a - b);
+  return (B + Math.sqrt(Math.max(0, disc))) / (2 * d * d); }
+const bad = () => D.filter(d => dot(w, d.p) < 0);
+function correct(){ const b = bad(); if (!b.length) return false;
+  let d; do { d = D[Math.floor(Math.random() * D.length)]; } while (dot(w, d.p) >= 0);   // random picks; only a violated point triggers a correction
+  w = [w[0] + d.p[0], w[1] + d.p[1]]; k++; last = d; hist.push({k, c: dot(ws, w) / nrm(w), b: bound(k)}); return true; }
+function arrow(ctx, ox, oy, S, v, L, col, lw, dash){ const n = nrm(v) || 1, t = [ox + v[0] / n * L * S, oy - v[1] / n * L * S], a = Math.atan2(t[1] - oy, t[0] - ox);
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash ? [6, 5] : []); ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(t[0], t[1]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(t[0], t[1]); ctx.lineTo(t[0] - 11 * Math.cos(a - 0.4), t[1] - 11 * Math.sin(a - 0.4)); ctx.lineTo(t[0] - 11 * Math.cos(a + 0.4), t[1] - 11 * Math.sin(a + 0.4)); ctx.fill(); return t; }
+function draw(){
+  // left: the data
+  let [ctx, W, H] = setupCanvas($('dc')); const R = showP ? 1.5 : 3.4, S = Math.min(W, H) / (2 * R), ox = W / 2, oy = H / 2;
+  const nw = nrm(w) || 1, u = [w[0] / nw, w[1] / nw], dd = [-u[1], u[0]], big = 40;
+  ctx.fillStyle = cssv('--tint'); ctx.beginPath(); ctx.moveTo(ox + dd[0] * big * S, oy - dd[1] * big * S); ctx.lineTo(ox + (dd[0] + u[0]) * big * S, oy - (dd[1] + u[1]) * big * S);
+  ctx.lineTo(ox + (-dd[0] + u[0]) * big * S, oy - (-dd[1] + u[1]) * big * S); ctx.lineTo(ox - dd[0] * big * S, oy + dd[1] * big * S); ctx.fill();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+  if (showP) { ctx.strokeStyle = cssv('--faint'); ctx.setLineDash([3, 4]); ctx.beginPath(); ctx.arc(ox, oy, S, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+  D.forEach(d => { const v = showP ? d.p : d.x, ok = showP ? dot(w, d.p) >= 0 : (dot(w, d.x) >= 0) === !!d.y;
+    ctx.fillStyle = cssv(d.y ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(ox + v[0] * S, oy - v[1] * S, 5, 0, 7); ctx.fill();
+    if (!ok) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(ox + v[0] * S, oy - v[1] * S, 9, 0, 7); ctx.stroke(); }
+    if (d === last) { ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(ox + v[0] * S, oy - v[1] * S, 12, 0, 7); ctx.stroke(); } });
+  arrow(ctx, ox, oy, S, ws, R * 0.8, cssv('--ink'), 2, true);
+  const tip = arrow(ctx, ox, oy, S, w, R * 0.7, cssv('--s3'), 3, false);
+  ctx.font = '600 13px system-ui'; ctx.fillStyle = cssv('--s3'); ctx.fillText('w', tip[0] + 6, tip[1] - 6);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText(showP ? 'P′: every point flipped to the w* side, length 1' : 'original data (ringed = misclassified)', 8, 16);
+  // right: cos beta and the bound against k
+  [ctx, W, H] = setupCanvas($('bc')); const L = 38, Rm = 10, T = 14, Bm = 30, km = Math.max(5, hist[hist.length - 1].k);
+  const X = v => L + v / km * (W - L - Rm), Y = v => T + (1 - (v + 1) / 2.2) * (H - T - Bm);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui';
+  [-1, -0.5, 0, 0.5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(W - Rm, Y(v)); ctx.stroke(); ctx.fillText(v.toFixed(1), 6, Y(v) + 4); });
+  ctx.fillText('corrections k →', W - Rm - 95, H - 8); ctx.fillText('0', L - 3, H - Bm + 14); ctx.fillText(String(km), X(km) - 12, H - Bm + 14);
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(L, Y(1)); ctx.lineTo(W - Rm, Y(1)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--ink'); ctx.fillText('cos β ≤ 1', L + 4, Y(1) - 4);
+  const line = (key, col) => { ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); hist.forEach((h, i) => { const yy = Y(Math.max(-1.1, h[key])); i ? ctx.lineTo(X(h.k), yy) : ctx.moveTo(X(h.k), yy); }); ctx.stroke();
+    hist.forEach(h => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(h.k), Y(Math.max(-1.1, h[key])), 2.5, 0, 7); ctx.fill(); }); };
+  // the bound as a continuous curve up to km, then the observed values
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 1; ctx.setLineDash([2, 3]); ctx.beginPath();
+  for (let i = 0; i <= 60; i++) { const kk = km * i / 60, yy = Y(Math.max(-1.1, Math.min(1.1, bound(kk)))); i ? ctx.lineTo(X(kk), yy) : ctx.moveTo(X(kk), yy); } ctx.stroke(); ctx.setLineDash([]);
+  line('b', cssv('--s2')); line('c', cssv('--s1'));
+  const h = hist[hist.length - 1], done = !bad().length;
+  $('sk').textContent = k; $('sd').textContent = delta.toFixed(3); $('sc').textContent = `${h.c.toFixed(2)} ≥ ${h.b.toFixed(2)}`;
+  $('sm').textContent = Math.floor(kmax()).toLocaleString(); $('mgv').textContent = (+$('mg').value).toFixed(2);
+  $('dTxt').innerHTML = msg + (done ? ` <b>Converged after ${k} correction${k === 1 ? '' : 's'}</b>: every point of P′ has w·p ≥ 0, well within the ${Math.floor(kmax()).toLocaleString()} the proof allows.` : '');
+}
+$('step').onclick = () => { if (correct()) { const h = hist[hist.length - 1];
+  msg = `Picked a ${last.y ? 'positive' : 'negative (flipped)'} point with w·p &lt; 0, so w ← w + p. Numerator w*·w rose by w*·p = ${dot(ws, last.p).toFixed(3)} ≥ δ; cos β is now ${h.c.toFixed(3)}.`; }
+  else msg = 'Nothing to correct.'; draw(); };
+$('run').onclick = () => { let g = 0; while (correct() && g++ < 20000); last = null; msg = 'Ran until a full check found no violated point.'; draw(); };
+$('reset').onclick = newData; $('mg').addEventListener('input', newData);
+$('view').onclick = () => { showP = !showP; $('view').classList.toggle('on', showP); $('view').textContent = showP ? 'Show original data' : 'Show P′ (flipped, normalised)'; draw(); };
+newData();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

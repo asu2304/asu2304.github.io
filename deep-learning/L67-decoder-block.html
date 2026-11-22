@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Transformer Decoder</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 67 · playlist video 67 (titled “L65” on YouTube) · Transformers</div>
+<h1>The Transformer Decoder: Masked Self-Attention and Cross-Attention</h1>
+<p class="lede">A decoder layer has three sub-layers instead of two. <b>Masked</b> self-attention lets the decoder look at the words generated so far, never at the empty slots still to be filled. <b>Cross-attention</b> then refines each decoder position by attending to the encoder's outputs: the query comes from the decoder, the keys and values from the encoder. A feed-forward network follows, and after the last layer a linear map plus softmax gives a distribution over the vocabulary for the next word.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=cVuyWE4yMBU" target="_blank" rel="noopener">this lecture on YouTube</a> (≈18 min). Previous: <a href="L66-multi-head-attention.html">L66</a> · Next: Last lecture in the notes so far.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+<p class="callout small"><b>Order.</b> Titled “L65” on YouTube, but it starts from the encoder outputs $e_1,\dots,e_T$ defined at the end of <a href="L66-multi-head-attention.html">L66</a> (titled “L2”), and it closes the transformer series. Prof. Khapra ends it as the last recording for this part of the course.</p>
+
+<h2>1 · What goes in, what comes out</h2>
+<p>The decoder works sequentially: it generates one output, which is fed back as the input for generating the next. It receives two kinds of input:</p>
+<ul>
+<li>the encoder's final outputs $e_1,\dots,e_T$: the contextual representation of what is being translated;</li>
+<li>its <b>own</b> inputs: the words decoded so far, starting with a special <span class="mono">&lt;go&gt;</span> token.</li>
+</ul>
+<p>At every position the output is a <b>probability distribution over the vocabulary</b>. With a vocabulary of 37,000 words, each output is a $1\times37{,}000$ vector (in general $1\times|V|$), and you take the argmax. You hope position 1 peaks at the correct first word of the translation, position 2 at the second, and so on until the <span class="mono">&lt;stop&gt;</span> token.</p>
+
+<h2>2 · Inside one decoder layer</h2>
+<p>Like the encoder, the decoder is a stack of identical layers (typically 6, 8 or 12, depending on the amount of training data and the problem); each layer's output is the next layer's input. One layer has three sub-layers:</p>
+<ol class="steps">
+<li><b>Masked multi-head self-attention</b> over the decoder inputs $h_1,\dots,h_{T_1}$ → $s_1,\dots,s_{T_1}$.</li>
+<li><b>Multi-head cross-attention</b> between $s_1,\dots,s_{T_1}$ and the encoder outputs $e_1,\dots,e_T$ → $m_1,\dots,m_{T_1}$.</li>
+<li><b>Feed-forward network</b>, the same as in the encoder → $z_1,\dots,z_{T_1}$.</li>
+</ol>
+<p>$T_1$ need not equal $T$: six source words might need eight target words. Within a layer, all $T_1$ outputs of each sub-layer are computed in parallel, just like in the encoder.</p>
+
+<h2>3 · Masked self-attention</h2>
+<p>For the encoder, $T$ is known: it's the input length. The decoder doesn't know its output length until it generates <span class="mono">&lt;stop&gt;</span>. So assume a <b>maximum sequence length</b> $T_1$.</p>
+<ol class="steps">
+<li>When producing the first word, there are $T_1$ input slots but only one is valid, <span class="mono">&lt;go&gt;</span>. The rest are junk (perhaps a special "empty" symbol).</li>
+<li>You still compute $q,k,v$ for all $T_1$ slots, but you know the junk slots' keys and values mean nothing.</li>
+<li>The refined representation is $s_1=\sum_{j=1}^{T_1}\alpha_{1j}v_j$, and it makes no sense to let $v_2,\dots,v_{T_1}$ contribute. So set those $\alpha$'s to <b>zero</b>: every $\alpha$ beyond the words decoded so far is zeroed.</li>
+<li>Later, with <span class="mono">&lt;go&gt;</span> and two words decoded, you compute $z_1,z_2,\dots,z_{T_1}$; for each, keep $\alpha_{\cdot1},\alpha_{\cdot2},\alpha_{\cdot3}$ and zero the rest.</li>
+</ol>
+<p>Two details from the lecture:</p>
+<ul>
+<li>The weights must still sum to 1, so the surviving $\alpha$'s are rescaled after masking (an "internal detail").</li>
+<li>Rows for positions not yet decoded (say $z_4$) are computed too, but it doesn't matter: whatever they hold, the corresponding $\alpha$'s are always zero later on, so they never take part. Only the part of the input decoded so far participates.</li>
+</ul>
+<div class="callout"><b>Masking</b> = zeroing out the attention weights on positions that haven't been decoded, so that whatever junk sits there cannot influence the computation.</div>
+
+<h2>4 · Cross-attention</h2>
+<p>The $s_i$ are refined representations of the decoded words, but they only used context <b>within the decoder</b>. Now refine them further in light of the encoder:</p>
+<ol class="steps">
+<li>From the decoder's $s_i$, make a <b>query</b> $q_i$.</li>
+<li>From the encoder outputs $e_1,\dots,e_T$, make <b>keys</b> $k_1,\dots,k_T$ and <b>values</b> $v_1,\dots,v_T$ with the usual key and value matrices.</li>
+<li>Scores and weights: $\alpha_{ij}$ = how much attention decoder position $i$ pays to input token $j$.</li>
+<li>Output: $m_i=\sum_{j=1}^{T}\alpha_{ij}\,v_j$, a new representation of decoder position $i$ as an attention-weighted sum of encoder values.</li>
+</ol>
+<p>Same machinery as self-attention; the only change is where the vectors come from: <b>query from the decoder, keys and values from the encoder</b>. That is the encoder–decoder attention of the RNN days (<a href="L63-transformer-intro.html">L63</a>), with the decoder states replaced by $s_i$. The matrix of weights is $T_1\times T$, not square. (The lecture once calls this layer "masked" cross-attention in passing; the masking discussed is the one in the self-attention sub-layer. The encoder side is fully known, so nothing there needs hiding.)</p>
+
+<p>Try it: the decoder is translating “I enjoyed the movie Transformers”. Weights and embeddings are random (untrained); what you can test is the masking.</p>
+<div class="card">
+  <div class="row"><label>words decoded so far (incl. &lt;go&gt;) $n$ = <b id="nV">3</b> <input type="range" id="nS" min="1" max="7" value="3"></label>
+    <button id="scr">Scramble the junk slots</button></div>
+  <div class="row"><span class="small muted">mask:</span><button id="mk0">none</button><button id="mk1" class="on">lecture: hide slots after $n$</button><button id="mk2">causal: row $i$ sees $j\le i$</button></div>
+  <div class="pair half">
+    <div><p class="small" style="margin:0 0 4px"><b>Masked self-attention</b> <span class="muted">($T_1\times T_1$, decoder ↔ decoder)</span></p><canvas id="sa" height="300" aria-label="Decoder self-attention weights with masked cells"></canvas></div>
+    <div><p class="small" style="margin:0 0 4px"><b>Cross-attention</b> <span class="muted">($T_1\times T$, query: decoder; key, value: encoder)</span></p><canvas id="ca" height="300" aria-label="Cross-attention weights between decoder positions and encoder tokens"></canvas></div>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>attention weight</span><span><i class="dot" style="background:var(--grid)"></i>masked (α = 0)</span><span>faded rows: slots not decoded yet (computed, never used)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="lk">–</div><div class="l">change in the outputs of decoded rows after scrambling junk</div></div>
+    <div class="stat"><div class="v" id="eq">–</div><div class="l">|zero-and-rescale − (−∞ before softmax)|</div></div>
+  </div>
+  <p class="small" id="dTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video: the mask used in practice.</b> (1) Rather than zeroing $\alpha$'s and rescaling, implementations add $-\infty$ to the masked scores before the softmax; $e^{-\infty}=0$, so the softmax itself does the rescaling. The demo checks the two give identical weights. (2) The standard transformer uses the <b>causal</b> (lower-triangular) mask: row $i$ sees only positions $j\le i$, not all of the first $n$. For the newest position the two masks agree, and both keep the junk out. The causal mask has a big practical payoff: during training the whole target sentence is known, so all $T_1$ positions can be fed in at once (teacher forcing) and trained <b>in parallel</b>, with the mask making each position behave as if the later words didn't exist yet. At generation time the decoder is still sequential, as the lecture says.</div>
+
+<h2>5 · The output layer</h2>
+<p>After the last decoder layer, each position has (say) a 512-dimensional vector. To predict the next word:</p>
+$$\hat y_i=\text{softmax}\!\big(W_{\text{out}}^\top z_i\big),\qquad W_{\text{out}}\in\mathbb R^{512\times|V|},$$
+<p>a distribution over the vocabulary; take the argmax and feed it in as the input at the next time step.</p>
+
+<h2>6 · The whole transformer</h2>
+<table>
+<tr><th></th><th>Encoder layer</th><th>Decoder layer</th></tr>
+<tr><td>sub-layers</td><td>multi-head self-attention → FFN</td><td>masked multi-head self-attention → multi-head cross-attention → FFN</td></tr>
+<tr><td>attends to</td><td>all input words</td><td>words decoded so far; then all encoder outputs</td></tr>
+<tr><td>$Q$ / $K,V$ from</td><td>input / input</td><td>decoder / decoder (self); decoder / encoder (cross)</td></tr>
+<tr><td>sequence length</td><td>$T$ (known)</td><td>$T_1$ (assumed maximum)</td></tr>
+<tr><td>stacked</td><td>$N$ identical layers</td><td>$N$ identical layers, then linear + softmax over $|V|$</td></tr>
+</table>
+<p>That completes the walk through the transformer: <a href="L63-transformer-intro.html">why</a> (recurrence blocks parallelism), <a href="L64-attention-is-all-you-need.html">self-attention</a>, <a href="L65-self-attention.html">queries, keys, values</a>, <a href="L66-multi-head-attention.html">multiple heads and the encoder</a>, and now the decoder.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The decoder takes the encoder outputs $e_1,\dots,e_T$ and its own previously generated words; each position outputs a softmax over the vocabulary.</li>
+<li>A decoder layer = masked multi-head self-attention → multi-head cross-attention → FFN; layers are stacked like the encoder's.</li>
+<li>Masking sets the attention weights on not-yet-decoded positions to zero (then rescales), so junk slots never affect the computation.</li>
+<li>Cross-attention: query from the decoder, keys and values from the encoder; a $T_1\times T$ weight matrix.</li>
+<li>Output: a $512\times|V|$ linear map, softmax, argmax, then feed the word back in.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const softmax = a => { const m = Math.max(...a), e = a.map(x => Math.exp(x - m)), s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); };
+const mv = (W, x) => W.map(r => r.reduce((s, w, k) => s + w * x[k], 0));
+const dot = (a, b) => a.reduce((s, x, k) => s + x * b[k], 0);
+
+const enc = ['I', 'enjoyed', 'the', 'movie', 'Transformers'], dec = ['<go>', 'maine', 'Transformers', 'film', 'ka', 'aanand', 'liya'], T = enc.length, T1 = dec.length, d = 8;
+const rW = rng(42), mat = (s) => Array.from({length: d}, () => Array.from({length: d}, () => gauss(rW) * s)), sd = 1 / Math.sqrt(d);
+const WQ = mat(sd * 1.6), WK = mat(sd * 1.6), WV = mat(sd), CQ = mat(sd * 1.6), CK = mat(sd * 1.6), CV = mat(sd);
+const embOf = (() => { const memo = {}; return w => memo[w] || (memo[w] = (() => { let h = 0; for (const c of w) h = (h * 31 + c.charCodeAt(0)) | 0; const r = rng(h); return Array.from({length: d}, () => gauss(r)); })()); })();
+const E = enc.map(w => embOf('enc:' + w));   // stand-ins for the encoder outputs e_j
+let n = 3, mask = 1, junkSeed = 1, rects = [];
+function decInputs(js){ const r = rng(1000 + js); return dec.map((w, i) => i < n ? embOf(w) : Array.from({length: d}, () => 3 * gauss(r))); }
+function allowed(i, j, m){ return m === 0 ? true : m === 1 ? j < n : j <= i; }
+// lecture's way: softmax, zero the masked weights, rescale.  practice: -inf before softmax.
+function maskedRowZero(sc, i, m){ const a = softmax(sc).map((v, j) => allowed(i, j, m) ? v : 0), s = a.reduce((p, q) => p + q, 0); return a.map(v => v / s); }
+function maskedRowInf(sc, i, m){ return softmax(sc.map((v, j) => allowed(i, j, m) ? v : -Infinity)); }
+function run(js, m){
+  const X = decInputs(js), Q = X.map(x => mv(WQ, x)), K = X.map(x => mv(WK, x)), V = X.map(x => mv(WV, x));
+  const S0 = Q.map(q => K.map(k => dot(q, k) / Math.sqrt(d)));
+  const A = S0.map((sc, i) => maskedRowZero(sc, i, m)), Ainf = S0.map((sc, i) => maskedRowInf(sc, i, m));
+  const S = A.map(a => V[0].map((_, c) => a.reduce((s, w, j) => s + w * V[j][c], 0)));
+  const cq = S.map(s => mv(CQ, s)), ck = E.map(e => mv(CK, e)), cv = E.map(e => mv(CV, e));
+  const C = cq.map(q => softmax(ck.map(k => dot(q, k) / Math.sqrt(d))));
+  const M = C.map(a => cv[0].map((_, c) => a.reduce((s, w, j) => s + w * cv[j][c], 0)));
+  let eqd = 0; A.forEach((r, i) => r.forEach((v, j) => eqd = Math.max(eqd, Math.abs(v - Ainf[i][j]))));
+  return {A, C, S, M, eqd};
+}
+function grid(id, W, rows, cols, rowLab, colLab, masked){
+  const cv = $(id), w = cv.getBoundingClientRect().width || 300, lw = 86, top = 62, cs = Math.max(14, Math.min(34, (w - lw - 4) / cols));
+  cv.dataset.h = Math.round(top + rows * cs + 4); const [ctx] = setupCanvas(cv);
+  ctx.font = '11px system-ui'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < rows; i++) { const used = i < n;
+    ctx.fillStyle = used ? cssv('--ink') : cssv('--faint'); ctx.textAlign = 'right'; ctx.fillText(rowLab[i], lw - 5, top + i * cs + cs / 2);
+    for (let j = 0; j < cols; j++) { const x = lw + j * cs, y = top + i * cs;
+      if (masked && masked(i, j)) { ctx.fillStyle = cssv('--grid'); ctx.fillRect(x, y, cs - 2, cs - 2);
+        ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x + 3, y + cs - 5); ctx.lineTo(x + cs - 5, y + 3); ctx.stroke(); continue; }
+      ctx.fillStyle = cssv('--card'); ctx.fillRect(x, y, cs - 2, cs - 2);
+      ctx.globalAlpha = Math.min(1, W[i][j] * 1.5) * (used ? 1 : 0.3); ctx.fillStyle = cssv('--s1'); ctx.fillRect(x, y, cs - 2, cs - 2); ctx.globalAlpha = 1;
+      if (cs >= 30 && used) { ctx.fillStyle = W[i][j] * 1.5 > 0.6 ? '#fff' : cssv('--ink'); ctx.textAlign = 'center'; ctx.font = '9px system-ui'; ctx.fillText(W[i][j].toFixed(2).replace(/^0/, ''), x + cs / 2 - 1, y + cs / 2); ctx.font = '11px system-ui'; } } }
+  for (let j = 0; j < cols; j++) { ctx.save(); ctx.translate(lw + j * cs + cs / 2, top - 5); ctx.rotate(-Math.PI / 3); ctx.textAlign = 'left';
+    ctx.fillStyle = colLab === rowLab && j >= n ? cssv('--faint') : cssv('--muted'); ctx.fillText(colLab[j], 0, 0); ctx.restore(); }
+  ctx.textAlign = 'left';
+}
+function draw(){
+  const R = run(junkSeed, mask), R2 = run(junkSeed + 1000, mask);
+  let leak = 0; for (let i = 0; i < n; i++) for (let c = 0; c < d; c++) leak = Math.max(leak, Math.abs(R.M[i][c] - R2.M[i][c]), Math.abs(R.S[i][c] - R2.S[i][c]));
+  const lab = dec.map((w, i) => i < n ? w : '▒ slot ' + (i + 1));
+  grid('sa', R.A, T1, T1, lab, lab, (i, j) => !allowed(i, j, mask));
+  grid('ca', R.C, T1, T, lab, enc, null);
+  $('lk').textContent = leak < 1e-12 ? '0 (no leak)' : leak.toFixed(3);
+  $('eq').textContent = R.eqd.toExponential(1);
+  $('dTxt').innerHTML = (mask === 0 ? '<b>No mask:</b> decoded rows put weight on junk slots, so scrambling the junk changes their outputs. That is exactly what masking prevents.'
+    : mask === 1 ? `<b>Lecture's mask:</b> every row keeps α on the ${n} decoded slot${n > 1 ? 's' : ''} and zeroes the rest. Scramble the junk: the decoded rows' outputs don't move.`
+    : `<b>Causal mask:</b> row i sees only slots 1…i. Row ${n} (the newest word) matches the lecture's mask; earlier rows see even less. Junk still can't leak in.`)
+    + ' Cross-attention needs no mask: every row may look at all five encoder tokens.';
+}
+function setMask(m){ mask = m; [0, 1, 2].forEach(k => $('mk' + k).classList.toggle('on', k === m)); draw(); }
+$('mk0').onclick = () => setMask(0); $('mk1').onclick = () => setMask(1); $('mk2').onclick = () => setMask(2);
+$('nS').oninput = () => { n = +$('nS').value; $('nV').textContent = n; draw(); };
+$('scr').onclick = () => { junkSeed++; draw(); };
+draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

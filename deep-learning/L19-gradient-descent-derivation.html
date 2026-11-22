@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deriving Gradient Descent from the Taylor Series</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 19 · playlist video 19 (titled “L17” on YouTube) · sigmoid neurons, learning</div>
+<h1>Deriving Gradient Descent from the Taylor Series</h1>
+<p class="lede">Write the step as $\eta u$ and expand the loss: $\mathcal L(\theta+\eta u)\approx\mathcal L(\theta)+\eta\,u^\top\nabla\mathcal L$ for small $\eta$. A move is favourable only if it lowers the loss, i.e. if $u^\top\nabla_\theta\mathcal L&lt;0$. That dot product is $\lVert u\rVert\lVert\nabla\rVert\cos\beta$, most negative when $\beta=180°$. So the best direction is <b>opposite to the gradient</b>, and that is where the name gradient descent comes from.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=o2pT74Nplq0" target="_blank" rel="noopener">this lecture on YouTube</a> (≈16 min). Previous: <a href="L18-taylor-series.html">L18</a> · Next: <a href="L20-representation-power-1d.html">L20</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+<p class="small muted">The rule derived here is the one put to work in <a href="L17-gradient-descent.html">L17</a> (which sits earlier in the playlist). Read L18 → L19 → L17 for the logical order.</p>
+
+<h2>1 · The Taylor expansion of a step</h2>
+<p>From <a href="L18-taylor-series.html">L18</a>: we are at $\theta=[w,b]$ and will move to $\theta+\eta\,\Delta\theta$. Write $u=\Delta\theta$ to save ink. Taylor's series around $\theta$:</p>
+$$\mathcal L(\theta+\eta u)=\mathcal L(\theta)+\eta\,u^\top\nabla_\theta\mathcal L(\theta)+\frac{\eta^2}{2!}\,u^\top\nabla^2_\theta\mathcal L(\theta)\,u+\frac{\eta^3}{3!}\cdots+\frac{\eta^4}{4!}\cdots$$
+<p>The new point is only a small distance from $\theta$, and $\eta$ is what keeps it small, which is exactly where Taylor approximations are good. $\eta$ multiplies every term. The second term is a dot product between $u$ and a new object, $\nabla_\theta\mathcal L(\theta)$.</p>
+
+<h2>2 · Derivative, partial derivative, gradient</h2>
+<ul>
+<li><b>Derivative</b> (one variable): $y=x^2\Rightarrow \frac{dy}{dx}=2x$.</li>
+<li><b>Partial derivatives</b> (several variables): $y=w^2+b^2\Rightarrow \frac{\partial y}{\partial w}=2w,\ \frac{\partial y}{\partial b}=2b$. Differentiate with respect to one variable and treat the others as constants; that's why $b^2$ vanishes when differentiating with respect to $w$. Note the change of symbol from $d$ to $\partial$.</li>
+<li><b>Gradient</b>: the collection of all partial derivatives, a vector:
+$$\nabla_\theta\,y=\begin{bmatrix}\partial y/\partial w\\[2pt]\partial y/\partial b\end{bmatrix}=\begin{bmatrix}2w\\ 2b\end{bmatrix}.$$</li>
+</ul>
+<p>So $\nabla_\theta\mathcal L(\theta)$, read "the gradient of the loss with respect to $\theta$", is just $\big[\partial\mathcal L/\partial w,\ \partial\mathcal L/\partial b\big]^\top$, a vector in $\mathbb R^2$ like $u$.</p>
+
+<h2>3 · The next term: the Hessian</h2>
+<p>For $y=x^2$ the second derivative is $2$. With several variables, the second-order object is the <b>gradient of the gradient</b>: take each entry of the gradient vector and differentiate it with respect to each parameter.</p>
+$$\nabla^2_\theta\mathcal L(\theta)=\begin{bmatrix}\dfrac{\partial^2\mathcal L}{\partial w^2}&\dfrac{\partial^2\mathcal L}{\partial w\,\partial b}\\[8pt]\dfrac{\partial^2\mathcal L}{\partial b\,\partial w}&\dfrac{\partial^2\mathcal L}{\partial b^2}\end{bmatrix}\quad\text{(the Hessian)}$$
+<p>The general rule: the derivative of a vector with respect to a vector asks, "if this input changes, how much does <i>each</i> output entry change?" for every input, so the answer is a <b>matrix</b>. A 3-entry vector differentiated with respect to 2 parameters gives 6 numbers, a 3×2 (or 2×3) matrix.</p>
+<table>
+<tr><th>Differentiate…</th><th>with respect to…</th><th>you get</th><th>example</th></tr>
+<tr><td>a scalar</td><td>one variable</td><td>a scalar (the derivative)</td><td>$x^2\to2x$</td></tr>
+<tr><td>a scalar</td><td>a vector</td><td>a vector (the gradient)</td><td>$x^2+z^2\to(2x,\,2z)$</td></tr>
+<tr><td>a vector</td><td>a vector</td><td>a matrix (gradient of the gradient = Hessian)</td><td>$\nabla^2_\theta\mathcal L$</td></tr>
+</table>
+<p>The third-order term would differentiate a matrix with respect to a vector. We won't go there, and in fact we don't need even the Hessian for this lecture.</p>
+
+<h2>4 · Cut at first order</h2>
+<p>$\eta$ is small, so $\eta^2$ is smaller still, and $\eta^3,\eta^4$ even more so. Drop everything after the linear term. L18 showed geometrically that the linear approximation is good enough when $\eta$ is small:</p>
+$$\mathcal L(\theta+\eta u)\approx\mathcal L(\theta)+\eta\,u^\top\nabla_\theta\mathcal L(\theta).$$
+
+<h2>5 · When is a move favourable?</h2>
+<ol class="steps">
+<li>We were at loss $\mathcal L(\theta)$ and moved to $\theta+\eta u$. The move is good only if the loss went <b>down</b>: $\mathcal L(\theta+\eta u)-\mathcal L(\theta)&lt;0$.</li>
+<li>Move $\mathcal L(\theta)$ to the left in the approximation: $\mathcal L(\theta+\eta u)-\mathcal L(\theta)\approx\eta\,u^\top\nabla_\theta\mathcal L(\theta)$.</li>
+<li>$\eta$ is a positive scalar, so it doesn't change the sign. The condition is on $u$ alone:
+$$u^\top\nabla_\theta\mathcal L(\theta)&lt;0 .$$</li>
+</ol>
+<p>Any $u$ satisfying this is a good move. But we want the <b>best</b> one: since this quantity <i>is</i> the change in loss, the more negative, the better.</p>
+
+<h2>6 · The best direction: 180° from the gradient</h2>
+<ol class="steps">
+<li>Let $\beta$ be the angle between $u$ and the gradient. Then
+$$\cos\beta=\frac{u^\top\nabla_\theta\mathcal L(\theta)}{\lVert u\rVert\,\lVert\nabla_\theta\mathcal L(\theta)\rVert}.$$
+Our quantity of interest sits in the numerator.</li>
+<li>$\cos\beta$ is bounded: $-1\le\cos\beta\le1$. Multiply through by $k=\lVert u\rVert\,\lVert\nabla_\theta\mathcal L(\theta)\rVert$:
+$$-k\ \le\ u^\top\nabla_\theta\mathcal L(\theta)\ \le\ k .$$</li>
+<li>Only negative values interest us, and the most negative is $-k$, reached when $\cos\beta=-1$, i.e. $\beta=180°$.</li>
+</ol>
+<div class="callout"><b>Move in the direction opposite to the gradient.</b> $u=-\nabla_\theta\mathcal L(\theta)$ (up to a positive scale), giving the update $\theta_{t+1}=\theta_t-\eta\,\nabla_\theta\mathcal L(\theta_t)$. "This is something you would have heard a hundred times"; now you know where it comes from.</div>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Test the argument on the L16 toy loss $\mathcal L(w,b)$ (two points, sigmoid, squared error). At the marked $\theta$, turn a unit direction $u$ through an angle $\beta$ from the gradient. Left: the surface near $\theta$ (stronger blue = lower loss) with $\nabla\mathcal L$ (grey) and $u$ (green). Right: the change in loss for every $\beta$, the first-order prediction $\eta\,u^\top\nabla\mathcal L=\eta k\cos\beta$ and the true change. <b>Click</b> the left panel to move $\theta$.</p>
+<div class="row"><label>β <input type="range" id="beta" min="0" max="360" step="1" value="120"> <span class="mono" id="betav"></span></label>
+<label>η <input type="range" id="eta" min="-2" max="0.7" step="0.01" value="-1"> <span class="mono" id="etav"></span></label>
+<button id="b180">Set β = 180°</button></div>
+<div class="pair half"><canvas id="sc" height="300" aria-label="Loss surface near theta with gradient and direction u"></canvas><canvas id="dc" height="300" aria-label="Change in loss against the angle beta"></canvas></div>
+<div class="legend"><span><i style="background:var(--faint)"></i>∇𝓛 (gradient)</span><span><i style="background:var(--s3)"></i>u</span><span><i style="background:var(--s1)"></i>prediction η u·∇𝓛</span><span><i style="background:var(--s2)"></i>true 𝓛(θ+ηu) − 𝓛(θ)</span></div>
+<div class="row"><div class="stat"><div class="v" id="cb">–</div><div class="l">cos β</div></div><div class="stat"><div class="v" id="pr">–</div><div class="l">predicted change η u·∇𝓛</div></div><div class="stat"><div class="v" id="ac">–</div><div class="l">true change in loss</div></div><div class="stat"><div class="v" id="bb">–</div><div class="l">β with the largest true drop</div></div></div>
+<p class="small" id="msg"></p>
+</div>
+<p>What to check. For small $\eta$ the two curves coincide: the loss drops exactly for $90°&lt;\beta&lt;270°$ (the half of directions with $u^\top\nabla&lt;0$), and most at $180°$. Raise $\eta$ and the true curve peels away from the cosine: the first-order story is only trustworthy for small steps.</p>
+<div class="beyond"><b>Going beyond the video.</b> "Steepest" depends on how step length is measured: here every $u$ has the same Euclidean length. Methods that also use the Hessian (dropped in §4) choose a different direction. That's Newton's method, not needed for this course's story. My ML notes derive the same rule for linear regression: <a href="../machine-learning/L31-gradient-descent.html">L31</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>With $u=\Delta\theta$: $$\mathcal L(\theta+\eta u)=\mathcal L(\theta)+\eta\,u^\top\nabla_\theta\mathcal L+\tfrac{\eta^2}{2!}u^\top\nabla^2_\theta\mathcal L\,u+\cdots$$ For small $\eta$ keep only the linear term.</li>
+<li>Derivative → partial derivatives → gradient (their vector) → Hessian (gradient of the gradient, a matrix).</li>
+<li>A move is favourable iff $\mathcal L(\theta+\eta u)-\mathcal L(\theta)&lt;0$, i.e. $u^\top\nabla_\theta\mathcal L&lt;0$ ($\eta&gt;0$ drops out).</li>
+<li>$u^\top\nabla=k\cos\beta\in[-k,k]$: most negative at $\beta=180°$. Move opposite to the gradient: $\theta_{t+1}=\theta_t-\eta\nabla_\theta\mathcal L(\theta_t)$.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const hex = c => { c = c.replace('#', ''); if (c.length === 3) c = c.split('').map(t => t + t).join(''); const v = parseInt(c, 16); return [v >> 16 & 255, v >> 8 & 255, v & 255]; };
+const sig = z => 1 / (1 + Math.exp(-z)), DX = [0.5, 2.5], DY = [0.2, 0.9];
+const loss = (w, b) => 0.5 * DX.reduce((s, x, i) => s + (sig(w * x + b) - DY[i]) ** 2, 0);
+function grad(w, b){ let dw = 0, db = 0; DX.forEach((x, i) => { const f = sig(w * x + b), g = (f - DY[i]) * f * (1 - f); dw += g * x; db += g; }); return [dw, db]; }
+let th = [0.5, 0];   // the lecture's guess (0.5, 0)
+const HW = 2.5, G = 120;   // half-width of the local view
+const eta = () => 10 ** +$('eta').value;
+function dirAt(beta){ const g = grad(...th), n = Math.hypot(...g) || 1e-12, a = Math.atan2(g[1], g[0]) + beta * Math.PI / 180; return [Math.cos(a), Math.sin(a), g, n]; }
+function change(beta){ const [ux, uy] = dirAt(beta), e = eta(); return loss(th[0] + e * ux, th[1] + e * uy) - loss(...th); }
+function draw(){
+  const beta = +$('beta').value, e = eta(); $('betav').textContent = beta + '°'; $('etav').textContent = e < 0.1 ? e.toFixed(3) : e.toFixed(2);
+  const [ux, uy, g, n] = dirAt(beta);
+  // left: local surface
+  let [ctx, W, H] = setupCanvas($('sc')); const S = Math.min(W, H) - 10, ox = (W - S) / 2, oy = 5;
+  const cv = document.createElement('canvas'); cv.width = cv.height = G; const c = cv.getContext('2d'), id = c.createImageData(G, G), lo = hex(cssv('--s1')), hi = hex(cssv('--card'));
+  const L0 = Math.log10(2e-4), L1 = Math.log10(0.75);
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const w = th[0] - HW + 2 * HW * (i + 0.5) / G, b = th[1] + HW - 2 * HW * (j + 0.5) / G;
+    let t = (Math.log10(loss(w, b) + 2e-4) - L0) / (L1 - L0); t = Math.max(0, Math.min(1, t)); t = Math.floor(t * 14) / 14; const s = 1 - t, k = 4 * (j * G + i);
+    for (let q = 0; q < 3; q++) id.data[k + q] = hi[q] + (lo[q] - hi[q]) * s * 0.85; id.data[k + 3] = 255; }
+  c.putImageData(id, 0, 0); ctx.drawImage(cv, ox, oy, S, S); ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, S, S);
+  const cx = ox + S / 2, cy = oy + S / 2, sc = S / (2 * HW);
+  // half-plane of descent directions
+  ctx.save(); ctx.beginPath(); ctx.rect(ox, oy, S, S); ctx.clip(); const gx = g[0] / n, gy = -g[1] / n, px = -gy, py = gx;
+  ctx.fillStyle = cssv('--s3'); ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.moveTo(cx + px * S, cy + py * S); ctx.lineTo(cx + px * S - gx * S, cy + py * S - gy * S); ctx.lineTo(cx - px * S - gx * S, cy - py * S - gy * S); ctx.lineTo(cx - px * S, cy - py * S); ctx.fill(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = cssv('--muted'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(cx + px * S, cy + py * S); ctx.lineTo(cx - px * S, cy - py * S); ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+  const arrow = (dx, dy, col, len, lab) => { const tx = cx + dx * len, ty = cy - dy * len, a = Math.atan2(ty - cy, tx - cx); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - 11 * Math.cos(a - 0.4), ty - 11 * Math.sin(a - 0.4)); ctx.lineTo(tx - 11 * Math.cos(a + 0.4), ty - 11 * Math.sin(a + 0.4)); ctx.fill(); ctx.font = '600 12px system-ui'; ctx.fillText(lab, tx + 6, ty - 4); };
+  arrow(g[0] / n, g[1] / n, cssv('--faint'), S * 0.3, '∇𝓛'); arrow(ux, uy, cssv('--s3'), S * 0.3, 'u');
+  const stepPx = Math.min(e * sc, S / 2); ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(cx + ux * stepPx, cy - uy * stepPx, 5, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(cx, cy, 5, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText(`θ = (${th[0].toFixed(2)}, ${th[1].toFixed(2)})`, ox + 6, oy + S - 8); ctx.fillText('w →', ox + S - 26, oy + 14);
+  // right: change vs beta
+  [ctx, W, H] = setupCanvas($('dc')); const pad = 30, K = 360, act = [], pre = [];
+  for (let k = 0; k <= K; k++) { act.push(change(k)); pre.push(e * n * Math.cos(k * Math.PI / 180)); }
+  const M = Math.max(1e-9, ...act.map(Math.abs), ...pre.map(Math.abs)) * 1.1, sx = d => pad + d / 360 * (W - pad - 10), sy = v => H / 2 - v / M * (H / 2 - 18);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, H / 2); ctx.lineTo(W - 10, H / 2); [90, 180, 270].forEach(d => { ctx.moveTo(sx(d), 10); ctx.lineTo(sx(d), H - 18); }); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; [0, 90, 180, 270, 360].forEach(d => ctx.fillText(d + '°', sx(d) - 10, H - 4)); ctx.fillText('0', 8, H / 2 + 4); ctx.fillText('loss ↓', 2, H - 22); ctx.fillText('loss ↑', 2, 14);
+  [[pre, '--s1', 2.5], [act, '--s2', 2]].forEach(([arr, col, lw]) => { ctx.strokeStyle = cssv(col); ctx.lineWidth = lw; ctx.beginPath(); arr.forEach((v, k) => k ? ctx.lineTo(sx(k), sy(v)) : ctx.moveTo(sx(k), sy(v))); ctx.stroke(); });
+  ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(beta), 10); ctx.lineTo(sx(beta), H - 18); ctx.stroke();
+  let bi = 0; act.forEach((v, k) => { if (v < act[bi]) bi = k; });
+  const cb = Math.cos(beta * Math.PI / 180), p = e * n * cb, a = change(beta);
+  $('cb').textContent = cb.toFixed(3); $('pr').textContent = p.toExponential(2); $('ac').textContent = a.toExponential(2); $('bb').textContent = (bi === 360 ? 0 : bi) + '°';
+  $('msg').innerHTML = (a < 0 ? `This u <b>lowers</b> the loss (β = ${beta}° is between 90° and 270°, so cos β &lt; 0).` : `This u <b>raises</b> the loss: cos β ≥ 0, so u·∇𝓛 ≥ 0.`) +
+    ` The first-order prediction is ${Math.abs(p - a) <= 0.1 * Math.abs(a) + 1e-7 ? 'very close to' : '<b>noticeably off</b> from'} the true change at this η.`;
+}
+$('beta').addEventListener('input', draw); $('eta').addEventListener('input', draw); $('b180').onclick = () => { $('beta').value = 180; draw(); };
+$('sc').addEventListener('pointerdown', e => { const cv = $('sc'), r = cv.getBoundingClientRect(), H = +cv.dataset.h || 300, S = Math.min(r.width, H) - 10, ox = (r.width - S) / 2, oy = 5;
+  const w = th[0] - HW + ((e.clientX - r.left) - ox) / S * 2 * HW, b = th[1] + HW - ((e.clientY - r.top) - oy) / S * 2 * HW;
+  th = [Math.max(-6, Math.min(6, w)), Math.max(-6, Math.min(6, b))]; draw(); });
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+draw();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

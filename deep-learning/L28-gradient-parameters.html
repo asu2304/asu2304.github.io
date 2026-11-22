@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient w.r.t. Parameters</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 28 · playlist video 28 (titled “L27” on YouTube) · Backpropagation, part 3 of 3</div>
+<h1>Gradient w.r.t. the Parameters: an Outer Product</h1>
+<p class="lede">The last conversation is with the weights. A weight $W_{kij}$ touches only one pre-activation, $a_{ki}$, and its local derivative is just the input it multiplies, $h_{k-1,j}$. Collect all entries and the gradient of the whole matrix is an outer product, $\nabla_{W_k}L=\nabla_{a_k}L\;h_{k-1}^{\top}$. The bias gradient is simply $\nabla_{a_k}L$. No new derivatives are needed, only quantities we already have.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=7TL_9QUIL0g" target="_blank" rel="noopener">this lecture on YouTube</a> (≈14 min). Previous: <a href="L27-gradient-hidden-units.html">L27</a> · Next: <a href="L29-backprop-pseudocode.html">L29</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Where we are</h2>
+<p>We can already get the gradient w.r.t. the output layer (<a href="L26-gradient-output-units.html">L26</a>) and w.r.t. every hidden layer's activations and pre-activations, however many layers there are (<a href="L27-gradient-hidden-units.html">L27</a>). What's left is what gradient descent actually updates: the parameters $W_k$ and $b_k$.</p>
+<p>We want $\nabla_{W_k}L(\theta)$ for a <b>generic</b> $k$, not separate derivations for $W_1$, $W_2$, $W_3$. It is the derivative of a scalar w.r.t. a matrix, so it is a matrix of the same shape. Same recipe as before: one entry first, then the whole matrix.</p>
+
+<h2>2 · One entry of $W_k$</h2>
+<p>$W_{kij}$ is the weight from neuron $j$ of layer $k-1$ to neuron $i$ of layer $k$. In the lecture's picture it's $W_{222}$, which connects the second neuron of $h_1$ to the second neuron of $a_2$. The key fact: <b>this weight feeds only one pre-activation</b>, $a_{ki}$. So there is a single path, and</p>
+$$\frac{\partial L(\theta)}{\partial W_{kij}}=\frac{\partial L(\theta)}{\partial a_{ki}}\;\frac{\partial a_{ki}}{\partial W_{kij}} .$$
+<p>The first factor we have from L26/L27. For the second, write out $a_k=W_kh_{k-1}+b_k$ with $k=2$ and three neurons per layer:</p>
+$$\begin{bmatrix}a_{21}\\a_{22}\\a_{23}\end{bmatrix}=\begin{bmatrix}W_{211}&amp;W_{212}&amp;W_{213}\\W_{221}&amp;W_{222}&amp;W_{223}\\W_{231}&amp;W_{232}&amp;W_{233}\end{bmatrix}\begin{bmatrix}h_{11}\\h_{12}\\h_{13}\end{bmatrix}+\begin{bmatrix}b_{21}\\b_{22}\\b_{23}\end{bmatrix}$$
+<ol class="steps">
+<li>Row 2: $a_{22}=W_{221}h_{11}+W_{222}h_{12}+W_{223}h_{13}+b_{22}$.</li>
+<li>Differentiate w.r.t. $W_{222}$: every other term, bias included, vanishes, leaving $\partial a_{22}/\partial W_{222}=h_{12}$.</li>
+<li>Read the indices: the 1 in $h_{12}$ is $k-1$, the 2 is $j$. So in general $\partial a_{ki}/\partial W_{kij}=h_{k-1,j}$.</li>
+</ol>
+$$\frac{\partial L(\theta)}{\partial W_{kij}}=\frac{\partial L(\theta)}{\partial a_{ki}}\;h_{k-1,j}$$
+
+<h2>3 · The whole matrix is an outer product</h2>
+<p>Fill in all nine entries for a $3\times3$ $W_k$:</p>
+$$\nabla_{W_k}L(\theta)=\begin{bmatrix}\frac{\partial L}{\partial a_{k1}}h_{k-1,1}&amp;\frac{\partial L}{\partial a_{k1}}h_{k-1,2}&amp;\frac{\partial L}{\partial a_{k1}}h_{k-1,3}\\[4pt]\frac{\partial L}{\partial a_{k2}}h_{k-1,1}&amp;\frac{\partial L}{\partial a_{k2}}h_{k-1,2}&amp;\frac{\partial L}{\partial a_{k2}}h_{k-1,3}\\[4pt]\frac{\partial L}{\partial a_{k3}}h_{k-1,1}&amp;\frac{\partial L}{\partial a_{k3}}h_{k-1,2}&amp;\frac{\partial L}{\partial a_{k3}}h_{k-1,3}\end{bmatrix}$$
+<p>Look at the pattern. Down each <b>column</b> the $h$ factor is the same; along each <b>row</b> the $\partial L/\partial a$ factor is the same. Compare the outer product of a column vector $a\in\mathbb R^{3\times1}$ with a row vector $b^{\top}\in\mathbb R^{1\times3}$: entry $(i,j)$ is $a_ib_j$, giving exactly the same pattern. So</p>
+<div class="callout">
+$$\nabla_{W_k}L(\theta)=\nabla_{a_k}L(\theta)\;h_{k-1}^{\top}$$
+</div>
+<p>Both factors are already available:</p>
+<ul>
+<li>$\nabla_{a_k}L(\theta)$ comes from the backward pass (L26 for $k=L$, L27 for hidden layers).</li>
+<li>$h_{k-1}$ comes from the <b>forward pass</b>: start from $x=h_0$, compute $a_1=W_1x+b_1$, $h_1=g(a_1)$, and so on. That involves no derivatives at all; just keep the values.</li>
+</ul>
+
+<h2>4 · The biases</h2>
+<p>Same idea. $b_{ki}$ feeds only $a_{ki}$, and in $a_{ki}=\sum_jW_{kij}h_{k-1,j}+b_{ki}$ its local derivative is 1:</p>
+$$\frac{\partial L(\theta)}{\partial b_{ki}}=\frac{\partial L(\theta)}{\partial a_{ki}}\cdot 1\qquad\Longrightarrow\qquad \nabla_{b_k}L(\theta)=\nabla_{a_k}L(\theta).$$
+<p>That completes all three conversations. <a href="L29-backprop-pseudocode.html">L29</a> assembles them into one algorithm.</p>
+
+<h2>5 · Try it: build $\nabla_{W_k}L$ as an outer product</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Network $3\to3\to3\to3$ (logistic hidden units, softmax output, $\ell=1$). Choose a layer $k$. The grid is $\nabla_{W_k}L$: the green column on the left is $\nabla_{a_k}L$, the blue row on top is $h_{k-1}^{\top}$, and each cell is (its row's value) × (its column's value). The right-hand column is $\nabla_{b_k}L$. Tap a cell to compare it with a finite difference that nudges that one weight and reruns the whole forward pass.</p>
+  <div class="row"><span class="small">layer $k$:</span><button id="k1">$W_1$</button><button id="k2" class="on">$W_2$</button><button id="k3">$W_3$</button><button id="chk">Check every entry</button><button id="nw">New weights</button></div>
+  <div class="row" id="xs"></div>
+  <canvas id="op" height="300" aria-label="Weight gradient matrix built as outer product"></canvas>
+  <div class="legend"><span><i style="background:var(--s3)"></i>negative</span><span><i style="background:var(--s2)"></i>positive</span><span>darker = larger magnitude</span></div>
+  <p id="cellTxt" class="small"></p>
+  <div class="row">
+    <div class="stat"><div class="v" id="cf">–</div><div class="l">formula $\partial L/\partial a_{ki}\cdot h_{k-1,j}$</div></div>
+    <div class="stat"><div class="v" id="cn">–</div><div class="l">finite difference</div></div>
+    <div class="stat"><div class="v" id="ca">–</div><div class="l">max error over all of $W_k$, $b_k$</div></div>
+  </div>
+</div>
+<p>Things to try. Pick $k=1$ and drag $x_2$ to 0: that whole column of $\nabla_{W_1}L$ goes to zero, because a weight attached to a zero input cannot change $a_1$. Each row is a multiple of the same $h_{k-1}^{\top}$, so the matrix has rank one.</p>
+<div class="beyond"><b>Going beyond the video.</b> The rank-one structure holds per example. With a mini-batch you add one outer product per example, $\sum_n\nabla_{a_k}L^{(n)}\,h_{k-1}^{(n)\top}$, which is a single matrix product $G_kH_{k-1}^{\top}$ if the examples are stacked as columns. That is why backprop runs so well on matrix-multiply hardware. My ML notes reach the same "error × input" rule for a two-layer net: <a href="../machine-learning/L73-backpropagation.html">ML L73</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>$W_{kij}$ affects the loss only through $a_{ki}$, so $\partial L/\partial W_{kij}=(\partial L/\partial a_{ki})\,h_{k-1,j}$.</li>
+<li>Collecting the entries gives an outer product: $\nabla_{W_k}L=\nabla_{a_k}L\,h_{k-1}^{\top}$, the same shape as $W_k$.</li>
+<li>$\nabla_{a_k}L$ comes from the backward pass and $h_{k-1}$ from the forward pass (with $h_0=x$), so no new derivatives are needed.</li>
+<li>$\partial a_{ki}/\partial b_{ki}=1$, so $\nabla_{b_k}L=\nabla_{a_k}L$.</li>
+<li>With L26–L28 we have gradients for the output layer, every hidden layer, and every parameter, which is everything gradient descent needs.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const sig = z => 1 / (1 + Math.exp(-z)), dsig = z => sig(z) * (1 - sig(z));
+const softmax = v => { const M = Math.max(...v), e = v.map(x => Math.exp(x - M)), s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); };
+const S = [3, 3, 3, 3], L = 3, ELL = 0; let W, B, x = [0.9, -0.6, 0.4], kSel = 2, cell = [1, 1], allErr = null;
+const R = () => Math.round((Math.random() * 4 - 2) * 100) / 100;
+function init(){ W = [null]; B = [null]; for (let k = 1; k <= L; k++) { W.push(Array.from({length: S[k]}, () => Array.from({length: S[k - 1]}, R))); B.push(Array.from({length: S[k]}, () => R() / 2)); } allErr = null; }
+function forward(Wm, Bm){ const h = [x], A = [null];
+  for (let k = 1; k <= L; k++) { const ak = Wm[k].map((row, i) => Bm[k][i] + row.reduce((s, w, j) => s + w * h[k - 1][j], 0)); A.push(ak); h.push(k < L ? ak.map(sig) : softmax(ak)); }
+  return {h, A, loss: -Math.log(h[L][ELL])}; }
+function grads(){ const F = forward(W, B), gA = []; gA[L] = F.h[L].map((v, i) => v - (i === ELL ? 1 : 0));
+  for (let k = L; k >= 2; k--) { const gh = F.h[k - 1].map((_, j) => W[k].reduce((s, row, m) => s + row[j] * gA[k][m], 0)); gA[k - 1] = gh.map((v, j) => v * dsig(F.A[k - 1][j])); }
+  return {F, gA}; }
+function fdW(k, i, j){ const eps = 1e-5, o = W[k][i][j]; W[k][i][j] = o + eps; const lp = forward(W, B).loss; W[k][i][j] = o - eps; const lm = forward(W, B).loss; W[k][i][j] = o; return (lp - lm) / (2 * eps); }
+function fdB(k, i){ const eps = 1e-5, o = B[k][i]; B[k][i] = o + eps; const lp = forward(W, B).loss; B[k][i] = o - eps; const lm = forward(W, B).loss; B[k][i] = o; return (lp - lm) / (2 * eps); }
+let geom = null;
+function draw(){
+  const {F, gA} = grads(), ga = gA[kSel], hp = F.h[kSel - 1], n = ga.length, m = hp.length;
+  const [ctx, Wd, Hd] = setupCanvas($('op')), cs = Math.min(64, (Wd - 40) / (m + 2.6), (Hd - 40) / (n + 1.3)), x0 = (Wd - cs * (m + 2.6)) / 2 + cs * 1.1, y0 = 20 + cs * 1.1;
+  geom = {x0, y0, cs, n, m};
+  const G = ga.map(gi => hp.map(hj => gi * hj)), mx = Math.max(...G.flat().map(Math.abs), ...ga.map(Math.abs), 1e-12);
+  const box = (bx, by, v, scale, sel, txt, base) => { ctx.fillStyle = cssv('--card'); ctx.fillRect(bx, by, cs - 3, cs - 3);
+    if (base) { ctx.fillStyle = cssv(base); ctx.globalAlpha = 0.35; ctx.fillRect(bx, by, cs - 3, cs - 3); ctx.globalAlpha = 1; }
+    else { const t = Math.min(1, Math.abs(v) / scale); ctx.globalAlpha = 0.1 + 0.9 * Math.sqrt(t); ctx.fillStyle = cssv(v < 0 ? '--s3' : '--s2'); ctx.fillRect(bx, by, cs - 3, cs - 3); ctx.globalAlpha = 1; }
+    ctx.strokeStyle = sel ? cssv('--ink') : cssv('--grid'); ctx.lineWidth = sel ? 2.5 : 1; ctx.strokeRect(bx, by, cs - 3, cs - 3);
+    ctx.fillStyle = cssv('--ink'); ctx.font = (cs > 50 ? 12 : 10) + 'px system-ui'; ctx.textAlign = 'center'; ctx.fillText(txt, bx + (cs - 3) / 2, by + cs / 2 + 2); ctx.textAlign = 'left'; };
+  const f = v => (Math.abs(v) < 0.0005 ? '0' : v.toFixed(cs > 50 ? 3 : 2));
+  hp.forEach((v, j) => box(x0 + j * cs, y0 - cs * 1.1, v, 1, false, f(v), '--s1'));
+  ga.forEach((v, i) => box(x0 - cs * 1.1, y0 + i * cs, v, mx, false, f(v), '--s3'));
+  G.forEach((row, i) => row.forEach((v, j) => box(x0 + j * cs, y0 + i * cs, v, mx, i === cell[0] && j === cell[1], f(v))));
+  ga.forEach((v, i) => box(x0 + m * cs + cs * 0.4, y0 + i * cs, v, mx, false, f(v)));
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText(`h${kSel - 1}ᵀ`, x0 + m * cs / 2, 12); ctx.fillText(`∇a${kSel}`, x0 - cs * 0.6, y0 + n * cs + 14); ctx.fillText(`∇W${kSel} = ∇a${kSel} h${kSel - 1}ᵀ`, x0 + m * cs / 2, y0 + n * cs + 14); ctx.fillText(`∇b${kSel}`, x0 + m * cs + cs * 0.9, y0 + n * cs + 14); ctx.textAlign = 'left';
+  const [i, j] = cell, num = fdW(kSel, i, j);
+  $('cellTxt').innerHTML = `Cell (${i + 1}, ${j + 1}) of ∇W<sub>${kSel}</sub>: ∂L/∂a<sub>${kSel}${i + 1}</sub> × h<sub>${kSel - 1},${j + 1}</sub> = ${ga[i].toFixed(4)} × ${hp[j].toFixed(4)}.`;
+  $('cf').textContent = G[i][j].toExponential(4); $('cn').textContent = num.toExponential(4); $('ca').textContent = allErr === null ? 'press check' : allErr.toExponential(1);
+}
+function checkAll(){ const {gA, F} = grads(); let e = 0;
+  for (let i = 0; i < S[kSel]; i++) { for (let j = 0; j < S[kSel - 1]; j++) e = Math.max(e, Math.abs(gA[kSel][i] * F.h[kSel - 1][j] - fdW(kSel, i, j))); e = Math.max(e, Math.abs(gA[kSel][i] - fdB(kSel, i))); }
+  allErr = e; draw(); }
+function setK(k){ kSel = k; allErr = null; [1, 2, 3].forEach(q => $('k' + q).className = q === k ? 'on' : ''); cell = [Math.min(cell[0], S[k] - 1), Math.min(cell[1], S[k - 1] - 1)]; draw(); }
+[1, 2, 3].forEach(q => $('k' + q).onclick = () => setK(q));
+$('chk').onclick = checkAll; $('nw').onclick = () => { init(); draw(); };
+$('xs').innerHTML = x.map((v, j) => `<label>x<sub>${j + 1}</sub> <input type="range" min="-2" max="2" step="0.05" id="x${j}" value="${v}"> <span class="mono" id="xv${j}">${v.toFixed(2)}</span></label>`).join('');
+x.forEach((_, j) => $('x' + j).addEventListener('input', e => { x[j] = +e.target.value; $('xv' + j).textContent = x[j].toFixed(2); allErr = null; draw(); }));
+$('op').addEventListener('click', e => { if (!geom) return; const r = $('op').getBoundingClientRect(), px = e.clientX - r.left, py = e.clientY - r.top;
+  const j = Math.floor((px - geom.x0) / geom.cs), i = Math.floor((py - geom.y0) / geom.cs);
+  if (i >= 0 && i < geom.n && j >= 0 && j < geom.m) { cell = [i, j]; draw(); } });
+init(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

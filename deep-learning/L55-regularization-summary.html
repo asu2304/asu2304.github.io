@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Regularisation Summary</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 55 · playlist video 55 (titled “L54” on YouTube) · Regularisation</div>
+<h1>Regularisation: Loss Landscapes and a Summary</h1>
+<p class="lede">One way to see what regularisation does: it <b>smooths the loss landscape</b>, and a flat minimum is less sensitive to small changes in the weights than a sharp one. The lecture then puts all the regularisers of this module into one map, grouped by what they act on (data, architecture, optimisation, the loss), and into explicit versus implicit ones.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=_wK-MOylRtw" target="_blank" rel="noopener">this lecture on YouTube</a> (≈6 min). Previous: <a href="L54-dropout.html">L54</a> · Next: <a href="L56-unsupervised-pretraining.html">L56</a> (unsupervised pre-training).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Regularisation smooths the loss landscape</h2>
+<p>Real neural-network loss landscapes look nothing like the tidy bowls we have been drawing (<a href="L31-contours.html">L31</a>): they are bumpy, with many plateaus and valleys and some very sharp slopes. People have shown that an effect of regularisation is to <b>smoothen</b> this landscape. The work the lecture cites studies skip connections (which we will meet with convolutional networks) acting as a regulariser, and finds that the loss surface becomes smoother, which also makes optimisation easier.</p>
+<p>Why does flatness help generalisation?</p>
+<ul>
+<li><b>Flat region:</b> the loss stays about the same over a large neighbourhood. Having found a good $w$, any nearby $w$ would have given a similar loss, so the model is not sensitive to the exact values.</li>
+<li><b>Sharp, bumpy region:</b> if you overfit into one narrow valley, it is surrounded by hills. A small change gives a very large change in the loss: the model is very sensitive.</li>
+</ul>
+<div class="card">
+  <p class="small muted" style="margin-top:0">A 1-D loss with two equally deep minima, one sharp and one flat. Nudge the weight away from each minimum by $\delta$ (think: a slightly different dataset, or the test data seen through a slightly shifted loss) and compare how much the loss goes up.</p>
+  <div class="row"><label>perturbation δ <input type="range" id="dl" min="0" max="1" step="0.01" value="0.3"> <b id="dlv">0.30</b></label></div>
+  <canvas id="ls" height="260" aria-label="A loss curve with a sharp and a flat minimum and perturbed points"></canvas>
+  <div class="legend"><span><i style="background:var(--ink)"></i>loss L(w)</span><span><i class="dot" style="background:var(--s2)"></i>sharp minimum ± δ</span><span><i class="dot" style="background:var(--s1)"></i>flat minimum ± δ</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="sh">–</div><div class="l">loss increase at the sharp minimum</div></div>
+    <div class="stat"><div class="v" id="fl">–</div><div class="l">loss increase at the flat minimum</div></div>
+  </div>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The study with skip connections is very likely Li, Xu, Taylor, Studer and Goldstein, "Visualizing the Loss Landscape of Neural Nets" (NeurIPS 2018), whose plots show ResNets with skip connections having far smoother surfaces than the same networks without them. The flat-versus-sharp argument for generalisation goes back to Hochreiter and Schmidhuber's "Flat Minima" (1997).</div>
+
+<h2>2 · A taxonomy of regularisers</h2>
+<p>Start from the empirical training error $\mathcal L(\theta)$ and ask <b>where</b> each technique intervenes.</p>
+<table>
+<tr><th>acts on</th><th>technique</th><th>how it regularises</th></tr>
+<tr><td rowspan="3"><b>data</b></td><td>data augmentation (<a href="L49-augmentation-parameter-sharing.html">L49</a>)</td><td>rotated / shifted images; similar tricks exist for speech and text</td></tr>
+<tr><td>noise at the inputs (<a href="L50-noise-at-inputs.html">L50</a>)</td><td rowspan="2">the data itself is noisy, so the model cannot fit it exactly</td></tr>
+<tr><td>noise at the outputs (<a href="L51-label-smoothing.html">L51</a>)</td></tr>
+<tr><td rowspan="4"><b>architecture</b></td><td>dropout (<a href="L54-dropout.html">L54</a>)</td><td>random thinned networks sharing weights</td></tr>
+<tr><td>skip connections</td><td rowspan="3">used in convolutional networks; seen later. Weight sharing and pooling reduce the number of parameters, i.e. the model complexity</td></tr>
+<tr><td>weight sharing (<a href="L49-augmentation-parameter-sharing.html">L49</a>)</td></tr>
+<tr><td>pooling</td></tr>
+<tr><td rowspan="2"><b>optimisation</b></td><td>gradient descent itself</td><td>has been shown to prefer less complex solutions (a nuanced topic in its own right)</td></tr>
+<tr><td>early stopping (<a href="L52-early-stopping.html">L52</a>)</td><td>limits how far the weights travel</td></tr>
+<tr><td><b>loss</b></td><td>penalties $\Omega(\theta)$: L2 (<a href="L48-l2-regularization.html">L48</a>), L1</td><td>add a cost for large weights to $\mathcal L(\theta)$</td></tr>
+</table>
+
+<h2>3 · Explicit versus implicit</h2>
+<p>The same techniques can be grouped another way.</p>
+<table>
+<tr><th>explicit</th><th>implicit</th></tr>
+<tr><td>Things we deliberately add: L2 (and L1) penalties, data augmentation, noise injection, dropout; skip connections, weight sharing and pooling (to come with CNNs).</td>
+<td>Regularisation that comes from <b>how we train</b>: early stopping; the preference of gradient-descent methods for simpler solutions; even the initial learning rate, since it shapes how training proceeds.</td></tr>
+</table>
+<p>The module covered mostly the explicit kind (plus early stopping); the implicit effects of gradient descent and learning rates are mentioned here for the full picture but not covered in the course. The lecture closes by announcing activation functions; in this playlist's order the next video first looks at how unsupervised pre-training revived deep learning (<a href="L56-unsupervised-pretraining.html">L56</a>).</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Neural loss landscapes are bumpy; regularisation (e.g. skip connections) has been shown to smooth them.</li>
+<li>Flat minima are robust: nearby weights give similar loss. Sharp minima are sensitive: a small change in $w$ gives a big change in loss.</li>
+<li>Regularisers act on the data (augmentation, input/output noise), the architecture (dropout, skip connections, weight sharing, pooling), the optimisation (gradient descent, early stopping), or the loss (L2, L1).</li>
+<li>Explicit regularisers are added on purpose; implicit ones (early stopping, the bias of gradient descent, learning rates) come from the training procedure.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const WS = -1.6, WF = 1.8, SS = 0.18, SF = 0.8;
+const L = w => 1.2 - Math.exp(-((w - WS) ** 2) / (2 * SS * SS)) - Math.exp(-((w - WF) ** 2) / (2 * SF * SF)) + 0.04 * Math.sin(5 * w);
+function drawAll(){
+  const d = +$('dl').value, [ctx, W, H] = setupCanvas($('ls')), X0 = -3.5, X1 = 4.5, Y0 = -0.1, Y1 = 1.5;
+  const X = w => 10 + (W - 20) * (w - X0) / (X1 - X0), Y = v => 10 + (H - 30) * (1 - (v - Y0) / (Y1 - Y0));
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 400; i++) { const w = X0 + (X1 - X0) * i / 400; i ? ctx.lineTo(X(w), Y(L(w))) : ctx.moveTo(X(w), Y(L(w))); } ctx.stroke();
+  // locate the actual minima numerically near WS, WF
+  const argmin = (a, b) => { let bw = a, bv = Infinity; for (let i = 0; i <= 2000; i++) { const w = a + (b - a) * i / 2000, v = L(w); if (v < bv) { bv = v; bw = w; } } return bw; };
+  const ms = argmin(WS - 0.5, WS + 0.5), mf = argmin(WF - 1, WF + 1), res = [];
+  [[ms, '--s2'], [mf, '--s1']].forEach(([m, c]) => { const col = cssv(c), base = L(m);
+    ctx.fillStyle = col; ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+    [-d, d].forEach(s => { ctx.beginPath(); ctx.moveTo(X(m + s), Y(base)); ctx.lineTo(X(m + s), Y(L(m + s))); ctx.stroke(); });
+    ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(X(m - d), Y(base)); ctx.lineTo(X(m + d), Y(base)); ctx.stroke();
+    [m - d, m, m + d].forEach((w, k) => { ctx.beginPath(); ctx.arc(X(w), Y(L(w)), k === 1 ? 5 : 4.5, 0, 7); ctx.fill(); });
+    res.push(Math.max(L(m - d), L(m + d)) - base); });
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText('sharp', X(ms) - 16, H - 6); ctx.fillText('flat', X(mf) - 10, H - 6);
+  $('dlv').textContent = d.toFixed(2); $('sh').textContent = '+' + res[0].toFixed(3); $('fl').textContent = '+' + res[1].toFixed(3); }
+$('dl').addEventListener('input', drawAll);
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

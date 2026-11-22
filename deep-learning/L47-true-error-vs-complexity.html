@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>True Error vs Complexity</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 47 · playlist video 47 (titled “L49” on YouTube) · Bias, variance and regularisation</div>
+<h1>True Error vs Model Complexity: Why We Regularise</h1>
+<p class="lede">Estimate the true error from the <b>training</b> data and a covariance term no longer vanishes, because the training labels were used to fit $\hat f$. Stein's lemma turns that term into a <b>sensitivity</b>: how much $\hat f(x_i)$ moves when $y_i$ is nudged. Complex models are very sensitive, so the gap between training error and true error grows with complexity. Hence we minimise training loss <b>plus</b> a complexity penalty $\Omega(\theta)$, which is the basis of every regularisation method.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=YNAq1X8b-r4" target="_blank" rel="noopener">this lecture on YouTube</a> (≈19 min). Previous: <a href="L46-estimating-test-error.html">L46</a> · Next: <a href="L48-l2-regularization.html">L48</a> (L2 regularisation).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Case 2: estimate from the training data</h2>
+<p>From <a href="L46-estimating-test-error.html">L46</a>, with $y=f(x)+\varepsilon$:</p>
+$$\mathbb E\big[(\hat f-f)^2\big]=\underbrace{\frac1n\sum_{i=1}^{n}(\hat y_i-y_i)^2}_{\text{empirical train error}}-\ \sigma^2\ +\ 2\,\mathbb E\big[\varepsilon(\hat f-f)\big].$$
+<p>On test data the last term was zero, because $\varepsilon=y-f(x)$ and $\hat f-f$ were independent: the test $y$'s had no part in estimating $\hat f$. <b>That argument fails here.</b> The training $y$'s did participate in estimating $\hat f$, so the two are not independent. The expectation can't be split into $\mathbb E[\varepsilon]\cdot\mathbb E[\hat f-f]$, and the term does not vanish.</p>
+<div class="callout">If you report the training error as your model's error, you leave out $2\,\mathbb E[\varepsilon(\hat f-f)]$, a quantity you don't even know how to compute. If it is large, your estimate is way off. That is why the training error is <b>over-optimistic</b>, and the test error is not.</div>
+<p>We also said the training error gets <i>more</i> optimistic as model complexity grows. So this term must grow with complexity. Why?</p>
+
+<h2>2 · Stein's lemma: the term is a sensitivity</h2>
+<p>Estimate the troublesome term empirically, as an average over the $n$ training points. <b>Stein's lemma</b> says (for Gaussian noise) that</p>
+$$\frac1n\sum_{i=1}^{n}\varepsilon_i\big(\hat f(x_i)-f(x_i)\big)=\frac{\sigma^2}{n}\sum_{i=1}^{n}\frac{\partial \hat f(x_i)}{\partial y_i}.$$
+<p class="small muted">Prof. Khapra's running joke: you don't ask him what Stein's lemma is and he won't ask you. We take it as given. Strictly, the equality holds in expectation.</p>
+<p><b>When is $\partial\hat f(x_i)/\partial y_i$ large?</b> When a small change in an observation causes a large change in the estimate. Say a training point was $(x_i,y_i)=(10,20)$, and it becomes $(10,20.1)$. That's a tiny change in the data, so ideally $\hat f$, and the $w$'s behind it, should barely move. If the derivative is large, it moves a lot, and that's not good.</p>
+<p>We've seen which models do this. In <a href="L44-bias-variance.html">L44</a>, retraining the line on 30 different samples barely changed it; retraining the degree-25 polynomial changed it a great deal. Changing the sample is changing the training data. So:</p>
+<div class="callout">$\sum_i \partial\hat f(x_i)/\partial y_i$ is <b>high for complex models</b> and low for simple ones.</div>
+
+<h2>3 · See it: change one data point</h2>
+<p>The lecture's anecdotal demonstration: fit a simple and a complex model, then change the $y$ of a single point. Pick a point (click the chart or use the slider) and move it:</p>
+<div class="card">
+  <div class="row"><button id="newD">New data</button>
+    <label>point <input type="range" id="pSel" min="0" max="19" step="1" value="10"> <b id="pSelV"></b></label>
+    <label>change in its y <input type="range" id="dy" min="-1" max="1" step="0.05" value="0.5"> <b id="dyV"></b></label>
+    <label>complex degree <input type="range" id="deg" min="3" max="15" step="1" value="12"> <b id="degV"></b></label></div>
+  <canvas id="cP" height="290" aria-label="Simple and complex fits before and after changing one training label"></canvas>
+  <div class="legend"><span><i style="background:var(--s3)"></i>degree 1</span><span><i style="background:var(--s1)"></i>complex model</span><span><i style="background:var(--faint)"></i>fits before the change (dashed)</span><span><i class="dot" style="background:var(--s2)"></i>the moved point</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="hS">–</div><div class="l">∂f̂(xᵢ)/∂yᵢ, degree 1</div></div>
+    <div class="stat"><div class="v" id="hC">–</div><div class="l">∂f̂(xᵢ)/∂yᵢ, complex</div></div>
+    <div class="stat"><div class="v" id="mS">–</div><div class="l">largest shift of f̂, degree 1</div></div>
+    <div class="stat"><div class="v" id="mC">–</div><div class="l">largest shift of f̂, complex</div></div>
+  </div>
+  <p class="small muted" id="pTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>4 · True error = train error + complexity</h2>
+<p>Putting it together:</p>
+$$\text{true error}=\text{empirical train error}+\text{small constant}+\Omega(\text{model complexity}).$$
+<p>The higher the complexity, the larger $\Omega$, and the further the training error sits from the true error. So if someone says "my training error is almost zero", don't believe them: they've said nothing about $\Omega$.</p>
+<p>If you minimise only the training loss and push it to zero, you may do it at the cost of increasing $\Omega$ significantly, so the true error, the error on unseen test instances, stays high. Therefore minimise both:</p>
+<div class="callout">$$\min_\theta\ \ \mathcal L_{\text{train}}(\theta)+\Omega(\theta)$$
+$\Omega(\theta)$ is a function we design to be high for complex models and low for simple ones. It acts as a proxy for the sensitivity term: making $\Omega$ small reduces model complexity, which reduces the term that was bothering us, which reduces the true error.</div>
+<p>This is the basis of <b>all regularisation methods</b>: add a regularisation term to the empirical training error and minimise the sum. Pictorially, $\mathcal L_{\text{train}}$ falls as complexity grows, $\Omega$ rises, and their sum has a sweet spot.</p>
+<div class="beyond"><b>Going beyond the video: for least squares the sensitivity counts parameters.</b> A polynomial least-squares fit is linear in the labels, $\hat{\mathbf y}=H\mathbf y$ with $H=A(A^\top A)^{-1}A^\top$, so $\partial\hat f(x_i)/\partial y_i=H_{ii}$ and $\sum_i H_{ii}=\operatorname{tr}H=p$, the number of parameters. The missing term becomes exactly $2\sigma^2p/n$ (Mallows' $C_p$). Here $\Omega$ is literally "how many parameters". Below: the true error at the training inputs, averaged over 60 training sets of $n=20$, against the training error alone and the training error with Stein's correction.
+<div class="row"><button id="sweep">Re-run</button></div>
+<canvas id="cS" height="230" aria-label="True error, training-error estimate and Stein-corrected estimate against degree"></canvas>
+<div class="legend"><span><i style="background:var(--s3)"></i>true error at the training $x$'s</span><span><i style="background:var(--s1)"></i>train error − σ²</span><span><i style="background:var(--s2)"></i>train error − σ² + 2σ²p/n</span></div>
+<p class="small" id="sTxt" style="margin-bottom:0"></p></div>
+
+<h2>5 · Why this matters for deep learning</h2>
+<p>Regularisation controls model complexity, and deep networks are highly complex models: many layers, many non-linearities, many parameters. By the universal approximation theorem you can get arbitrarily close to the training data by adding layers or neurons. A big network can drive the training error to zero, but the complexity it adds along the way gives poor generalisation, a higher test error. That's why we add regularisation. The methods used in deep learning start in the next lecture.</p>
+<div class="beyond"><b>Going beyond the video.</b> The same "loss + penalty" form drives ridge regression in my ML notes: <a href="../machine-learning/L37-ridge-regression.html">ML L37</a>. <a href="../machine-learning/L35-cross-validation.html">ML L35</a> covers choosing the penalty strength on held-out data, which is the L46 argument in practice.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>From training data: true error $=$ train error $-\sigma^2+2\,\mathbb E[\varepsilon(\hat f-f)]$, and the last term is not zero, because the training $y$'s shaped $\hat f$.</li>
+<li>Stein's lemma: that term is $\frac{2\sigma^2}{n}\sum_i\partial\hat f(x_i)/\partial y_i$, the sensitivity of the fit to its own labels.</li>
+<li>Complex models are highly sensitive (one moved point reshapes the curve), so the gap between training and true error grows with complexity.</li>
+<li>So minimise $\mathcal L_{\text{train}}(\theta)+\Omega(\theta)$, with $\Omega$ a proxy for complexity. That's the basis of all regularisation.</li>
+<li>Deep networks have enormous capacity, which is exactly why they need it.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// ---- polynomial least squares (Chebyshev basis on [0, 2π] for numerical stability) ----
+const X0 = 0, X1 = 2 * Math.PI, ftrue = x => Math.sin(x), tx = x => 2 * (x - X0) / (X1 - X0) - 1;
+const unif = () => X0 + Math.random() * (X1 - X0);
+function feats(x, p){ const t = tx(x), r = [1]; if (p > 0) r.push(t); for (let k = 2; k <= p; k++) r.push(2 * t * r[k - 1] - r[k - 2]); return r; }
+function cholesky(G){ const n = G.length, L = G.map(r => r.slice());
+  for (let j = 0; j < n; j++) { let s = L[j][j]; for (let k = 0; k < j; k++) s -= L[j][k] * L[j][k]; L[j][j] = Math.sqrt(Math.max(s, 1e-300));
+    for (let i = j + 1; i < n; i++) { let t = L[i][j]; for (let k = 0; k < j; k++) t -= L[i][k] * L[j][k]; L[i][j] = t / L[j][j]; } } return L; }
+function cholSolve(L, b){ const n = b.length, y = [], x = [];
+  for (let i = 0; i < n; i++) { let t = b[i]; for (let k = 0; k < i; k++) t -= L[i][k] * y[k]; y[i] = t / L[i][i]; }
+  for (let i = n - 1; i >= 0; i--) { let t = y[i]; for (let k = i + 1; k < n; k++) t -= L[k][i] * x[k]; x[i] = t / L[i][i]; } return x; }
+// least-squares fit of a degree-p polynomial; returns {c, L} (L = Cholesky factor of the Gram matrix)
+function polyfit(xs, ys, p){ const q = p + 1, G = Array.from({length: q}, () => new Array(q).fill(0)), b = new Array(q).fill(0);
+  for (let i = 0; i < xs.length; i++) { const a = feats(xs[i], p); for (let r = 0; r < q; r++) { b[r] += a[r] * ys[i]; for (let c = 0; c <= r; c++) G[r][c] += a[r] * a[c]; } }
+  for (let r = 0; r < q; r++) { for (let c = 0; c < r; c++) G[c][r] = G[r][c]; G[r][r] += 1e-8 * xs.length; }
+  const L = cholesky(G); return {c: cholSolve(L, b), L, p}; }
+const peval = (m, x) => { const a = feats(x, m.p); let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * m.c[i]; return s; };
+const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+const SG = 0.3, N = 20;
+let D = [];
+function newData(){ D = Array.from({length: N}, () => { const x = unif(); return {x, y: ftrue(x) + SG * randn()}; }).sort((a, b) => a.x - b.x); }
+// leverage a_iᵀ G⁻¹ a_i = ∂f̂(x_i)/∂y_i
+const lev = (m, x) => { const a = feats(x, m.p), z = cholSolve(m.L, a); return a.reduce((s, v, k) => s + v * z[k], 0); };
+const GX = Array.from({length: 300}, (_, i) => X0 + (i + 0.5) * (X1 - X0) / 300);
+const fmt = v => Math.abs(v) >= 100 ? v.toExponential(1) : v.toFixed(2);
+function drawPert(){ const i = +$('pSel').value, dy = +$('dy').value, d = +$('deg').value;
+  $('pSelV').textContent = i + 1; $('dyV').textContent = (dy > 0 ? '+' : '') + dy.toFixed(2); $('degV').textContent = d;
+  const xs = D.map(p => p.x), y0 = D.map(p => p.y), y1 = y0.slice(); y1[i] += dy;
+  const S0 = polyfit(xs, y0, 1), S1 = polyfit(xs, y1, 1), C0 = polyfit(xs, y0, d), C1 = polyfit(xs, y1, d);
+  const shift = (a, b) => Math.max(...GX.filter(x => x >= xs[0] && x <= xs[N - 1]).map(x => Math.abs(peval(a, x) - peval(b, x))));
+  const hs = lev(S0, xs[i]), hc = lev(C0, xs[i]), ms = shift(S0, S1), mc = shift(C0, C1);
+  $('hS').textContent = fmt(hs); $('hC').textContent = fmt(hc); $('mS').textContent = fmt(ms); $('mC').textContent = fmt(mc);
+  const sumS = xs.reduce((s, x) => s + lev(S0, x), 0), sumC = xs.reduce((s, x) => s + lev(C0, x), 0);
+  $('pTxt').innerHTML = `Moving one label by ${Math.abs(dy).toFixed(2)} shifts the line by at most ${fmt(ms)} but the degree-${d} curve by up to ${fmt(mc)} (between the outermost points). ` +
+    `Summed over all ${N} points, Σ ∂f̂(xᵢ)/∂yᵢ is ${sumS.toFixed(1)} for the line and ${sumC.toFixed(1)} for the complex model.`;
+  const [ctx, W, H] = setupCanvas($('cP')), pad = 6, YR = 2, X = x => pad + (x - X0) / (X1 - X0) * (W - 2 * pad), Y = y => H / 2 - y / YR * (H / 2 - pad);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  const curve = (m, col, lw, dash) => { ctx.setLineDash(dash || []); ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); GX.forEach((x, k) => { const y = Math.max(-30, Math.min(30, peval(m, x))); k ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); }); ctx.stroke(); ctx.setLineDash([]); };
+  curve(S0, cssv('--faint'), 1.5, [5, 4]); curve(C0, cssv('--faint'), 1.5, [5, 4]); curve(S1, cssv('--s3'), 2.5); curve(C1, cssv('--s1'), 2.5); ctx.restore();
+  D.forEach((p, k) => { ctx.fillStyle = cssv(k === i ? '--faint' : '--ink'); ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), k === i ? 3 : 3.5, 0, 7); ctx.fill(); });
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(xs[i]), Y(y0[i])); ctx.lineTo(X(xs[i]), Y(y1[i])); ctx.stroke();
+  ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(xs[i]), Y(y1[i]), 6, 0, 7); ctx.fill(); }
+let SW = [];
+function sweep(){ const K = 60; SW = [];
+  const sets = Array.from({length: K}, () => { const xs = Array.from({length: N}, unif); return {xs, ys: xs.map(x => ftrue(x) + SG * randn())}; });
+  for (let d = 0; d <= 12; d++) { let t = 0, tr = 0; sets.forEach(S => { const m = polyfit(S.xs, S.ys, d);
+      t += mean(S.xs.map(x => (peval(m, x) - ftrue(x)) ** 2)) / K; tr += mean(S.xs.map((x, i) => (peval(m, x) - S.ys[i]) ** 2)) / K; });
+    SW.push({d, t, a: tr - SG * SG, c: tr - SG * SG + 2 * SG * SG * (d + 1) / N}); } }
+function drawSweep(){ const [ctx, W, H] = setupCanvas($('cS')), L = 40, Rr = 10, T = 10, B = 26;
+  const lo = Math.min(...SW.map(r => r.a)), hi = Math.max(0.3, ...SW.map(r => Math.min(r.t, 0.6)), ...SW.map(r => Math.min(r.c, 0.6)));
+  const X = d => L + d / 12 * (W - L - Rr), Y = v => T + (hi - Math.max(lo, Math.min(hi, v))) / (hi - lo) * (H - T - B);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui';
+  [lo, 0, hi].forEach(v => { ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(W - Rr, Y(v)); ctx.stroke(); ctx.fillText(v.toFixed(2), 2, Y(v) + 4); });
+  for (let d = 0; d <= 12; d += 2) ctx.fillText(String(d), X(d) - 3, H - 10); ctx.fillText('degree →', W - 60, H - 1);
+  const line = (k, col) => { ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); SW.forEach((r, i) => i ? ctx.lineTo(X(r.d), Y(r[k])) : ctx.moveTo(X(r.d), Y(r[k]))); ctx.stroke(); };
+  line('t', cssv('--s3')); line('a', cssv('--s1')); line('c', cssv('--s2'));
+  const r = SW[10]; $('sTxt').innerHTML = `At degree 10 (11 parameters, n = ${N}): true error ${r.t.toFixed(3)}, train-based estimate ${r.a.toFixed(3)}, corrected ${r.c.toFixed(3)}. The gap the training error ignores grows linearly with the number of parameters.`; }
+function drawAll(){ drawPert(); drawSweep(); }
+$('newD').onclick = () => { newData(); drawPert(); };
+['pSel', 'dy', 'deg'].forEach(id => $(id).addEventListener('input', drawPert));
+$('cP').addEventListener('pointerdown', e => { const r = $('cP').getBoundingClientRect(), W = r.width, px = e.clientX - r.left;
+  let best = 0, bd = 1e9; D.forEach((p, k) => { const dx = Math.abs(6 + (p.x - X0) / (X1 - X0) * (W - 12) - px); if (dx < bd) { bd = dx; best = k; } });
+  $('pSel').value = best; drawPert(); });
+$('sweep').onclick = () => { sweep(); drawSweep(); };
+newData(); sweep();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Label Smoothing</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 51 · playlist video 51 (titled “L52” on YouTube) · Regularisation</div>
+<h1>Injecting Noise at the Outputs: Label Smoothing</h1>
+<p class="lede">The previous lecture corrupted the inputs; this one corrupts the targets. Instead of a one-hot label that puts all the probability on the correct class, take a small mass $\varepsilon$ away from it and spread it over the other classes. The cross-entropy loss then becomes $(1-\varepsilon)$ times the original loss plus $\varepsilon$ times an extra term, which acts as a regulariser.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=sUnsawJ5-zw" target="_blank" rel="noopener">this lecture on YouTube</a> (≈5 min). Previous: <a href="L50-noise-at-inputs.html">L50</a> · Next: <a href="L52-early-stopping.html">L52</a> (early stopping).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Hard targets invite overfitting</h2>
+<p>Take digit classification with 10 classes, $0,\dots,9$, and an image of a 2. The true distribution $p$ is <b>one-hot</b>: all the probability mass on class 2, zero everywhere else. We train the predicted distribution $q=\hat f(x)$ to match it by minimising the cross-entropy</p>
+$$\mathcal L(\theta)=-\sum_{i=0}^{9}p_i\log q_i=-\log q_2 ,$$
+<p>where only the term with $p_i=1$ survives. With a lot of parameters this error can be driven to zero, and that is overfitting: the network learns to map each training input <b>exactly</b> to its output. Besides, the labels themselves might be noisy, so trusting them completely is not wise either.</p>
+
+<h2>2 · Soft targets</h2>
+<p>So don't trust the hard targets fully. Take a small probability mass $\varepsilon$ <b>away from the correct label</b> and distribute it over the other labels:</p>
+<table>
+<tr><th></th><th>class 2 (correct)</th><th>each of the other 9 classes</th></tr>
+<tr><td>hard target</td><td>$1$</td><td>$0$</td></tr>
+<tr><td>soft target</td><td>$1-\varepsilon$</td><td>$\varepsilon/9$</td></tr>
+</table>
+<p>The output has been corrupted, but only a little: $\varepsilon$ is small, so most of the mass is still on the correct label. What changes is the loss. Earlier only one term of $-\sum_ip_i\log q_i$ survived; now <b>every</b> term has a non-zero weight.</p>
+
+<h2>3 · The new loss is "loss + regulariser"</h2>
+<ol class="steps">
+<li>Plug the soft targets into cross-entropy:
+$$\tilde{\mathcal L}(\theta)=-(1-\varepsilon)\log q_2\;-\;\sum_{j\ne2}\frac{\varepsilon}{9}\log q_j .$$</li>
+<li>The first term is the old loss $\mathcal L(\theta)=-\log q_2$, now weighted by $1-\varepsilon$.</li>
+<li>Call what is left $\varepsilon\,\Omega(\theta)$, with $\Omega(\theta)=-\tfrac19\sum_{j\ne2}\log q_j$:
+$$\tilde{\mathcal L}(\theta)=(1-\varepsilon)\,\mathcal L(\theta)+\varepsilon\,\Omega(\theta).$$</li>
+</ol>
+<div class="callout">The same shape as every regulariser so far, $\mathcal L(\theta)+\Omega(\theta)$: we no longer minimise the true loss, but a slightly corrupted version of it. $\Omega$ grows when any wrong class gets a probability close to 0, so it pushes back against an infinitely confident prediction.</div>
+<p class="small muted">In the video the per-class weight on the wrong labels is said quickly as "$\varepsilon$ times $\log$ …"; I've written $\varepsilon/9$ so that the soft target still sums to 1, which is what "take a small mass away and distribute it" means. The decomposition is the same either way.</p>
+
+<h2>4 · See the regulariser at work</h2>
+<p>Let the network's output be a softmax in which the correct class has logit $z$ and the other nine have logit 0, so $q_2=e^z/(e^z+9)$. Move $z$ and watch the two losses. With the hard target the loss keeps falling as $z\to\infty$: the network is rewarded for ever-larger weights and ever more confidence. With soft targets the loss has a <b>finite minimum</b>, exactly where $q$ equals the soft target.</p>
+<div class="card">
+  <div class="row">
+    <label>smoothing ε <input type="range" id="eps" min="0" max="0.5" step="0.01" value="0.1"> <b id="epsv">0.10</b></label>
+    <label>logit of correct class z <input type="range" id="z" min="-2" max="14" step="0.1" value="4"> <b id="zv">4.0</b></label>
+    <button id="opt">Jump to the minimum</button>
+  </div>
+  <div class="pair half">
+    <canvas id="lc" height="260" aria-label="Cross-entropy against the correct-class logit for hard and soft targets"></canvas>
+    <canvas id="bc" height="260" aria-label="Target and predicted distributions over ten classes"></canvas>
+  </div>
+  <div class="legend"><span><i style="background:var(--faint)"></i>hard-target loss $\mathcal L$</span><span><i style="background:var(--s1)"></i>soft-target loss $\tilde{\mathcal L}$</span><span><i style="background:var(--s3)"></i>$(1-\varepsilon)\mathcal L$</span><span><i style="background:var(--s2)"></i>$\varepsilon\,\Omega$</span></div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>soft target $p$</span><span><i class="dot" style="background:var(--s2)"></i>prediction $q$ at the current $z$</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="lh">–</div><div class="l">hard-target loss at z</div></div>
+    <div class="stat"><div class="v" id="ls">–</div><div class="l">soft-target loss at z</div></div>
+    <div class="stat"><div class="v" id="zs">–</div><div class="l">z that minimises the soft loss</div></div>
+  </div>
+  <p class="small" id="lTxt"></p>
+</div>
+
+<div class="beyond"><b>Going beyond the video.</b> The name "label smoothing" comes from Szegedy et al. (2016, Inception-v3), who mix the one-hot label with a uniform distribution over all $K$ classes: the correct class gets $1-\varepsilon+\varepsilon/K$ and every other class $\varepsilon/K$. It is the same idea with slightly different bookkeeping. In the demo's setting the soft-loss minimum sits at $z^\star=\log\frac{9(1-\varepsilon)}{\varepsilon}$, so for $\varepsilon=0.1$ the network has no incentive to push the logit gap beyond about 4.4.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>One-hot targets plus cross-entropy reward ever more confident outputs, and a large network can drive this loss to zero: overfitting.</li>
+<li>Label smoothing: give the correct class $1-\varepsilon$ and spread $\varepsilon$ over the other classes (soft targets instead of hard ones).</li>
+<li>The loss becomes $(1-\varepsilon)\mathcal L(\theta)+\varepsilon\,\Omega(\theta)$: the original loss plus a regulariser.</li>
+<li>With soft targets the optimum is a finite, slightly unconfident prediction, so there is no pull towards infinite logits.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const lse = z => z > 0 ? z + Math.log1p(9 * Math.exp(-z)) : Math.log(Math.exp(z) + 9);   // log(e^z + 9)
+const Lh = z => lse(z) - z, Om = z => lse(z);
+const Ls = (z, e) => (1 - e) * Lh(z) + e * Om(z);
+const zStar = e => e <= 0 ? Infinity : e >= 0.9 ? -Infinity : Math.log(9 * (1 - e) / e);
+function drawAll(){
+  const e = +$('eps').value, z = +$('z').value, Z0 = -2, Z1 = 14, YM = 4.5;
+  // ---- loss curves ----
+  let [ctx, W, H] = setupCanvas($('lc')); const pl = 30, pb = 26, pt = 10;
+  const X = v => pl + (W - pl - 8) * (v - Z0) / (Z1 - Z0), Y = v => pt + (H - pt - pb) * (1 - Math.min(v, YM * 1.05) / YM);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui';
+  for (let v = 0; v <= 4; v++) { ctx.beginPath(); ctx.moveTo(pl, Y(v)); ctx.lineTo(W - 8, Y(v)); ctx.stroke(); ctx.fillText(v, 12, Y(v) + 4); }
+  for (let v = 0; v <= 14; v += 2) ctx.fillText(v, X(v) - 4, H - 8);
+  ctx.fillText('z →', W - 34, H - 8);
+  const curve = (f, col, lw, dash) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(dash || []); ctx.beginPath();
+    for (let i = 0; i <= 200; i++) { const v = Z0 + (Z1 - Z0) * i / 200, y = Y(f(v)); i ? ctx.lineTo(X(v), y) : ctx.moveTo(X(v), y); } ctx.stroke(); ctx.setLineDash([]); };
+  curve(v => (1 - e) * Lh(v), cssv('--s3'), 1.5, [5, 4]); curve(v => e * Om(v), cssv('--s2'), 1.5, [5, 4]);
+  curve(Lh, cssv('--faint'), 2.5); curve(v => Ls(v, e), cssv('--s1'), 3);
+  const zs = zStar(e);
+  if (isFinite(zs) && zs >= Z0 && zs <= Z1) { ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(X(zs), Y(Ls(zs, e)), 5, 0, 7); ctx.fill(); }
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(z), pt); ctx.lineTo(X(z), H - pb); ctx.stroke(); ctx.setLineDash([]);
+  // ---- distributions ----
+  [ctx, W, H] = setupCanvas($('bc')); const q2 = 1 / (1 + 9 * Math.exp(-z)), qo = (1 - q2) / 9, bw = (W - 40) / 10;
+  const Yb = v => pt + (H - pt - pb) * (1 - v);
+  ctx.strokeStyle = cssv('--grid'); [0, 0.5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(30, Yb(v)); ctx.lineTo(W - 4, Yb(v)); ctx.stroke(); ctx.fillStyle = cssv('--muted'); ctx.fillText(v, 4, Yb(v) + 4); });
+  for (let c = 0; c < 10; c++) { const x0 = 34 + c * bw, p = c === 2 ? 1 - e : e / 9, q = c === 2 ? q2 : qo;
+    ctx.fillStyle = cssv('--s1'); ctx.fillRect(x0, Yb(p), bw * 0.42, Yb(0) - Yb(p));
+    ctx.fillStyle = cssv('--s2'); ctx.fillRect(x0 + bw * 0.45, Yb(q), bw * 0.42, Yb(0) - Yb(q));
+    ctx.fillStyle = cssv('--muted'); ctx.fillText(c, x0 + bw * 0.3, H - 8); }
+  // ---- stats ----
+  $('lh').textContent = Lh(z).toFixed(3); $('ls').textContent = Ls(z, e).toFixed(3);
+  $('zs').textContent = e === 0 ? '∞ (none)' : zs.toFixed(2);
+  $('lTxt').innerHTML = e === 0
+    ? 'ε = 0 is the hard target: the blue and grey curves coincide and keep falling as z grows, so the training loss can always be reduced by making the network more confident.'
+    : `At the current z the network puts q₂ = ${q2.toFixed(3)} on the correct class; the soft target asks for ${(1 - e).toFixed(2)}. `
+      + (z > zs + 0.05 ? 'z is beyond the minimum: the ε·Ω term (orange) now makes extra confidence <b>cost</b> loss.' : z < zs - 0.05 ? 'z is below the minimum, so increasing it still lowers the soft loss.' : '<b>At the minimum</b>: the prediction equals the soft target.');
+}
+['eps', 'z'].forEach(id => $(id).addEventListener('input', () => { $('epsv').textContent = (+$('eps').value).toFixed(2); $('zv').textContent = (+$('z').value).toFixed(1); drawAll(); }));
+$('opt').onclick = () => { const zs = zStar(+$('eps').value); $('z').value = String(isFinite(zs) ? Math.max(-2, Math.min(14, zs)) : 14); $('zv').textContent = (+$('z').value).toFixed(1); drawAll(); };
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

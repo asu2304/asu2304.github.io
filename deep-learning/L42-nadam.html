@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nadam: Adam with a Nesterov Look-Ahead</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 42 · playlist video 42 (titled “L44” on YouTube) · Optimisation algorithms</div>
+<h1>Nadam: Adam with a Nesterov Look-Ahead</h1>
+<p class="lede">Adam already uses momentum, and NAG is known to beat plain momentum. Nadam puts NAG's look-ahead into Adam. The trick is to first rewrite NAG so that the look-ahead is done one step early, inside the update itself. Then all of Adam's equations stay the same except the last one.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=fsTRJeWpZ_o" target="_blank" rel="noopener">this lecture on YouTube</a> (≈18 min). Previous: <a href="L41-adamax-maxprop.html">L41</a> · Next: <a href="L43-learning-rate-schemes.html">L43</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The obvious extension</h2>
+<p>Adam (<a href="L40-adam.html">L40</a>) combines a momentum term $m_t$ with an adaptive history $v_t$. We know from <a href="L33-nesterov.html">L33</a> that Nesterov accelerated gradient (NAG) improves on momentum-based gradient descent (<a href="L32-momentum.html">L32</a>) by computing the gradient at a <b>look-ahead</b> point, so it overshoots less. So: can we give Adam the Nesterov effect? That is <b>Nadam</b>, Nesterov-accelerated adaptive moment estimation.</p>
+<p>Adam's update, the starting point:</p>
+$$\begin{aligned}
+m_t&=\beta_1m_{t-1}+(1-\beta_1)\nabla w_t, &\hat m_t&=\frac{m_t}{1-\beta_1^{\,t}},\\
+v_t&=\beta_2v_{t-1}+(1-\beta_2)(\nabla w_t)^2, &\hat v_t&=\frac{v_t}{1-\beta_2^{\,t}},\\
+w_{t+1}&=w_t-\frac{\eta}{\sqrt{\hat v_t}+\varepsilon}\,\hat m_t .
+\end{aligned}$$
+<p>A note on notation. Momentum can be written as $m_t=\beta m_{t-1}+\nabla w_t$ (as when momentum was introduced) or as $m_t=\beta m_{t-1}+(1-\beta)\nabla w_t$ (as in Adam). Both forms are popular and interchangeable. The lecture starts with the first, because it makes the look-ahead easier to see, and switches to the second when it reaches Nadam.</p>
+
+<h2>2 · NAG as we wrote it</h2>
+<p>The main idea of NAG: don't take the gradient at the current $w_t$. First move by the history, then take the gradient there.</p>
+$$\begin{aligned}
+g_t&=\nabla f\big(w_t-\beta m_{t-1}\big) &&\text{(gradient at the look-ahead point)}\\
+m_t&=\beta m_{t-1}+\eta\,g_t\\
+w_{t+1}&=w_t-m_t
+\end{aligned}$$
+<p>Two things are awkward:</p>
+<ul>
+<li><b>Three time indices</b>, $t-1$, $t$ and $t+1$, appear in one update.</li>
+<li><b>$m_{t-1}$ is used twice.</b> We make a temporary move $w_t-\beta m_{t-1}$, take a gradient there, then throw that temporary point away and go back to $w_t$, only to subtract $\beta m_{t-1}$ again inside $m_t$.</li>
+</ul>
+<p>The lecture's walk-through with $\eta=1$ and $m_{-1}=0$:</p>
+<ol class="steps">
+<li>Step 0: $g_0=\nabla f(w_0-\beta\cdot0)=\nabla w_0$, so $m_0=g_0$ and $w_1=w_0-m_0$.</li>
+<li>Step 1: look ahead to $w_1-\beta m_0$ and compute $g_1$ there. Then $m_1=\beta m_0+g_1$ and $w_2=w_1-m_1=w_1-\beta m_0-g_1$.</li>
+<li>Notice: the temporary point $w_1-\beta m_0$ is built in step 1, yet $\beta m_0$ was already known at the end of step 0. We could have moved there <b>in advance</b> and handed step 1 a $w$ that already contains the look-ahead.</li>
+</ol>
+
+<h2>3 · Rewriting NAG: do the look-ahead one step early</h2>
+<p>Push the look-ahead into the update itself. The gradient is then taken at the current $w_t$ (no temporary point), and the final update moves by "history plus current gradient":</p>
+$$\begin{aligned}
+g_{t+1}&=\nabla w_t\\
+m_{t+1}&=\beta m_t+g_{t+1}\\
+w_{t+1}&=w_t-\eta\big(\beta m_{t+1}+g_{t+1}\big)
+\end{aligned}$$
+<p>Only $t$ and $t+1$ appear, and the new $w$ is computed once per step instead of twice. The lecture's analogy: it is like peeling one iteration out of the front of a while-loop, so every computation inside the loop runs one step behind and the look-ahead is already done when the loop body starts. The look-ahead now lives entirely in the momentum step, in the $\beta m_{t+1}$ term of the last line.</p>
+<p>Check that nothing has changed. The demo runs both versions on $f(w)=\tfrac12w^2$. The rewritten $w_t$ is exactly the original's look-ahead point $w_t-\beta m_{t-1}$, the point where the original takes its gradient:</p>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Original NAG (with $\eta$ inside $m$, as above) against the rewritten form (with $\eta$ outside; for a constant $\eta$ that is only a rescaling of $m$). Both start from $w_0=3$, $m_{-1}=0$.</p>
+<div class="row"><label>$\eta$ = <b id="neV">0.3</b> <input type="range" id="neS" min="5" max="90" value="30"></label>
+<label>$\beta$ = <b id="nbV">0.8</b> <input type="range" id="nbS" min="0" max="95" value="80"></label>
+<button id="nStep">Next step</button><button id="nReset">Reset</button></div>
+<div style="overflow-x:auto"><table id="nTab" class="mono"></table></div>
+<canvas id="nC" height="200" aria-label="Original and rewritten NAG iterates"></canvas>
+<div class="legend"><span><i style="background:var(--s2)"></i>original $w_t$</span><span><i class="dot" style="background:var(--s3)"></i>original look-ahead $w_t-\beta m_{t-1}$</span><span><i class="dot" style="background:var(--s1);width:7px;height:7px"></i>rewritten $w_t$</span></div>
+</div>
+
+<h2>4 · The Nadam update</h2>
+<p>Bring the rewritten NAG to Adam, now with the $(1-\beta)$ form of momentum. The first four lines are Adam's, exactly (written with index $t+1$ for the new quantities and $\nabla w_t$ for the gradient at the current point):</p>
+$$\begin{aligned}
+m_{t+1}&=\beta_1m_t+(1-\beta_1)\nabla w_t, &\hat m_{t+1}&=\frac{m_{t+1}}{1-\beta_1^{\,t+1}},\\
+v_{t+1}&=\beta_2v_t+(1-\beta_2)(\nabla w_t)^2, &\hat v_{t+1}&=\frac{v_{t+1}}{1-\beta_2^{\,t+1}},
+\end{aligned}$$
+<p>and only the last line changes, to carry the look-ahead:</p>
+$$w_{t+1}=w_t-\frac{\eta}{\sqrt{\hat v_{t+1}}+\varepsilon}\left(\beta_1\hat m_{t+1}+\frac{(1-\beta_1)\,\nabla w_t}{1-\beta_1^{\,t+1}}\right)$$
+<p>How to read it:</p>
+<ol class="steps">
+<li>Strip the multiplying factors and it is $w_t-\frac{\eta}{\sqrt{\hat v_{t+1}}+\varepsilon}\big(\hat m_{t+1}+\nabla w_t\big)$: move by the <b>history</b> and the <b>current gradient</b>, exactly the last line of rewritten NAG.</li>
+<li>$\beta_1$ and $(1-\beta_1)$ are the weights of the history and the current gradient in the $(1-\beta)$ form of momentum, which the NAG derivation above did not have.</li>
+<li>The denominator $1-\beta_1^{\,t+1}$ on the gradient term is the same bias correction that turned $m_{t+1}$ into $\hat m_{t+1}$.</li>
+</ol>
+<p>Prof. Khapra admits the equation is a bit messy. The takeaway is simple: add the Nesterov look-ahead to Adam, and write NAG so the look-ahead is pushed into the last equation, so that everything else stays identical to Adam.</p>
+
+<h2>5 · Adam vs Nadam on the same surface</h2>
+<p>In the lecture's run, Nadam's path has smaller oscillations than Adam's: the same Nesterov effect we saw for NAG against momentum. Try it on a narrow tilted valley (the lecture uses its own surface; this one is my choice):</p>
+<div class="card">
+<p class="small muted" style="margin-top:0">$f(u,v)=\tfrac14u^2+5v^2$ in coordinates rotated by about 29°. Same start, same $\eta,\beta_1$, $\beta_2=0.999$, $\varepsilon=10^{-8}$ for both. Press Run to animate.</p>
+<div class="row"><label>$\eta$ = <b id="aeV">0.20</b> <input type="range" id="aeS" min="2" max="60" value="20"></label>
+<label>$\beta_1$ = <b id="abV">0.90</b> <input type="range" id="abS" min="50" max="99" value="90"></label>
+<button id="aRun">Run</button><button id="aAll">Show all 150 steps</button></div>
+<div class="pair"><canvas id="lossC" height="300" aria-label="Loss against iteration"></canvas><canvas id="surfC" height="300" aria-label="Contours with the Adam and Nadam paths"></canvas></div>
+<div class="legend"><span><i style="background:var(--ink)"></i>Adam</span><span><i style="background:var(--s1)"></i>Nadam</span></div>
+<div class="row"><div class="stat"><div class="v" id="aStep">0</div><div class="l">iteration</div></div>
+<div class="stat"><div class="v" id="aLA">–</div><div class="l">Adam loss</div></div>
+<div class="stat"><div class="v" id="aLN">–</div><div class="l">Nadam loss</div></div>
+<div class="stat"><div class="v" id="aOsc">–</div><div class="l">overshoots across the valley (Adam / Nadam)</div></div></div>
+</div>
+<p class="small muted">On this surface Nadam usually wiggles less and ends lower, but not at every setting. Look-ahead damps overshooting; it is not a guarantee.</p>
+
+<h2>6 · Which optimiser should you use?</h2>
+<ul>
+<li>The default in most papers is <b>Adam</b>. If you don't know anything else, go with Adam.</li>
+<li>Some works (a few years old now) point out issues with Adam. Still, in the practical work Prof. Khapra has seen, Adam or one of its variants (Nadam is another good choice) is the common pick.</li>
+<li>People report that plain gradient descent, or momentum, can match Adam <b>if</b> you really know how to set the initial learning rate, the momentum value and the learning-rate schedule. That expertise takes a while to build. Without it, use Adam off the shelf.</li>
+</ul>
+<div class="beyond"><b>Going beyond the video.</b> Nadam is from Dozat (2016), "Incorporating Nesterov Momentum into Adam". The issues with Adam alluded to are, for example, its convergence counter-examples (fixed by AMSGrad) and the way it interacts with L2 regularisation (fixed by AdamW's decoupled weight decay). AdamW is the usual default for training Transformers today. The schedules that go with any of these optimisers are the next lecture, <a href="L43-learning-rate-schemes.html">L43</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Nadam = Adam + Nesterov look-ahead. All of Adam's equations stay; only the final update changes.</li>
+<li>Original NAG takes the gradient at a temporary point $w_t-\beta m_{t-1}$, uses $m_{t-1}$ twice and involves three time indices.</li>
+<li>Rewritten NAG takes the gradient at $w_t$ and updates with $\beta m_{t+1}+g_{t+1}$: the look-ahead is done one step early. Its iterates are exactly the original's look-ahead points.</li>
+<li>Nadam's last line moves by the bias-corrected history <b>and</b> the bias-corrected current gradient: $\beta_1\hat m_{t+1}+\frac{(1-\beta_1)\nabla w_t}{1-\beta_1^{t+1}}$, scaled by $\eta/(\sqrt{\hat v_{t+1}}+\varepsilon)$.</li>
+<li>In practice: Adam (or a variant like Nadam) is a safe default; tuned SGD with momentum and a good schedule can match it, but needs expertise.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+
+/* ---------- demo 1: original vs rewritten NAG on f = w^2/2 ---------- */
+let nShown = 3;
+function nagRuns(){ const eta = +$('neS').value / 100, b = +$('nbS').value / 100, T = 25, gr = w => w;
+  let w = 3, m = 0; const O = [];
+  for (let t = 0; t < T; t++) { const la = w - b * m, g = gr(la); O.push({w, la}); m = b * m + eta * g; w = w - m; }
+  let u = 3, mm = 0; const Rw = [];
+  for (let t = 0; t < T; t++) { Rw.push(u); const g = gr(u); mm = b * mm + g; u = u - eta * (b * mm + g); }
+  return {O, Rw, eta, b}; }
+function drawNag(){
+  const {O, Rw, eta, b} = nagRuns(); $('neV').textContent = eta.toFixed(2); $('nbV').textContent = b.toFixed(2);
+  let h = '<tr><th>t</th><th>original w_t</th><th>look-ahead w_t − βm_{t−1}</th><th>rewritten w_t</th><th>difference</th></tr>';
+  for (let t = 0; t < nShown; t++) h += `<tr><td>${t}</td><td>${O[t].w.toFixed(5)}</td><td>${O[t].la.toFixed(5)}</td><td>${Rw[t].toFixed(5)}</td><td>${Math.abs(O[t].la - Rw[t]).toExponential(1)}</td></tr>`;
+  $('nTab').innerHTML = h;
+  const [ctx, W, H] = setupCanvas($('nC')), T = O.length, L = 36, R = 8, ys = O.flatMap(d => [d.w, d.la]), lo = Math.min(...ys, 0), hi = Math.max(...ys);
+  const x = t => L + t / (T - 1) * (W - L - R), y = v => 10 + (1 - (v - lo) / (hi - lo || 1)) * (H - 34);
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(L, y(0)); ctx.lineTo(W - R, y(0)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('0', 20, y(0) + 4); ctx.fillText('t', W - 14, H - 6); for (let t = 0; t < T; t += 5) ctx.fillText(t, x(t) - 3, H - 6);
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); O.forEach((d, t) => t ? ctx.lineTo(x(t), y(d.w)) : ctx.moveTo(x(t), y(d.w))); ctx.stroke();
+  O.forEach((d, t) => { ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(x(t), y(d.la), t < nShown ? 6 : 4, 0, 7); ctx.fill();
+    ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(x(t), y(Rw[t]), 2.5, 0, 7); ctx.fill(); });
+  ctx.strokeStyle = cssv('--muted'); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x(nShown - 1), 6); ctx.lineTo(x(nShown - 1), H - 20); ctx.stroke(); ctx.setLineDash([]);
+}
+$('nStep').addEventListener('click', () => { nShown = Math.min(25, nShown + 1); drawNag(); });
+$('nReset').addEventListener('click', () => { nShown = 3; drawNag(); });
+$('neS').addEventListener('input', drawNag); $('nbS').addEventListener('input', drawNag);
+
+/* ---------- demo 2: Adam vs Nadam ---------- */
+const TH = 0.5, C = Math.cos(TH), S = Math.sin(TH), START = [-4, 2.5], TT = 150;
+const fv = ([x, y]) => { const u = C * x + S * y, v = -S * x + C * y; return 0.25 * u * u + 5 * v * v; };
+const gradf = ([x, y]) => { const u = C * x + S * y, v = -S * x + C * y, gu = 0.5 * u, gv = 10 * v; return [C * gu - S * gv, S * gu + C * gv]; };
+const vcoord = ([x, y]) => -S * x + C * y;
+function opt(nadam, eta, b1){ const b2 = 0.999, w = START.slice(), m = [0, 0], v = [0, 0], P = [w.slice()];
+  for (let t = 0; t < TT; t++) { const g = gradf(w);
+    for (let i = 0; i < 2; i++) { m[i] = b1 * m[i] + (1 - b1) * g[i]; v[i] = b2 * v[i] + (1 - b2) * g[i] * g[i];
+      const bc1 = 1 - Math.pow(b1, t + 1), mh = m[i] / bc1, vh = v[i] / (1 - Math.pow(b2, t + 1));
+      const dir = nadam ? b1 * mh + (1 - b1) * g[i] / bc1 : mh; w[i] -= eta / (Math.sqrt(vh) + 1e-8) * dir; }
+    P.push(w.slice()); }
+  return P; }
+let PA = [], PN = [], shown = TT, timer = null;
+function recompute(){ const eta = +$('aeS').value / 100, b1 = +$('abS').value / 100; $('aeV').textContent = eta.toFixed(2); $('abV').textContent = b1.toFixed(2); PA = opt(false, eta, b1); PN = opt(true, eta, b1); }
+const osc = (P, k) => { let n = 0; for (let i = 2; i <= k; i++) if (Math.sign(vcoord(P[i])) !== Math.sign(vcoord(P[i - 1])) && Math.abs(vcoord(P[i])) > 1e-3) n++; return n; };
+const fmtL = v => v < 1e-3 ? v.toExponential(1) : v.toFixed(3);
+function drawAdam(){
+  let [ctx, W, H] = setupCanvas($('surfC')); const R = 5, sc = Math.min(W, H) / (2 * R), ox = W / 2, oy = H / 2, X = a => ox + a * sc, Y = b => oy - b * sc;
+  ctx.lineWidth = 1; ctx.strokeStyle = cssv('--grid');
+  [0.05, 0.2, 0.5, 1, 2, 4, 8, 16, 32, 64].forEach(lv => { ctx.beginPath(); for (let i = 0; i <= 120; i++) { const a = i / 120 * 2 * Math.PI, u = Math.sqrt(4 * lv) * Math.cos(a), v = Math.sqrt(lv / 5) * Math.sin(a), x = C * u - S * v, y = S * u + C * v; i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); });
+  const path = (P, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); for (let i = 0; i <= shown; i++) i ? ctx.lineTo(X(P[i][0]), Y(P[i][1])) : ctx.moveTo(X(P[i][0]), Y(P[i][1])); ctx.stroke();
+    ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(P[shown][0]), Y(P[shown][1]), 4.5, 0, 7); ctx.fill(); };
+  path(PA, cssv('--ink'), 1.6); path(PN, cssv('--s1'), 2);
+  ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(START[0]), Y(START[1]), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('start', X(START[0]) + 7, Y(START[1]) - 5); ctx.fillText('★ min', X(0) + 4, Y(0) - 4);
+  [ctx, W, H] = setupCanvas($('lossC')); const L = 40, Rr = 8, T0 = 10, B = 22, lmin = -6, lmax = Math.log10(fv(START)) + 0.2;
+  const x = t => L + t / TT * (W - L - Rr), y = f => T0 + (1 - (Math.max(lmin, Math.log10(f + 1e-12)) - lmin) / (lmax - lmin)) * (H - T0 - B);
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui';
+  for (let e = -6; e <= 1; e += 2) { ctx.beginPath(); ctx.moveTo(L, y(Math.pow(10, e))); ctx.lineTo(W - Rr, y(Math.pow(10, e))); ctx.stroke(); ctx.fillText('1e' + e, 4, y(Math.pow(10, e)) + 4); }
+  for (let t = 0; t <= TT; t += 50) ctx.fillText(t, x(t) - 6, H - 6); ctx.fillText('loss (log)', L + 4, T0 + 10);
+  [[PA, '--ink', 1.6], [PN, '--s1', 2]].forEach(([P, c, lw]) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = lw; ctx.beginPath(); for (let i = 0; i <= shown; i++) i ? ctx.lineTo(x(i), y(fv(P[i]))) : ctx.moveTo(x(i), y(fv(P[i]))); ctx.stroke(); });
+  $('aStep').textContent = shown; $('aLA').textContent = fmtL(fv(PA[shown])); $('aLN').textContent = fmtL(fv(PN[shown])); $('aOsc').textContent = osc(PA, shown) + ' / ' + osc(PN, shown);
+}
+function stopAnim(){ if (timer) { clearInterval(timer); timer = null; } }
+$('aRun').addEventListener('click', () => { stopAnim(); shown = 0; drawAdam(); timer = setInterval(() => { shown = Math.min(TT, shown + 1); drawAdam(); if (shown >= TT) stopAnim(); }, 40); });
+$('aAll').addEventListener('click', () => { stopAnim(); shown = TT; drawAdam(); });
+['aeS', 'abS'].forEach(id => $(id).addEventListener('input', () => { stopAnim(); recompute(); shown = TT; drawAdam(); }));
+
+recompute();
+function drawAll(){ drawNag(); drawAdam(); }
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

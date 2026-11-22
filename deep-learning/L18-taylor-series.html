@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Taylor Series: Seeing the Loss Up Close</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 18 · playlist video 18 (titled “L19” on YouTube) · sigmoid neurons, learning</div>
+<h1>The Taylor Series: Seeing the Loss Up Close</h1>
+<p class="lede">To walk down the error surface we update $\theta_{\text{new}}=\theta+\eta\,\Delta\theta$. The open question is which $\Delta\theta$ to use. The tool for answering it is the Taylor series: near a point we know, any smooth loss is well approximated by a polynomial, a tangent line (or plane) at first order, a parabola at second. The catch, and the reason $\eta$ must be small: the approximation is only good in a <b>small neighbourhood</b>.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=qyn6RERiIIY" target="_blank" rel="noopener">this lecture on YouTube</a> (≈24 min). Previous: <a href="L17-gradient-descent.html">L17</a> · Next: <a href="L19-gradient-descent-derivation.html">L19</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+<p class="small muted">Logically this video and <a href="L19-gradient-descent-derivation.html">L19</a> come before <a href="L17-gradient-descent.html">L17</a>, which uses the rule they derive.</p>
+
+<h2>1 · The goal: a principled step on the error surface</h2>
+<p>The guesswork of <a href="L16-learning-parameters-guesswork.html">L16</a> was navigating the error surface by random jumps, sometimes uphill. Brute force (try every value) is infeasible. We want a way to go <b>down at every step</b> and settle where the loss is minimal.</p>
+<p>Put the parameters in a vector, $\theta=[w,\,b]\in\mathbb R^2$. Start from a random $\theta$ and look for a change $\Delta\theta=[\Delta w,\,\Delta b]$ that lowers the loss, one step at a time:</p>
+$$\theta_{\text{new}}=\theta+\eta\cdot\Delta\theta .$$
+<ul>
+<li><b>Adding $\Delta\theta$</b> moves $\theta$ towards the direction of $\Delta\theta$ (as adding $x$ turned $w$ towards $x$ in the perceptron, <a href="L10-perceptron-learning.html">L10</a>).</li>
+<li><b>Multiplying by a small $\eta$</b> shrinks the step but keeps its direction: be conservative, take one small step at a time.</li>
+</ul>
+<p>Random guessing picked $\Delta\theta$ arbitrarily and checked afterwards. We want someone to <i>tell</i> us the right $\Delta\theta$. The answer comes from the Taylor series.</p>
+
+<h2>2 · The Taylor series</h2>
+<p>It approximates any <b>continuously differentiable</b> function by polynomials of degree $n$; the higher the degree, the better. Our loss qualifies: the sigmoid is differentiable and so is the squared error. In one variable, around a point $w_0$ where we know the loss:</p>
+$$\mathcal L(w)=\mathcal L(w_0)+\frac{\mathcal L'(w_0)}{1!}(w-w_0)+\frac{\mathcal L''(w_0)}{2!}(w-w_0)^2+\frac{\mathcal L'''(w_0)}{3!}(w-w_0)^3+\cdots$$
+<p>Why we care: at step 0 we sit at $w_0$ and can compute $\mathcal L(w_0)$, but we don't know the whole curve. We must decide whether a nearby $w=w_0+\delta$ (left or right) has lower loss. Taylor estimates $\mathcal L$ there from information <i>at</i> $w_0$ alone. Cut the series after the first-order term for a <b>linear</b> approximation, after the second for a <b>quadratic</b> one.</p>
+
+<h2>3 · First order is just the tangent line</h2>
+<ol class="steps">
+<li>Pretend that near $x_0$ the function is a line, $y=mx+c$. We know the point on it: $y_0=mx_0+c$.</li>
+<li>The new point: $y_1=mx_1+c$. Subtract: $y_1-y_0=m(x_1-x_0)$, so $y_1=y_0+m(x_1-x_0)$.</li>
+<li>The slope $m$ is the derivative at that point. Rename $x\to w$, $y\to\mathcal L$:
+$$\mathcal L(w)\approx\mathcal L(w_0)+\mathcal L'(w_0)\,(w-w_0),$$
+exactly the series cut at first order.</li>
+</ol>
+<p>So the linear approximation draws the <b>tangent</b> at $w_0$ and moves along it instead of along the curve. Because the curve bends, the value on the line is a little off from the true value: some error.</p>
+<p>The quadratic cut has the form $y=ax^2+bx+c$, with coefficients again coming from the derivatives (first and second). In a small neighbourhood it hugs the curve more closely than the tangent line does.</p>
+
+<h2>4 · How good is the approximation? It depends on the neighbourhood</h2>
+<p>Let $\varepsilon$ be the size of the neighbourhood around $w_0$. The lecture's demo shows three things, all of which you can check below:</p>
+<ol class="steps">
+<li><b>Small $\varepsilon$: good.</b> Near $w_0$ the tangent is very close to the curve. Go far away and the line's prediction is way off.</li>
+<li><b>Same $\varepsilon$, different places.</b> Where the slope is low, even a wider window is well approximated; where the slope is high, the same window gives a large gap.</li>
+<li><b>Small enough $\varepsilon$: good everywhere.</b> Even where the gradient is large, a small window keeps the approximation good.</li>
+</ol>
+<div class="callout">Taylor approximations are to be used only in <b>small windows</b>. That is where the small $\eta$ in $\theta+\eta\,\Delta\theta$ comes from.</div>
+<p>Then raise the degree, on $\sin w$: degree 2 is better than 1, degree 3 better again, and by degree 7 or 8 the polynomial matches $\sin$ almost perfectly over a large range. Keep <i>all</i> the terms and you get the function back exactly.</p>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Blue: the function. Orange: its Taylor polynomial of the chosen degree around $w_0$ (solid inside the window $[w_0-\varepsilon,\,w_0+\varepsilon]$, faint outside). Drag $w_0$ along the curve with the slider.</p>
+<div class="row"><button id="fExp" class="on">Loss-like curve (flat → steep)</button><button id="fSin">sin w</button></div>
+<div class="row"><label>w₀ <input type="range" id="w0" min="-3.5" max="2.5" step="0.01" value="-2"> <span class="mono" id="w0v"></span></label>
+<label>window ε <input type="range" id="eps" min="0.05" max="3" step="0.01" value="0.4"> <span class="mono" id="epsv"></span></label>
+<label>degree <input type="range" id="deg" min="1" max="9" step="1" value="1"> <span class="mono" id="degv"></span></label></div>
+<canvas id="tc" height="300" aria-label="Function and its Taylor approximation in a window"></canvas>
+<div class="legend"><span><i style="background:var(--s1)"></i>function</span><span><i style="background:var(--s2)"></i>Taylor polynomial</span><span><i style="background:var(--tint);height:10px"></i>window</span></div>
+<div class="row"><div class="stat"><div class="v" id="err">–</div><div class="l">largest gap inside the window</div></div><div class="stat"><div class="v" id="sl">–</div><div class="l">slope 𝓛′(w₀)</div></div><div class="stat"><div class="v" id="cu">–</div><div class="l">curvature 𝓛″(w₀)</div></div></div>
+<p class="small" id="tmsg"></p>
+</div>
+<p>Try: degree 1, $\varepsilon=0.4$, $w_0=-2$ (flat region): the gap is tiny. Slide $w_0$ to $2$ (steep): same window, much bigger gap. Shrink $\varepsilon$ to 0.05: small again. Then switch to $\sin w$, open the window to 3 and step the degree from 1 to 9.</p>
+<div class="beyond"><b>Going beyond the video: it's the bend, not the slope.</b> The gap left by the tangent line is about $\tfrac12\mathcal L''(w_0)\,\varepsilon^2$: it is set by the <b>curvature</b> and grows with the square of the window. On the loss-like curve slope and curvature rise together, so "steep region, worse approximation" holds there. But a perfectly straight steep line would be approximated exactly. Compare the slope and curvature readouts in the demo, and check that halving $\varepsilon$ roughly quarters the degree-1 gap.</div>
+
+<h2>5 · Two variables</h2>
+<p>The same works for $\mathcal L(w,b)$, which is what we actually have. The lecture uses $0.5\sin x+0.25\sin y$ (axes called $x,y$ for convenience). The <b>linear</b> approximation is now a <b>plane</b> touching the surface. In a small neighbourhood the plane is very close to the surface; widen the neighbourhood and it drifts away, more so where the surface curves strongly. The <b>quadratic</b> approximation stays good over a larger window; here partly because the surface itself looks quadratic in places.</p>
+<div class="card">
+<p class="small muted" style="margin-top:0">Heat map of the gap between $0.5\sin x+0.25\sin y$ and its Taylor approximation around the marked point (on $x,y\in[-4,4]$). Stronger orange = bigger gap; the outlined region is where the gap is below the tolerance: the region where the approximation can be trusted. <b>Click</b> to move the point.</p>
+<div class="row"><button id="o1" class="on">Linear (plane)</button><button id="o2">Quadratic</button>
+<label>tolerance <select id="tol" style="font:inherit;font-size:14px"><option value="0.001">0.001</option><option value="0.01" selected>0.01</option><option value="0.05">0.05</option></select></label></div>
+<canvas id="hc" height="320" aria-label="Error of a two-variable Taylor approximation"></canvas>
+<div class="row"><div class="stat"><div class="v" id="pt">–</div><div class="l">expansion point (x, y)</div></div><div class="stat"><div class="v" id="area">–</div><div class="l">share of the plot within tolerance</div></div></div>
+</div>
+<p>Either way the lesson is the one we need for the next video: around the current $\theta$, the loss is well described by its value, its gradient (first order) and, if wanted, its second derivatives, <b>as long as we stay close</b>.</p>
+<div class="beyond"><b>Going beyond the video.</b> For the 2-D quadratic used above: $f(\theta_0+\delta)\approx f(\theta_0)+\nabla f(\theta_0)^\top\delta+\tfrac12\,\delta^\top H\,\delta$, where $H$ is the matrix of second partial derivatives (the Hessian, introduced in L19). Here $\nabla f=(0.5\cos x,\,0.25\cos y)$ and $H=\mathrm{diag}(-0.5\sin x,\,-0.25\sin y)$.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Update: $\theta_{\text{new}}=\theta+\eta\,\Delta\theta$. $\Delta\theta$ gives the direction, a small $\eta$ a conservative step. Which $\Delta\theta$? Taylor will tell us.</li>
+<li>Taylor: $$\mathcal L(w)=\mathcal L(w_0)+\mathcal L'(w_0)(w-w_0)+\tfrac{1}{2!}\mathcal L''(w_0)(w-w_0)^2+\cdots$$ valid for continuously differentiable losses (sigmoid + squared error is one).</li>
+<li>First order = the tangent line ($y_1=y_0+m(x_1-x_0)$), or a tangent plane in 2-D. Second order = a parabola, closer in a small neighbourhood.</li>
+<li>Approximations are good only in a <b>small neighbourhood</b>: far away they fail, and faster where the curve is steep or bends sharply. Hence a small $\eta$.</li>
+<li>More terms give a better fit over wider ranges; the full series gives back the function.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const hex = c => { c = c.replace('#', ''); if (c.length === 3) c = c.split('').map(t => t + t).join(''); const v = parseInt(c, 16); return [v >> 16 & 255, v >> 8 & 255, v & 255]; };
+/* ---------- 1-D Taylor ---------- */
+// k-th derivative of each function, closed form
+const FN = {
+  exp: {d: (k, w) => 0.08 * 1.2 ** k * Math.exp(1.2 * w), X: [-4, 3], Y: [-0.5, 3.4], w0: -2},
+  sin: {d: (k, w) => Math.sin(w + k * Math.PI / 2), X: [-6.5, 6.5], Y: [-2, 2], w0: 0}
+};
+let fk = 'exp'; const fact = k => k < 2 ? 1 : k * fact(k - 1);
+const T = (w0, deg, w) => { let s = 0; for (let k = 0; k <= deg; k++) s += FN[fk].d(k, w0) / fact(k) * (w - w0) ** k; return s; };
+function tdraw(){
+  const F = FN[fk], w0 = +$('w0').value, eps = +$('eps').value, deg = +$('deg').value; $('w0v').textContent = w0.toFixed(2); $('epsv').textContent = eps.toFixed(2); $('degv').textContent = deg;
+  const [ctx, W, H] = setupCanvas($('tc')), pad = 24, [X0, X1] = F.X, [Y0, Y1] = F.Y, sx = x => pad + (x - X0) / (X1 - X0) * (W - 2 * pad), sy = y => H - pad - (y - Y0) / (Y1 - Y0) * (H - 2 * pad);
+  const clip = y => Math.max(Y0 - 1, Math.min(Y1 + 1, y));
+  ctx.fillStyle = cssv('--tint'); ctx.fillRect(sx(Math.max(X0, w0 - eps)), 4, sx(Math.min(X1, w0 + eps)) - sx(Math.max(X0, w0 - eps)), H - pad - 4);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, sy(0)); ctx.lineTo(W - pad, sy(0)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; for (let v = Math.ceil(X0); v <= X1; v++) if (fk === 'exp' || v % 2 === 0) ctx.fillText(v, sx(v) - 4, H - 6);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad, 0, W - 2 * pad, H - pad); ctx.clip();
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let k = 0; k <= 400; k++) { const x = X0 + (X1 - X0) * k / 400; k ? ctx.lineTo(sx(x), sy(F.d(0, x))) : ctx.moveTo(sx(x), sy(F.d(0, x))); } ctx.stroke();
+  ctx.globalAlpha = 0.35; ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 1.5; ctx.beginPath(); for (let k = 0; k <= 400; k++) { const x = X0 + (X1 - X0) * k / 400; k ? ctx.lineTo(sx(x), sy(clip(T(w0, deg, x)))) : ctx.moveTo(sx(x), sy(clip(T(w0, deg, x)))); } ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.lineWidth = 3; ctx.beginPath(); let gap = 0, gx = w0; for (let k = 0; k <= 120; k++) { const x = w0 - eps + 2 * eps * k / 120, t = T(w0, deg, x), e = Math.abs(t - F.d(0, x)); if (e > gap) { gap = e; gx = x; } k ? ctx.lineTo(sx(x), sy(clip(t))) : ctx.moveTo(sx(x), sy(clip(t))); } ctx.stroke();
+  ctx.strokeStyle = cssv('--ink'); ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(gx), sy(clip(F.d(0, gx)))); ctx.lineTo(sx(gx), sy(clip(T(w0, deg, gx)))); ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+  ctx.fillStyle = cssv('--s3'); ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx(w0), sy(F.d(0, w0)), 6, 0, 7); ctx.fill(); ctx.stroke();
+  $('err').textContent = gap < 1e-4 ? gap.toExponential(1) : gap.toFixed(4); $('sl').textContent = F.d(1, w0).toFixed(3); $('cu').textContent = F.d(2, w0).toFixed(3);
+  $('tmsg').innerHTML = `Degree ${deg} around w₀ = ${w0.toFixed(2)}: the largest gap inside the window (dashed) is ${gap < 1e-4 ? gap.toExponential(1) : gap.toFixed(4)}` + (gap < 0.01 ? ' — a good approximation here.' : gap > 0.2 ? ' — not to be trusted this far from w₀.' : '.');
+}
+function setF(k){ fk = k; $('fExp').classList.toggle('on', k === 'exp'); $('fSin').classList.toggle('on', k === 'sin'); const F = FN[k];
+  $('w0').min = F.X[0] + 0.5; $('w0').max = F.X[1] - 0.5; $('w0').value = F.w0; tdraw(); }
+$('fExp').onclick = () => setF('exp'); $('fSin').onclick = () => setF('sin');
+['w0', 'eps', 'deg'].forEach(id => $(id).addEventListener('input', tdraw));
+/* ---------- 2-D Taylor error map ---------- */
+let P0 = [1.0, -0.5], ord = 1; const RR = 4, GG = 110;
+const f2 = (x, y) => 0.5 * Math.sin(x) + 0.25 * Math.sin(y);
+function approx(x, y){ const [a, b] = P0, dx = x - a, dy = y - b; let v = f2(a, b) + 0.5 * Math.cos(a) * dx + 0.25 * Math.cos(b) * dy;
+  if (ord === 2) v += 0.5 * (-0.5 * Math.sin(a) * dx * dx - 0.25 * Math.sin(b) * dy * dy); return v; }
+function hdraw(){
+  const [ctx, W, H] = setupCanvas($('hc')), S = Math.min(W, H) - 26, ox = (W - S) / 2, oy = 4, tol = +$('tol').value;
+  const cv = document.createElement('canvas'); cv.width = cv.height = GG; const c = cv.getContext('2d'), id = c.createImageData(GG, GG), hot = hex(cssv('--s2')), bg = hex(cssv('--card'));
+  const E = new Float32Array(GG * GG); let inside = 0;
+  for (let j = 0; j < GG; j++) for (let i = 0; i < GG; i++) { const x = -RR + 2 * RR * (i + 0.5) / GG, y = RR - 2 * RR * (j + 0.5) / GG, e = Math.abs(approx(x, y) - f2(x, y)); E[j * GG + i] = e; if (e < tol) inside++;
+    const t = Math.min(1, Math.sqrt(e / 1.5)), k = 4 * (j * GG + i); for (let q = 0; q < 3; q++) id.data[k + q] = bg[q] + (hot[q] - bg[q]) * t; id.data[k + 3] = 255; }
+  c.putImageData(id, 0, 0); ctx.drawImage(cv, ox, oy, S, S); ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1; ctx.strokeRect(ox, oy, S, S);
+  const cs = S / GG; ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath();
+  for (let j = 0; j < GG; j++) for (let i = 0; i < GG; i++) { const a = E[j * GG + i] < tol; if (i + 1 < GG && a !== (E[j * GG + i + 1] < tol)) { ctx.moveTo(ox + (i + 1) * cs, oy + j * cs); ctx.lineTo(ox + (i + 1) * cs, oy + (j + 1) * cs); }
+    if (j + 1 < GG && a !== (E[(j + 1) * GG + i] < tol)) { ctx.moveTo(ox + i * cs, oy + (j + 1) * cs); ctx.lineTo(ox + (i + 1) * cs, oy + (j + 1) * cs); } }
+  ctx.stroke();
+  const px = ox + (P0[0] + RR) / (2 * RR) * S, py = oy + (RR - P0[1]) / (2 * RR) * S; ctx.fillStyle = cssv('--s3'); ctx.strokeStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('x →', ox + S - 22, oy + S + 14); ctx.fillText('−4', ox, oy + S + 14);
+  $('pt').textContent = `(${P0[0].toFixed(2)}, ${P0[1].toFixed(2)})`; $('area').textContent = (100 * inside / (GG * GG)).toFixed(1) + '%';
+}
+function setOrd(o){ ord = o; $('o1').classList.toggle('on', o === 1); $('o2').classList.toggle('on', o === 2); hdraw(); }
+$('o1').onclick = () => setOrd(1); $('o2').onclick = () => setOrd(2); $('tol').addEventListener('change', hdraw);
+$('hc').addEventListener('pointerdown', e => { const cv = $('hc'), r = cv.getBoundingClientRect(), H = +cv.dataset.h || 320, S = Math.min(r.width, H) - 26, ox = (r.width - S) / 2, oy = 4;
+  const x = ((e.clientX - r.left) - ox) / S * 2 * RR - RR, y = RR - ((e.clientY - r.top) - oy) / S * 2 * RR; if (Math.abs(x) <= RR && Math.abs(y) <= RR) { P0 = [x, y]; hdraw(); } });
+const all = () => { tdraw(); hdraw(); };
+setF('exp'); hdraw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(all, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', all);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); all(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Contour Maps: Reading an Error Surface from Above</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+.s4{color:var(--s4)}
+:root{--s4:#8a5cc9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--s4:#a27ee0}}
+:root[data-theme="dark"]{--s4:#a27ee0}
+.ctl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:8px 0;font-size:14px}
+.ctl output{font-variant-numeric:tabular-nums;min-width:3.2em;display:inline-block}
+.box{border:2px solid var(--s1);border-radius:10px;padding:4px 14px;margin:14px 0;background:var(--card)}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 31 · playlist video 31 (titled “L31” on YouTube) · Optimisation algorithms</div>
+<h1>Contour Maps: Reading an Error Surface from Above</h1>
+<p class="lede">A 3-D loss surface is hard to look at. Slice it at regular heights, look down from the top, and you get a contour map: every ring is one loss value, and how close the rings sit tells you how steep the surface is. From here on, every optimiser in the course is drawn as a path on such a map.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=fGzJOBIxXdg" target="_blank" rel="noopener">this lecture on YouTube</a> (≈15 min). Previous: <a href="L30-gradient-descent-recap.html">L30</a> · Next: <a href="L32-momentum.html">L32</a> (momentum).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Why bother with contours?</h2>
+<p>The previous lecture (<a href="L30-gradient-descent-recap.html">L30</a>) ended with a problem: gradient descent crawls on gentle slopes. Before fixing it, we need a better way to <i>draw</i> what the optimiser is doing. A 3-D plot of the loss over $(w,b)$ is cumbersome: a static image only shows one viewing angle, and paths hide behind hills. A <b>contour map</b> shows the same information in 2-D. It is also a standard tool you will meet everywhere in machine learning.</p>
+
+<h2>2 · What a contour map is</h2>
+<ol class="steps">
+<li>Take the 3-D surface $z=f(x,y)$.</li>
+<li>Slice it with horizontal planes at <b>regular intervals</b> along the $z$-axis. In the lecture's first example the slices are at $z=-1,-0.8,-0.6,-0.4,-0.2,\dots$, one every $0.2$, and each slice is labelled with its level.</li>
+<li>Look at the sliced surface from the <b>top</b>. Each slice appears as a ring (not necessarily a circle). That top view is the contour map.</li>
+</ol>
+<p>Every point on one ring has the <b>same</b> $z$, because the ring came from a plane parallel to the $xy$-plane. For us the $xy$-plane is the $(w,b)$-plane and $z$ is the loss, so <b>each ring is a set of $(w,b)$ with equal loss</b>.</p>
+<p>Lower the viewing angle to see the surface in 3-D, then raise it to 90° and watch it become the contour map on the right:</p>
+
+<div class="card">
+  <div class="ctl"><label>Surface <select id="fsel"><option value="toy">sigmoid-neuron error (the lecture's toy)</option><option value="dip">a smooth dip (levels −1, −0.8, …)</option><option value="two">two valleys of different steepness</option></select></label></div>
+  <div class="ctl"><label>Viewing angle <input type="range" id="elev" min="10" max="90" value="30"> <output id="elevO"></output></label>
+    <label>Rotate <input type="range" id="azim" min="-180" max="180" value="-35"> <output id="azimO"></output></label>
+    <label>Highlight ring <input type="range" id="hil" min="0" max="10" value="3"> <output id="hilO"></output></label></div>
+  <div class="pair half"><canvas id="c3" height="320" aria-label="3-D loss surface with horizontal slices"></canvas><canvas id="cmap" height="320" aria-label="Contour map of the same surface"></canvas></div>
+  <p class="small muted" id="c3txt" style="margin-bottom:0">Left: the surface with its slices drawn at their heights. Right: the contour map. The thick ring is the same slice in both views. Colour: blue = low, red = high.</p>
+</div>
+
+<h2>3 · Ring spacing is slope</h2>
+<p>Look at two neighbouring rings. In some places they are far apart, in others the <i>same two rings</i> almost touch. Why? Turn the 3-D view sideways: where the rings are far apart the surface is <b>gentle</b>, where they are close it is <b>steep</b>.</p>
+<p>The reason is the definition of slope from the last lecture: change in height divided by change in position. Neighbouring rings are always the same height apart, say $\Delta z$. If you must walk a horizontal distance $d$ to climb from one ring to the next, the slope along your walk is about</p>
+$$\text{slope}\approx\frac{\Delta z}{d}\quad\Longrightarrow\quad d\approx\frac{\Delta z}{\text{slope}} .$$
+<div class="callout"><b>Reading a contour map.</b> (1) Rings are levels of the loss, taken at equal intervals. (2) Rings far apart ⇒ gentle slope; rings close together ⇒ steep slope. So the map carries everything gradient descent cares about: where the loss is high or low, and where the slope is steep or gentle.</div>
+<p>Test it on the lecture's error surface. Slide the cut $b=b_0$ across the map; the lower plot is the loss along that cut, with the ring levels as dashed lines.</p>
+<div class="card">
+  <div class="ctl"><label>Cut at $b_0$ = <input type="range" id="b0" min="-6" max="6" step="0.1" value="-2"> <output id="b0O"></output></label></div>
+  <div class="pair half"><canvas id="cut1" height="260" aria-label="Contour map with a horizontal cut"></canvas><canvas id="cut2" height="260" aria-label="Loss along the cut with level crossings"></canvas></div>
+  <p class="small" id="cutTxt" style="margin-bottom:0"></p>
+</div>
+<p>The lecture also draws several other functions and their contour maps and encourages you to try your own: in every case, steep regions give crowded rings and gentle regions give sparse ones. The surface selector in the first demo has two extra shapes to practise on.</p>
+
+<h2>4 · Gradient descent on the contour map</h2>
+<p>Now revisit the gradient descent run from <a href="L30-gradient-descent-recap.html">L30</a> on the lecture's toy problem: one sigmoid neuron $f(x)=\sigma(wx+b)$ that should pass through the two points $(0.5,\,0.2)$ and $(2.5,\,0.9)$, with squared-error loss</p>
+$$\mathscr{L}(w,b)=\tfrac12\sum_{i=1}^{2}\big(f(x_i)-y_i\big)^2,\qquad w_{t+1}=w_t-\eta\,\nabla w_t,\quad b_{t+1}=b_t-\eta\,\nabla b_t .$$
+<p>On the map, the region where the rings are sparse is the flat plateau, and the crowded rings lead down into the valley. Exactly as on the 3-D surface:</p>
+<ul>
+<li>On the plateau the point barely moves; consecutive $(w,b)$ points are so close they look like a continuous snake.</li>
+<li>Where the rings crowd together, the slope is steep and $w,b$ change suddenly by large amounts. The whole shape of the sigmoid changes in a few steps.</li>
+<li>Inside the valley the slope is gentle again, so it slowly creeps towards convergence, with the two points almost, but not quite, on the curve.</li>
+</ul>
+<p>The colour coding replaces the level labels: dark red is high loss (bad), dark blue is low loss (good). Run it, or click anywhere on the map to start from there.</p>
+<div class="card">
+  <div class="row"><button id="gPlay">▶ Play</button><button id="gStep">Step ×1</button><button id="gReset">Reset</button>
+    <label>Start <select id="gStart"><option value="-2,-2">(−2, −2), as in the lecture's code</option><option value="-4,-4">(−4, −4), deep on the plateau</option><option value="-2,2">(−2, 2), on a slope</option></select></label>
+    <label>Speed <input type="range" id="gSpd" min="2" max="100" value="25"></label></div>
+  <div class="pair"><div><canvas id="gSig" height="170" aria-label="Current sigmoid and the two data points"></canvas><canvas id="gLoss" height="150" aria-label="Loss against iteration"></canvas></div><canvas id="gMap" height="330" aria-label="Gradient descent path on the contour map"></canvas></div>
+  <div class="legend"><span><i style="background:var(--s3)"></i>gradient descent, η = 1</span><span><i class="dot" style="background:var(--ink)"></i>start / data points</span></div>
+  <div class="row"><div class="stat"><div class="v" id="gIt">0</div><div class="l">iteration t</div></div><div class="stat"><div class="v" id="gL">–</div><div class="l">loss</div></div><div class="stat"><div class="v" id="gD">–</div><div class="l">last step length ‖Δ(w,b)‖</div></div></div>
+  <p class="small" id="gTxt" style="margin-bottom:0"></p>
+</div>
+<p>From now on the lecture mostly drops the 3-D view: the contour map, with colour for the loss level and ring spacing for the slope, tells the whole story. The next lecture uses it to show how <a href="L32-momentum.html">momentum</a> escapes the plateau.</p>
+<div class="beyond"><b>Going beyond the video: rings and the gradient.</b> The gradient at a point is always <b>perpendicular</b> to the ring through that point (moving along a ring doesn't change the loss), and its length is the slope, roughly $\Delta z/d$. So gradient descent steps cut straight across the rings, and the step $\eta\,\lVert\nabla\rVert$ is long where rings are crowded and short where they are sparse. That's the whole behaviour of the demo above in one sentence. See also the gradient-descent notes in my ML series, <a href="../machine-learning/L31-gradient-descent.html">ML L31</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>A contour map is the top view of a 3-D surface sliced at regular intervals along the vertical (loss) axis.</li>
+<li>Every ring joins points of equal loss; colour (red high, blue low) can replace the level labels.</li>
+<li>Rings far apart mean a gentle slope; rings close together mean a steep slope, since $d\approx\Delta z/\text{slope}$.</li>
+<li>Gradient descent's behaviour is visible on the map: tiny steps where rings are sparse (plateau, near the minimum), big jumps where they are crowded.</li>
+<li>Given a contour map you can picture the 3-D surface, and vice versa.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const fmt = (v, d = 3) => (isFinite(v) ? v.toFixed(d) : '–');
+
+// ---- The lecture's toy problem: one sigmoid neuron f(x) = σ(wx + b), squared error ----
+const sg = z => 1 / (1 + Math.exp(-z));
+function Toy(X, Y, mean){ const n = X.length, s = mean ? 1 / n : 1;
+  return { X, Y, n,
+    L(w, b){ let t = 0; for (let i = 0; i < n; i++) { const f = sg(w * X[i] + b); t += 0.5 * (f - Y[i]) ** 2; } return t * s; },
+    G(w, b, idx){ let gw = 0, gb = 0; const m = idx ? idx.length : n;
+      for (let k = 0; k < m; k++) { const i = idx ? idx[k] : k, f = sg(w * X[i] + b), d = (f - Y[i]) * f * (1 - f); gw += d * X[i]; gb += d; }
+      const sc = mean ? 1 / m : 1; return [gw * sc, gb * sc]; } }; }
+const TOY = Toy([0.5, 2.5], [0.2, 0.9], false);   // the two points used throughout the lecture
+const RANGE = [-6, 6, -6, 6];                     // w from −6 to 6, b from −6 to 6
+
+// ---- Optimiser steps (notation as in the lecture: u_t history, η, β) ----
+// o = {w, b, uw, ub}; P = {eta, beta}; idx = optional mini-batch indices
+const STEP = {
+  gd(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx); o.w -= P.eta * g[0]; o.b -= P.eta * g[1]; },
+  mom(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx);
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; },
+  nag(o, toy, P, idx){ const g = toy.G(o.w - P.eta * P.beta * o.uw, o.b - P.eta * P.beta * o.ub, idx);   // look ahead first
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; } };
+
+// number of times the loss turned from falling to rising (an overshoot / U-turn)
+function overshoots(l){ let c = 0; for (let i = 2; i < l.length; i++) if (l[i] > l[i - 1] + 1e-9 && l[i - 1] <= l[i - 2]) c++; return c; }
+
+// ---- Contour map: colour-coded loss (blue = low, red = high) + level rings at equal loss intervals ----
+const HEAT = {};
+function lossGrid(toy, key, nx, ny, R = RANGE){
+  const k = key + nx + 'x' + ny; if (HEAT[k]) return HEAT[k];
+  const g = new Float64Array(nx * ny); let mx = -Infinity, mn = Infinity;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const w = R[0] + (R[1] - R[0]) * i / (nx - 1), b = R[3] - (R[3] - R[2]) * j / (ny - 1), v = toy.L(w, b);
+    g[j * nx + i] = v; if (v > mx) mx = v; if (v < mn) mn = v; }
+  return (HEAT[k] = { g, nx, ny, mx, mn }); }
+function isoSegs(G, lev){ G.seg = G.seg || {}; if (G.seg[lev]) return G.seg[lev]; const { g, nx, ny } = G, out = G.seg[lev] = [];
+  const at = (i, j) => g[j * nx + i];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], v = c.map(p => at(p[0], p[1])), pts = [];
+    for (let e = 0; e < 4; e++) { const a = v[e], b = v[(e + 1) % 4];
+      if ((a < lev) !== (b < lev)) { const t = (lev - a) / (b - a), p = c[e], q = c[(e + 1) % 4];
+        pts.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]); } }
+    if (pts.length === 2) out.push(pts); else if (pts.length === 4) { out.push([pts[0], pts[1]]); out.push([pts[2], pts[3]]); } }
+  return out; }
+function heatRGB(t){ const lo = [42, 110, 214], hi = [214, 64, 40];
+  return lo.map((c, k) => Math.round(c + (hi[k] - c) * t)); }
+function drawContour(ctx, W, H, toy, key, opt = {}){
+  const R = opt.range || RANGE, pad = opt.pad || 28, levels = opt.levels || [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7];
+  const pw = W - pad - 8, ph = H - pad - 8, X = w => pad + (w - R[0]) / (R[1] - R[0]) * pw, Y = b => 8 + (R[3] - b) / (R[3] - R[2]) * ph;
+  const nx = 90, ny = 90, G = lossGrid(toy, key, nx, ny, R);
+  const cw = pw / (nx - 1), chh = ph / (ny - 1);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad, 8, pw, ph); ctx.clip();
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const t = Math.pow((G.g[j * nx + i] - G.mn) / (G.mx - G.mn || 1), opt.gamma || 0.5), c = heatRGB(t);
+    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.55)`; ctx.fillRect(X(R[0]) + (i - 0.5) * cw, 8 + (j - 0.5) * chh, cw + 0.6, chh + 0.6); }
+  ctx.strokeStyle = cssv('--ink'); ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+  levels.forEach(lev => { if (opt.hi === lev) return; ctx.beginPath(); isoSegs(G, lev).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); });
+  ctx.globalAlpha = 1;
+  if (opt.hi != null) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 3; ctx.beginPath();
+    isoSegs(G, opt.hi).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(pad, 8, pw, ph);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  for (let v = R[0]; v <= R[1]; v += 2) ctx.fillText(v, X(v), H - pad + 16);
+  ctx.textAlign = 'right'; for (let v = R[2]; v <= R[3]; v += 2) ctx.fillText(v, pad - 4, Y(v) + 4);
+  ctx.textAlign = 'left'; ctx.fillText('w →', W - 34, H - pad + 16); ctx.fillText('b', 4, 16);
+  return { X, Y, inv: (px, py) => [R[0] + (px - pad) / pw * (R[1] - R[0]), R[3] - (py - 8) / ph * (R[3] - R[2])], pad, pw, ph }; }
+
+// ---- Sigmoid panel: current σ(wx+b) of each runner, with the data points ----
+function drawSigmoid(ctx, W, H, toy, curves){
+  const x0 = -1, x1 = 4, X = x => 30 + (x - x0) / (x1 - x0) * (W - 40), Y = y => H - 22 - y * (H - 34);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(30, Y(0)); ctx.lineTo(W - 10, Y(0)); ctx.moveTo(30, Y(1)); ctx.lineTo(W - 10, Y(1)); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(1)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText('1', 26, Y(1) + 4); ctx.fillText('0', 26, Y(0) + 4);
+  ctx.textAlign = 'center'; for (let x = 0; x <= 4; x++) ctx.fillText(x, X(x), H - 6); ctx.textAlign = 'left';
+  curves.forEach(c => { ctx.strokeStyle = c.color; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let k = 0; k <= 100; k++) { const x = x0 + (x1 - x0) * k / 100, y = sg(c.w * x + c.b); k ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); });
+  const r = toy.n > 10 ? 3 : 6; ctx.fillStyle = cssv('--ink');
+  for (let i = 0; i < toy.n; i++) { ctx.beginPath(); ctx.arc(X(toy.X[i]), Y(toy.Y[i]), r, 0, 7); ctx.fill(); } }
+
+// ---- A race of optimisers on one contour map (+ loss curve, + sigmoid fit) ----
+function Race(cfg){
+  const S = { it: 0, playing: false, start: cfg.start.slice(), runners: [] };
+  const key = cfg.key || 'toy', toy = cfg.toy;
+  function reset(st){ if (st) S.start = st.slice(); S.it = 0;
+    S.runners = cfg.runners().map(r => Object.assign({ w: S.start[0], b: S.start[1], uw: 0, ub: 0, path: [[S.start[0], S.start[1]]], loss: [toy.L(S.start[0], S.start[1])], last: 0 }, r));
+    if (cfg.onReset) cfg.onReset(S); draw(); }
+  function stepAll(){ if (S.it >= cfg.maxIter) return false;
+    S.runners.forEach(r => { if (r.on === false) return; const w0 = r.w, b0 = r.b; r.step(r, S.it);
+      if (!isFinite(r.w) || !isFinite(r.b)) { r.w = w0; r.b = b0; }
+      r.last = Math.hypot(r.w - w0, r.b - b0); r.path.push([r.w, r.b]); r.loss.push(toy.L(r.w, r.b)); });
+    S.it++; return true; }
+  function draw(){
+    const [ctx, W, H] = setupCanvas(cfg.map); ctx.clearRect(0, 0, W, H);
+    const M = drawContour(ctx, W, H, toy, key, cfg.contourOpt); S.M = M;
+    ctx.save(); ctx.beginPath(); ctx.rect(M.pad, 8, M.pw, M.ph); ctx.clip();
+    S.runners.forEach(r => { if (r.on === false) return; const col = cssv(r.color); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6;
+      ctx.beginPath(); r.path.forEach((p, k) => k ? ctx.lineTo(M.X(p[0]), M.Y(p[1])) : ctx.moveTo(M.X(p[0]), M.Y(p[1]))); ctx.stroke();
+      const dots = r.path.length < 400; r.path.forEach((p, k) => { if (dots || k % 4 === 0) { ctx.beginPath(); ctx.arc(M.X(p[0]), M.Y(p[1]), 2, 0, 7); ctx.fill(); } });
+      ctx.beginPath(); ctx.arc(M.X(r.w), M.Y(r.b), 5.5, 0, 7); ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1.5; ctx.stroke(); });
+    ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(M.X(S.start[0]), M.Y(S.start[1]), 4, 0, 7); ctx.fill();
+    ctx.restore();
+    if (cfg.lossCv) drawLoss();
+    if (cfg.sigCv) { const [c2, W2, H2] = setupCanvas(cfg.sigCv); drawSigmoid(c2, W2, H2, toy, S.runners.filter(r => r.on !== false).map(r => ({ w: r.w, b: r.b, color: cssv(r.color) }))); }
+    if (cfg.onDraw) cfg.onDraw(S); }
+  function drawLoss(){
+    const [ctx, W, H] = setupCanvas(cfg.lossCv), n = Math.max(cfg.lossX || 100, S.it), pad = 34;
+    const top = Math.max(...S.runners.map(r => r.loss[0])) * 1.05 || 1;
+    const X = i => pad + i / n * (W - pad - 10), Y = v => 8 + (1 - Math.min(v, top) / top) * (H - 30);
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, 8); ctx.lineTo(pad, H - 22); ctx.lineTo(W - 10, H - 22); ctx.stroke();
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText(top.toFixed(2), pad - 4, 14); ctx.fillText('0', pad - 4, H - 22);
+    ctx.textAlign = 'center'; ctx.fillText((cfg.lossLabel || 'iteration') + ' (0 – ' + n + ')', (W + pad) / 2, H - 6); ctx.textAlign = 'left';
+    S.runners.forEach(r => { if (r.on === false) return; ctx.strokeStyle = cssv(r.color); ctx.lineWidth = 2; ctx.beginPath();
+      const stride = Math.max(1, Math.floor(r.loss.length / 600));
+      for (let k = 0; k < r.loss.length; k += stride) k ? ctx.lineTo(X(k), Y(r.loss[k])) : ctx.moveTo(X(k), Y(r.loss[k]));
+      ctx.lineTo(X(r.loss.length - 1), Y(r.loss[r.loss.length - 1])); ctx.stroke(); }); }
+  let raf = null, acc = 0, tPrev = 0;
+  function loop(ts){ if (!S.playing) return; const dt = tPrev ? Math.min(100, ts - tPrev) : 16; tPrev = ts;
+    acc += dt / 1000 * (cfg.speed ? cfg.speed() : 25); let k = 0;
+    while (acc >= 1 && k < 400) { acc -= 1; k++; if (!stepAll()) { S.playing = false; break; } }
+    draw(); if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  function play(on){ S.playing = on == null ? !S.playing : on; tPrev = 0; acc = 0; if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  cfg.map.addEventListener('click', e => { if (!S.M) return; const r = cfg.map.getBoundingClientRect(), p = S.M.inv(e.clientX - r.left, e.clientY - r.top);
+    if (p[0] < RANGE[0] || p[0] > RANGE[1] || p[1] < RANGE[2] || p[1] > RANGE[3]) return; play(false); reset([+p[0].toFixed(2), +p[1].toFixed(2)]); });
+  return { S, reset, draw, play, step(n = 1){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); }, run(n){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); } }; }
+
+// redraw hooks
+const REDRAW = [];
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => REDRAW.forEach(f => f()), 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => REDRAW.forEach(f => f()));
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); REDRAW.forEach(f => f()); });
+
+// ---------- Demo 1: 3-D surface → top view ----------
+const FUNCS = {
+  toy: { f: TOY, key: 'toy', levels: [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7], R: RANGE },
+  dip: { f: { L: (x, y) => -Math.exp(-(x * x / 8 + y * y / 3)) }, key: 'dip', levels: [-0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1], R: RANGE, gamma: 1 },
+  two: { f: { L: (x, y) => 1 - 0.9 * Math.exp(-((x + 2.5) ** 2 + (y - 1) ** 2) / 1.2) - 0.7 * Math.exp(-((x - 2.5) ** 2 + (y + 1.5) ** 2) / 8) }, key: 'two', levels: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], R: RANGE, gamma: 1 } };
+function cur(){ return FUNCS[$('fsel').value]; }
+function hiLevel(){ const F = cur(), k = Math.min(+$('hil').value, F.levels.length - 1); return F.levels[k]; }
+function draw3(){
+  const F = cur(), [ctx, W, H] = setupCanvas($('c3')); ctx.clearRect(0, 0, W, H);
+  const e = +$('elev').value * Math.PI / 180, a = +$('azim').value * Math.PI / 180, G = lossGrid(F.f, F.key, 90, 90, F.R);
+  const S = Math.min(W, H) * 0.34, Hz = H * 0.42, cx = W / 2, cy = H / 2 + 10 * Math.cos(e);
+  const P = (u, v, z) => { const xr = Math.cos(a) * u - Math.sin(a) * v, yr = Math.sin(a) * u + Math.cos(a) * v, zn = (z - G.mn) / (G.mx - G.mn) - 0.5;
+    return [cx + xr * S, cy + yr * S * Math.sin(e) - zn * Hz * Math.cos(e)]; };
+  const U = i => -1 + 2 * i / (G.nx - 1), V = j => -1 + 2 * j / (G.ny - 1), Z = (i, j) => G.g[j * G.nx + i];
+  ctx.strokeStyle = cssv('--faint'); ctx.globalAlpha = 0.5; ctx.lineWidth = 0.8; ctx.beginPath();
+  for (let j = 0; j < G.ny; j += 6) for (let i = 0; i < G.nx; i++) { const p = P(U(i), V(j), Z(i, j)); i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }
+  for (let i = 0; i < G.nx; i += 6) for (let j = 0; j < G.ny; j++) { const p = P(U(i), V(j), Z(i, j)); j ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }
+  ctx.stroke(); ctx.globalAlpha = 1;
+  const hl = hiLevel(), lo = G.mn, hi = G.mx;
+  F.levels.forEach(lev => { const t = Math.pow((lev - lo) / (hi - lo), F.gamma || 0.5), c = heatRGB(Math.max(0, Math.min(1, t)));
+    ctx.strokeStyle = lev === hl ? cssv('--ink') : `rgb(${c[0]},${c[1]},${c[2]})`; ctx.lineWidth = lev === hl ? 3 : 1.6; ctx.beginPath();
+    isoSegs(G, lev).forEach(s => { const p = P(U(s[0][0]), V(s[0][1]), lev), q = P(U(s[1][0]), V(s[1][1]), lev); ctx.moveTo(p[0], p[1]); ctx.lineTo(q[0], q[1]); }); ctx.stroke(); });
+  // the slicing plane at the highlighted level
+  const cn = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(c => P(c[0], c[1], hl));
+  ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = 0.08; ctx.beginPath(); cn.forEach((p, k) => k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 0.6; ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText(`slice at z = ${hl}`, 8, 16);
+  const [c2, W2, H2] = setupCanvas($('cmap')); c2.clearRect(0, 0, W2, H2);
+  drawContour(c2, W2, H2, F.f, F.key, { levels: F.levels, hi: hl, gamma: F.gamma, range: F.R });
+  $('elevO').textContent = $('elev').value + '°'; $('azimO').textContent = $('azim').value + '°'; $('hilO').textContent = hl;
+  $('c3txt').innerHTML = (+$('elev').value >= 88 ? '<b>Viewing from the top:</b> the sliced surface is now exactly the contour map on the right. ' : '') +
+    `Slices every ${Math.round((F.levels[1] - F.levels[0]) * 100) / 100} in height. The thick ring (z = ${hl}) is the same slice in both views. Colour: blue = low, red = high.`; }
+['fsel', 'elev', 'azim', 'hil'].forEach(id => $(id).addEventListener('input', draw3));
+REDRAW.push(draw3);
+
+// ---------- Demo 2: profile along b = b0 ----------
+function drawCut(){
+  const b0 = +$('b0').value, lv = FUNCS.toy.levels; $('b0O').textContent = b0.toFixed(1);
+  const [ctx, W, H] = setupCanvas($('cut1')); ctx.clearRect(0, 0, W, H);
+  const M = drawContour(ctx, W, H, TOY, 'toy');
+  const ws = [], N = 600; for (let k = 0; k <= N; k++) ws.push(-6 + 12 * k / N);
+  const Ls = ws.map(w => TOY.L(w, b0)), cross = [];
+  for (let k = 0; k < N; k++) lv.forEach(l => { if ((Ls[k] < l) !== (Ls[k + 1] < l)) { const t = (l - Ls[k]) / (Ls[k + 1] - Ls[k]); cross.push({ w: ws[k] + t * (ws[k + 1] - ws[k]), l }); } });
+  cross.sort((p, q) => p.w - q.w);
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(M.X(-6), M.Y(b0)); ctx.lineTo(M.X(6), M.Y(b0)); ctx.stroke();
+  ctx.fillStyle = cssv('--s2'); cross.forEach(c => { ctx.beginPath(); ctx.arc(M.X(c.w), M.Y(b0), 3.5, 0, 7); ctx.fill(); });
+  const [c2, W2, H2] = setupCanvas($('cut2')); c2.clearRect(0, 0, W2, H2);
+  const pad = 34, top = 0.75, X = w => pad + (w + 6) / 12 * (W2 - pad - 10), Y = v => 10 + (1 - v / top) * (H2 - 36);
+  c2.strokeStyle = cssv('--grid'); c2.lineWidth = 1; c2.setLineDash([3, 4]); lv.forEach(l => { c2.beginPath(); c2.moveTo(pad, Y(l)); c2.lineTo(W2 - 10, Y(l)); c2.stroke(); }); c2.setLineDash([]);
+  c2.fillStyle = cssv('--muted'); c2.font = '11px system-ui'; c2.textAlign = 'right'; [0, 0.2, 0.4, 0.6].forEach(v => c2.fillText(v, pad - 4, Y(v) + 4));
+  c2.textAlign = 'center'; for (let w = -6; w <= 6; w += 2) c2.fillText(w, X(w), H2 - 12); c2.fillText(`loss along b = ${b0.toFixed(1)}, as a function of w`, (W2 + pad) / 2, H2 - 1); c2.textAlign = 'left';
+  c2.strokeStyle = cssv('--s2'); c2.lineWidth = 2.5; c2.beginPath(); ws.forEach((w, k) => k ? c2.lineTo(X(w), Y(Ls[k])) : c2.moveTo(X(w), Y(Ls[k]))); c2.stroke();
+  c2.fillStyle = cssv('--s2'); cross.forEach(c => { c2.beginPath(); c2.arc(X(c.w), Y(c.l), 3.5, 0, 7); c2.fill(); });
+  if (cross.length >= 3) { let gi = 0, ni = 0; const gaps = [];
+    for (let k = 0; k < cross.length - 1; k++) gaps.push(cross[k + 1].w - cross[k].w);
+    gaps.forEach((g, k) => { if (g > gaps[gi]) gi = k; if (g < gaps[ni]) ni = k; });
+    const sl = k => { const m = (cross[k].w + cross[k + 1].w) / 2; return Math.abs((TOY.L(m + 1e-4, b0) - TOY.L(m - 1e-4, b0)) / 2e-4); };
+    $('cutTxt').innerHTML = `The cut crosses ${cross.length} rings (dots). Widest gap between neighbouring rings: Δw ≈ ${fmt(gaps[gi], 2)}, where the slope along the cut is ≈ ${fmt(sl(gi), 3)}. Narrowest gap: Δw ≈ ${fmt(gaps[ni], 2)}, where the slope is ≈ ${fmt(sl(ni), 3)}. Far apart ⇔ gentle, close together ⇔ steep.`; }
+  else $('cutTxt').textContent = `The cut crosses only ${cross.length} ring${cross.length === 1 ? '' : 's'} here: along this line the loss hardly changes (a flat region). Try b₀ between −4 and 0.`; }
+$('b0').addEventListener('input', drawCut); REDRAW.push(drawCut);
+
+// ---------- Demo 3: gradient descent on the map ----------
+const race = Race({ map: $('gMap'), lossCv: $('gLoss'), sigCv: $('gSig'), toy: TOY, start: [-2, -2], maxIter: 1000, lossX: 300,
+  speed: () => +$('gSpd').value,
+  runners: () => [{ color: '--s3', step: o => STEP.gd(o, TOY, { eta: 1 }) }],
+  onPlay: p => { $('gPlay').textContent = p ? '❚❚ Pause' : '▶ Play'; },
+  onDraw: S => { const r = S.runners[0], L = r.loss[r.loss.length - 1]; $('gIt').textContent = S.it; $('gL').textContent = fmt(L, 4); $('gD').textContent = S.it ? fmt(r.last, 4) : '–';
+    $('gTxt').textContent = S.it === 0 ? 'Press Play. Watch the spacing of the dots: it is the step length η‖∇‖.'
+      : r.last < 0.01 && L > 0.1 ? 'On the plateau: the rings are far apart, the gradient is tiny, the dots pile up.'
+      : r.last >= 0.05 ? 'Crossing crowded rings: steep slope, large gradient, big jumps in w and b.'
+      : L < 0.02 ? 'In the valley: gentle again, so it creeps towards the minimum.' : 'Moving between regions.'; } });
+$('gPlay').onclick = () => race.play(); $('gStep').onclick = () => { race.play(false); race.step(1); };
+$('gReset').onclick = () => { race.play(false); race.reset($('gStart').value.split(',').map(Number)); };
+$('gStart').addEventListener('change', () => $('gReset').onclick());
+race.reset(); REDRAW.push(race.draw);
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Representation Power in 1-D</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 20 · playlist video 20 (titled “L23” on YouTube) · Representation power of sigmoid networks</div>
+<h1>Sigmoid Networks Can Approximate Any 1-D Function</h1>
+<p class="lede">Any continuous function can be approximated by a sum of thin rectangular "towers", and the thinner and more numerous the towers, the better the fit. Two steep sigmoid neurons, one subtracted from the other, make exactly such a tower. So a network with one hidden layer of sigmoid neurons can approximate any continuous function to any precision you ask for, if you give it enough neurons.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=xHSErLWAlbU" target="_blank" rel="noopener">this lecture on YouTube</a> (≈23 min). Previous: <a href="L19-gradient-descent-derivation.html">L19</a> · Next: <a href="L21-representation-power-2d.html">L21</a> (the same idea in 2-D).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The same template as for perceptrons</h2>
+<p>For perceptrons we proved a statement by construction: <b>a network of perceptrons with a single hidden layer can represent any Boolean function precisely</b>. For $n$ inputs there are $2^{2^n}$ Boolean functions; whichever truth table you pick, a hidden layer with one perceptron per input combination (exponentially many, $2^n$) reproduces it exactly, linearly separable or not.</p>
+<p>Now the analogous statement for sigmoid neurons. Compare the two side by side:</p>
+<table>
+<tr><th></th><th>Network of perceptrons</th><th>Network of sigmoid neurons</th></tr>
+<tr><td>Hidden layers</td><td>one</td><td>one</td></tr>
+<tr><td>Functions covered</td><td>any <b>Boolean</b> function</td><td>any <b>continuous</b> function</td></tr>
+<tr><td>Quality</td><td><b>represents</b> it exactly</td><td><b>approximates</b> it to any desired precision</td></tr>
+<tr><td>Cost</td><td>up to $2^n$ hidden neurons</td><td>more neurons the smaller the tolerance</td></tr>
+</table>
+
+<h2>2 · The universal approximation theorem</h2>
+<p>Take an input $x\in\mathbb R^n$. There is some true function $f$ giving the true output $f(x)$. Our network gives an output $g(x)$ (what we have usually called $\hat f(x)$). "Any desired precision" means: <b>you</b> choose a tolerance $\varepsilon$ (0.01, 0.0001, anything), and I can construct a network with one hidden layer such that</p>
+$$\lvert f(x)-g(x)\rvert&lt;\varepsilon\quad\text{for every input }x .$$
+<div class="callout"><b>Universal approximation theorem.</b> For any continuous $f:\mathbb R^n\to\mathbb R^m$ and any $\varepsilon&gt;0$, there is a neural network with <b>one hidden layer</b> of (enough) sigmoid neurons whose output is always within $\varepsilon$ of $f$.</div>
+<p>This is why deep learning is attractive. In the oil-mining example, whether there is oil depends on salinity, pressure, temperature, marine diversity… through some very complex $f$ that nobody can write down. The theorem says a neural network can get as close to it as we like, <b>in theory</b>. The practical catch: the hidden layer may need a very large number of neurons, and if that grows exponentially the network is useless in practice. Adding a second hidden layer can bring the count per layer down from exponential to something manageable (left as an exercise in the course); here we stay with the constrained one-hidden-layer story.</p>
+<p>The formal proof is hard. Instead, as with perceptrons, the lecture gives an <b>illustrative proof by construction</b>, based on the visual explanation in an early online deep-learning textbook (Michael Nielsen's <i>Neural Networks and Deep Learning</i>, chapter 4).</p>
+
+<h2>3 · Any function is a sum of towers</h2>
+<p>Take an arbitrary-looking function of one input: not $\sin x$, not $x^2$, some mixture. Cut the $x$-axis into intervals and put a rectangle (a <b>tower</b>) on each, as tall as the function there. The towers sit at different positions and have different heights, and their sum traces the function.</p>
+<ul>
+<li>With a few wide towers the approximation is poor: at some $x$ the true value and the tower top are far apart.</li>
+<li>With more, narrower towers it gets better, and there is always scope to narrow them further. <b>More towers, better approximation.</b></li>
+</ul>
+<p>(None of this involves neural networks yet.) What makes it attractive is that every tower is the <b>same kind of object</b>: a rectangle, only shifted along $x$ and scaled in height. So if we can build one tower, we can build all of them. Picture a box called a <b>tower maker</b>: it takes $x$ and produces one tower. Use many identical tower makers (differing only in position and height), add their outputs, and you have $\hat f(x)$. The thinner the towers, the better the approximation: that is the knob corresponding to $\varepsilon$.</p>
+
+<h2>4 · Building the tower maker from two sigmoids</h2>
+<p>Feed $x$ to two sigmoid neurons:</p>
+$$h_{11}=\frac{1}{1+e^{-(w_1x+b_1)}},\qquad h_{12}=\frac{1}{1+e^{-(w_2x+b_2)}}.$$
+<ol class="steps">
+<li><b>$w=0$, $b=0$:</b> the sigmoid is a flat line at $1/(1+e^{0})=0.5$. With $w=0$ the input doesn't matter at all.</li>
+<li><b>Increase $w$:</b> a gentle S-curve appears, and the larger $w$ gets, the steeper the S, until it is <b>almost a step function</b>. Takeaway: <b>a very large $w$ recovers the step function.</b></li>
+<li><b>Change $b$:</b> the curve slides left or right. $b$ sets the crossover point where the output switches from 0 to 1 (at $x=-b/w$).</li>
+<li><b>Subtract:</b> define $h_{21}=h_{11}-h_{12}$ with $h_{11}$ switching on first. Left of both crossovers: $0-0=0$. Right of both: $1-1=0$. In between: $1-0=1$. That is a <b>tower</b>.</li>
+</ol>
+<p>Making the $w$'s large makes the tower's walls vertical; the gap between the two crossovers (set by the $b$'s) is the tower's <b>width</b>. If you push the crossovers very close, the tower also gets shorter, because the two S-curves no longer reach 1 and 0 in between. Try it:</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The two sigmoid neurons and their difference, as in the lecture's interactive figure. Tick which curves to show.</p>
+  <div class="row"><label>$w_1$ <input type="range" id="w1" min="0" max="60" step="0.5" value="6"> <span id="w1v" class="mono"></span></label>
+    <label>$b_1$ <input type="range" id="b1" min="-40" max="40" step="0.5" value="6"> <span id="b1v" class="mono"></span></label></div>
+  <div class="row"><label>$w_2$ <input type="range" id="w2" min="0" max="60" step="0.5" value="6"> <span id="w2v" class="mono"></span></label>
+    <label>$b_2$ <input type="range" id="b2" min="-40" max="40" step="0.5" value="-6"> <span id="b2v" class="mono"></span></label></div>
+  <div class="row"><label><input type="checkbox" id="s11" checked> $h_{11}$</label><label><input type="checkbox" id="s12" checked> $h_{12}$</label><label><input type="checkbox" id="s21" checked> $h_{21}=h_{11}-h_{12}$</label>
+    <button id="flat">w = 0, b = 0</button><button id="steep">make the steps steep</button></div>
+  <canvas id="tc" height="260" aria-label="Two sigmoid curves and their difference, a tower"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>$h_{11}$</span><span><i style="background:var(--s1)"></i>$h_{12}$</span><span><i style="background:var(--s3)"></i>$h_{21}$ (tower)</span></div>
+  <div class="row"><div class="stat"><div class="v" id="tpk">–</div><div class="l">tower height (peak of $h_{21}$)</div></div><div class="stat"><div class="v" id="tw">–</div><div class="l">crossovers $-b_1/w_1$ and $-b_2/w_2$</div></div></div>
+</div>
+
+<h2>5 · The whole network</h2>
+<p>Put it together. $x$ feeds two sigmoid neurons with large weights (two steps), and $h_{21}$ combines them with weights $+1$ and $-1$:</p>
+$$h_{21}=\sum_{i=1}^{2} w_i\,h_{1i},\qquad w_1=1,\ w_2=-1 .$$
+<p>$h_{21}$ just takes a weighted sum of its inputs (a linear unit, weights hand-coded). That is a neural network whose output is a tower, built from sigmoid neurons: the tower maker. One tower costs two hidden neurons; to approximate $f$, use many pairs, scale each tower to the right height, and add them all in the output. Thinner towers means more pairs, so a smaller $\varepsilon$ means more hidden neurons, exactly as the theorem warned.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Tower makers approximating an arbitrary function on $[0,1]$. Each tower is $\sigma(w(x-x_i))-\sigma(w(x-x_{i+1}))$, scaled to the height of $f$ at the middle of its interval; the network output is their sum. Steepness is measured relative to the tower width.</p>
+  <div class="row"><label>towers <input type="range" id="nt" min="1" max="150" step="1" value="6"> <span id="ntv" class="mono"></span></label>
+    <label>steepness <input type="range" id="st" min="0" max="100" step="1" value="70"> <span id="stv" class="mono"></span></label>
+    <label><input type="checkbox" id="showT" checked> show individual towers</label></div>
+  <div class="row"><label>ε = <select id="eps"><option>0.2</option><option selected>0.1</option><option>0.05</option><option>0.02</option><option>0.01</option><option>0.005</option></select></label> <button id="find">Give me ε, I'll give you a network</button></div>
+  <canvas id="ac" height="300" aria-label="Sum of towers approximating a curve"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>true $f(x)$</span><span><i style="background:var(--s1)"></i>network output $g(x)$</span><span><i style="background:var(--faint)"></i>individual towers</span></div>
+  <div class="row"><div class="stat"><div class="v" id="err">–</div><div class="l">max over $x$ of $\lvert f(x)-g(x)\rvert$</div></div><div class="stat"><div class="v" id="nh">–</div><div class="l">hidden sigmoid neurons</div></div></div>
+  <p class="small" id="aTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video: how many towers for a given ε?</b> If $f$ never changes faster than slope $K$, a tower of width $\delta$ placed at the interval's midpoint is off by at most $K\delta/2$ inside its interval. So $\delta\approx 2\varepsilon/K$ suffices, i.e. about $K/(2\varepsilon)$ towers on $[0,1]$, which is $K/\varepsilon$ hidden neurons. Halve $\varepsilon$, double the network. In $n$ dimensions the count of little boxes grows like $(1/\varepsilon)^n$, which is why depth (reusing features) matters. The ReLU networks you'll meet later build the same "bumps" from ReLUs instead of sigmoids. My ML notes cover the network view in <a href="../machine-learning/L72-neural-networks.html">ML L72</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Perceptron networks <b>represent</b> any Boolean function; sigmoid networks with one hidden layer <b>approximate</b> any continuous function to any precision $\varepsilon$ (universal approximation theorem).</li>
+<li>Any function is approximately a sum of shifted, scaled towers; more and thinner towers give a better approximation.</li>
+<li>A sigmoid with large $w$ is nearly a step; $b$ sets where it steps ($x=-b/w$).</li>
+<li>Two steps subtracted, $h_{11}-h_{12}$, form a tower: two hidden neurons per tower, combined with weights $+1$ and $-1$.</li>
+<li>Smaller $\varepsilon$ means more towers, hence more neurons: the theorem is about existence, not about a practical network size.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const sig = z => 1 / (1 + Math.exp(-z));
+const fmt = (v, d = 2) => (Math.abs(v) < 0.5 * Math.pow(10, -d) ? 0 : v).toFixed(d);
+// ---------- demo 1: tower maker ----------
+const XR = [-3, 3];
+function plotAxes(ctx, W, H, pad, x0, x1, y0, y1){
+  const X = x => pad + (x - x0) / (x1 - x0) * (W - 2 * pad), Y = y => H - pad - (y - y0) / (y1 - y0) * (H - 2 * pad);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath();
+  ctx.moveTo(pad, Y(0)); ctx.lineTo(W - pad, Y(0)); ctx.moveTo(pad, Y(1)); ctx.lineTo(W - pad, Y(1)); ctx.stroke();
+  ctx.fillStyle = cssv('--faint'); ctx.font = '11px system-ui'; ctx.fillText('0', 4, Y(0) + 4); ctx.fillText('1', 4, Y(1) + 4);
+  return [X, Y]; }
+function curve(ctx, X, Y, f, x0, x1, col, lw, n = 400){ ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+  for (let i = 0; i <= n; i++){ const x = x0 + (x1 - x0) * i / n, y = f(x); i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); }
+function drawTower(){
+  const w1 = +$('w1').value, b1 = +$('b1').value, w2 = +$('w2').value, b2 = +$('b2').value;
+  $('w1v').textContent = w1; $('b1v').textContent = b1; $('w2v').textContent = w2; $('b2v').textContent = b2;
+  const [ctx, W, H] = setupCanvas($('tc')), [X, Y] = plotAxes(ctx, W, H, 18, XR[0], XR[1], -0.15, 1.1);
+  const h11 = x => sig(w1 * x + b1), h12 = x => sig(w2 * x + b2), h21 = x => h11(x) - h12(x);
+  if ($('s11').checked) curve(ctx, X, Y, h11, XR[0], XR[1], cssv('--s2'), 2);
+  if ($('s12').checked) curve(ctx, X, Y, h12, XR[0], XR[1], cssv('--s1'), 2);
+  if ($('s21').checked) curve(ctx, X, Y, h21, XR[0], XR[1], cssv('--s3'), 3);
+  let pk = -Infinity; for (let i = 0; i <= 600; i++){ const x = XR[0] + 6 * i / 600; pk = Math.max(pk, h21(x)); }
+  $('tpk').textContent = fmt(pk);
+  const c = (w, b) => w === 0 ? 'none' : fmt(-b / w); $('tw').textContent = c(w1, b1) + ' , ' + c(w2, b2);
+}
+['w1', 'b1', 'w2', 'b2'].forEach(id => $(id).addEventListener('input', drawTower));
+['s11', 's12', 's21'].forEach(id => $(id).addEventListener('change', drawTower));
+$('flat').onclick = () => { ['w1', 'b1', 'w2', 'b2'].forEach(id => $(id).value = 0); drawTower(); };
+$('steep').onclick = () => { $('w1').value = 50; $('b1').value = 25; $('w2').value = 50; $('b2').value = -25; drawTower(); };
+
+// ---------- demo 2: sum of towers ----------
+const f = x => 0.55 + 0.25 * Math.sin(7 * x) + 0.12 * Math.cos(19 * x + 1) + 0.15 * x * x;
+const steepOf = v => Math.pow(10, v / 50);        // slider 0..100 -> 1..100 (in units of 1/width)
+function towers(N, s){ const d = 1 / N, w = s / d, T = [];
+  for (let i = 0; i < N; i++){ const l = i === 0 ? -1 : i * d, r = i === N - 1 ? 2 : (i + 1) * d; T.push({l, r, h: f((i + 0.5) * d)}); }
+  return {T, w}; }
+const gOf = (net, x) => { let s = 0; for (const t of net.T) s += t.h * (sig(net.w * (x - t.l)) - sig(net.w * (x - t.r))); return s; };
+function maxErr(net, n = 400){ let e = 0; for (let i = 0; i <= n; i++){ const x = i / n; e = Math.max(e, Math.abs(f(x) - gOf(net, x))); } return e; }
+let aMsg = '';
+function drawApprox(){
+  const N = +$('nt').value, s = steepOf(+$('st').value), net = towers(N, s);
+  $('ntv').textContent = N; $('stv').textContent = s.toFixed(1) + ' / width';
+  const [ctx, W, H] = setupCanvas($('ac')), [X, Y] = plotAxes(ctx, W, H, 18, 0, 1, -0.05, 1.25);
+  if ($('showT').checked && N <= 40) net.T.forEach(t => curve(ctx, X, Y, x => t.h * (sig(net.w * (x - t.l)) - sig(net.w * (x - t.r))), Math.max(0, t.l - 0.05), Math.min(1, t.r + 0.05), cssv('--faint'), 1, 80));
+  curve(ctx, X, Y, f, 0, 1, cssv('--s2'), 2.5);
+  curve(ctx, X, Y, x => gOf(net, x), 0, 1, cssv('--s1'), 2, 500);
+  $('err').textContent = maxErr(net).toFixed(3); $('nh').textContent = 2 * N;
+  $('aTxt').innerHTML = aMsg; aMsg = '';
+}
+$('nt').addEventListener('input', drawApprox); $('st').addEventListener('input', drawApprox); $('showT').addEventListener('change', drawApprox);
+$('find').onclick = () => { const eps = +$('eps').value, s = steepOf(+$('st').value), ok = N => maxErr(towers(N, s), 300) < eps;
+  let found = 0;
+  if (ok(150)){ let lo = 1, hi = 150; while (lo < hi){ const m = (lo + hi) >> 1; if (ok(m)) hi = m; else lo = m + 1; } found = lo; while (found > 1 && ok(found - 1)) found--; }
+  if (found){ $('nt').value = found; aMsg = `For ε = ${eps}: <b>${found} towers</b> (${2 * found} hidden sigmoid neurons) is the smallest network of this kind that stays within ε everywhere on [0, 1]. Pick a smaller ε and the network grows.`; }
+  else aMsg = `Even 150 towers don't stay within ε = ${eps} at this steepness: try a different steepness, or accept a larger ε.`;
+  drawApprox(); };
+function redrawAll(){ drawTower(); drawApprox(); }
+
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

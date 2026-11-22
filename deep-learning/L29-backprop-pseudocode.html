@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backpropagation Pseudocode</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:10px 0;overflow-x:auto;margin:10px 0}
+.code div{white-space:pre;padding:1px 14px;border-left:3px solid transparent}
+.code div.hl{background:var(--tint);border-left-color:var(--s1)}
+.code .c{color:var(--muted)}
+</style>
+</head>
+
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 29 · playlist video 29 (titled “L29” on YouTube) · Backpropagation, the full algorithm</div>
+<h1>Backpropagation: the Full Algorithm</h1>
+<p class="lede">Put the pieces together. A forward pass computes and stores every $a_k$, $h_k$ and $\hat y$. A backward pass starts from $-(e(y)-\hat y)$ and loops from layer $L$ down to layer 1, producing the gradients for $W_k$ and $b_k$ and handing the error signal to the layer below. A gradient-descent update follows. Each line is a matrix–vector operation, and the same formula works for every layer.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=1f22ZAS-YGE" target="_blank" rel="noopener">this lecture on YouTube</a> (≈9 min). Previous: <a href="L28-gradient-parameters.html">L28</a> · Next: <a href="L30-gradient-descent-recap.html">L30</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · All the pieces of the puzzle</h2>
+<table>
+<thead><tr><th>quantity</th><th>formula</th><th>from</th></tr></thead>
+<tbody>
+<tr><td>output layer</td><td>$\nabla_{a_L}L=-(e(y)-\hat y)$</td><td><a href="L26-gradient-output-units.html">L26</a></td></tr>
+<tr><td>hidden activations</td><td>$\nabla_{h_{k-1}}L=W_k^{\top}\nabla_{a_k}L$</td><td><a href="L27-gradient-hidden-units.html">L27</a></td></tr>
+<tr><td>hidden pre-activations</td><td>$\nabla_{a_{k-1}}L=\nabla_{h_{k-1}}L\odot g'(a_{k-1})$</td><td><a href="L27-gradient-hidden-units.html">L27</a></td></tr>
+<tr><td>weights, biases</td><td>$\nabla_{W_k}L=\nabla_{a_k}L\,h_{k-1}^{\top}$, $\ \nabla_{b_k}L=\nabla_{a_k}L$</td><td><a href="L28-gradient-parameters.html">L28</a></td></tr>
+</tbody></table>
+
+<h2>2 · The learning algorithm</h2>
+<p>It's ordinary gradient descent (<a href="L17-gradient-descent.html">L17</a>). The only change is that "compute the gradient" is now a forward pass followed by a backward pass. As in the lecture, the algorithm is written for <b>one training example</b> $(x,y)$.</p>
+<div class="code">
+<div>t ← 0;  max_iterations ← 1000</div>
+<div>initialise θ₀ = [W₁⁰, …, W_L⁰, b₁⁰, …, b_L⁰]</div>
+<div>while t++ &lt; max_iterations:</div>
+<div>    h₁…h_{L−1}, a₁…a_L, ŷ  = forward_propagation(θ_t, x)</div>
+<div>    ∇θ_t = backward_propagation(h₁…h_{L−1}, a₁…a_L, y, ŷ)</div>
+<div>    θ_{t+1} ← θ_t − η ∇θ_t</div>
+</div>
+<p>$\nabla\theta_t$ is the collection of all the weight and bias gradients. Everything the forward pass computes is <b>kept</b>, because the backward formulas use it.</p>
+
+<h2>3 · Forward propagation</h2>
+<div class="code" id="fwdcode">
+<div id="f0"><span class="c">// h₀ = x</span></div>
+<div id="f1">for k = 1 to L−1:</div>
+<div id="f2">    a_k = b_k + W_k h_{k−1}</div>
+<div id="f3">    h_k = g(a_k)</div>
+<div id="f4">a_L = b_L + W_L h_{L−1}</div>
+<div id="f5">ŷ = O(a_L)</div>
+</div>
+<p>There are no derivatives here, just a chain of matrix–vector products and element-wise functions such as the logistic. The output layer sits <b>outside the loop</b> because it uses a special output function $O$ (softmax), not the hidden-layer $g$. Once you have $\hat y$ and the true $y$, you can compute the loss.</p>
+
+<h2>4 · Backward propagation</h2>
+<div class="code" id="bwdcode">
+<div id="b0"><span class="c">// compute output gradient</span></div>
+<div id="b1">∇_{a_L} L(θ) = −(e(y) − ŷ)</div>
+<div id="b2">for k = L down to 1:</div>
+<div id="b3">    <span class="c">// gradients w.r.t. parameters</span></div>
+<div id="b4">    ∇_{W_k} L(θ) = ∇_{a_k} L(θ) · h_{k−1}ᵀ</div>
+<div id="b5">    ∇_{b_k} L(θ) = ∇_{a_k} L(θ)</div>
+<div id="b6">    <span class="c">// gradients w.r.t. the layer below</span></div>
+<div id="b7">    ∇_{h_{k−1}} L(θ) = W_kᵀ ∇_{a_k} L(θ)</div>
+<div id="b8">    ∇_{a_{k−1}} L(θ) = ∇_{h_{k−1}} L(θ) ⊙ [ …, g′(a_{k−1,j}), … ]</div>
+</div>
+<ul>
+<li><b>Output gradient.</b> $\hat y$ is from the forward pass; $e(y)$ is the one-hot vector of the example's true class, known from the training data.</li>
+<li><b>The loop runs from the last layer to the first.</b> At $k=L$ (say $W_3$) it needs $\nabla_{a_L}L$, just computed outside the loop, and $h_{L-1}$ from the forward pass. Then it computes $\nabla_{h_{L-1}}L$ (needs $W_L$) and $\nabla_{a_{L-1}}L$ (needs $g'$), which is exactly what the next iteration needs.</li>
+<li>In the video the loop bounds are briefly given as "$L-1$ to 1", then corrected. The loop must start at $k=L$, or $W_L$ and $b_L$ would never get gradients.</li>
+</ul>
+<p>So there is no painful entry-by-entry differentiation ($W_{3,1,2}$, $W_{3,2,2}$, …). The same generic formulas, inside a small loop, give gradients for all weights, biases, activations and pre-activations.</p>
+<div class="beyond"><b>Going beyond the video: two practical details.</b> (1) At $k=1$ the last two lines would compute gradients for $h_0=x$ and "$a_0$", which aren't parameters. Real code skips them. (2) With many examples you sum (or average) $\nabla\theta$ over the examples before updating. The demo below does that over the whole dataset; <a href="L34-stochastic-vs-batch.html">L34</a> compares this with per-example updates.</div>
+
+<h2>5 · The last ingredient: $g'$</h2>
+<p>The only derivative left is the activation's, and it's easy:</p>
+<table>
+<thead><tr><th>$g(z)$</th><th>$g'(z)$</th></tr></thead>
+<tbody>
+<tr><td>logistic: $\dfrac{1}{1+e^{-z}}$</td><td>$g(z)\,\big(1-g(z)\big)$</td></tr>
+<tr><td>tanh: $\dfrac{e^{z}-e^{-z}}{e^{z}+e^{-z}}$</td><td>$1-g(z)^2$</td></tr>
+</tbody></table>
+<p>Both are written in terms of $g(z)$ itself. Since the forward pass already stored $h_{k-1}=g(a_{k-1})$, $g'(a_{k-1})$ is just $h_{k-1}\odot(1-h_{k-1})$ or $1-h_{k-1}\odot h_{k-1}$: no extra exponentials.</p>
+
+<h2>6 · Try it: trace one example, then train</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">A $2\to8\to8\to3$ network ($L=3$) with softmax output classifies 2-D points into 3 classes. <b>Trace</b> walks the pseudocode above for one example, highlighting each line and printing what it produced. <b>Train</b> runs gradient descent with the gradients summed over all points (up to 1000 iterations). <b>Gradient check</b> compares every backprop gradient with a finite-difference estimate.</p>
+  <div class="row"><button id="trace">Trace one line</button><button id="train">Train</button><button id="gchk">Gradient check</button><button id="reinit">Re-initialise θ</button></div>
+  <div class="row">
+    <label>data <select id="ds"><option value="blobs">3 blobs</option><option value="rings">rings</option></select></label>
+    <label>g <select id="act"><option value="sig">logistic</option><option value="tanh">tanh</option></select></label>
+    <label>η <input type="range" id="eta" min="-2" max="0.5" step="0.05" value="-0.5"> <span class="mono" id="etav"></span></label>
+  </div>
+  <p id="trTxt" class="mono" style="white-space:pre-wrap;margin:8px 0;min-height:3.2em"></p>
+  <div class="pair half">
+    <canvas id="reg" height="280" aria-label="Decision regions of the network"></canvas>
+    <canvas id="lc" height="280" aria-label="Training loss curve"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>class 1</span><span><i class="dot" style="background:var(--s2)"></i>class 2</span><span><i class="dot" style="background:var(--s3)"></i>class 3</span><span><i class="dot" style="background:var(--ink)"></i>example being traced</span><span><i style="background:var(--s1)"></i>mean loss vs iteration</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="it">0</div><div class="l">iteration t</div></div>
+    <div class="stat"><div class="v" id="ls">–</div><div class="l">mean loss $L(\theta)$</div></div>
+    <div class="stat"><div class="v" id="ac">–</div><div class="l">training accuracy</div></div>
+    <div class="stat"><div class="v" id="gc">–</div><div class="l">max relative error, backprop vs finite diff.</div></div>
+  </div>
+</div>
+<p>Run the gradient check first: the relative error should be around $10^{-6}$ or smaller, meaning the five lines of the backward pass give exactly the derivatives of the loss. Then train. On "rings", compare logistic with tanh, and a small $\eta$ with a large one: with the logistic and a small $\eta$ the loss falls very slowly and is still well above zero after 1000 iterations. That slow-start behaviour is where <a href="L30-gradient-descent-recap.html">L30</a> picks up.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Training = gradient descent, where each gradient comes from one forward pass and one backward pass.</li>
+<li>Forward: $a_k=b_k+W_kh_{k-1}$, $h_k=g(a_k)$ for $k&lt;L$; then $a_L$ and $\hat y=O(a_L)$ outside the loop. Store everything.</li>
+<li>Backward: start from $-(e(y)-\hat y)$ and loop $k=L,\dots,1$, computing $\nabla_{W_k}$, $\nabla_{b_k}$, then $\nabla_{h_{k-1}}$ and $\nabla_{a_{k-1}}$ for the next iteration.</li>
+<li>$g'$ is cheap: $g(1-g)$ for the logistic, $1-g^2$ for tanh, both from stored activations.</li>
+<li>The whole algorithm is a few matrix–vector lines, the same for every layer.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const softmax = v => { const M = Math.max(...v), e = v.map(x => Math.exp(x - M)), s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); };
+const ACT = {sig: [z => 1 / (1 + Math.exp(-z)), h => h * (1 - h)], tanh: [Math.tanh, h => 1 - h * h]};
+const S = [2, 8, 8, 3], L = 3; let W, B, D = [], t = 0, hist = [], timer = null, tr = null, gcErr = null;
+const act = () => ACT[$('act').value], eta = () => Math.pow(10, +$('eta').value);
+function makeData(){ D = []; const kind = $('ds').value;
+  for (let c = 0; c < 3; c++) for (let n = 0; n < 30; n++) {
+    if (kind === 'blobs') { const th = c * 2 * Math.PI / 3 + 0.5; D.push({x: [1.3 * Math.cos(th) + 0.45 * randn(), 1.3 * Math.sin(th) + 0.45 * randn()], y: c}); }
+    else { const r = 0.35 + c * 0.75 + 0.12 * randn(), th = Math.random() * 2 * Math.PI; D.push({x: [r * Math.cos(th), r * Math.sin(th)], y: c}); } } }
+function initTheta(){ W = [null]; B = [null]; for (let k = 1; k <= L; k++) { const s = 1 / Math.sqrt(S[k - 1]); W.push(Array.from({length: S[k]}, () => Array.from({length: S[k - 1]}, () => randn() * s * 1.5))); B.push(Array(S[k]).fill(0)); }
+  t = 0; hist = []; tr = null; gcErr = null; }
+function forward(x){ const [g] = act(), h = [x], A = [null];
+  for (let k = 1; k < L; k++) { const ak = W[k].map((row, i) => B[k][i] + row.reduce((s, w, j) => s + w * h[k - 1][j], 0)); A.push(ak); h.push(ak.map(g)); }
+  const aL = W[L].map((row, i) => B[L][i] + row.reduce((s, w, j) => s + w * h[L - 1][j], 0)); A.push(aL); const yhat = softmax(aL); return {h, A, yhat}; }
+function backward(F, y, acc){ const [, gp] = act(); let gA = F.yhat.map((v, i) => v - (i === y ? 1 : 0));
+  for (let k = L; k >= 1; k--) { for (let i = 0; i < S[k]; i++) { for (let j = 0; j < S[k - 1]; j++) acc.W[k][i][j] += gA[i] * F.h[k - 1][j]; acc.B[k][i] += gA[i]; }
+    if (k > 1) { const gH = F.h[k - 1].map((_, j) => W[k].reduce((s, row, m) => s + row[j] * gA[m], 0)); gA = gH.map((v, j) => v * gp(F.h[k - 1][j])); } } }
+const zeros = () => ({W: [null, ...[1, 2, 3].map(k => Array.from({length: S[k]}, () => Array(S[k - 1]).fill(0)))], B: [null, ...[1, 2, 3].map(k => Array(S[k]).fill(0))]});
+function meanLoss(){ let s = 0, c = 0; D.forEach(p => { const yh = forward(p.x).yhat; s -= Math.log(Math.max(1e-300, yh[p.y])); if (yh.indexOf(Math.max(...yh)) === p.y) c++; }); return [s / D.length, c / D.length]; }
+function gdStep(){ const acc = zeros(); D.forEach(p => backward(forward(p.x), p.y, acc)); const e = eta() / D.length;
+  for (let k = 1; k <= L; k++) { W[k] = W[k].map((row, i) => row.map((w, j) => w - e * acc.W[k][i][j])); B[k] = B[k].map((b, i) => b - e * acc.B[k][i]); } t++; }
+function gradCheck(){ const acc = zeros(); D.forEach(p => backward(forward(p.x), p.y, acc)); const sumL = () => meanLoss()[0] * D.length, eps = 1e-5; let worst = 0;
+  const one = (arr, idx, an) => { const o = arr[idx]; arr[idx] = o + eps; const lp = sumL(); arr[idx] = o - eps; const lm = sumL(); arr[idx] = o; const num = (lp - lm) / (2 * eps);
+    worst = Math.max(worst, Math.abs(num - an) / Math.max(1e-8, Math.abs(num) + Math.abs(an))); };
+  for (let k = 1; k <= L; k++) { W[k].forEach((row, i) => row.forEach((_, j) => one(row, j, acc.W[k][i][j]))); B[k].forEach((_, i) => one(B[k], i, acc.B[k][i])); }
+  gcErr = worst; draw(); }
+// ---- trace one example through the pseudocode ----
+const vec = v => '[' + v.map(q => q.toFixed(2)).join(', ') + ']';
+function buildTrace(){ const p = D[Math.floor(Math.random() * D.length)], [g, gp] = act(), F = forward(p.x), steps = [];
+  steps.push(['f0', `picked x = ${vec(p.x)}, true class y = ${p.y + 1};  h₀ = x`]);
+  for (let k = 1; k < L; k++) { steps.push(['f1', `k = ${k}`]); steps.push(['f2', `a${k} = b${k} + W${k} h${k - 1}  (${S[k]}×${S[k - 1]} matrix × ${S[k - 1]}-vector) → ${vec(F.A[k].slice(0, 4))}…`]); steps.push(['f3', `h${k} = g(a${k}) → ${vec(F.h[k].slice(0, 4))}…`]); }
+  steps.push(['f4', `a${L} = b${L} + W${L} h${L - 1} → ${vec(F.A[L])}`]); steps.push(['f5', `ŷ = softmax(a${L}) → ${vec(F.yhat)};  loss = −log ŷ_y = ${(-Math.log(F.yhat[p.y])).toFixed(3)}`]);
+  let gA = F.yhat.map((v, i) => v - (i === p.y ? 1 : 0)); steps.push(['b1', `∇a${L} = −(e(y) − ŷ) → ${vec(gA)}`]);
+  for (let k = L; k >= 1; k--) { steps.push(['b2', `k = ${k}`]);
+    const gw = gA.map(gi => F.h[k - 1].map(hj => gi * hj)); steps.push(['b4', `∇W${k} = ∇a${k} h${k - 1}ᵀ  (${S[k]}×${S[k - 1]}, rank 1); first row ${vec(gw[0].slice(0, 4))}…`]);
+    steps.push(['b5', `∇b${k} = ∇a${k} → ${vec(gA.slice(0, 4))}${gA.length > 4 ? '…' : ''}`]);
+    if (k > 1) { const gH = F.h[k - 1].map((_, j) => W[k].reduce((s, row, m) => s + row[j] * gA[m], 0)); steps.push(['b7', `∇h${k - 1} = W${k}ᵀ ∇a${k} → ${vec(gH.slice(0, 4))}…`]);
+      gA = gH.map((v, j) => v * gp(F.h[k - 1][j])); steps.push(['b8', `∇a${k - 1} = ∇h${k - 1} ⊙ g′(a${k - 1}) → ${vec(gA.slice(0, 4))}…`]); }
+    else steps.push(['b7', 'k = 1: ∇h₀ and ∇a₀ would be for the input x, not parameters, so skip them. Every parameter now has its gradient.']); }
+  return {p, steps, i: -1}; }
+function traceStep(){ if (!tr || tr.i >= tr.steps.length - 1) tr = buildTrace(); tr.i++;
+  document.querySelectorAll('.code div').forEach(d => d.classList.remove('hl')); const [id, txt] = tr.steps[tr.i]; $(id).classList.add('hl'); $('trTxt').textContent = `(${tr.i + 1}/${tr.steps.length}) ` + txt; draw(); }
+// ---- drawing ----
+const R = 2.8;
+function draw(){
+  const [ctx, Wd, Hd] = setupCanvas($('reg')), sc = Math.min(Wd, Hd) / (2 * R), ox = Wd / 2, oy = Hd / 2, cols = ['--s1', '--s2', '--s3'].map(cssv), cell = 7;
+  for (let px = 0; px < Wd; px += cell) for (let py = 0; py < Hd; py += cell) { const yh = forward([(px + cell / 2 - ox) / sc, -(py + cell / 2 - oy) / sc]).yhat, c = yh.indexOf(Math.max(...yh));
+    ctx.fillStyle = cols[c]; ctx.globalAlpha = 0.08 + 0.22 * yh[c]; ctx.fillRect(px, py, cell, cell); }
+  ctx.globalAlpha = 1;
+  D.forEach(p => { ctx.fillStyle = cols[p.y]; ctx.beginPath(); ctx.arc(ox + p.x[0] * sc, oy - p.x[1] * sc, 4, 0, 7); ctx.fill(); });
+  if (tr) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(ox + tr.p.x[0] * sc, oy - tr.p.x[1] * sc, 8, 0, 7); ctx.stroke(); }
+  const [c2, W2, H2] = setupCanvas($('lc')), pad = 30; c2.strokeStyle = cssv('--grid'); c2.lineWidth = 1; c2.strokeRect(pad, 10, W2 - pad - 8, H2 - pad - 10);
+  c2.fillStyle = cssv('--muted'); c2.font = '12px system-ui'; c2.fillText('loss', 2, 20); c2.fillText('iteration →', W2 - 80, H2 - 8);
+  const [lsv, acv] = meanLoss(); const pts = hist.length ? hist : [lsv], mx = Math.max(1.2, ...pts), n = Math.max(1000, pts.length);
+  c2.fillText(mx.toFixed(1), 4, 34); c2.fillText('0', 14, H2 - pad);
+  c2.strokeStyle = cssv('--s1'); c2.lineWidth = 2; c2.beginPath();
+  pts.forEach((v, i) => { const X = pad + (W2 - pad - 8) * i / n, Y = 10 + (H2 - pad - 10) * (1 - v / mx); i ? c2.lineTo(X, Y) : c2.moveTo(X, Y); }); c2.stroke();
+  $('it').textContent = t; $('ls').textContent = lsv.toFixed(3); $('ac').textContent = (100 * acv).toFixed(0) + '%';
+  $('gc').textContent = gcErr === null ? 'press check' : gcErr.toExponential(1); $('etav').textContent = eta().toFixed(2);
+}
+function stop(){ if (timer) { clearInterval(timer); timer = null; } $('train').textContent = 'Train'; }
+$('train').onclick = () => { if (timer) return stop(); if (t >= 1000) { initTheta(); }
+  $('train').textContent = 'Pause'; timer = setInterval(() => { for (let q = 0; q < 10 && t < 1000; q++) { gdStep(); hist.push(meanLoss()[0]); } if (t >= 1000) stop(); draw(); }, 30); };
+$('trace').onclick = () => { stop(); traceStep(); };
+$('gchk').onclick = () => { stop(); gradCheck(); };
+$('reinit').onclick = () => { stop(); initTheta(); $('trTxt').textContent = ''; document.querySelectorAll('.code div').forEach(d => d.classList.remove('hl')); draw(); };
+$('ds').addEventListener('change', () => { stop(); makeData(); initTheta(); draw(); });
+$('act').addEventListener('change', () => { stop(); initTheta(); draw(); });
+$('eta').addEventListener('input', draw);
+makeData(); initTheta(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why Deep Networks Were Hard to Train Before 2006</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 56 · playlist video 56 (titled “L56” on YouTube) · the deep learning revival</div>
+<h1>Why Deep Networks Were Hard to Train Before 2006</h1>
+<p class="lede">Training a neural network is a game of gradients, and the gradient for any weight is proportional to the input that weight is connected to. Backpropagation has been around since at least 1986, yet networks just four or five layers deep would not converge reliably until a 2006 idea, unsupervised pre-training, changed things. This short lecture sets up that puzzle.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=PwKAEs9uuZw" target="_blank" rel="noopener">this lecture on YouTube</a> (≈9 min). Previous: <a href="L55-regularization-summary.html">L55</a> · Next: <a href="L57-autoencoder-pretraining.html">L57</a> (autoencoders and layer-wise pre-training).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<p>This video opens a new block of the course: <b>activation functions and initialization methods</b>, both aimed at making deep networks train better. Before introducing them, Prof. Khapra recaps what we already know about gradients, then asks why deep learning took so long to take off.</p>
+
+<h2>1 · Recap: everything runs on the gradient</h2>
+<p>Start with the smallest network: one input, one weight $w$ (the bias is dropped to keep it simple). Whatever variant of gradient descent we use (<a href="L17-gradient-descent.html">plain</a>, <a href="L32-momentum.html">momentum</a>, <a href="L33-nesterov.html">NAG</a>, <a href="L40-adam.html">Adam</a>, …), the update contains the derivative:</p>
+$$w_{t+1}=w_t-\eta\,\frac{\partial \mathcal L}{\partial w}.$$
+<p>For a sigmoid neuron $f(x)=\sigma(wx)$ with squared error, we derived earlier</p>
+$$\frac{\partial \mathcal L}{\partial w}=(f(x)-y)\,f(x)\,(1-f(x))\cdot x .$$
+<div class="callout"><b>Key observation:</b> the derivative has the input $x$ as a factor. If $x$ is large, something happens (big updates); if $x$ is small or zero, the update is small or zero. That observation is what led to <a href="L36-adaptive-learning-rate.html">adaptive learning rates</a> for sparse inputs.</div>
+<p>The same factor shows up as the network grows:</p>
+<table>
+<tr><th>Network</th><th>How the derivative is computed</th><th>The "input" factor</th></tr>
+<tr><td>Wide, shallow (many inputs, one output)</td><td>Same update rule, applied to every $w_i$</td><td>$x_i$, the input wired to $w_i$</td></tr>
+<tr><td>Thin, deep (one neuron per layer)</td><td>Chain rule along one path</td><td>$h_0=x$ for $w_1$; in general $h_{i-1}$ for $w_i$</td></tr>
+<tr><td>Deep and wide</td><td>Chain rule summed over all paths (<a href="L29-backprop-pseudocode.html">backprop</a>)</td><td>$h_{i-1}$, the activation feeding that weight</td></tr>
+</table>
+<p>The $h$'s are outputs of one layer but <b>inputs</b> to the next. (On the slide the subscript was typeset as $h_i-1$; he corrects it to $h_{i-1}$.)</p>
+<div class="callout"><b>Points to remember.</b>
+<ol style="margin:6px 0 0">
+<li>Training is a game of gradients: compute them at every layer, then feed them to your favourite optimizer.</li>
+<li>The gradient measures a parameter's <b>responsibility</b> for the loss: higher gradient, higher responsibility.</li>
+<li>$\partial\mathcal L/\partial w$ is proportional to the input connected to $w$: $x$ in a single-layer network, $h_{i-1}$ in a multi-layer one.</li>
+</ol></div>
+
+<h2>2 · See the "proportional to the input" claim</h2>
+<p>A thin sigmoid chain $x=h_0\to h_1\to\dots\to h_L=\hat y$ with $a_i=w_ih_{i-1}$, $h_i=\sigma(a_i)$ and $\mathcal L=\tfrac12(\hat y-y)^2$, target $y=1$. Backprop gives $\partial\mathcal L/\partial w_i=\delta_i\,h_{i-1}$, where $\delta_i=\partial\mathcal L/\partial a_i$. Set $x=0$ and watch the gradient of $w_1$ vanish while the others don't.</p>
+<div class="card">
+  <div class="row">
+    <label>input $x$ <input type="range" id="gx" min="-3" max="3" step="0.1" value="1"> <b id="gxv"></b></label>
+    <label>depth $L$ <input type="range" id="gL" min="1" max="8" step="1" value="5"> <b id="gLv"></b></label>
+    <label>every weight $w_i$ <input type="range" id="gw" min="-4" max="4" step="0.1" value="1.5"> <b id="gwv"></b></label>
+  </div>
+  <canvas id="gc" height="280" aria-label="Bar chart of the gradient of each layer's weight and the input feeding it"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>$|\partial\mathcal L/\partial w_i|$ (log scale)</span><span><i style="background:var(--s3)"></i>input to that weight, $h_{i-1}$ (right axis, 0–1 for hidden layers)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="gyh">–</div><div class="l">prediction $\hat y$</div></div>
+    <div class="stat"><div class="v" id="gr">–</div><div class="l">$|\partial\mathcal L/\partial w_1|\,/\,|\partial\mathcal L/\partial w_L|$</div></div>
+  </div>
+  <p class="small" id="gtxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video: why depth hurt.</b> Each step back through a sigmoid multiplies $\delta$ by $w_i\,\sigma'(a_{i-1})$, and $\sigma'\le\tfrac14$. Unless the weights are large (which saturates the neurons instead), the first layers get gradients many times smaller than the last ones: try depth 8 with $w=1.5$. This is one concrete face of the convergence problem described below, and it is why the following lectures look at activation functions (<a href="L59-better-activations.html">L59</a>) and initialization.</div>
+
+<h2>3 · The puzzle: backprop is old, deep learning is new</h2>
+<p>Feed-forward networks, and later CNNs, RNNs and Transformers, are all trained with backpropagation. So was backprop discovered around 2009–2010, which is roughly when deep learning became popular (around 2014 in NLP)? <b>No.</b> It existed in the late 1970s, possibly earlier, and was made popular for neural networks by <b>Rumelhart and colleagues in 1986</b>.</p>
+<p>So what was stopping deep learning in the 1990s and early 2000s? In theory you could chain the gradients through any depth. In practice, networks <b>four or five layers deep did not converge reliably</b>.</p>
+<p>Three things have changed since the 1990s:</p>
+<ol class="steps">
+<li><b>More data.</b> A deep network has many parameters, and you need lots of data to fit them.</li>
+<li><b>Faster compute.</b> Training that used to take many days now takes a few.</li>
+<li><b>Other, more theoretical things that had to fall into place.</b> It was not only a compute problem. This is the focus of the next few lectures.</li>
+</ol>
+<div class="callout">Until <b>2006</b>, deep networks were very hard to train. A seminal 2006 work, <b>unsupervised pre-training</b>, made it possible and revived interest in deep networks. The work that followed (roughly 2006 to 2009) led to better optimizers, regularizers, activation functions and initialization methods, and from there to today.</div>
+<p>The next video explains unsupervised pre-training: <a href="L57-autoencoder-pretraining.html">L57</a>.</p>
+<div class="beyond"><b>Going beyond the video.</b> The 2006 papers usually cited are Hinton, Osindero and Teh's deep belief nets (greedy layer-wise training with RBMs) and Hinton and Salakhutdinov's deep autoencoders, followed by Bengio et al. (2007) with stacked autoencoders. My ML notes derive backprop for a small network: <a href="../machine-learning/L72-neural-networks.html">ML L72</a>, <a href="../machine-learning/L73-backpropagation.html">ML L73</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Every gradient-based optimizer is driven by $\partial\mathcal L/\partial w$; the gradient measures how responsible a parameter is for the loss.</li>
+<li>For any weight, $\partial\mathcal L/\partial w_i\propto h_{i-1}$, the input wired to it ($x$ itself in the first layer).</li>
+<li>Backprop dates back to at least 1986, but in practice networks with 4–5 layers did not converge reliably before 2006.</li>
+<li>More data and compute helped, but the revival also needed new ideas, starting with unsupervised pre-training in 2006.</li>
+<li>That work pointed research towards better optimization, regularization, activation functions and initialization: the subject of the coming lectures.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const sig = a => 1 / (1 + Math.exp(-a));
+const fmt = v => v === 0 ? '0' : (Math.abs(v) >= 0.01 && Math.abs(v) < 1000 ? v.toFixed(3) : v.toExponential(1));
+function compute(){
+  const x = +$('gx').value, L = +$('gL').value, w = +$('gw').value, y = 1;
+  const h = [x], a = [null];
+  for (let i = 1; i <= L; i++) { a[i] = w * h[i - 1]; h[i] = sig(a[i]); }
+  const g = [], d = []; d[L] = (h[L] - y) * h[L] * (1 - h[L]);
+  for (let i = L; i >= 1; i--) { g[i] = d[i] * h[i - 1]; if (i > 1) d[i - 1] = d[i] * w * h[i - 1] * (1 - h[i - 1]); }
+  return {x, L, w, h, g};
+}
+function draw(){
+  const {x, L, w, h, g} = compute();
+  $('gxv').textContent = x.toFixed(1); $('gLv').textContent = L; $('gwv').textContent = w.toFixed(1);
+  const [ctx, W, H] = setupCanvas($('gc')), padL = 44, padR = 34, top = 14, bot = 30, ph = H - top - bot;
+  const lo = -10, hi = 0, Y = v => top + ph * (1 - (Math.log10(Math.max(v, 1e-10)) - lo) / (hi - lo));
+  ctx.font = '12px system-ui'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  for (let e = lo; e <= hi; e += 2) { const yy = Y(Math.pow(10, e)); ctx.beginPath(); ctx.moveTo(padL, yy); ctx.lineTo(W - padR, yy); ctx.stroke(); ctx.fillText('1e' + e, 4, yy + 4); }
+  const bw = (W - padL - padR) / L;
+  for (let i = 1; i <= L; i++) {
+    const x0 = padL + (i - 1) * bw, gv = Math.abs(g[i]);
+    ctx.fillStyle = cssv('--s1'); const yy = Y(gv); ctx.fillRect(x0 + bw * 0.15, yy, bw * 0.4, top + ph - yy);
+    const hv = Math.min(1, Math.abs(h[i - 1]) / (i === 1 ? 3 : 1)); ctx.fillStyle = cssv('--s3');
+    ctx.fillRect(x0 + bw * 0.58, top + ph * (1 - hv), bw * 0.25, ph * hv);
+    ctx.fillStyle = cssv('--ink'); ctx.fillText('w' + i, x0 + bw * 0.35, H - 10);
+  }
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('h', W - padR + 8, top + 10);
+  $('gyh').textContent = h[L].toFixed(3);
+  const r = Math.abs(g[1]) / (Math.abs(g[L]) || 1e-300);
+  $('gr').textContent = (L === 1) ? '1' : (g[1] === 0 ? '0' : fmt(r));
+  $('gtxt').innerHTML = x === 0
+    ? '<b>$x=0$:</b> the first weight gets <b>zero</b> gradient however wrong the output is, because its input is zero. The deeper weights still learn, since their inputs $h_{i-1}=\\sigma(0)=0.5$ are not zero.'
+    : `Gradient of $w_1$ = δ<sub>1</sub>·x = ${fmt(g[1])}; of $w_${L}$ = δ<sub>${L}</sub>·h<sub>${L - 1}</sub> = ${fmt(g[L])}. (The green bar for $w_1$ shows $|x|/3$, since $x$ is not squashed into 0–1.)`;
+  if (window.renderMathInElement) renderMathInElement($('gtxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+['gx', 'gL', 'gw'].forEach(id => $(id).addEventListener('input', draw));
+draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

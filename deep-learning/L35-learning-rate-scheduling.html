@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learning-Rate Schedules, Momentum Schedules and Line Search</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+.s4{color:var(--s4)}
+:root{--s4:#8a5cc9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--s4:#a27ee0}}
+:root[data-theme="dark"]{--s4:#a27ee0}
+.ctl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:8px 0;font-size:14px}
+.ctl output{font-variant-numeric:tabular-nums;min-width:3.2em;display:inline-block}
+.box{border:2px solid var(--s1);border-radius:10px;padding:4px 14px;margin:14px 0;background:var(--card)}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 35 · playlist video 35 (titled “L34” on YouTube) · Optimisation algorithms</div>
+<h1>Learning-Rate Schedules, Momentum Schedules and Line Search</h1>
+<p class="lede">Why not just crank up the learning rate to cross the plateaus? Because a large $\eta$ also multiplies the large gradients in steep regions and you overshoot. A good $\eta$ is found by a log-scale search, and then <b>annealed</b> as training progresses: by steps, by watching the validation loss, or by an exponential or $1/t$ decay. Momentum can be scheduled too, upwards. Line search avoids committing to one $\eta$: at each step, try several and keep the best.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=-7ET3TUWi8M" target="_blank" rel="noopener">this lecture on YouTube</a> (≈19 min). Previous: <a href="L34-stochastic-vs-batch.html">L34</a> · Next: <a href="L36-adaptive-learning-rate.html">L36</a> (why we want adaptive learning rates).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Why not simply a larger learning rate?</h2>
+<p>Back to the first problem: on a flat surface the gradients are tiny, so gradient descent crawls. Instead of <a href="L32-momentum.html">momentum</a> or <a href="L33-nesterov.html">NAG</a>, couldn't we just increase $\eta$? A small gradient times a large $\eta$ is still a big step, and "learning rate = how fast you move" makes this sound reasonable.</p>
+<p>The lecture sets $\eta=10$ instead of 1: it moves fast, but oscillates again. On the gentle part we want speed; in the steep part the gradient is already large, and multiplying it by a large $\eta$ throws us across the valley. What we really want is something that <b>adapts to the slope</b>: larger steps where the slope is small, smaller where it is large. That's what the adaptive algorithms (from <a href="L36-adaptive-learning-rate.html">L36</a> on) will do. For now: just raising $\eta$ is not the answer.</p>
+<p>Try it on the toy neuron (through $(0.5,\,0.2)$ and $(2.5,\,0.9)$), with several learning rates on a log scale plus one of your own:</p>
+<div class="card">
+  <div class="row"><button id="aPlay">▶ Play</button><button id="aReset">Reset</button>
+    <label>Start <select id="aStart"><option value="-2,-2">(−2, −2)</option><option value="-4,-4">(−4, −4), deep on the plateau</option><option value="-2,2">(−2, 2)</option></select></label>
+    <label>your η = <input type="range" id="aEta" min="0" max="7" value="5"> <output id="aEtaO"></output></label></div>
+  <div class="pair"><canvas id="aLoss" height="330" aria-label="Loss curves for several learning rates"></canvas><canvas id="aMap" height="330" aria-label="Gradient descent paths for several learning rates"></canvas></div>
+  <div class="legend"><span><i style="background:var(--faint)"></i>η = 0.1</span><span><i style="background:var(--s3)"></i>η = 1</span><span><i style="background:var(--s1)"></i>η = 10</span><span><i style="background:var(--s4)"></i>your η</span></div>
+  <p class="small" id="aTxt" style="margin-bottom:0"></p>
+</div>
+<p class="small muted">On this particular toy surface, $\eta=10$ overshoots only a little. Push "your η" to 25–50 and the trouble appears: the step that enters the steep valley is so large that it is thrown right across it, sometimes onto another plateau where it is stuck. The lecture's animation shows the same effect at $\eta=10$ on its surface.</p>
+
+<h2>2 · Choosing the initial learning rate</h2>
+<p>Context first: for most problems (machine translation, speech recognition, image recognition…) you build on existing work. Someone has trained similar models; follow their hyperparameters and experiment in a small window around them. That's the best thing to do. The tips below are for a genuinely new problem with nothing to go by:</p>
+<ol class="steps">
+<li>Try learning rates on a <b>log scale</b>: 0.0001, 0.001, 0.01, 0.1, 1, …</li>
+<li>Run each for only a <b>few epochs</b> and watch the loss curve. Too-high rates make the loss increase (they overshoot into high-loss regions); good ones make it decrease smoothly.</li>
+<li>Say 0.1 looks best. <b>Zoom in</b> with a finer, linear search around it: 0.05, 0.2, 0.3, …</li>
+</ol>
+<p>These are heuristics, not a guaranteed recipe. The point is: if your loss doesn't converge or keeps increasing, experiment with $\eta$ this way. The loss panel of the demo above is exactly this experiment in miniature.</p>
+
+<h2>3 · Annealing the learning rate</h2>
+<p>At the start the weights are random, so a slightly high $\eta$ may be fine. Near the minimum a high $\eta$ risks overshooting it. So <b>anneal</b>: reduce $\eta$ as training progresses.</p>
+<ul>
+<li><b>Step decay.</b> Halve $\eta$ after a fixed number of epochs (every 5 or 10). The number of epochs serves as a proxy for "I am probably close to the minimum now".</li>
+<li><b>Validation-driven halving</b> (Prof. Khapra's personal choice). Keep a validation set and save the weights after every epoch.
+<ol class="steps">
+<li>After each epoch compute the validation loss. While it decreases, keep $\eta$.</li>
+<li>If it increases after, say, epoch 7: throw away epoch 7's updates, restore the weights saved after epoch 6, <b>halve</b> $\eta$ and rerun the epoch.</li>
+<li>If it still increases, roll back and halve again. If it keeps increasing, you have probably converged: stop.</li>
+</ol>
+The updates follow the training data, so when the validation loss rises the updates no longer help generalisation, and you make them less aggressive.</li>
+<li><b>Exponential decay</b>: $\eta_t=\eta_0\,e^{-kt}$.</li>
+<li><b>$1/t$ decay</b>: $\eta_t=\dfrac{\eta_0}{1+kt}$.</li>
+</ul>
+<p>The catch with the last two: besides $\eta_0$ you now need a new hyperparameter $k$, which controls how fast the decay happens (large $k$: $\eta$ collapses almost at once; small $k$: it decays smoothly). That makes tuning harder, which is why the lecturer doesn't recommend them and prefers the validation-loss rule.</p>
+<p class="small muted">The transcript garbles the exponential formula; $\eta_0e^{-kt}$ is the standard form and matches the description ("at $t=0$ the rate is $\eta_0$, then it decays exponentially, faster for larger $k$").</p>
+<div class="card">
+  <div class="ctl"><label>Schedule <select id="dSel"><option value="step">step decay (halve every k epochs)</option><option value="exp">exponential η₀e^(−kt)</option><option value="inv">1/t decay η₀/(1+kt)</option></select></label>
+    <label>η₀ = <input type="range" id="dE" min="0.1" max="1" step="0.05" value="0.5"> <output id="dEO"></output></label>
+    <label>k = <input type="range" id="dK" min="0" max="100" value="40"> <output id="dKO"></output></label></div>
+  <canvas id="dCv" height="200" aria-label="Learning rate against epoch for the chosen schedule"></canvas>
+  <p class="small" id="dTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>4 · Scheduling the momentum</h2>
+<p>Momentum can be adjusted too. The lecture shows a schedule from a paper (Sutskever et al., 2013) that looks complicated but is easy to decode:</p>
+$$\beta_t=\min\!\Big(1-2^{-1-\log_2(\lfloor t/250\rfloor+1)},\ \beta_{\max}\Big),$$
+<p>with $\beta_{\max}$ typically one of 0.999, 0.995, 0.99 or 0.9 (or 0, which means no momentum).</p>
+<ol class="steps">
+<li>$t=0$: $\log_2(0+1)=0$, so $1-2^{-1}=0.5$. With $\beta_{\max}=0.9$ we get $\beta=0.5$.</li>
+<li>$t=250$: $\log_2 2=1$, so $1-2^{-2}=0.75$.</li>
+<li>$t=750$: $\log_2 4=2$, so $1-2^{-3}=0.875$. It keeps creeping up, until $\beta_{\max}$ caps it.</li>
+</ol>
+<p>So $\beta$ <b>increases</b> as training progresses. Early on, the history is still being built and is as unreliable as the current gradient, so it shouldn't get much weight. Later, the history has led you into this region over many updates; near the minimum one faulty update could knock you away, so you trust the history more than the current gradient.</p>
+<div class="card">
+  <div class="ctl"><label>β<sub>max</sub> = <select id="bMax"><option value="0.9">0.9</option><option value="0.99">0.99</option><option value="0.995" selected>0.995</option><option value="0.999">0.999</option></select></label></div>
+  <canvas id="bCv" height="180" aria-label="Momentum coefficient against time step"></canvas>
+  <p class="small" id="bTxt" style="margin-bottom:0"></p>
+</div>
+<p>The lecture promises to revisit learning-rate tips once all the optimisation algorithms are done.</p>
+
+<h2>5 · Line search</h2>
+<p>The problem with one fixed $\eta$: you are married to it. Too high and you oscillate; too low and you crawl. Line search tries a bunch of learning rates <b>at every step</b>:</p>
+<ol class="steps">
+<li>Compute the derivative $\nabla w_t$ once (it does not depend on $\eta$).</li>
+<li>For each candidate $\eta\in\{0.1,\,0.5,\,1,\,2,\,\dots,\,10\}$ compute a candidate $w_{t+1}=w_t-\eta\,\nabla w_t$ (same for $b$).</li>
+<li>Plug every candidate into the loss function and keep the one with the <b>smallest loss</b>. Throw the others away; repeat at the next step.</li>
+</ol>
+<p>The price: with 10 candidates every step does 10 updates and 10 loss evaluations. The benefit: it adapts to the region. On flat surfaces the large learning rates win; when entering the steep valley a large $\eta$ would overshoot and raise the loss, so a small one gets selected.</p>
+<div class="card">
+  <div class="row"><button id="lPlay">▶ Play</button><button id="lStep">Step ×1</button><button id="lReset">Reset</button>
+    <label>Start <select id="lStart"><option value="-2,-2">(−2, −2)</option><option value="-4,-4">(−4, −4), deep on the plateau</option><option value="-2,2">(−2, 2)</option></select></label>
+    <label>Speed <input type="range" id="lSpd" min="2" max="60" value="10"></label></div>
+  <div class="pair"><div><canvas id="lLoss" height="150" aria-label="Loss against iteration"></canvas><canvas id="lEta" height="170" aria-label="Learning rate chosen by line search at each step"></canvas></div><canvas id="lMap" height="330" aria-label="Gradient descent and line search on the contour map"></canvas></div>
+  <div class="legend"><span><i style="background:var(--s3)"></i>gradient descent, η = 1</span><span><i style="background:var(--s4)"></i>line search, η ∈ {0.1, 0.5, 1, 2, 5, 10}</span></div>
+  <div class="row"><div class="stat"><div class="v" id="lIt">0</div><div class="l">iteration t</div></div><div class="stat"><div class="v" id="lEtaNow">–</div><div class="l">η picked this step</div></div><div class="stat"><div class="v" id="lC">–</div><div class="l">first t with loss &lt; 10⁻³ (GD / line search)</div></div></div>
+  <p class="small" id="lTxt" style="margin-bottom:0"></p>
+</div>
+<p>As in the lecture's run: line search moves very quickly across the flat region, and it doesn't fly out of the valley, because there the larger rates would increase the loss and aren't picked. It converges much faster than gradient descent with $\eta=1$. There are some oscillations, but nothing like momentum's or NAG's.</p>
+<div class="beyond"><b>Going beyond the video.</b> This is a crude form of <i>exact line search</i> over a grid. Practical versions (backtracking with the Armijo condition) start from a large $\eta$ and halve it until the loss drops "enough", which usually needs only a few loss evaluations. Line search is rare in deep learning because each extra loss evaluation is a forward pass over the batch, and with mini-batches the loss itself is noisy. The adaptive methods coming next give a per-parameter, cheap version of the same idea.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Simply raising $\eta$ speeds up the plateaus but causes overshooting in steep regions; we really want a slope-adaptive rate.</li>
+<li>With no prior work to follow, try $\eta$ on a log scale for a few epochs, keep the one whose loss falls smoothly, then refine linearly around it.</li>
+<li>Anneal $\eta$: step decay, validation-driven halving with rollback (the lecturer's choice), or exponential/$1/t$ decay (which add a decay hyperparameter $k$).</li>
+<li>Momentum can be scheduled upwards, e.g. $\beta_t=\min(1-2^{-1-\log_2(\lfloor t/250\rfloor+1)},\beta_{\max})$: 0.5, 0.75, 0.875, …</li>
+<li>Line search tries several $\eta$ each step and keeps the lowest loss: big steps on plateaus, small ones near the valley, at several times the cost per step.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const fmt = (v, d = 3) => (isFinite(v) ? v.toFixed(d) : '–');
+
+// ---- The lecture's toy problem: one sigmoid neuron f(x) = σ(wx + b), squared error ----
+const sg = z => 1 / (1 + Math.exp(-z));
+function Toy(X, Y, mean){ const n = X.length, s = mean ? 1 / n : 1;
+  return { X, Y, n,
+    L(w, b){ let t = 0; for (let i = 0; i < n; i++) { const f = sg(w * X[i] + b); t += 0.5 * (f - Y[i]) ** 2; } return t * s; },
+    G(w, b, idx){ let gw = 0, gb = 0; const m = idx ? idx.length : n;
+      for (let k = 0; k < m; k++) { const i = idx ? idx[k] : k, f = sg(w * X[i] + b), d = (f - Y[i]) * f * (1 - f); gw += d * X[i]; gb += d; }
+      const sc = mean ? 1 / m : 1; return [gw * sc, gb * sc]; } }; }
+const TOY = Toy([0.5, 2.5], [0.2, 0.9], false);   // the two points used throughout the lecture
+const RANGE = [-6, 6, -6, 6];                     // w from −6 to 6, b from −6 to 6
+
+// ---- Optimiser steps (notation as in the lecture: u_t history, η, β) ----
+// o = {w, b, uw, ub}; P = {eta, beta}; idx = optional mini-batch indices
+const STEP = {
+  gd(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx); o.w -= P.eta * g[0]; o.b -= P.eta * g[1]; },
+  mom(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx);
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; },
+  nag(o, toy, P, idx){ const g = toy.G(o.w - P.eta * P.beta * o.uw, o.b - P.eta * P.beta * o.ub, idx);   // look ahead first
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; } };
+
+// number of times the loss turned from falling to rising (an overshoot / U-turn)
+function overshoots(l){ let c = 0; for (let i = 2; i < l.length; i++) if (l[i] > l[i - 1] + 1e-9 && l[i - 1] <= l[i - 2]) c++; return c; }
+
+// ---- Contour map: colour-coded loss (blue = low, red = high) + level rings at equal loss intervals ----
+const HEAT = {};
+function lossGrid(toy, key, nx, ny, R = RANGE){
+  const k = key + nx + 'x' + ny; if (HEAT[k]) return HEAT[k];
+  const g = new Float64Array(nx * ny); let mx = -Infinity, mn = Infinity;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const w = R[0] + (R[1] - R[0]) * i / (nx - 1), b = R[3] - (R[3] - R[2]) * j / (ny - 1), v = toy.L(w, b);
+    g[j * nx + i] = v; if (v > mx) mx = v; if (v < mn) mn = v; }
+  return (HEAT[k] = { g, nx, ny, mx, mn }); }
+function isoSegs(G, lev){ G.seg = G.seg || {}; if (G.seg[lev]) return G.seg[lev]; const { g, nx, ny } = G, out = G.seg[lev] = [];
+  const at = (i, j) => g[j * nx + i];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], v = c.map(p => at(p[0], p[1])), pts = [];
+    for (let e = 0; e < 4; e++) { const a = v[e], b = v[(e + 1) % 4];
+      if ((a < lev) !== (b < lev)) { const t = (lev - a) / (b - a), p = c[e], q = c[(e + 1) % 4];
+        pts.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]); } }
+    if (pts.length === 2) out.push(pts); else if (pts.length === 4) { out.push([pts[0], pts[1]]); out.push([pts[2], pts[3]]); } }
+  return out; }
+function heatRGB(t){ const lo = [42, 110, 214], hi = [214, 64, 40];
+  return lo.map((c, k) => Math.round(c + (hi[k] - c) * t)); }
+function drawContour(ctx, W, H, toy, key, opt = {}){
+  const R = opt.range || RANGE, pad = opt.pad || 28, levels = opt.levels || [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7];
+  const pw = W - pad - 8, ph = H - pad - 8, X = w => pad + (w - R[0]) / (R[1] - R[0]) * pw, Y = b => 8 + (R[3] - b) / (R[3] - R[2]) * ph;
+  const nx = 90, ny = 90, G = lossGrid(toy, key, nx, ny, R);
+  const cw = pw / (nx - 1), chh = ph / (ny - 1);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad, 8, pw, ph); ctx.clip();
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const t = Math.pow((G.g[j * nx + i] - G.mn) / (G.mx - G.mn || 1), opt.gamma || 0.5), c = heatRGB(t);
+    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.55)`; ctx.fillRect(X(R[0]) + (i - 0.5) * cw, 8 + (j - 0.5) * chh, cw + 0.6, chh + 0.6); }
+  ctx.strokeStyle = cssv('--ink'); ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+  levels.forEach(lev => { if (opt.hi === lev) return; ctx.beginPath(); isoSegs(G, lev).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); });
+  ctx.globalAlpha = 1;
+  if (opt.hi != null) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 3; ctx.beginPath();
+    isoSegs(G, opt.hi).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(pad, 8, pw, ph);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  for (let v = R[0]; v <= R[1]; v += 2) ctx.fillText(v, X(v), H - pad + 16);
+  ctx.textAlign = 'right'; for (let v = R[2]; v <= R[3]; v += 2) ctx.fillText(v, pad - 4, Y(v) + 4);
+  ctx.textAlign = 'left'; ctx.fillText('w →', W - 34, H - pad + 16); ctx.fillText('b', 4, 16);
+  return { X, Y, inv: (px, py) => [R[0] + (px - pad) / pw * (R[1] - R[0]), R[3] - (py - 8) / ph * (R[3] - R[2])], pad, pw, ph }; }
+
+// ---- Sigmoid panel: current σ(wx+b) of each runner, with the data points ----
+function drawSigmoid(ctx, W, H, toy, curves){
+  const x0 = -1, x1 = 4, X = x => 30 + (x - x0) / (x1 - x0) * (W - 40), Y = y => H - 22 - y * (H - 34);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(30, Y(0)); ctx.lineTo(W - 10, Y(0)); ctx.moveTo(30, Y(1)); ctx.lineTo(W - 10, Y(1)); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(1)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText('1', 26, Y(1) + 4); ctx.fillText('0', 26, Y(0) + 4);
+  ctx.textAlign = 'center'; for (let x = 0; x <= 4; x++) ctx.fillText(x, X(x), H - 6); ctx.textAlign = 'left';
+  curves.forEach(c => { ctx.strokeStyle = c.color; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let k = 0; k <= 100; k++) { const x = x0 + (x1 - x0) * k / 100, y = sg(c.w * x + c.b); k ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); });
+  const r = toy.n > 10 ? 3 : 6; ctx.fillStyle = cssv('--ink');
+  for (let i = 0; i < toy.n; i++) { ctx.beginPath(); ctx.arc(X(toy.X[i]), Y(toy.Y[i]), r, 0, 7); ctx.fill(); } }
+
+// ---- A race of optimisers on one contour map (+ loss curve, + sigmoid fit) ----
+function Race(cfg){
+  const S = { it: 0, playing: false, start: cfg.start.slice(), runners: [] };
+  const key = cfg.key || 'toy', toy = cfg.toy;
+  function reset(st){ if (st) S.start = st.slice(); S.it = 0;
+    S.runners = cfg.runners().map(r => Object.assign({ w: S.start[0], b: S.start[1], uw: 0, ub: 0, path: [[S.start[0], S.start[1]]], loss: [toy.L(S.start[0], S.start[1])], last: 0 }, r));
+    if (cfg.onReset) cfg.onReset(S); draw(); }
+  function stepAll(){ if (S.it >= cfg.maxIter) return false;
+    S.runners.forEach(r => { if (r.on === false) return; const w0 = r.w, b0 = r.b; r.step(r, S.it);
+      if (!isFinite(r.w) || !isFinite(r.b)) { r.w = w0; r.b = b0; }
+      r.last = Math.hypot(r.w - w0, r.b - b0); r.path.push([r.w, r.b]); r.loss.push(toy.L(r.w, r.b)); });
+    S.it++; return true; }
+  function draw(){
+    const [ctx, W, H] = setupCanvas(cfg.map); ctx.clearRect(0, 0, W, H);
+    const M = drawContour(ctx, W, H, toy, key, cfg.contourOpt); S.M = M;
+    ctx.save(); ctx.beginPath(); ctx.rect(M.pad, 8, M.pw, M.ph); ctx.clip();
+    S.runners.forEach(r => { if (r.on === false) return; const col = cssv(r.color); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6;
+      ctx.beginPath(); r.path.forEach((p, k) => k ? ctx.lineTo(M.X(p[0]), M.Y(p[1])) : ctx.moveTo(M.X(p[0]), M.Y(p[1]))); ctx.stroke();
+      const dots = r.path.length < 400; r.path.forEach((p, k) => { if (dots || k % 4 === 0) { ctx.beginPath(); ctx.arc(M.X(p[0]), M.Y(p[1]), 2, 0, 7); ctx.fill(); } });
+      ctx.beginPath(); ctx.arc(M.X(r.w), M.Y(r.b), 5.5, 0, 7); ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1.5; ctx.stroke(); });
+    ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(M.X(S.start[0]), M.Y(S.start[1]), 4, 0, 7); ctx.fill();
+    ctx.restore();
+    if (cfg.lossCv) drawLoss();
+    if (cfg.sigCv) { const [c2, W2, H2] = setupCanvas(cfg.sigCv); drawSigmoid(c2, W2, H2, toy, S.runners.filter(r => r.on !== false).map(r => ({ w: r.w, b: r.b, color: cssv(r.color) }))); }
+    if (cfg.onDraw) cfg.onDraw(S); }
+  function drawLoss(){
+    const [ctx, W, H] = setupCanvas(cfg.lossCv), n = Math.max(cfg.lossX || 100, S.it), pad = 34;
+    const top = Math.max(...S.runners.map(r => r.loss[0])) * 1.05 || 1;
+    const X = i => pad + i / n * (W - pad - 10), Y = v => 8 + (1 - Math.min(v, top) / top) * (H - 30);
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, 8); ctx.lineTo(pad, H - 22); ctx.lineTo(W - 10, H - 22); ctx.stroke();
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText(top.toFixed(2), pad - 4, 14); ctx.fillText('0', pad - 4, H - 22);
+    ctx.textAlign = 'center'; ctx.fillText((cfg.lossLabel || 'iteration') + ' (0 – ' + n + ')', (W + pad) / 2, H - 6); ctx.textAlign = 'left';
+    S.runners.forEach(r => { if (r.on === false) return; ctx.strokeStyle = cssv(r.color); ctx.lineWidth = 2; ctx.beginPath();
+      const stride = Math.max(1, Math.floor(r.loss.length / 600));
+      for (let k = 0; k < r.loss.length; k += stride) k ? ctx.lineTo(X(k), Y(r.loss[k])) : ctx.moveTo(X(k), Y(r.loss[k]));
+      ctx.lineTo(X(r.loss.length - 1), Y(r.loss[r.loss.length - 1])); ctx.stroke(); }); }
+  let raf = null, acc = 0, tPrev = 0;
+  function loop(ts){ if (!S.playing) return; const dt = tPrev ? Math.min(100, ts - tPrev) : 16; tPrev = ts;
+    acc += dt / 1000 * (cfg.speed ? cfg.speed() : 25); let k = 0;
+    while (acc >= 1 && k < 400) { acc -= 1; k++; if (!stepAll()) { S.playing = false; break; } }
+    draw(); if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  function play(on){ S.playing = on == null ? !S.playing : on; tPrev = 0; acc = 0; if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  cfg.map.addEventListener('click', e => { if (!S.M) return; const r = cfg.map.getBoundingClientRect(), p = S.M.inv(e.clientX - r.left, e.clientY - r.top);
+    if (p[0] < RANGE[0] || p[0] > RANGE[1] || p[1] < RANGE[2] || p[1] > RANGE[3]) return; play(false); reset([+p[0].toFixed(2), +p[1].toFixed(2)]); });
+  return { S, reset, draw, play, step(n = 1){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); }, run(n){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); } }; }
+
+// redraw hooks
+const REDRAW = [];
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => REDRAW.forEach(f => f()), 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => REDRAW.forEach(f => f()));
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); REDRAW.forEach(f => f()); });
+
+// ---------- Demo 1: several learning rates ----------
+const MYETA = [0.3, 3, 5, 20, 30, 40, 50, 100], myEta = () => MYETA[+$('aEta').value];
+const raceA = Race({ map: $('aMap'), lossCv: $('aLoss'), toy: TOY, start: [-2, -2], maxIter: 300, lossX: 300, speed: () => 25,
+  runners: () => [{ color: '--faint', step: o => STEP.gd(o, TOY, { eta: 0.1 }) }, { color: '--s3', step: o => STEP.gd(o, TOY, { eta: 1 }) },
+                  { color: '--s1', step: o => STEP.gd(o, TOY, { eta: 10 }) }, { color: '--s4', step: o => STEP.gd(o, TOY, { eta: myEta() }) }],
+  onPlay: p => { $('aPlay').textContent = p ? '❚❚ Pause' : '▶ Play'; },
+  onDraw: S => { $('aEtaO').textContent = myEta(); const names = ['0.1', '1', '10', String(myEta())];
+    $('aTxt').textContent = S.it === 0 ? 'Press Play: 300 iterations of gradient descent for each learning rate.'
+      : `After ${S.it} iterations the losses are: ` + S.runners.map((r, i) => `η = ${names[i]}: ${fmt(r.loss[r.loss.length - 1], 4)} (${overshoots(r.loss)} overshoot${overshoots(r.loss) === 1 ? '' : 's'})`).join('; ') + '.'; } });
+$('aPlay').onclick = () => raceA.play(); $('aReset').onclick = () => { raceA.play(false); raceA.reset($('aStart').value.split(',').map(Number)); };
+$('aStart').addEventListener('change', () => $('aReset').onclick()); $('aEta').addEventListener('input', () => $('aReset').onclick());
+raceA.reset(); REDRAW.push(raceA.draw);
+
+// ---------- Demo 2: decay schedules ----------
+function etaAt(kind, e0, k, t){ return kind === 'step' ? e0 * Math.pow(0.5, Math.floor(t / Math.max(1, k))) : kind === 'exp' ? e0 * Math.exp(-k * t) : e0 / (1 + k * t); }
+function drawDecay(){
+  const kind = $('dSel').value, e0 = +$('dE').value, s = +$('dK').value, T = 50;
+  const k = kind === 'step' ? Math.max(1, Math.round(1 + s / 10)) : kind === 'exp' ? s / 200 : s / 20;
+  $('dEO').textContent = e0.toFixed(2); $('dKO').textContent = kind === 'step' ? k + ' epochs' : k.toFixed(3);
+  const [ctx, W, H] = setupCanvas($('dCv')); ctx.clearRect(0, 0, W, H); const pad = 36, X = t => pad + t / T * (W - pad - 10), Y = v => 10 + (1 - v) * (H - 36);
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(pad, 10); ctx.lineTo(pad, Y(0)); ctx.lineTo(W - 10, Y(0)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; [0, 0.5, 1].forEach(v => ctx.fillText(v, pad - 4, Y(v) + 4));
+  ctx.textAlign = 'center'; for (let t = 0; t <= T; t += 10) ctx.fillText(t, X(t), H - 12); ctx.fillText('epoch t', (W + pad) / 2, H - 1);
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i <= 500; i++) { const t = T * i / 500, v = etaAt(kind, e0, k, t); i ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v)); } ctx.stroke();
+  const at = t => fmt(etaAt(kind, e0, k, t), 4);
+  $('dTxt').textContent = `η at epoch 0, 10, 25, 50: ${at(0)}, ${at(10)}, ${at(25)}, ${at(50)}. ` + (kind === 'step' ? 'One extra knob: how many epochs between halvings.' : 'Move k: the same η₀ either collapses almost immediately or barely decays. That extra hyperparameter is the reason the lecture is wary of these schedules.'); }
+['dSel', 'dE', 'dK'].forEach(id => { $(id).addEventListener('input', drawDecay); $(id).addEventListener('change', drawDecay); }); REDRAW.push(drawDecay);
+
+// ---------- Demo 3: momentum schedule ----------
+const betaAt = (t, bm) => Math.min(1 - Math.pow(2, -1 - Math.log2(Math.floor(t / 250) + 1)), bm);
+function drawBeta(){
+  const bm = +$('bMax').value, T = 10000, [ctx, W, H] = setupCanvas($('bCv')); ctx.clearRect(0, 0, W, H);
+  const pad = 40, X = t => pad + t / T * (W - pad - 10), Y = v => 10 + (1 - (v - 0.4) / 0.6) * (H - 36);
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(pad, 10); ctx.lineTo(pad, Y(0.4)); ctx.lineTo(W - 10, Y(0.4)); ctx.stroke();
+  ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(pad, Y(bm)); ctx.lineTo(W - 10, Y(bm)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; [0.5, 0.75, 1].forEach(v => ctx.fillText(v, pad - 4, Y(v) + 4));
+  ctx.textAlign = 'center'; for (let t = 0; t <= T; t += 2000) ctx.fillText(t, X(t), H - 12); ctx.fillText('time step t', (W + pad) / 2, H - 1);
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i <= 1000; i++) { const t = T * i / 1000, v = betaAt(t, bm); i ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v)); } ctx.stroke();
+  let cap = 0; while (cap < 1e7 && betaAt(cap, bm) < bm) cap += 250;
+  $('bTxt').textContent = `β at t = 0, 250, 750, 1750: ${[0, 250, 750, 1750].map(t => fmt(betaAt(t, bm), 4)).join(', ')}. It reaches β_max = ${bm} at t ≈ ${cap.toLocaleString()}${cap > T ? ' (beyond this plot)' : ''}.`; }
+$('bMax').addEventListener('change', drawBeta); REDRAW.push(drawBeta);
+
+// ---------- Demo 4: line search ----------
+const CANDS = [0.1, 0.5, 1, 2, 5, 10];
+const raceL = Race({ map: $('lMap'), lossCv: $('lLoss'), toy: TOY, start: [-2, -2], maxIter: 300, lossX: 200, speed: () => +$('lSpd').value,
+  runners: () => [{ color: '--s3', step: o => STEP.gd(o, TOY, { eta: 1 }) },
+    { color: '--s4', etas: [], step(o){ const g = TOY.G(o.w, o.b); let best = null;
+      CANDS.forEach(e => { const l = TOY.L(o.w - e * g[0], o.b - e * g[1]); if (!best || l < best.l) best = { e, l }; });
+      o.w -= best.e * g[0]; o.b -= best.e * g[1]; o.etas.push(best.e); } }],
+  onPlay: p => { $('lPlay').textContent = p ? '❚❚ Pause' : '▶ Play'; },
+  onDraw: S => { const [g, l] = S.runners, c = r => { const k = r.loss.findIndex(v => v < 1e-3); return k < 0 ? '…' : k; };
+    $('lIt').textContent = S.it; $('lEtaNow').textContent = l.etas.length ? l.etas[l.etas.length - 1] : '–'; $('lC').textContent = S.it ? `${c(g)} / ${c(l)}` : '–';
+    const [ctx, W, H] = setupCanvas($('lEta')); ctx.clearRect(0, 0, W, H); const pad = 34, n = 200, X = i => pad + i / n * (W - pad - 10), Y = e => 10 + (1 - (Math.log10(e) + 1) / 2) * (H - 36);
+    ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right';
+    CANDS.forEach(e => { ctx.beginPath(); ctx.moveTo(pad, Y(e)); ctx.lineTo(W - 10, Y(e)); ctx.stroke(); ctx.fillText(e, pad - 4, Y(e) + 4); });
+    ctx.textAlign = 'center'; ctx.fillText('η picked at each iteration (log scale)', (W + pad) / 2, H - 4);
+    ctx.fillStyle = cssv('--s4'); l.etas.forEach((e, i) => { if (i <= n) { ctx.beginPath(); ctx.arc(X(i), Y(e), 2.2, 0, 7); ctx.fill(); } });
+    const L = l.loss[l.loss.length - 1];
+    $('lTxt').textContent = S.it === 0 ? 'Press Play. Each step tries 6 learning rates and keeps the lowest loss.'
+      : L > 0.1 ? 'On the plateau the largest candidates win: line search races across.' : 'In the valley smaller η values are picked, so it does not fly out.'; } });
+$('lPlay').onclick = () => raceL.play(); $('lStep').onclick = () => { raceL.play(false); raceL.step(1); };
+$('lReset').onclick = () => { raceL.play(false); raceL.reset($('lStart').value.split(',').map(Number)); };
+$('lStart').addEventListener('change', () => $('lReset').onclick());
+raceL.reset(); REDRAW.push(raceL.draw);
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

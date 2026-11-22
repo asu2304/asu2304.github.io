@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Injecting Noise at the Inputs</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 50 · playlist video 50 (titled “L48” on YouTube) · Regularisation</div>
+<h1>Injecting Noise at the Inputs</h1>
+<p class="lede">Corrupt every training input a little, and corrupt it differently every epoch. The network now has to map many noisy versions of $x$ to the same $y$, so it can no longer memorise the training set. For a linear model with Gaussian input noise this is not just similar to weight decay, it <b>is</b> weight decay: the expected squared error picks up exactly the penalty $\sigma^2\sum_i w_i^2$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=S1KKaCrg0G8" target="_blank" rel="noopener">this lecture on YouTube</a> (≈12 min). Previous: <a href="L49-augmentation-parameter-sharing.html">L49</a> · Next: <a href="L51-label-smoothing.html">L51</a> (noise at the outputs).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · A simple noise process</h2>
+<p>Take a network that maps inputs straight to an output, and suppose for simplicity the inputs are binary, $x\in\{0,1\}^{100}$. Before feeding $x$ in, pass it through a noise process: <b>each bit is kept with probability 80% and flipped with probability 20%</b>. On average a fifth of every input is corrupted.</p>
+<p>A deep network is very good at driving training error down, i.e. at mapping each $x$ to its true $y$. Now it must map a <b>corrupted</b> $\tilde x$ to that $y$, and the corruption is <b>different every epoch</b>: perhaps bits 1–20 are hit in one epoch and bits 20–40 in the next. All these versions must map to the same label. Memorising the inputs becomes much harder, just as with dataset augmentation (<a href="L49-augmentation-parameter-sharing.html">L49</a>), where a shifted or rotated 2 still had to be called "2".</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A 10×10 binary "2" (left) and the corrupted copy the network sees in the current epoch (right). Flipped bits are outlined in orange. Each epoch draws a fresh corruption.</p>
+  <div class="row"><button id="ep">Next epoch</button>
+    <label>flip probability <input type="range" id="fp" min="0" max="0.5" step="0.01" value="0.2"> <b id="fpv">0.20</b></label></div>
+  <canvas id="bits" height="200" aria-label="A binary digit and its randomly corrupted copy"></canvas>
+  <div class="row">
+    <div class="stat"><div class="v" id="nflip">–</div><div class="l">bits flipped this epoch (of 100)</div></div>
+    <div class="stat"><div class="v" id="epn">1</div><div class="l">epoch</div></div>
+  </div>
+</div>
+
+<h2>2 · The setup for the analysis</h2>
+<p>To see what this does mathematically, strip the model down: <b>no hidden layer and no non-linearity</b>, inputs $x_1,\dots,x_n$ feeding one output.</p>
+<ul>
+<li>Uncorrupted prediction: $\hat y=\sum_{i=1}^n w_ix_i$ (a linear model).</li>
+<li>Add independent Gaussian noise to each input: $\tilde x_i=x_i+\varepsilon_i$ with $\varepsilon_i\sim\mathcal N(0,\sigma^2)$.</li>
+<li>Prediction from the corrupted input:
+$$\tilde y=\sum_{i=1}^n w_i\tilde x_i=\sum_i w_ix_i+\sum_i w_i\varepsilon_i=\hat y+\sum_i w_i\varepsilon_i .$$</li>
+</ul>
+<p>What we care about is the expected squared error between this corrupted-input prediction and the <b>true label</b> $y$ (not $\hat y$): $\mathbb E[(\tilde y-y)^2]$, the same quantity we studied in the bias–variance discussion (<a href="L46-estimating-test-error.html">L46</a>).</p>
+
+<h2>3 · The derivation</h2>
+<ol class="steps">
+<li>Substitute $\tilde y$ and group the terms as $(\hat y-y)+\sum_iw_i\varepsilon_i$:
+$$\mathbb E[(\tilde y-y)^2]=\mathbb E\Big[\Big((\hat y-y)+\textstyle\sum_i w_i\varepsilon_i\Big)^2\Big].$$</li>
+<li>Expand $(p+q)^2=p^2+2pq+q^2$; the expectation of a sum is the sum of expectations:
+$$=\mathbb E[(\hat y-y)^2]+2\,\mathbb E\Big[(\hat y-y)\textstyle\sum_i w_i\varepsilon_i\Big]+\mathbb E\Big[\Big(\textstyle\sum_i w_i\varepsilon_i\Big)^2\Big].$$</li>
+<li><b>The middle term is 0.</b> $y$ and $w_i$ are not random; $\hat y$ is the uncorrupted output and has nothing to do with the noise, so $\hat y$ and $\varepsilon_i$ are independent and $\mathbb E[(\hat y-y)\varepsilon_i]=\mathbb E[\hat y-y]\,\mathbb E[\varepsilon_i]=0$.</li>
+<li><b>Open the last square.</b> Writing $a_i=w_i\varepsilon_i$, $(a_1+\dots+a_n)^2$ gives the $n$ squares $a_i^2$ plus the cross terms $a_ia_j$ ($i\ne j$). For a cross term, the noises are independent, so $\mathbb E[\varepsilon_i\varepsilon_j]=\mathbb E[\varepsilon_i]\,\mathbb E[\varepsilon_j]=0$. Only the squares survive:
+$$\mathbb E\Big[\Big(\textstyle\sum_i w_i\varepsilon_i\Big)^2\Big]=\sum_i w_i^2\,\mathbb E[\varepsilon_i^2]=\sigma^2\sum_i w_i^2 .$$</li>
+</ol>
+<div class="callout">
+$$\mathbb E\big[(\tilde y-y)^2\big]\;=\;\underbrace{\mathbb E\big[(\hat y-y)^2\big]}_{\mathcal L(\theta)}\;+\;\underbrace{\sigma^2\sum_{i=1}^n w_i^2}_{\Omega(\theta)}$$
+<p style="margin:4px 0 0">Estimated on the training data, the first term is the ordinary training loss $\mathcal L(\theta)$, and the second is an <b>L2 penalty</b> on the weights. For a linear input–output network, adding Gaussian noise to the inputs is the same as <b>weight decay</b>, with the noise variance $\sigma^2$ playing the role of the regularisation constant.</p>
+</div>
+<p>Recall from <a href="L48-l2-regularization.html">L48</a> why the L2 penalty is called weight decay: along each eigen-direction of the Hessian it scales the optimal weights down by $\lambda_i/(\lambda_i+\alpha)$. More noise means a bigger $\alpha$ and stronger shrinkage.</p>
+
+<h2>4 · Test the claim: train on noisy inputs, compare with ridge</h2>
+<p>Below, a linear model with 5 (partly correlated) features is fitted to 30 training points by plain gradient descent, but every step sees a <b>freshly corrupted</b> copy of the inputs, $\tilde x=x+\varepsilon$. Nothing in the loss mentions $\lVert w\rVert^2$. If the derivation is right, the weights it settles on should be the <b>ridge</b> solution with $\alpha=\sigma^2$, not the plain least-squares one.</p>
+<div class="card">
+  <div class="row"><button id="train">Train with noisy inputs</button><button id="nd">New data</button>
+    <label>noise std σ <input type="range" id="sg" min="0" max="1.5" step="0.05" value="0.7"> <b id="sgv">0.70</b></label></div>
+  <canvas id="wb" height="260" aria-label="Weights from least squares, ridge, and training with noisy inputs"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--faint)"></i>least squares (no noise, no penalty)</span><span><i class="dot" style="background:var(--s1)"></i>ridge, $\alpha=\sigma^2$ (closed form)</span><span><i class="dot" style="background:var(--s2)"></i>GD on noisy inputs (average of last 2,000 of 4,000 steps)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="mc">–</div><div class="l">avg loss on noisy inputs (Monte Carlo)</div></div>
+    <div class="stat"><div class="v" id="th">–</div><div class="l">clean loss + σ²‖w‖² (formula)</div></div>
+    <div class="stat"><div class="v" id="gap">–</div><div class="l">‖w<sub>noisy</sub> − w<sub>ridge</sub>‖ / ‖w<sub>LS</sub> − w<sub>ridge</sub>‖</div></div>
+  </div>
+  <p class="small" id="wTxt"></p>
+</div>
+<p class="small muted">The two left-hand numbers check the identity itself at the ridge weights: 2,000 independent corruptions of the whole training set, averaged, against the right-hand side of the boxed result. The loss here is the <i>mean</i> squared error over the 30 points, so the matching penalty is $\sigma^2\lVert w\rVert^2$; with a summed loss it would be $30\,\sigma^2\lVert w\rVert^2$.</p>
+
+<div class="beyond"><b>Going beyond the video.</b> The exact equivalence needs the model to be linear in the noisy inputs, which is why the lecture restricts itself to a network with no hidden layer and no non-linearity. For a non-linear network, small input noise gives, to second order, a penalty on how sharply the output changes with the input (Bishop, 1995, "Training with noise is equivalent to Tikhonov regularization"). The same idea, corrupting the input and asking for a clean target, returns later in the course as the denoising autoencoder.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Noise injection: corrupt each training input (e.g. flip 20% of the bits, or add Gaussian noise), with a fresh corruption every epoch.</li>
+<li>The network must map many corrupted versions of $x$ to the same $y$, so memorising the training data becomes hard, much like data augmentation.</li>
+<li>For a linear model with $\tilde x_i=x_i+\varepsilon_i$, $\varepsilon_i\sim\mathcal N(0,\sigma^2)$ independent: $\mathbb E[(\tilde y-y)^2]=\mathbb E[(\hat y-y)^2]+\sigma^2\sum_iw_i^2$.</li>
+<li>The cross terms vanish because the noise has zero mean and is independent of $\hat y$ and across inputs; only the $\sigma^2w_i^2$ terms survive.</li>
+<li>So Gaussian input noise is L2 regularisation (weight decay), with strength set by the noise variance.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// ---------- Demo 1: bit-flip corruption ----------
+const TWO = ['0011111100','0111111110','0110000110','0000000110','0000001100','0000011000','0001110000','0011000000','0111111110','0111111110'].map(r => r.split('').map(Number));
+let flips = null, epoch = 1;
+function corrupt(){ const p = +$('fp').value; flips = TWO.map(r => r.map(() => Math.random() < p)); }
+function drawBits(){
+  const [ctx, W, H] = setupCanvas($('bits')); const cell = Math.min((W - 40) / 20, (H - 30) / 10), gw = cell * 10;
+  const ox1 = (W - 2 * gw - 30) / 2, ox2 = ox1 + gw + 30, oy = 20;
+  ctx.font = '13px system-ui'; ctx.fillStyle = cssv('--muted'); ctx.fillText('original x', ox1, 14); ctx.fillText('corrupted x̃ (this epoch)', ox2, 14);
+  let n = 0;
+  for (let i = 0; i < 10; i++) for (let j = 0; j < 10; j++) {
+    const b = TWO[i][j], f = flips[i][j], c = f ? 1 - b : b; if (f) n++;
+    ctx.fillStyle = b ? cssv('--ink') : cssv('--grid'); ctx.fillRect(ox1 + j * cell + 1, oy + i * cell + 1, cell - 2, cell - 2);
+    ctx.fillStyle = c ? cssv('--ink') : cssv('--grid'); ctx.fillRect(ox2 + j * cell + 1, oy + i * cell + 1, cell - 2, cell - 2);
+    if (f) { ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.strokeRect(ox2 + j * cell + 1.5, oy + i * cell + 1.5, cell - 3, cell - 3); }
+  }
+  $('nflip').textContent = n; $('epn').textContent = epoch;
+}
+$('ep').onclick = () => { epoch++; corrupt(); drawBits(); };
+$('fp').addEventListener('input', () => { $('fpv').textContent = (+$('fp').value).toFixed(2); corrupt(); drawBits(); });
+
+// ---------- Demo 2: noisy-input GD vs ridge ----------
+const N = 30, d = 5;
+let X = [], Y = [], wLS = [], wR = [], wNoisy = null, training = false;
+function solve(A, b){ const n = b.length, M = A.map((r, i) => r.concat([b[i]]));
+  for (let c = 0; c < n; c++) { let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]]; for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; } }
+  return M.map((r, i) => r[n] / r[i]); }
+function gram(){ const H = Array.from({length: d}, () => Array(d).fill(0)), b = Array(d).fill(0);
+  for (let s = 0; s < N; s++) for (let i = 0; i < d; i++) { b[i] += X[s][i] * Y[s] / N; for (let j = 0; j < d; j++) H[i][j] += X[s][i] * X[s][j] / N; }
+  return [H, b]; }
+const dot = (a, b) => a.reduce((s, v, i) => s + v * b[i], 0);
+function newData(){
+  const wt = [1.4, -1, 0.9, 0.2, 1.1]; X = []; Y = [];
+  for (let s = 0; s < N; s++) { const z = Array.from({length: d}, randn);
+    const x = [z[0], 0.8 * z[0] + 0.6 * z[1], z[2], 0.75 * z[2] + 0.66 * z[3], z[4]]; X.push(x); Y.push(dot(x, wt) + 0.5 * randn()); }
+  wNoisy = null; refit(); }
+function refit(){ const s2 = (+$('sg').value) ** 2, [H, b] = gram();
+  wLS = solve(H, b); wR = solve(H.map((r, i) => r.map((v, j) => v + (i === j ? s2 : 0))), b); mcCheck(); drawW(); }
+function mcCheck(){ const s = +$('sg').value, T = 2000; let acc = 0;
+  for (let t = 0; t < T; t++) { let L = 0; for (let k = 0; k < N; k++) { let p = 0; for (let i = 0; i < d; i++) p += wR[i] * (X[k][i] + s * randn()); L += (p - Y[k]) ** 2; } acc += L / N; }
+  let clean = 0; for (let k = 0; k < N; k++) clean += (dot(wR, X[k]) - Y[k]) ** 2;
+  $('mc').textContent = (acc / T).toFixed(3); $('th').textContent = (clean / N + s * s * dot(wR, wR)).toFixed(3); }
+function drawW(){
+  const [ctx, W, H] = setupCanvas($('wb')), pad = 34, top = 14, bot = 28;
+  const all = wLS.concat(wR, wNoisy || []); const m = Math.max(1, ...all.map(Math.abs)) * 1.1;
+  const Yp = v => top + (H - top - bot) * (1 - (v + m) / (2 * m)), gw = (W - pad - 8) / d, bw = Math.min(26, gw / 4.2);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.font = '12px system-ui'; ctx.fillStyle = cssv('--muted');
+  [-m, -m / 2, 0, m / 2, m].forEach(v => { ctx.beginPath(); ctx.moveTo(pad, Yp(v)); ctx.lineTo(W - 4, Yp(v)); ctx.stroke(); ctx.fillText(v.toFixed(1), 2, Yp(v) + 4); });
+  ctx.strokeStyle = cssv('--muted'); ctx.beginPath(); ctx.moveTo(pad, Yp(0)); ctx.lineTo(W - 4, Yp(0)); ctx.stroke();
+  for (let i = 0; i < d; i++) { const cx = pad + gw * (i + 0.5);
+    const bars = [[wLS[i], '--faint'], [wR[i], '--s1']]; if (wNoisy) bars.push([wNoisy[i], '--s2']);
+    bars.forEach(([v, c], k) => { ctx.fillStyle = cssv(c); const x = cx + (k - 1) * (bw + 3) - bw / 2, y0 = Yp(0), y1 = Yp(v); ctx.fillRect(x, Math.min(y0, y1), bw, Math.abs(y1 - y0)); });
+    ctx.fillStyle = cssv('--muted'); ctx.fillText('w' + (i + 1), cx - 8, H - 8); }
+  if (wNoisy) { const nr = Math.hypot(...wNoisy.map((v, i) => v - wR[i])), nl = Math.hypot(...wLS.map((v, i) => v - wR[i]));
+    $('gap').textContent = nl > 1e-9 ? (nr / nl).toFixed(2) : '–'; } else $('gap').textContent = '–';
+  const s = +$('sg').value;
+  $('wTxt').innerHTML = training ? 'Training… each step corrupts all 30 inputs afresh.' : wNoisy
+    ? `Done. The orange bars land on the blue ones (ratio near 0), not on the grey least-squares bars: training on inputs with noise std ${s.toFixed(2)} behaved like an L2 penalty with α = σ² = ${(s * s).toFixed(2)}.`
+    : (s === 0 ? 'With σ = 0 there is no noise and no penalty: ridge equals least squares.' : 'Press "Train" to run gradient descent on freshly corrupted inputs.'); }
+function train(){ if (training) return; training = true; const s = +$('sg').value, [H0] = gram();
+  let lam = 1, v = Array(d).fill(1); for (let it = 0; it < 50; it++) { const u = H0.map(r => dot(r, v)); lam = Math.hypot(...u); v = u.map(t => t / lam); }
+  const lr = 0.4 / (2 * (lam + s * s)), STEPS = 4000, PER = 100; let w = Array(d).fill(0), avg = Array(d).fill(0), na = 0, step = 0;
+  function chunk(){
+    for (let r = 0; r < PER; r++, step++) { const g = Array(d).fill(0);
+      for (let k = 0; k < N; k++) { const xt = X[k].map(t => t + s * randn()), e = dot(w, xt) - Y[k]; for (let i = 0; i < d; i++) g[i] += 2 * e * xt[i] / N; }
+      for (let i = 0; i < d; i++) w[i] -= lr * g[i];
+      if (step >= STEPS / 2) { na++; for (let i = 0; i < d; i++) avg[i] += (w[i] - avg[i]) / na; } }
+    wNoisy = na ? avg.slice() : w.slice();
+    if (step < STEPS) { drawW(); requestAnimationFrame(chunk); } else { training = false; drawW(); } }
+  chunk(); }
+$('train').onclick = train; $('nd').onclick = () => { if (!training) newData(); };
+$('sg').addEventListener('input', () => { $('sgv').textContent = (+$('sg').value).toFixed(2); if (!training) { wNoisy = null; refit(); } });
+
+function drawAll(){ drawBits(); drawW(); }
+corrupt(); newData();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

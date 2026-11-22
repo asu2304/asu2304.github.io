@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multi-Head Attention</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 66 · playlist video 66 (titled “L2” on YouTube) · Transformers</div>
+<h1>Multi-Head Attention and the Transformer Encoder Layer</h1>
+<p class="lede">One scaled dot-product unit is one <b>head</b>: one learned way of deciding which words matter to which. Just as a CNN uses many filters, a transformer runs several heads side by side, each with its own $W_Q,W_K,W_V$, concatenates their outputs word by word, and applies a linear map. Add a small feed-forward network applied to every position and you have one encoder layer; stack 6–12 of them and you have the encoder.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=VN2Bfi0_pbw" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L65-self-attention.html">L65</a> · Next: <a href="L67-decoder-block.html">L67</a> (the decoder: masked and cross attention).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+<p class="callout small"><b>Order.</b> Titled “L2” on YouTube, but it opens by recapping the end of <a href="L65-self-attention.html">L65</a> (titled “L3”), so it comes after it. The encoder outputs $e_1,\dots,e_T$ it ends with are what the decoder in <a href="L67-decoder-block.html">L67</a> consumes.</p>
+
+<h2>1 · One head</h2>
+<p>Recap of the self-attention block from <a href="L65-self-attention.html">L65</a>, now called <b>one head</b> of scaled dot-product self-attention:</p>
+<ol class="steps">
+<li>Stack the word representations $h_1,\dots,h_T$ into $H$.</li>
+<li>Linear projections, three matrix products in parallel: $Q=W_QH$, $K=W_KH$, $V=W_VH$.</li>
+<li>Inside the head: $Z=\text{softmax}(Q^\top K/\sqrt{d_k})\,V^\top$, giving $z_1,\dots,z_T$, refined representations that carry context.</li>
+</ol>
+<p>Nothing stops you from having a second copy of the same block with its own parameters $W_Q^{(2)},W_K^{(2)},W_V^{(2)}$. Head 1 gives $z^{(1)}_1,\dots,z^{(1)}_T$, head 2 gives $z^{(2)}_1,\dots,z^{(2)}_T$. Two questions: why bother, and which output do you use?</p>
+
+<h2>2 · Why several heads?</h2>
+<p>We've seen this argument with <a href="L62-cnn-intro.html">convolutional networks</a>: several filters slide over the same image, each with its own weights, in the hope that each captures a different characteristic (one edges, another blur, …). The same holds here. One head learns <b>one way</b> of capturing context, but there may be more than one useful way.</p>
+<p>Take “The animal didn't cross the street because <b>it</b> was too tired”. When building the representation of “it”:</p>
+<ul>
+<li>you may want high attention on <b>animal</b>, because “it” is the pronoun for the animal;</li>
+<li>you may also want high attention on <b>was</b>, the verb of which “it” is the subject.</li>
+</ul>
+<p>One row of $\alpha$ has to share its weight between the two. With two heads, one can put a high $\alpha$ on “animal” and the other on “was”.</p>
+<div class="callout"><b>No one tells the heads what to do.</b> There is no signal saying “head 1, focus on the pronoun's referent”. If attending to “was” helps reduce the loss, the projections $W$ of some head will be pushed so that its $\alpha$ does that. Multiple heads just give the model more freedom (more projection matrices, hence more possible $\alpha$ patterns). The lecture shows that in an actual trained transformer with two heads, one head did attend mostly to “animal” and the other to “was”.</div>
+
+<p>In the demo the two heads have <b>hand-set</b> weights mimicking that finding; switch to random heads to see that each projection simply produces its own pattern.</p>
+<div class="card">
+  <div class="row"><button id="hand" class="on">hand-set heads (like the trained model)</button><button id="rand">random heads</button><button id="reroll">re-roll random</button></div>
+  <div class="pair half">
+    <div><p class="small" style="margin:0 0 4px"><b style="color:var(--s1)">Head 1</b> <span class="muted" id="h1n"></span></p><canvas id="m1" height="320" aria-label="Attention matrix of head 1"></canvas></div>
+    <div><p class="small" style="margin:0 0 4px"><b style="color:var(--s3)">Head 2</b> <span class="muted" id="h2n"></span></p><canvas id="m2" height="320" aria-label="Attention matrix of head 2"></canvas></div>
+  </div>
+  <canvas id="cc" height="120" aria-label="Concatenation of the two head outputs for the selected word followed by a linear map"></canvas>
+  <p class="small" id="mTxt"></p>
+</div>
+
+<h2>3 · Combining the heads</h2>
+<p>Simple: <b>concatenate</b> the head outputs for each word, then pass the result through a <b>linear transformation</b> (often written $W_O$):</p>
+$$z_i=W_O\big[\,z^{(1)}_i\,;\,z^{(2)}_i\,;\,\dots\,;\,z^{(h)}_i\,\big].$$
+<p>The concatenation is <b>per word</b>: all heads' $z_1$'s are joined, then all heads' $z_2$'s, and so on. $T$ embeddings go in and $T$ come out, at every layer.</p>
+<p>The lecture's dimension walk-through:</p>
+<ol class="steps">
+<li>Two heads, $h_i\in\mathbb R^{512}$. Project down: each head's $q,k,v$ are 256-dimensional, so each head outputs 256-dimensional $z$'s.</li>
+<li>Concatenating two 256-dim vectors gives 512 again. Then any linear map you like: $512\times1024$, $512\times256$ or $512\times512$; with the last, the final $z$'s are 512-dim.</li>
+<li>Typically there are <b>8 heads</b>. If each produced 512 dims, the concatenation would be 4096-dim, which is too large: it blows up the parameters of the next linear map.</li>
+<li>So choose the per-head size to undo the concatenation: multiply each 512-dim $h$ by a $64\times512$ matrix, get 64-dim outputs per head, and $8\times64=512$ after concatenating.</li>
+</ol>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Shape and parameter calculator for one encoder layer (weights only; biases ignored).</p>
+  <div class="row"><label>$d_{\text{model}}$ = <b id="dmV">512</b> <input type="range" id="dm" min="128" max="1024" step="64" value="512"></label>
+    <label>heads $h$ = <b id="hhV">8</b> <input type="range" id="hh" min="0" max="4" step="1" value="3"></label></div>
+  <div class="row"><label>FFN hidden size = <b id="dfV">1024</b> <input type="range" id="df" min="256" max="4096" step="256" value="1024"></label>
+    <label><input type="checkbox" id="full"> give every head the full $d_{\text{model}}$ (the “too large” option)</label></div>
+  <div id="calc"></div>
+</div>
+
+<h2>4 · The feed-forward network</h2>
+<p>Back to the encoder layer: multi-head self-attention turns $h_1,\dots,h_T$ into $s_1,\dots,s_T$. Then each $s_i$ goes through a feed-forward network, and that's all there is to it:</p>
+$$m_i=g\big(W_1^{\text{FFN}}s_i\big),\qquad z_i=W_2^{\text{FFN}}m_i ,$$
+<p>for example $512\to1024\to512$, where $g$ is any non-linearity, typically ReLU-based or <a href="L61-gelu-silu.html">GELU</a>. Two points:</p>
+<ul>
+<li>The <b>same</b> parameters $W_1^{\text{FFN}},W_2^{\text{FFN}}$ are used at every position: each $s_i$ passes through an identical network.</li>
+<li>It mixes nothing across words; it just projects whatever the attention produced. All the cross-word mixing happens in attention.</li>
+</ul>
+
+<h2>5 · The encoder: stacked identical layers</h2>
+<p>One encoder layer = two sub-layers: <b>multi-head self-attention</b>, then the <b>feed-forward network</b>. The encoder is a stack of $N$ identical layers (6, 8, 12, … depending on the architecture); layer $\ell$'s outputs $z_1,\dots,z_T$ are layer $\ell+1$'s inputs.</p>
+<table>
+<tr><th></th><th>RNN encoder</th><th>Transformer encoder</th></tr>
+<tr><td>within a layer (“horizontally”)</td><td>sequential: $z_1$, then $z_2$, …</td><td>parallel: all $T$ outputs from matrix products</td></tr>
+<tr><td>across layers</td><td>sequential</td><td>still sequential: layer 2 needs layer 1's output</td></tr>
+</table>
+<p>The last layer's outputs are called $e_1,\dots,e_T$: one refined representation per input token, contextual and passed through several deep layers of abstraction. They are what the decoder will attend to.</p>
+<div class="beyond"><b>Going beyond the video: two pieces these videos skip.</b> (1) <b>Residual connections and layer normalisation.</b> In the original transformer each sub-layer is wrapped as $\text{LayerNorm}(x+\text{SubLayer}(x))$; without these, deep stacks are hard to train. (2) <b>Positional encodings.</b> Self-attention treats its inputs as a set: shuffle the words and the outputs are just shuffled the same way. Word order has to be injected by adding a position-dependent vector to each embedding. Also, the original paper used $d_{\text{model}}=512$, 8 heads of 64 and an FFN hidden size of 2048 (the lecture's 1024 is an example). More in my <a href="../transformers/index.html">transformer revision notes</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>One head = one scaled dot-product self-attention unit with its own $W_Q,W_K,W_V$.</li>
+<li>Several heads, like several CNN filters, can capture different kinds of context (e.g. “it” → animal and “it” → was); the loss, not a label, decides what each learns.</li>
+<li>Head outputs are concatenated per word and linearly transformed; with 8 heads of 64 dims the concatenation is back to 512.</li>
+<li>The feed-forward network ($512\to1024\to512$, ReLU/GELU) is the same network applied at every position.</li>
+<li>An encoder layer = multi-head attention + FFN; $N$ identical layers are stacked. Parallel within a layer, sequential across layers; the final outputs are $e_1,\dots,e_T$.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const softmax = a => { const m = Math.max(...a), e = a.map(x => Math.exp(x - m)), s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); };
+const mv = (W, x) => W.map(r => r.reduce((s, w, k) => s + w * x[k], 0));
+const dot = (a, b) => a.reduce((s, x, k) => s + x * b[k], 0);
+
+// features: 0 noun, 1 animate, 2 place, 3 verb, 4 aux, 5 pronoun, 6 function, 7 adjective, 8 negation
+const toks = ['The', 'animal', "didn't", 'cross', 'the', 'street', 'because', 'it', 'was', 'too', 'tired'], T = toks.length, F = 9;
+const FEAT = {The: {6: 1}, animal: {0: 1, 1: 1}, "didn't": {3: .3, 4: .6, 8: 1}, cross: {3: 1}, the: {6: 1}, street: {0: 1, 2: 1},
+  because: {6: 1}, it: {5: 1, 0: .3}, was: {4: 1, 3: .5}, too: {6: .5, 7: .3}, tired: {7: 1, 1: .3}};
+const r0 = rng(11), H = toks.map(t => Array.from({length: F}, (_, k) => (FEAT[t][k] || 0) + 0.05 * gauss(r0)));
+const eye = s => Array.from({length: F}, (_, i) => Array.from({length: F}, (_, j) => i === j ? s : 0));
+let mode = 'hand', seed = 3, sel = 7, heads = [], mRects = [];
+function makeHeads(){
+  const r = rng(seed * 77 + 5), rnd = (m, n, s) => Array.from({length: m}, () => Array.from({length: n}, () => gauss(r) * s)), dv = 4;
+  if (mode === 'hand') {
+    const q1 = eye(0.8), q2 = eye(0.8); q1[1][5] = 3; q2[4][5] = 3;   // "it" (pronoun) asks for animate words / for an auxiliary verb
+    heads = [{WQ: q1, WK: eye(1), WV: rnd(dv, F, .6), name: '(queries from pronouns look for animate nouns)'},
+             {WQ: q2, WK: eye(1), WV: rnd(dv, F, .6), name: '(queries from pronouns look for auxiliary verbs)'}];
+  } else heads = [0, 1].map(() => ({WQ: rnd(F, F, 1.2), WK: rnd(F, F, 1.2), WV: rnd(dv, F, .6), name: '(random W_Q, W_K, W_V)'}));
+  const dk = F;
+  heads.forEach(h => { const Q = H.map(x => mv(h.WQ, x)), K = H.map(x => mv(h.WK, x)), V = H.map(x => mv(h.WV, x));
+    h.A = Q.map(q => softmax(K.map(k => dot(q, k) / Math.sqrt(dk) * 3))); h.Z = h.A.map(a => V[0].map((_, c) => a.reduce((s, w, j) => s + w * V[j][c], 0))); });
+  // shared output map W_O (8 -> 6) just for the picture
+  heads.WO = rnd(6, 8, .5);
+}
+function drawMat(id, A, col){
+  const cv = $(id), w = cv.getBoundingClientRect().width || 320, lw = 58, top = 52, cs = Math.max(11, Math.min(26, (w - lw - 4) / T));
+  cv.dataset.h = Math.round(top + T * cs + 4); const [ctx] = setupCanvas(cv);
+  ctx.font = '10px system-ui'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < T; i++) { ctx.fillStyle = i === sel ? cssv('--s2') : cssv('--muted'); ctx.textAlign = 'right'; ctx.fillText(toks[i], lw - 4, top + i * cs + cs / 2);
+    ctx.save(); ctx.translate(lw + i * cs + cs / 2, top - 4); ctx.rotate(-Math.PI / 3); ctx.textAlign = 'left'; ctx.fillStyle = cssv('--muted'); ctx.fillText(toks[i], 0, 0); ctx.restore();
+    for (let j = 0; j < T; j++) { const x = lw + j * cs, y = top + i * cs; ctx.fillStyle = cssv('--card'); ctx.fillRect(x, y, cs - 1, cs - 1);
+      ctx.globalAlpha = Math.min(1, A[i][j] * 1.4); ctx.fillStyle = cssv(col); ctx.fillRect(x, y, cs - 1, cs - 1); ctx.globalAlpha = 1; } }
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.strokeRect(lw - 1, top + sel * cs - 1, T * cs + 1, cs + 1); ctx.textAlign = 'left';
+  return {lw, top, cs};
+}
+function drawConcat(){
+  const [ctx, W, Hh] = setupCanvas($('cc')), z1 = heads[0].Z[sel], z2 = heads[1].Z[sel], z = z1.concat(z2), out = mv(heads.WO, z);
+  const m = Math.max(1e-9, ...z.map(Math.abs), ...out.map(Math.abs)), cw = Math.min(26, (W - 120) / 16), mid = Hh / 2 + 8, sc = (Hh / 2 - 16) / m;
+  ctx.font = '11px system-ui'; ctx.textBaseline = 'middle'; ctx.fillStyle = cssv('--ink');
+  ctx.fillText(`“${toks[sel]}”: [ z⁽¹⁾ ; z⁽²⁾ ]  →  W_O  →  z`, 4, 10);
+  const bar = (x, v, col) => { ctx.fillStyle = cssv(col); const h = v * sc; ctx.fillRect(x, mid - Math.max(0, h), cw * 0.7, Math.abs(h)); };
+  z.forEach((v, k) => bar(4 + k * cw, v, k < 4 ? '--s1' : '--s3'));
+  const x0 = 4 + 8 * cw + 14; ctx.fillStyle = cssv('--muted'); ctx.fillText('→', x0, mid); const x1 = x0 + 22;
+  out.forEach((v, k) => bar(x1 + k * cw, v, '--s2'));
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(4, mid); ctx.lineTo(4 + 8 * cw, mid); ctx.moveTo(x1, mid); ctx.lineTo(x1 + 6 * cw, mid); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('head 1 (4) | head 2 (4)', 4, Hh - 8); ctx.fillText('after W_O', x1, Hh - 8);
+}
+function drawAll(){
+  mRects = [drawMat('m1', heads[0].A, '--s1'), drawMat('m2', heads[1].A, '--s3')]; drawConcat();
+  $('h1n').textContent = heads[0].name; $('h2n').textContent = heads[1].name;
+  const top = A => { const r = A[sel].map((v, j) => [v, j]).filter(p => p[1] !== sel).sort((a, b) => b[0] - a[0])[0]; return `<b>${toks[r[1]]}</b> (${r[0].toFixed(2)})`; };
+  $('mTxt').innerHTML = `Query word <b>${toks[sel]}</b> (click a row to change). Besides itself, head 1 attends most to ${top(heads[0].A)}, head 2 to ${top(heads[1].A)}. ` +
+    (mode === 'hand' && sel === 7 ? 'Two heads, two kinds of context for the same word; their outputs are concatenated and mixed by one linear map.' : mode === 'rand' ? 'Different random projections give different α patterns: training would shape each one by the loss.' : '');
+}
+function rowClick(k, e){ const R = mRects[k]; if (!R) return; const r = $(k ? 'm2' : 'm1').getBoundingClientRect(), i = Math.floor((e.clientY - r.top - R.top) / R.cs); if (i >= 0 && i < T) { sel = i; drawAll(); } }
+$('m1').addEventListener('click', e => rowClick(0, e)); $('m2').addEventListener('click', e => rowClick(1, e));
+$('hand').onclick = () => { mode = 'hand'; $('hand').classList.add('on'); $('rand').classList.remove('on'); makeHeads(); drawAll(); };
+$('rand').onclick = () => { mode = 'rand'; $('rand').classList.add('on'); $('hand').classList.remove('on'); makeHeads(); drawAll(); };
+$('reroll').onclick = () => { seed++; mode = 'rand'; $('rand').classList.add('on'); $('hand').classList.remove('on'); makeHeads(); drawAll(); };
+
+const HS = [1, 2, 4, 8, 16], fmt = n => n >= 1e6 ? (n / 1e6).toFixed(2) + ' M' : n >= 1e3 ? (n / 1e3).toFixed(0) + ' k' : String(n);
+function calc(){
+  const dm = +$('dm').value, h = HS[Math.max(0, Math.min(4, Math.round(+$('hh').value) || 0))], dff = +$('df').value, full = $('full').checked;
+  $('dmV').textContent = dm; $('hhV').textContent = h; $('dfV').textContent = dff;
+  const dk = full ? dm : dm / h, cat = h * dk, pQKV = 3 * h * dk * dm, pO = cat * dm, pF = 2 * dm * dff;
+  const ok = Number.isInteger(dk);
+  $('calc').innerHTML = `<table>
+<tr><th>Piece</th><th>Shape</th><th>Weights</th></tr>
+<tr><td>per head: $W_Q,W_K,W_V$</td><td>${ok ? dk : dk.toFixed(1)} × ${dm} each</td><td>${fmt(Math.round(3 * dk * dm))} per head</td></tr>
+<tr><td>per head output $z^{(i)}_t$</td><td>${ok ? dk : dk.toFixed(1)}</td><td></td></tr>
+<tr><td>concatenation of ${h} heads</td><td><b>${Math.round(cat)}</b>${cat > dm ? ' <span style="color:var(--s2)">(bigger than the input!)</span>' : ' (= d<sub>model</sub>)'}</td><td></td></tr>
+<tr><td>output map $W_O$</td><td>${dm} × ${Math.round(cat)}</td><td>${fmt(Math.round(pO))}</td></tr>
+<tr><td>FFN $W_1, W_2$</td><td>${dff} × ${dm}, ${dm} × ${dff}</td><td>${fmt(pF)}</td></tr>
+<tr><td><b>one encoder layer</b></td><td>$T$ vectors of ${dm} in, $T$ of ${dm} out</td><td><b>${fmt(Math.round(pQKV + pO + pF))}</b></td></tr>
+<tr><td>6-layer encoder</td><td></td><td>${fmt(Math.round(6 * (pQKV + pO + pF)))}</td></tr></table>`;
+  if (window.renderMathInElement) renderMathInElement($('calc'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+['dm', 'hh', 'df'].forEach(id => $(id).oninput = calc); $('full').addEventListener('change', calc);
+makeHeads(); drawAll(); calc();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

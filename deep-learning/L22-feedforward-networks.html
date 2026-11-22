@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feedforward Neural Networks</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 22 · playlist video 22 (titled “L25” on YouTube) · Feedforward networks and backpropagation</div>
+<h1>Feedforward Neural Networks: Notation and the Function They Compute</h1>
+<p class="lede">A feedforward network is an input layer, $L-1$ hidden layers and an output layer, each fully connected to the next by a weight matrix and a bias vector. Every layer computes a pre-activation $a_i=W_ih_{i-1}+b_i$ and an activation $h_i=g(a_i)$, with a special output function at the end. However tangled the diagram looks, $\hat y=f(x)$ is just a chain of matrix–vector products and element-wise non-linearities, and its parameters are all the $W$'s and $b$'s.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=HHv6Ndo9VBU" target="_blank" rel="noopener">this lecture on YouTube</a> (≈26 min). Previous: <a href="L21-representation-power-2d.html">L21</a> · Next: <a href="L23-learning-parameters-intuition.html">L23</a> (learning the parameters).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Where we are</h2>
+<p>MP neurons → perceptrons (a linear separator; the learning algorithm and its convergence for linearly separable data) → sigmoid neurons, because real decisions are smoother than a hard threshold → gradient descent for a single sigmoid neuron with just $w$ and $b$ → the representation power of networks of sigmoid neurons (<a href="L20-representation-power-1d.html">L20</a>, <a href="L21-representation-power-2d.html">L21</a>): a few non-linear layers can approximate arbitrary functions.</p>
+<p>Now we formalise a deep network of such neurons with notation that will stay with us for the rest of the course, and then ask how to learn its weights. (The lecture's treatment of backpropagation follows Hugo Larochelle's lectures on the topic.)</p>
+
+<h2>2 · The anatomy of the network</h2>
+<ul>
+<li><b>Input:</b> an $n$-dimensional vector $x\in\mathbb R^n$ (e.g. salinity, pressure, temperature… for oil drilling).</li>
+<li><b>Hidden layers:</b> $L-1$ of them, each with $n$ neurons here. (Equal sizes are only for convenience; every layer could have its own size, without changing any concept.)</li>
+<li><b>Output layer:</b> $k$ neurons. The network has $L$ layers in total; in the running example, 2 hidden + 1 output, so $L=3$.</li>
+<li><b>Layer numbering:</b> the input is layer 0 and we also call it $h_0$, so $h_0=x$. The output is layer $L$.</li>
+</ul>
+<p>Each neuron in a hidden or output layer is split into two parts:</p>
+<table>
+<tr><th>Part</th><th>Symbol</th><th>Meaning</th></tr>
+<tr><td>pre-activation (lower, white)</td><td>$a_i=(a_{i1},\dots,a_{in})\in\mathbb R^n$</td><td>weighted sum of the previous layer plus bias</td></tr>
+<tr><td>activation (upper, shaded)</td><td>$h_i=(h_{i1},\dots,h_{in})\in\mathbb R^n$</td><td>the pre-activation passed through a function</td></tr>
+<tr><td>output activation</td><td>$h_L=\hat y=\hat f(x)$</td><td>three names for the same thing: the network's prediction</td></tr>
+</table>
+<p>Every neuron in one layer connects to every neuron in the next:</p>
+<table>
+<tr><th>Between</th><th>Weights</th><th>Biases</th></tr>
+<tr><td>layer 0 → layer 1</td><td>$W_1\in\mathbb R^{n\times n}$</td><td>$b_1\in\mathbb R^{n}$</td></tr>
+<tr><td>layer 1 → layer 2</td><td>$W_2\in\mathbb R^{n\times n}$</td><td>$b_2\in\mathbb R^{n}$</td></tr>
+<tr><td>layer $L-1$ → output</td><td>$W_L\in\mathbb R^{k\times n}$</td><td>$b_L\in\mathbb R^{k}$ (one per output neuron)</td></tr>
+</table>
+
+<h2>3 · Computing pre-activations and activations</h2>
+<p><b>Pre-activation</b> of layer $i$ (for $i=1,\dots,L$):</p>
+$$a_i=b_i+W_i\,h_{i-1}.$$
+<p>For $n=3$ and the first layer, written out:</p>
+$$\begin{bmatrix}a_{11}\\a_{12}\\a_{13}\end{bmatrix}=\begin{bmatrix}b_{11}\\b_{12}\\b_{13}\end{bmatrix}+\begin{bmatrix}W_{111}&amp;W_{112}&amp;W_{113}\\W_{121}&amp;W_{122}&amp;W_{123}\\W_{131}&amp;W_{132}&amp;W_{133}\end{bmatrix}\begin{bmatrix}x_1\\x_2\\x_3\end{bmatrix}$$
+<p>A matrix–vector product followed by a vector addition; nothing fancy. Dimensions: $(n\times n)(n)+(n)\to(n)$.</p>
+<p><b>Activation</b> of hidden layer $i$ (for $i=1,\dots,L-1$):</p>
+$$h_i=g(a_i),\qquad g\!\left(\begin{bmatrix}a_{11}\\a_{12}\\a_{13}\end{bmatrix}\right)=\begin{bmatrix}g(a_{11})\\g(a_{12})\\g(a_{13})\end{bmatrix}.$$
+<p>$g$ is the <b>activation function</b>, applied <b>element-wise</b>. With the logistic sigmoid, $h_{11}=1/(1+e^{-a_{11}})$. Other choices: tanh, linear, and later ReLU, leaky ReLU and more. All of them simply act on each element; the complexity of the network comes from composing many such simple steps.</p>
+<p><b>Output activation:</b></p>
+$$\hat y=h_L=O(a_L).$$
+<p>The output layer gets its own function $O$ because a sigmoid there would squash every output into $(0,1)$, useless if you want to predict a movie rating out of 100. Two common choices, <b>softmax</b> and <b>linear</b>, come in <a href="L24-output-and-loss-functions.html">L24</a>. From now on we drop the "$(x)$" and write $a_i$, $h_i$: everything is understood to be a function of the input.</p>
+
+<h2>4 · Where is $\hat f$ in this diagram?</h2>
+<p>In the supervised setup there is data $\{(x_j,y_j)\}$, a true but unknown relation, and our approximation $\hat y=\hat f(x)$. For a single sigmoid neuron we could write $\hat f$ explicitly: $\hat y=1/(1+e^{-(w^\top x+b)})$. A network diagram isn't a formula, so let's write the formula. Follow the arrows for $L=3$:</p>
+<ol class="steps">
+<li>$a_1=W_1x+b_1$, then $h_1=g(a_1)$.</li>
+<li>$h_1$ is the input to the next layer: $a_2=W_2h_1+b_2$, then $h_2=g(a_2)$.</li>
+<li>$a_3=W_3h_2+b_3$, then $\hat y=h_3=O(a_3)$.</li>
+</ol>
+<div class="callout">$$\hat y=\hat f(x)=O\Big(W_3\,g\big(W_2\,g(W_1x+b_1)+b_2\big)+b_3\Big)$$
+Just another function family, like linear or quadratic: a complex composite function, but one you can write down. Even a 100-layer network could be written out; it would only be laborious.</div>
+<p><b>Different layer sizes.</b> If the input has $n$ units, the first hidden layer $m$ and the second $p$: $W_1\in\mathbb R^{m\times n}$, $b_1\in\mathbb R^m$, $W_2\in\mathbb R^{p\times m}$, $b_2\in\mathbb R^p$. Each product $(m\times n)(n)$ gives an $m$-vector, the bias is an $m$-vector, $g$ keeps it $m$-dimensional, and the next product $(p\times m)(m)$ is valid. Rule: <b>$W_i$ has (size of layer $i$) rows and (size of layer $i-1$) columns.</b></p>
+<p>Build any network below and step through a forward pass with real numbers, checking the dimensions at each step:</p>
+
+<div class="card">
+  <div class="row"><label>layer sizes $n,\dots,k$ <input id="sizes" value="3, 3, 3, 4" size="14" class="mono" style="font:inherit;font-size:14px;padding:4px 8px;border:1px solid var(--grid);border-radius:8px;background:var(--surface);color:var(--ink)"></label>
+    <label>$g$ <select id="gsel"><option value="sig">sigmoid</option><option value="tanh">tanh</option><option value="lin">linear</option></select></label>
+    <label>$O$ <select id="osel"><option value="soft">softmax</option><option value="lin">linear</option></select></label></div>
+  <div class="row"><button id="fstep">Next step of the forward pass</button><button id="fall">Run it all</button><button id="frand">New random x, W, b</button></div>
+  <canvas id="nc" height="300" aria-label="Network diagram with pre-activation and activation halves"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--tint);border:1px solid var(--muted)"></i>pre-activation $a$ (lower half)</span><span><i class="dot" style="background:var(--s1)"></i>activation $h$ (upper half)</span><span><i class="dot" style="background:var(--s3)"></i>output $\hat y$</span></div>
+  <pre class="mono" id="fTxt" style="white-space:pre-wrap;overflow-x:auto;background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:10px;margin:10px 0"></pre>
+  <p class="small mono" id="fFormula" style="overflow-x:auto"></p>
+  <table id="ptab"></table>
+</div>
+
+<h2>5 · Parameters and the loss</h2>
+<p>The input is given; what we introduced are the <b>parameters</b> $\theta=\{W_1,\dots,W_L,\ b_1,\dots,b_L\}$. We will learn them with <b>gradient descent plus backpropagation</b> (the main topic of the coming lectures). With $N$ training examples and $k$ outputs each, one loss is the squared error, averaged:</p>
+$$\mathcal L(\theta)=\frac1N\sum_{i=1}^{N}\sum_{j=1}^{k}\left(\hat y_{ij}-y_{ij}\right)^2,\qquad \theta^*=\arg\min_\theta \mathcal L(\theta).$$
+<p>So deep learning still fits the machine-learning recipe: <b>data, model, parameters, learning algorithm, objective function</b>. Which output function and which loss to choose is the subject of <a href="L24-output-and-loss-functions.html">L24</a>.</p>
+<div class="beyond"><b>Going beyond the video: batches are the same formula, sideways.</b> Stack $N$ inputs as columns of $X\in\mathbb R^{n\times N}$ and every step becomes a matrix–matrix product, $A_1=W_1X+b_1\mathbf 1^\top$, which is how frameworks actually run it on GPUs. (Many libraries store inputs as rows instead and write $XW^\top$; same thing, transposed.) For the same network in my ML notes, see <a href="../machine-learning/L72-neural-networks.html">ML L72</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Layers: input $h_0=x$, hidden $1,\dots,L-1$, output $L$; each non-input neuron has a pre-activation $a$ and an activation $h$.</li>
+<li>$a_i=W_ih_{i-1}+b_i$, $h_i=g(a_i)$ element-wise, $\hat y=h_L=O(a_L)$ with a task-specific output function.</li>
+<li>$W_i$ is (size of layer $i$) × (size of layer $i-1$); $b_i$ has one entry per neuron of layer $i$.</li>
+<li>$\hat f(x)=O(W_3g(W_2g(W_1x+b_1)+b_2)+b_3)$: a composite function you can write down, not a black box.</li>
+<li>Learn $\theta$ = all $W$'s and $b$'s by minimising a loss such as the mean squared error, using gradient descent with backpropagation.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const sig = z => 1 / (1 + Math.exp(-z));
+const fmt = (v, d = 2) => (Math.abs(v) < 0.5 * Math.pow(10, -d) ? 0 : v).toFixed(d);
+let net = null, stepIdx = 0;
+const actF = {sig: v => sig(v), tanh: v => Math.tanh(v), lin: v => v};
+const softmax = v => { const m = Math.max(...v), e = v.map(t => Math.exp(t - m)), s = e.reduce((p, q) => p + q, 0); return e.map(t => t / s); };
+const rnd = () => Math.round((Math.random() * 2 - 1) * 10) / 10;
+function parseSizes(){ let s = $('sizes').value.split(/[ ,;]+/).filter(t => t).map(t => Math.max(1, Math.min(8, Math.round(+t) || 1)));
+  if (s.length < 2) s = [3, 4]; if (s.length > 7) s = s.slice(0, 7); return s; }
+function build(){ const S = parseSizes(), W = [null], b = [null];
+  for (let i = 1; i < S.length; i++){ W.push(Array.from({length: S[i]}, () => Array.from({length: S[i - 1]}, rnd))); b.push(Array.from({length: S[i]}, rnd)); }
+  net = {S, W, b, x: Array.from({length: S[0]}, rnd)}; forward(); stepIdx = 0; }
+function forward(){ const {S, W, b} = net, L = S.length - 1, g = actF[$('gsel').value]; net.a = [null]; net.h = [net.x];
+  for (let i = 1; i <= L; i++){ const a = W[i].map((row, r) => b[i][r] + row.reduce((s, w, c) => s + w * net.h[i - 1][c], 0)); net.a.push(a);
+    net.h.push(i < L ? a.map(g) : ($('osel').value === 'soft' ? softmax(a) : a.slice())); } }
+const vec = v => '[' + v.map(t => fmt(t)).join(', ') + ']';
+const mat = M => M.map(r => '  [' + r.map(t => (t >= 0 ? ' ' : '') + t.toFixed(1)).join(' ') + ']').join('\n');
+function drawNet(){
+  const [ctx, W, H] = setupCanvas($('nc')), S = net.S, L = S.length - 1, lay = Math.ceil(stepIdx / 2), half = stepIdx % 2;  // half=1: a done, 0: h done
+  const colX = i => 30 + i * (W - 60) / L, rowY = (i, j) => H / 2 + (j - (S[i] - 1) / 2) * Math.min(34, (H - 40) / Math.max(...S));
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= L; i++) for (let j = 0; j < S[i]; j++) for (let c = 0; c < S[i - 1]; c++){
+    const w = net.W[i][j][c]; ctx.strokeStyle = i === lay && stepIdx ? (w > 0 ? cssv('--s1') : cssv('--s2')) : cssv('--grid'); ctx.globalAlpha = i === lay && stepIdx ? 0.3 + 0.7 * Math.abs(w) : 1;
+    ctx.beginPath(); ctx.moveTo(colX(i - 1) + 11, rowY(i - 1, c)); ctx.lineTo(colX(i) - 11, rowY(i, j)); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  for (let i = 0; i <= L; i++) for (let j = 0; j < S[i]; j++){ const x = colX(i), y = rowY(i, j), r = 11;
+    const aDone = i === 0 || i < lay || (i === lay), hDone = i === 0 || i < lay || (i === lay && half === 0);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fillStyle = cssv('--card'); ctx.fill();
+    if (i > 0 && hDone && stepIdx){ ctx.beginPath(); ctx.arc(x, y, r, Math.PI, 2 * Math.PI); ctx.fillStyle = cssv(i === L ? '--s3' : '--s1'); ctx.fill(); }
+    if (i === 0){ ctx.fillStyle = cssv('--faint'); ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.fill(); }
+    if (i > 0 && aDone && stepIdx){ ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI); ctx.fillStyle = cssv('--tint'); ctx.fill(); }
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.strokeStyle = i === lay && stepIdx ? cssv('--ink') : cssv('--muted'); ctx.lineWidth = i === lay && stepIdx ? 2 : 1; ctx.stroke();
+    if (i > 0){ ctx.beginPath(); ctx.moveTo(x - r, y); ctx.lineTo(x + r, y); ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 0.7; ctx.stroke(); } }
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.textAlign = 'center';
+  for (let i = 0; i <= L; i++) ctx.fillText(i === 0 ? 'x = h0' : i === L ? 'ŷ = h' + L : 'h' + i, colX(i), 16);
+  ctx.textAlign = 'left';
+}
+function showStep(){
+  const S = net.S, L = S.length - 1, gName = $('gsel').selectedOptions[0].text, oName = $('osel').selectedOptions[0].text;
+  let t = `h0 = x = ${vec(net.x)}   (${S[0]} numbers)\n`;
+  const upto = stepIdx;
+  for (let s = 1; s <= upto; s++){ const i = Math.ceil(s / 2);
+    if (s % 2){ t += `\na${i} = W${i} h${i - 1} + b${i}     (${S[i]}×${S[i - 1]})(${S[i - 1]}) + (${S[i]}) → (${S[i]})\n`;
+      if (s === upto) t += `W${i} =\n${mat(net.W[i])}\nb${i} = ${vec(net.b[i])}\n`;
+      t += `a${i} = ${vec(net.a[i])}\n`; }
+    else { t += i < L ? `h${i} = g(a${i}) = ${gName}, element-wise → ${vec(net.h[i])}\n` : `ŷ = h${L} = O(a${L}) = ${oName} → ${vec(net.h[i])}` + ($('osel').value === 'soft' ? `   (sums to ${fmt(net.h[i].reduce((p, q) => p + q, 0))})` : '') + '\n'; } }
+  if (upto >= 2 * L) t += '\nForward pass complete.'; else t += `\n[press Next: ${upto % 2 ? 'apply ' + (Math.ceil(upto / 2) < L ? 'g' : 'O') : 'compute a' + (Math.ceil(upto / 2) + 1)}]`;
+  $('fTxt').textContent = t;
+  let fstr = 'x'; for (let i = 1; i <= L; i++) fstr = (i < L ? 'g' : 'O') + '(W' + i + (i > 1 ? ' ' : '') + fstr + ' + b' + i + ')';
+  $('fFormula').textContent = 'ŷ = f̂(x) = ' + fstr;
+  let rows = '<tr><th>layer</th><th>W</th><th>b</th><th>parameters</th></tr>', tot = 0;
+  for (let i = 1; i <= L; i++){ const c = S[i] * S[i - 1] + S[i]; tot += c; rows += `<tr><td>${i}${i === L ? ' (output)' : ''}</td><td>${S[i]} × ${S[i - 1]}</td><td>${S[i]}</td><td>${c}</td></tr>`; }
+  $('ptab').innerHTML = rows + `<tr><td colspan="3"><b>total |θ|</b></td><td><b>${tot}</b></td></tr>`;
+  drawNet();
+}
+$('fstep').onclick = () => { stepIdx = Math.min(stepIdx + 1, 2 * (net.S.length - 1)); showStep(); };
+$('fall').onclick = () => { stepIdx = 2 * (net.S.length - 1); showStep(); };
+$('frand').onclick = () => { build(); showStep(); };
+$('sizes').addEventListener('change', () => { build(); showStep(); });
+['gsel', 'osel'].forEach(id => $(id).addEventListener('change', () => { forward(); showStep(); }));
+build();
+function redrawAll(){ showStep(); }
+
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

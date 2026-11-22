@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Self-Attention with Q, K, V</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 65 · playlist video 65 (titled “L3” on YouTube) · Transformers</div>
+<h1>Self-Attention: Queries, Keys, Values and Scaled Dot-Product Attention</h1>
+<p class="lede">Every word embedding $h_i$ is turned into three vectors: a query $q_i=W_Qh_i$, a key $k_i=W_Kh_i$ and a value $v_i=W_Vh_i$. Word $i$'s query is dotted with every key to score how much each word matters to it; a softmax turns the scores into weights; the new representation $z_i$ is the weighted sum of the values. Stacked as matrices, this is a handful of matrix products, $Z=\text{softmax}(Q^\top K/\sqrt{d_k})\,V^\top$, so all $T$ outputs come out in parallel.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=MLdUzA6ltEQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L64-attention-is-all-you-need.html">L64</a> · Next: <a href="L66-multi-head-attention.html">L66</a> (multi-head attention and the encoder layer).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+<p class="callout small"><b>Order.</b> Titled “L3” on YouTube, but it picks up mid-thought from <a href="L64-attention-is-all-you-need.html">L64</a> (titled “L4”), which ended by promising query, key and value matrices. It ends by promising multi-head attention, which is <a href="L66-multi-head-attention.html">L66</a> (titled “L2”).</p>
+
+<h2>1 · One vector in, three vectors out</h2>
+<p>Take the embedding $h_1\in\mathbb R^{d}$ of the first word. Multiply it by three learnable $d\times d$ matrices:</p>
+$$q_1=W_Q\,h_1,\qquad k_1=W_K\,h_1,\qquad v_1=W_V\,h_1 .$$
+<p>These are the <b>query</b>, <b>key</b> and <b>value</b> vectors. Why three? The old attention function needed three vectors (<a href="L64-attention-is-all-you-need.html">L64</a>), and now each word supplies all three. Do the same for every word, $h_1,\dots,h_T$: $3T$ vectors, all independent of one another, so all computable in parallel. $W_Q,W_K,W_V$ are the parameters this layer adds.</p>
+
+<h2>2 · Computing $z_1$</h2>
+<ol class="steps">
+<li><b>Scores.</b> Fix the query $q_1$ (the word of focus) and dot it with every key, including its own:
+$$e_{1j}=q_1^{\top}k_j,\qquad j=1,\dots,T .$$
+The scoring function is simply the dot product.</li>
+<li><b>Weights.</b> Softmax the score vector:
+$$\alpha_{1j}=\frac{\exp(e_{1j})}{\sum_{l=1}^{T}\exp(e_{1l})} .$$</li>
+<li><b>Output.</b> Take the weighted sum of the <b>values</b>:
+$$z_1=\sum_{j=1}^{T}\alpha_{1j}\,v_j .$$</li>
+</ol>
+<p>The roles match the old attention. There, $s_{t-1}$ stayed fixed while $h_j$ ran over the inputs: $s_{t-1}$ was effectively the query. Here $q_1$ stays fixed while the keys $k_1,\dots,k_T$ vary. And just as a third vector ($V_{att}$) sat outside the old formula, the values $v_j$ enter at the end. So $q$ and $k$ produce the weights $\alpha$, and $v$ is what gets averaged.</p>
+<p>$z_2$ is the same story with $q_2$ as the query: $e_{2j}=q_2^\top k_j$, a softmax gives $\alpha_{2j}$, and $z_2=\sum_j\alpha_{2j}v_j$. Likewise up to $z_T$.</p>
+
+<h2>3 · Vectorising: all queries, keys and values at once</h2>
+<p>Computing $z_1$, then $z_2$, then $z_3$ would put us back in RNN territory. But each step is a matrix product. Put the embeddings as the columns of $H=[h_1,\dots,h_T]$:</p>
+$$Q=[q_1,\dots,q_T]=W_Q\,H,\qquad K=W_K\,H,\qquad V=W_V\,H .$$
+<p>With $d=64$ (the lecture's example), $H$ is $64\times T$ and $W_Q$ is $64\times64$, so $Q$ is $64\times T$. The projection could also map to a different size $d_1$ (bigger or smaller), giving $Q\in\mathbb R^{d_1\times T}$. What matters is that <b>$T$ inputs give $T$ outputs, all at once</b>.</p>
+
+<h2>4 · The whole output in one expression</h2>
+$$\boxed{\,Z=\text{softmax}\!\left(\frac{Q^{\top}K}{\sqrt{d_k}}\right)V^{\top}\,}$$
+<p>Check the shapes (with $d=64$):</p>
+<table>
+<tr><th>Term</th><th>Shape</th><th>Meaning</th></tr>
+<tr><td>$Q^\top$</td><td>$T\times64$</td><td>row $i$ is $q_i^\top$</td></tr>
+<tr><td>$K$</td><td>$64\times T$</td><td>column $j$ is $k_j$</td></tr>
+<tr><td>$Q^\top K$</td><td>$T\times T$</td><td>entry $(i,j)$ is $q_i^\top k_j$: the attention matrix from L64's wish list</td></tr>
+<tr><td>softmax (row-wise)</td><td>$T\times T$</td><td>entry $(i,j)$ is $\alpha_{ij}$</td></tr>
+<tr><td>$V^\top$</td><td>$T\times64$</td><td>row $j$ is $v_j^\top$</td></tr>
+<tr><td>$Z$</td><td>$T\times64$</td><td>row $i$ is $z_i^\top$</td></tr>
+</table>
+<p>The lecture checks that the matrix version gives the same $z_2$ as the picture:</p>
+<ol class="steps">
+<li>Row 2 of $Q^\top K$ is $(q_2^\top k_1,\ q_2^\top k_2,\ \dots,\ q_2^\top k_T)$; after the softmax it is $(\alpha_{21},\dots,\alpha_{2T})$.</li>
+<li>Row 2 of a product $AV^\top$ is a linear combination of the rows of $V^\top$, weighted by row 2 of $A$.</li>
+<li>The rows of $V^\top$ are $v_1^\top,\dots,v_T^\top$, so row 2 of $Z$ is $\alpha_{21}v_1+\alpha_{22}v_2+\dots+\alpha_{2T}v_T=z_2$. ✓</li>
+</ol>
+<div class="callout"><b>Everything is parallel.</b> $Q$, $K$ and $V$ are three matrix products; $Z$ is two more matrix products and a softmax. No $z_t$ waits for $z_{t-1}$. The output $Z$ holds the contextual representations $z_1,\dots,z_T$ of the inputs $h_1,\dots,h_T$.</div>
+
+<h2>5 · Scaled dot-product attention</h2>
+<p>The dot products are divided by $\sqrt{d_k}$, the square root of the key dimension ($d_k=64$ in the examples). The lecture notes that there is a justification but does not go into it; for practical purposes, you take the dot product and scale it. Hence the name <b>scaled dot-product attention</b>. As a block, one self-attention layer is:</p>
+<p class="mono" style="white-space:pre-wrap;background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:10px 12px">H ──W_Q, W_K, W_V──▶ Q, K, V
+Q, K ──MatMul──▶ QᵀK  (T×T) ──Scale ÷√d_k──▶ ──SoftMax──▶ α  (T×T)
+α, V ──MatMul──▶ Z = α Vᵀ  (T×64)  =  z₁ … z_T</p>
+<p>Explore it on the lecture's sentence. The embeddings and weight matrices are random (untrained), so the pattern of weights is meaningless; what you can test is the <b>mechanics</b>.</p>
+
+<div class="card">
+  <div class="row"><span class="small muted">show:</span><button id="v0">$Q^\top K$</button><button id="v1">scaled</button><button id="v2" class="on">softmax → α</button>
+    <label><input type="checkbox" id="scl" checked> divide by $\sqrt{d_k}$</label></div>
+  <div class="row"><span class="small muted">$d_k$:</span><span id="dBtns"></span><button id="rs">New random weights</button></div>
+  <div class="pair">
+    <canvas id="am" height="300" aria-label="Five by five attention matrix with numbers"></canvas>
+    <canvas id="bar" height="300" aria-label="Weights of the selected row and the resulting weighted sum"></canvas>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="sStd">–</div><div class="l">spread (std) of the scores fed to softmax</div></div>
+    <div class="stat"><div class="v" id="sMax">–</div><div class="l">average largest α in a row</div></div>
+    <div class="stat"><div class="v" id="sChk">–</div><div class="l">|z from the loop − z from the matrix formula|</div></div>
+  </div>
+  <p class="small" id="aTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video: why $\sqrt{d_k}$?</b> If the components of $q$ and $k$ are roughly independent with mean 0 and variance 1, then $q^\top k$ is a sum of $d_k$ such products, so its variance is $d_k$ and its spread is $\sqrt{d_k}$. Large scores push the softmax into saturation: each row becomes almost one-hot, and the gradient through a saturated softmax is tiny, so learning stalls. Dividing by $\sqrt{d_k}$ brings the spread back to about 1 whatever the dimension. In the demo, untick the scaling and raise $d_k$: the score spread grows like $\sqrt{d_k}$ and the average largest weight heads to 1. With scaling on, it stays put. (The original paper writes the same formula with words as rows: $\text{softmax}(QK^\top/\sqrt{d_k})\,V$.)</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Each embedding $h_i$ yields $q_i=W_Qh_i$, $k_i=W_Kh_i$, $v_i=W_Vh_i$; the three matrices are learned.</li>
+<li>For word $i$: $e_{ij}=q_i^\top k_j$, $\alpha_{ij}=\text{softmax}_j(e_{ij})$, $z_i=\sum_j\alpha_{ij}v_j$. Query and keys make the weights; values are what is averaged.</li>
+<li>Stacked as matrices, $Q=W_QH$, $K=W_KH$, $V=W_VH$ and $Z=\text{softmax}(Q^\top K/\sqrt{d_k})V^\top$: $T$ outputs in parallel.</li>
+<li>$Q^\top K$ is the $T\times T$ attention matrix; row $i$ of $Z$ is exactly $z_i$.</li>
+<li>Scaling by $\sqrt{d_k}$ gives <b>scaled dot-product attention</b>: MatMul → Scale → SoftMax → MatMul.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const softmax = a => { const m = Math.max(...a), e = a.map(x => Math.exp(x - m)), s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); };
+
+const toks = ['I', 'enjoyed', 'the', 'movie', 'Transformers'], T = 5, DS = [4, 16, 64, 256, 512];
+let d = 64, seed = 7, view = 2, sel = 3, M = null, amRect = null;
+function proj(W, h){ const out = new Float64Array(d); for (let a = 0; a < d; a++) { let s = 0; const row = W[a]; for (let b = 0; b < d; b++) s += row[b] * h[b]; out[a] = s; } return out; }
+function generate(){
+  const r = rng(seed * 1000 + d), sd = 1 / Math.sqrt(d);
+  const H = toks.map(() => Float64Array.from({length: d}, () => gauss(r)));
+  const mk = () => Array.from({length: d}, () => Float64Array.from({length: d}, () => gauss(r) * sd));
+  const WQ = mk(), WK = mk(), WV = mk();
+  const Q = H.map(h => proj(WQ, h)), K = H.map(h => proj(WK, h)), V = H.map(h => proj(WV, h));
+  const S = Q.map(q => K.map(k => { let s = 0; for (let a = 0; a < d; a++) s += q[a] * k[a]; return s; }));
+  M = {Q, K, V, S};
+}
+function derived(){
+  const sc = $('scl').checked ? Math.sqrt(d) : 1, S2 = M.S.map(r => r.map(x => x / sc)), A = S2.map(softmax);
+  // matrix route: Z = A V^T (rows of V^T are v_j)
+  const Z = A.map(row => { const z = new Float64Array(d); row.forEach((a, j) => { for (let c = 0; c < d; c++) z[c] += a * M.V[j][c]; }); return z; });
+  // loop route for the selected word, as in the lecture's picture
+  const e = M.K.map(k => { let s = 0; for (let c = 0; c < d; c++) s += M.Q[sel][c] * k[c]; return s / sc; }), al = softmax(e);
+  const zl = new Float64Array(d); al.forEach((a, j) => { for (let c = 0; c < d; c++) zl[c] += a * M.V[j][c]; });
+  let diff = 0; for (let c = 0; c < d; c++) diff = Math.max(diff, Math.abs(zl[c] - Z[sel][c]));
+  return {S2, A, Z, diff};
+}
+function std(m){ const f = m.flat(), mu = f.reduce((p, q) => p + q, 0) / f.length; return Math.sqrt(f.reduce((p, q) => p + (q - mu) ** 2, 0) / f.length); }
+function draw(){
+  const D = derived(), mat = view === 0 ? M.S : view === 1 ? D.S2 : D.A;
+  const cv = $('am'), [ctx, W, Hh] = setupCanvas(cv), lw = 84, top = 70, cs = Math.max(30, Math.min(56, (W - lw - 6) / T, (Hh - top - 6) / T));
+  amRect = {lw, top, cs}; const mx = Math.max(1e-9, ...mat.flat().map(Math.abs));
+  ctx.font = '12px system-ui'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < T; i++) {
+    ctx.fillStyle = i === sel ? cssv('--s2') : cssv('--muted'); ctx.textAlign = 'right'; ctx.fillText(toks[i], lw - 6, top + i * cs + cs / 2);
+    ctx.save(); ctx.translate(lw + i * cs + cs / 2, top - 6); ctx.rotate(-Math.PI / 4); ctx.textAlign = 'left'; ctx.fillStyle = cssv('--muted'); ctx.fillText(toks[i], 0, 0); ctx.restore();
+    for (let j = 0; j < T; j++) { const v = mat[i][j], x = lw + j * cs, y = top + i * cs, a = view === 2 ? v : Math.abs(v) / mx;
+      ctx.fillStyle = cssv('--card'); ctx.fillRect(x, y, cs - 2, cs - 2);
+      ctx.globalAlpha = Math.min(1, a * (view === 2 ? 1.3 : 0.9)); ctx.fillStyle = cssv(view === 2 || v >= 0 ? '--s1' : '--s2'); ctx.fillRect(x, y, cs - 2, cs - 2); ctx.globalAlpha = 1;
+      ctx.fillStyle = a > 0.6 ? '#fff' : cssv('--ink'); ctx.textAlign = 'center'; ctx.font = (cs < 40 ? '10px' : '12px') + ' system-ui';
+      ctx.fillText(view === 2 ? v.toFixed(2) : (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1)), x + cs / 2 - 1, y + cs / 2); ctx.font = '12px system-ui'; } }
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.strokeRect(lw - 1, top + sel * cs - 1, T * cs, cs);
+  ctx.textAlign = 'left'; ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui';
+  ctx.fillText(view === 0 ? 'qᵢᵀkⱼ (blue +, orange −)' : view === 1 ? ($('scl').checked ? 'qᵢᵀkⱼ / √dₖ' : 'not scaled: same as QᵀK') : 'αᵢⱼ: each row sums to 1', 4, 12);
+  // bar panel: alpha of selected row, and first components of z
+  const [b, BW, BH] = setupCanvas($('bar')), al = D.A[sel], bl = 92, bw = BW - bl - 50, bh = Math.min(30, (BH * 0.55) / T);
+  b.font = '12px system-ui'; b.textBaseline = 'middle'; b.fillStyle = cssv('--ink'); b.fillText(`α for query “${toks[sel]}” (weights on each value vⱼ)`, 4, 12);
+  al.forEach((a, j) => { const y = 28 + j * bh; b.fillStyle = cssv('--muted'); b.textAlign = 'right'; b.fillText(toks[j], bl - 6, y + bh / 2); b.textAlign = 'left';
+    b.fillStyle = cssv('--grid'); b.fillRect(bl, y + 3, bw, bh - 6); b.fillStyle = cssv('--s1'); b.fillRect(bl, y + 3, bw * a, bh - 6);
+    b.fillStyle = cssv('--ink'); b.fillText(a.toFixed(3), bl + bw + 6, y + bh / 2); });
+  const y0 = 40 + T * bh, nC = Math.min(8, d), zz = D.Z[sel], zm = Math.max(1e-9, ...Array.from(zz).slice(0, nC).map(Math.abs)), cw = (BW - 8) / nC, hh = BH - y0 - 30;
+  b.fillStyle = cssv('--ink'); b.fillText(`z for “${toks[sel]}” = Σⱼ αⱼ vⱼ (first ${nC} of ${d} components)`, 4, y0);
+  b.strokeStyle = cssv('--grid'); b.beginPath(); b.moveTo(4, y0 + 18 + hh / 2); b.lineTo(BW - 4, y0 + 18 + hh / 2); b.stroke();
+  for (let c = 0; c < nC; c++) { const v = zz[c] / zm * hh / 2; b.fillStyle = cssv(v >= 0 ? '--s3' : '--s2'); b.fillRect(6 + c * cw + cw * 0.2, y0 + 18 + hh / 2 - Math.max(0, v), cw * 0.6, Math.abs(v)); }
+  $('sStd').textContent = std(D.S2).toFixed(2); $('sMax').textContent = (D.A.reduce((p, r) => p + Math.max(...r), 0) / T).toFixed(2);
+  $('sChk').textContent = D.diff.toExponential(1);
+  const sat = D.A.filter(r => Math.max(...r) > 0.95).length;
+  $('aTxt').innerHTML = `$d_k$ = ${d}, ${$('scl').checked ? 'scaled by √' + d + ' = ' + Math.sqrt(d).toFixed(1) : '<b>unscaled</b>'}. ${sat} of 5 rows are nearly one-hot (largest α above 0.95). Click a row to make it the query; the loop formula and the matrix formula agree to rounding error.`
+    .replace('$d_k$', 'd<sub>k</sub>');
+}
+function setView(v){ view = v; ['v0', 'v1', 'v2'].forEach((id, k) => $(id).classList.toggle('on', k === v)); draw(); }
+DS.forEach(v => { const bt = document.createElement('button'); bt.textContent = v; bt.id = 'd' + v; if (v === d) bt.classList.add('on');
+  bt.onclick = () => { d = v; DS.forEach(w => $('d' + w).classList.toggle('on', w === v)); generate(); draw(); }; $('dBtns').appendChild(bt); $('dBtns').appendChild(document.createTextNode(' ')); });
+$('v0').onclick = () => setView(0); $('v1').onclick = () => setView(1); $('v2').onclick = () => setView(2);
+$('scl').addEventListener('change', draw);
+$('rs').onclick = () => { seed++; generate(); draw(); };
+$('am').addEventListener('click', e => { if (!amRect) return; const r = $('am').getBoundingClientRect(), i = Math.floor((e.clientY - r.top - amRect.top) / amRect.cs); if (i >= 0 && i < T) { sel = i; draw(); } });
+generate(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

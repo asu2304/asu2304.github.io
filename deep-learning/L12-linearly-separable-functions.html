@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Linearly Separable Functions</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 12 · playlist video 12 (titled “L16” on YouTube) · McCulloch–Pitts neuron, perceptrons</div>
+<h1>Linearly Separable Boolean Functions, and XOR</h1>
+<p class="lede">The perceptron, and the guarantee of its learning algorithm, only work for linearly separable data. XOR is the smallest function that isn't: its four inequalities contradict each other. Of the 16 boolean functions of two inputs, 14 are linearly separable; in general there are $2^{2^n}$ functions of $n$ inputs, and real-world data are rarely separable. So we need something beyond a single perceptron.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=VYnzTwx3lpk" target="_blank" rel="noopener">this lecture on YouTube</a> (≈8 min). Previous: <a href="L11-perceptron-convergence.html">L11</a> · Next: <a href="L13-network-of-perceptrons.html">L13</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · XOR: four inequalities that can't all hold</h2>
+<p>The convergence proof (<a href="L11-perceptron-convergence.html">L11</a>) needs linearly separable data. So which boolean functions are <i>not</i> linearly separable? The famous example is XOR. A perceptron fires when $w_0+w_1x_1+w_2x_2\ge0$ (L8), so implementing XOR means satisfying one inequality per row:</p>
+<table>
+<tr><th>$x_1$</th><th>$x_2$</th><th>XOR</th><th>Condition</th><th>Simplifies to</th></tr>
+<tr><td>0</td><td>0</td><td>0</td><td>$w_0+w_1\cdot0+w_2\cdot0&lt;0$</td><td>$w_0&lt;0$</td></tr>
+<tr><td>0</td><td>1</td><td>1</td><td>$w_0+w_2\ge0$</td><td>$w_2\ge-w_0$</td></tr>
+<tr><td>1</td><td>0</td><td>1</td><td>$w_0+w_1\ge0$</td><td>$w_1\ge-w_0$</td></tr>
+<tr><td>1</td><td>1</td><td>0</td><td>$w_0+w_1+w_2&lt;0$</td><td>$w_1+w_2&lt;-w_0$</td></tr>
+</table>
+<ol class="steps">
+<li>Rows 2 and 3 say $w_1\ge-w_0$ and $w_2\ge-w_0$.</li>
+<li>Add them: $w_1+w_2\ge-2w_0$.</li>
+<li>Row 1 says $w_0&lt;0$, so $-w_0&gt;0$ and therefore $-2w_0&gt;-w_0$. Hence $w_1+w_2&gt;-w_0$.</li>
+<li>Row 4 demands $w_1+w_2&lt;-w_0$. Contradiction: no choice of $w_0,w_1,w_2$ satisfies all four.</li>
+</ol>
+<p>The same thing is clear from the picture: the points with output 1, $(0,1)$ and $(1,0)$, sit on one diagonal; the points with output 0, $(0,0)$ and $(1,1)$, sit on the other. However you turn and shift a line, you cannot put the two 1s on one side and the two 0s on the other. (The demo in section 3 lets you check this for every two-input function.)</p>
+
+<h2>2 · Real data are rarely linearly separable</h2>
+<p>XOR isn't a curiosity. Most real-world data won't be linearly separable:</p>
+<ul>
+<li><b>Outliers.</b> Split people into those who like machine learning and those who don't. Some people have all the characteristics of the first group but still don't like it. Or: you'd expect everyone in a certain locality to speak one language, but a few speak another.</li>
+<li><b>Structure, not noise.</b> Even with no outliers at all, the classes can sit in an inner circle and an outer ring. Each group behaves consistently, but no straight line separates them.</li>
+</ul>
+<p>A model that can only handle linearly separable data is not acceptable in the long run. A single perceptron can't find a line separating the positives from the negatives in these cases. The plan: show that a <b>network</b> of perceptrons can, even when the data are not linearly separable to begin with (<a href="L13-network-of-perceptrons.html">L13</a>).</p>
+
+<h2>3 · How many boolean functions of two inputs?</h2>
+<p>Two boolean inputs give four possible input rows. A function assigns 0 or 1 to each row, so there are $2^4=16$ functions, that is, $2^{2^2}$. They include always-off ($f_1$), always-on ($f_{16}$), AND, OR and so on. Work through them and you'll find that <b>all except XOR and its negation (XNOR)</b> are linearly separable: 14 of the 16.</p>
+<p>Check that claim yourself. Click any of the 16 functions. The demo searches for perceptron weights; if it finds some it draws the line, and if none exist it shows the best a line can do.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Function $f_j$ lists its outputs for the inputs $(0,0),(0,1),(1,0),(1,1)$, in that order. Green border = linearly separable.</p>
+  <div id="grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px"></div>
+  <div class="pair" style="margin-top:12px">
+    <canvas id="fc" height="240" aria-label="The four input points of the chosen boolean function and a separating line if one exists"></canvas>
+    <div>
+      <p id="fTxt" class="small" style="margin-top:4px"></p>
+      <div class="row"><div class="stat"><div class="v" id="nsep">–</div><div class="l">linearly separable of the 16</div></div></div>
+    </div>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>output 1</span><span><i class="dot" style="background:var(--s2)"></i>output 0</span><span><i style="background:var(--ink)"></i>$w_0+w_1x_1+w_2x_2=0$</span><span><i style="background:var(--tint);height:10px"></i>region where the perceptron outputs 1</span></div>
+</div>
+
+<h2>4 · And with $n$ inputs?</h2>
+<p>With $n$ boolean inputs there are $2^n$ input rows, each of which can map to 0 or 1, so there are $2^{2^n}$ boolean functions. For $n=2$ that's the 16 above.</p>
+<p>How many of them are <i>not</i> linearly separable? A tempting guess is $n$ (since two of the 16 fail for $n=2$). That's wrong. In fact there's no known formula: Prof. Khapra calls it an unsolved problem. The point is not the exact count. It's that some functions are always not linearly separable, even for simple boolean inputs, and real-world data are messier still. So we need a way to deal with functions that are not linearly separable, first for boolean inputs and outputs (next lecture), later in general.</p>
+<div class="beyond"><b>Going beyond the video: counting them for small $n$.</b> There is no closed form, but for small $n$ we can simply count by brute force: try integer weights and thresholds and record every function a perceptron produces. Press the button (it takes a fraction of a second). The known values are 4, 14, 104, 1882, then 94,572 for $n=5$; the separable fraction collapses towards zero, because the number of separable functions grows roughly like $2^{n^2}$ while the total is $2^{2^n}$.
+  <div class="row"><button id="countBtn">Count for n = 1 … 4</button></div>
+  <table id="cnt"><tr><th>$n$</th><th>all functions $2^{2^n}$</th><th>linearly separable</th><th>fraction</th></tr></table>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>XOR is not linearly separable: its four perceptron inequalities contradict each other ($w_1+w_2$ must be both $\ge-2w_0&gt;-w_0$ and $&lt;-w_0$).</li>
+<li>Real data are often not linearly separable, because of outliers or because of structure such as concentric classes.</li>
+<li>There are $2^{2^n}$ boolean functions of $n$ inputs; for $n=2$, 14 of the 16 are linearly separable (all but XOR and XNOR).</li>
+<li>There is no known formula for how many are not separable, but some always aren't, so a single perceptron is not enough: we need networks of perceptrons.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const X4 = [[0, 0], [0, 1], [1, 0], [1, 1]];
+const NAMES = {0: 'always off', 1: 'AND', 6: 'XOR', 7: 'OR', 8: 'NOR', 9: 'XNOR', 14: 'NAND', 15: 'always on', 3: '= x₁', 5: '= x₂', 12: 'NOT x₁', 10: 'NOT x₂'};
+// f is a 4-bit number written as the outputs for (0,0),(0,1),(1,0),(1,1), most significant bit first
+const outs = f => X4.map((_, j) => (f >> (3 - j)) & 1);   // read the bits left to right as (0,0),(0,1),(1,0),(1,1)
+function search(f){ const y = outs(f); let best = null;
+  for (let w1 = -3; w1 <= 3; w1++) for (let w2 = -3; w2 <= 3; w2++) for (let w0 = -6.5; w0 <= 6.5; w0 += 1) {
+    const err = X4.reduce((e, x, j) => e + (((w0 + w1 * x[0] + w2 * x[1]) >= 0 ? 1 : 0) !== y[j] ? 1 : 0), 0);
+    if (!best || err < best.err || (err === best.err && Math.abs(w1) + Math.abs(w2) < Math.abs(best.w1) + Math.abs(best.w2))) best = {w0, w1, w2, err}; }
+  return best; }
+const RES = []; for (let f = 0; f < 16; f++) RES.push(search(f));
+let cur = 6;
+function buildGrid(){ const g = $('grid'); g.innerHTML = '';
+  for (let f = 0; f < 16; f++) { const b = document.createElement('button'), ok = RES[f].err === 0;
+    b.innerHTML = `f<sub>${f + 1}</sub> <span class="mono">${outs(f).join('')}</span><br><span class="small muted">${NAMES[f] || '&nbsp;'}</span>`;
+    b.style.borderColor = ok ? cssv('--s3') : cssv('--s2'); b.style.borderWidth = '2px'; b.style.lineHeight = '1.25'; b.style.padding = '6px 4px';
+    if (f === cur) b.classList.add('on'); b.onclick = () => { cur = f; buildGrid(); draw(); }; g.appendChild(b); }
+  $('nsep').textContent = RES.filter(r => r.err === 0).length; }
+function draw(){
+  const [ctx, W, H] = setupCanvas($('fc')), pad = 40, S = Math.min(W - 2 * pad, H - 2 * pad), ox = (W - S) / 2, oy = H - (H - S) / 2;
+  const P = (a, b) => [ox + a * S, oy - b * S], r = RES[cur], y = outs(cur);
+  // shade the positive region on a grid
+  const lo = -0.35, hi = 1.35, n = 60; ctx.fillStyle = cssv('--tint');
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const a = lo + (hi - lo) * (i + 0.5) / n, b = lo + (hi - lo) * (j + 0.5) / n;
+    if (r.w0 + r.w1 * a + r.w2 * b >= 0) { const [px, py] = P(lo + (hi - lo) * i / n, lo + (hi - lo) * (j + 1) / n); ctx.fillRect(px, py, S * (hi - lo) / n + 0.6, S * (hi - lo) / n + 0.6); } }
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(...P(lo, 0)); ctx.lineTo(...P(hi, 0)); ctx.moveTo(...P(0, lo)); ctx.lineTo(...P(0, hi)); ctx.stroke();
+  if (r.w1 || r.w2) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath();
+    if (Math.abs(r.w2) > 1e-9) { ctx.moveTo(...P(lo, -(r.w0 + r.w1 * lo) / r.w2)); ctx.lineTo(...P(hi, -(r.w0 + r.w1 * hi) / r.w2)); }
+    else { const a = -r.w0 / r.w1; ctx.moveTo(...P(a, lo)); ctx.lineTo(...P(a, hi)); } ctx.save(); ctx.rect(0, 0, W, H); ctx.clip(); ctx.stroke(); ctx.restore(); }
+  X4.forEach((x, j) => { const [px, py] = P(...x), wrong = ((r.w0 + r.w1 * x[0] + r.w2 * x[1]) >= 0 ? 1 : 0) !== y[j];
+    ctx.fillStyle = cssv(y[j] ? '--s1' : '--s2'); ctx.beginPath(); ctx.arc(px, py, 8, 0, 7); ctx.fill();
+    if (wrong) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(px, py, 13, 0, 7); ctx.stroke(); }
+    ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText(`(${x[0]},${x[1]})`, px + 12, py + (x[1] ? -10 : 18)); });
+  const nm = NAMES[cur] ? ` (${NAMES[cur]})` : '';
+  $('fTxt').innerHTML = r.err === 0
+    ? `<b>f<sub>${cur + 1}</sub>${nm} is linearly separable.</b> One solution: $w_0=${r.w0}$, $w_1=${r.w1}$, $w_2=${r.w2}$. Every point is on its correct side.`
+    : `<b>f<sub>${cur + 1}</sub>${nm} is not linearly separable.</b> No weights get all four rows right; the best any line can do is ${r.err} error (ringed). The four inequalities contradict each other exactly as in section 1.`;
+  if (window.renderMathInElement) renderMathInElement($('fTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+function countN(n){ const M = n < 4 ? 2 : 3, pts = []; for (let m = 0; m < (1 << n); m++) pts.push([...Array(n)].map((_, i) => (m >> i) & 1));
+  const seen = new Set(), w = new Array(n).fill(-M);
+  while (true) { const s = pts.map(p => p.reduce((a, x, i) => a + x * w[i], 0)), u = [...new Set(s)].sort((a, b) => a - b);
+    [u[0] - 1, ...u.map(v => v + 0.5)].forEach(t => { let f = 0; s.forEach((v, j) => { if (v >= t) f |= 1 << j; }); seen.add(f); });
+    let i = 0; while (i < n && w[i] === M) { w[i] = -M; i++; } if (i === n) break; w[i]++; }
+  return seen.size; }
+$('countBtn').onclick = () => { const t = $('cnt'); while (t.rows.length > 1) t.deleteRow(1);
+  for (let n = 1; n <= 4; n++) { const tot = 2 ** (2 ** n), c = countN(n), row = t.insertRow();
+    [n, tot.toLocaleString(), c.toLocaleString(), (100 * c / tot).toFixed(n < 4 ? 0 : 1) + '%'].forEach(v => row.insertCell().textContent = v); } };
+buildGrid(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { buildGrid(); draw(); });
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

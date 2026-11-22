@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MaxProp and Adamax: Swapping the L2 Norm for the Max Norm</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 41 · playlist video 41 (titled “L40” on YouTube) · Optimisation algorithms</div>
+<h1>MaxProp and Adamax: Swapping the L2 Norm for the Max Norm</h1>
+<p class="lede">Adam's $v_t$ is an exponentially weighted <b>L2 norm</b> of past gradients. Push $p$ in the $L^p$ norm all the way to infinity and the norm becomes a plain <b>max</b>: cheap, numerically safe, and immune to the zero-initialisation bias. Use it for $v_t$ and you get MaxProp (from RMSProp) and Adamax (from Adam), whose learning rate barely moves when a sparse feature gives zero gradients.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=d2mSof7c4Jo" target="_blank" rel="noopener">this lecture on YouTube</a> (≈20 min). Previous: <a href="L40-adam.html">L40</a> · Next: <a href="L42-nadam.html">L42</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The $L^p$ norm, and why large $p$ is awkward</h2>
+<p>For a vector $x=(x_1,\dots,x_n)$,</p>
+$$\lVert x\rVert_p=\Big(\sum_{i=1}^n |x_i|^p\Big)^{1/p}.$$
+<p>$p=2$ is the familiar L2 norm: square, add, take the square root. The lecture recalls why we care: when Adam was introduced (<a href="L40-adam.html">L40</a>), $v_t$ was described as an exponentially weighted L2 norm of the gradient history. Now we ask whether some other norm would do.</p>
+<p>Picture the vectors of norm 1. For $L^1$ they form a diamond: for example $(0.5,-0.5)$ lies on it, since $|0.5|+|-0.5|=1$. For $L^2$ they form the circle $x_1^2+x_2^2=1$. As $p$ grows the shape bulges out towards a square.</p>
+<p>The trouble with large $p$ ($3, 4, 10, 100,\dots$) is <b>numerical</b>. A small value raised to a large power underflows towards 0; a value above 1 raised to a large power blows up. That is one reason L2 is the usual choice.</p>
+
+<h2>2 · As $p\to\infty$, the norm is just the max</h2>
+<p>Something useful happens in the limit: $\lVert x\rVert_\infty=\max_i |x_i|$. The lecture's proof outline:</p>
+<ol class="steps">
+<li>Without loss of generality let $|x_1|$ be the largest entry.</li>
+<li>Factor it out: $$\Big(\sum_i |x_i|^p\Big)^{1/p}=|x_1|\Big(1+\Big|\tfrac{x_2}{x_1}\Big|^p+\dots+\Big|\tfrac{x_n}{x_1}\Big|^p\Big)^{1/p}.$$</li>
+<li>Every ratio $|x_i/x_1|$ is below 1, so as $p\to\infty$ each term $|x_i/x_1|^p\to0$.</li>
+<li>What is left is $|x_1|\cdot 1^{1/p}=|x_1|$, the maximum entry.</li>
+</ol>
+<div class="callout">$\lVert x\rVert_\infty=\max(|x_1|,\dots,|x_n|)$. No powers, no roots, so no numerical instability.</div>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Left: the set of points with $\lVert x\rVert_p=1$ (faint: $p=1$, $p=2$ and $p=\infty$ for reference). Click or drag to move the point $x$. Right: $\lVert x\rVert_p$ computed two ways in ordinary 64-bit floats. Scale $x$ up or down and raise $p$ to see the direct formula break while the max stays exact.</p>
+<div class="row"><label>$p$ = <b id="pV">2</b> <input type="range" id="pS" min="0" max="100" value="10"></label>
+<label>scale of $x$ <select id="scS"><option value="1">×1</option><option value="1000">×1000</option><option value="0.001">×0.001</option></select></label></div>
+<div class="pair half"><canvas id="ballC" height="300" aria-label="Unit ball of the p-norm"></canvas>
+<div><div class="row" style="flex-direction:column;align-items:stretch">
+<div class="stat"><div class="v mono" id="xV">–</div><div class="l">the vector $x$</div></div>
+<div class="stat"><div class="v" id="nDirect">–</div><div class="l">direct: $(|x_1|^p+|x_2|^p)^{1/p}$</div></div>
+<div class="stat"><div class="v" id="nFact">–</div><div class="l">factored form (step 2 above)</div></div>
+<div class="stat"><div class="v" id="nMax">–</div><div class="l">$\max(|x_1|,|x_2|)$</div></div></div>
+<p class="small" id="normTxt"></p></div></div>
+<div class="legend"><span><i style="background:var(--s1)"></i>$\lVert x\rVert_p=1$ for the chosen $p$</span><span><i style="background:var(--faint)"></i>$p=1,2,\infty$</span><span><i class="dot" style="background:var(--s2)"></i>$x$</span></div>
+</div>
+
+<h2>3 · Reading Adam's $v_t$ as a norm</h2>
+<p>Recall Adam's second-moment history, started at zero:</p>
+$$v_t=\beta_2 v_{t-1}+(1-\beta_2)(\nabla w_t)^2 .$$
+<p>Unrolled from time step 0, this is</p>
+$$v_t=(1-\beta_2)\big(\beta_2^{\,t}(\nabla w_0)^2+\beta_2^{\,t-1}(\nabla w_1)^2+\dots+(\nabla w_t)^2\big).$$
+<p>Ignore the $\beta$'s for a moment: this is a sum of squared gradients, and the update divides by its square root. So $\sqrt{v_t}$ is an <b>exponentially weighted L2 norm</b> of the gradient history. The question: can we use the $L^\infty$ norm instead, and what does it buy us?</p>
+
+<h2>4 · The max-norm history</h2>
+<p>Replace the weighted sum by a weighted max. Because a max of a max is a max, the history collapses to a pairwise rule: keep the decayed old max, or take the new gradient if it is bigger.</p>
+$$v_t=\max\big(\beta_2\,v_{t-1},\ |\nabla w_t|\big)$$
+<p>Three things change compared with Adam:</p>
+<ul>
+<li><b>No $(1-\beta_2)$</b> in front of the current gradient. The history still decays exponentially (it is multiplied by $\beta_2$ every step), but the current gradient enters unscaled.</li>
+<li><b>No square root.</b> The root belonged to the L2 norm; the $L^\infty$ norm has already taken its "$p$-th root" and come out as the max.</li>
+<li><b>No bias correction.</b> With $v_{-1}=0$, the first step gives $v_0=\max(0,|\nabla w_0|)=|\nabla w_0|$, the true size of the gradient, not a value shrunk towards 0. The max is not susceptible to the zero-initialisation bias. (Its curve is more zig-zag than the smooth L2 average, because it jumps straight to each new maximum.)</li>
+</ul>
+
+<h2>5 · Why bother? Sparse features</h2>
+<p>The lecture's scenario: we initialise $w$ so that the first gradient is large, and the next few gradients are 0. This is the familiar sparse-feature situation that motivated adaptive learning rates: the input $x$ for this weight is 0 on those steps, so its gradient is 0.</p>
+<div class="callout">When the gradient is 0 we have learned nothing new at that step, so ideally the effective learning rate should <b>not change</b>.</div>
+<p>With the max, a zero gradient leaves $v_t=\beta_2v_{t-1}$: only the slow decay of the history. Now the lecture's worked example: <b>every alternate gradient is 0</b> (gradients $1,0,1,0,\dots$), $\eta_0=1$, $\beta_2=0.999$, and the effective learning rate is $\eta_t=\eta_0/v_t$ (with $\varepsilon$ dropped for clarity).</p>
+<table>
+<tr><th>step</th><th>gradient</th><th>max norm: $v_t$</th><th>$\eta_t$</th><th>L2, bias-corrected: $\hat v_t$</th><th>$\eta_t=1/\sqrt{\hat v_t}$</th></tr>
+<tr><td>0</td><td>1</td><td>$\max(0,1)=1$</td><td>1</td><td>$0.001/(1-0.999)=1$</td><td>1</td></tr>
+<tr><td>1</td><td>0</td><td>$0.999$</td><td>1.001</td><td>$0.000999/0.001999\approx0.50$</td><td>≈1.41</td></tr>
+<tr><td>2</td><td>1</td><td>$\max(0.998,1)=1$</td><td>1</td><td>$0.001998/0.002997\approx0.67$</td><td>≈1.22</td></tr>
+<tr><td>3</td><td>0</td><td>$0.999$</td><td>1.001</td><td>≈0.50</td><td>≈1.41</td></tr>
+</table>
+<p>The max version keeps the learning rate between 1 and about 1.001: effectively constant, which is what we want. The L2 version jumps to about 1.4 on every zero-gradient step and back down on the next, changing the learning rate for no reason. (On the slide, step 2's max is written as $\max(0.999,1)$; strictly it is $\max(0.999\times0.999,1)$, which is still 1.)</p>
+<p>So <b>if you have many sparse features</b> and don't want their learning rates jerked around by the zero steps, the max norm is the better history. Try it, including the lecture's first scenario (one big gradient, then zeros):</p>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Top: the gradient sequence for one weight. Bottom: the effective learning rate $\eta_0/v_t$ for the max-norm history (MaxProp/Adamax) and $\eta_0/\sqrt{\hat v_t}$ for the bias-corrected L2 history (Adam), with $\eta_0=1$. Hover or tap the plot to read values.</p>
+<div class="row"><button class="pat on" data-p="alt">1, 0, 1, 0 … (lecture)</button><button class="pat" data-p="spike">one big gradient, then zeros</button><button class="pat" data-p="sparse">random sparse</button><button class="pat" data-p="noisy">noisy, shrinking</button></div>
+<div class="row"><label>$\beta_2$ = <b id="bV">0.999</b> <input type="range" id="bS" min="0" max="3" step="1" value="3"></label>
+<label>non-zero fraction <b id="fV">0.3</b> <input type="range" id="fS" min="5" max="90" value="30"></label><button id="reroll">New random draw</button></div>
+<canvas id="gC" height="110" aria-label="Gradient sequence"></canvas>
+<canvas id="lrC" height="250" aria-label="Effective learning rate over time"></canvas>
+<div class="legend"><span><i style="background:var(--s1)"></i>max norm (MaxProp / Adamax)</span><span><i style="background:var(--s2)"></i>L2 norm, bias-corrected (Adam)</span></div>
+<div class="row"><div class="stat"><div class="v" id="swMax">–</div><div class="l">max-norm: largest change of $\eta_t$ on a zero-gradient step</div></div>
+<div class="stat"><div class="v" id="swL2">–</div><div class="l">L2: largest change of $\eta_t$ on a zero-gradient step</div></div></div>
+<p class="small" id="lrTxt"></p>
+</div>
+<p>The lecture also shows a 100-step gradient profile and compares RMSProp with "RMSProp using the max norm": with the L2 history the learning rate keeps climbing, while the max version's learning rate rises more smoothly.</p>
+
+<h2>6 · The update rules</h2>
+<p><b>MaxProp</b> is RMSProp with the max-norm history. That is the whole change:</p>
+$$v_t=\max\big(\beta\,v_{t-1},\ |\nabla w_t|\big),\qquad w_{t+1}=w_t-\frac{\eta}{v_t+\varepsilon}\,\nabla w_t .$$
+<p><b>Adamax</b> applies the same idea to Adam, and is an algorithm actually used in practice. Everything about momentum stays as in Adam; only $v_t$ changes, and it needs no bias correction.</p>
+<table>
+<tr><th></th><th>Adam (<a href="L40-adam.html">L40</a>)</th><th>Adamax</th></tr>
+<tr><td>momentum</td><td>$m_t=\beta_1m_{t-1}+(1-\beta_1)\nabla w_t$</td><td>same</td></tr>
+<tr><td>bias-corrected momentum</td><td>$\hat m_t=\dfrac{m_t}{1-\beta_1^{\,t}}$</td><td>same</td></tr>
+<tr><td>history</td><td>$v_t=\beta_2v_{t-1}+(1-\beta_2)(\nabla w_t)^2$</td><td>$v_t=\max(\beta_2v_{t-1},\,|\nabla w_t|)$</td></tr>
+<tr><td>bias-corrected history</td><td>$\hat v_t=\dfrac{v_t}{1-\beta_2^{\,t}}$</td><td>not needed</td></tr>
+<tr><td>update</td><td>$w_{t+1}=w_t-\dfrac{\eta}{\sqrt{\hat v_t}+\varepsilon}\,\hat m_t$</td><td>$w_{t+1}=w_t-\dfrac{\eta}{v_t+\varepsilon}\,\hat m_t$</td></tr>
+</table>
+<div class="beyond"><b>Going beyond the video.</b> Adamax comes from the original Adam paper (Kingma &amp; Ba, 2015), which derives it exactly this way, as the $p\to\infty$ limit of an $L^p$ version of Adam; their suggested defaults are $\eta=0.002$, $\beta_1=0.9$, $\beta_2=0.999$. Most libraries ship it (e.g. <span class="mono">torch.optim.Adamax</span>). In PyTorch, $\varepsilon$ sits inside the max rather than being added to $v_t$, a detail that only matters when gradients are exactly 0 from the start.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>$\lVert x\rVert_\infty=\max_i|x_i|$: factor out the largest entry and every other ratio raised to $p\to\infty$ vanishes. Unlike large finite $p$, it is numerically safe.</li>
+<li>Adam's $\sqrt{v_t}$ is an exponentially weighted L2 norm of past gradients; Adamax replaces it with the weighted max $v_t=\max(\beta_2v_{t-1},|\nabla w_t|)$.</li>
+<li>The max history needs no $(1-\beta_2)$ factor, no square root and no bias correction: it starts at the true gradient size.</li>
+<li>On zero-gradient (sparse-feature) steps the max keeps the learning rate almost constant; the bias-corrected L2 history makes it jump (1 → 1.41 → 1.22 … in the lecture's example).</li>
+<li>MaxProp = RMSProp with the max norm; Adamax = Adam with the max norm. Only the $v_t$ line changes.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const fmt = v => !isFinite(v) ? (v > 0 ? 'Infinity (overflow)' : 'NaN') : v === 0 ? '0 (underflow)' : (Math.abs(v) >= 1e4 || Math.abs(v) < 1e-3) ? v.toExponential(4) : v.toFixed(4);
+
+/* ---------- demo 1: p-norms ---------- */
+let X = [0.8, -0.45];
+const pOf = () => { const s = +$('pS').value; return s >= 100 ? Infinity : +Math.pow(2, s / 10).toFixed(s < 40 ? 2 : 0); };
+function pnorm(v, p){ const a = v.map(Math.abs), m = Math.max(...a); if (p === Infinity || m === 0) return m; return m * Math.pow(a.reduce((s, x) => s + Math.pow(x / m, p), 0), 1 / p); }
+function drawBall(){
+  const [ctx, W, H] = setupCanvas($('ballC')), S = Math.min(W, H) / 2 / 1.35, ox = W / 2, oy = H / 2, p = pOf();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+  const curve = (q, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath();
+    for (let i = 0; i <= 360; i++) { const th = i / 360 * 2 * Math.PI, d = [Math.cos(th), Math.sin(th)], n = pnorm(d, q);
+      const px = ox + d[0] / n * S, py = oy - d[1] / n * S; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); };
+  [1, 2, Infinity].forEach(q => curve(q, cssv('--faint'), 1)); curve(p, cssv('--s1'), 2.5);
+  ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(ox + X[0] * S, oy - X[1] * S, 6, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText('1', ox + S + 3, oy + 13); ctx.fillText('1', ox + 4, oy - S - 3);
+  const sc = +$('scS').value, v = [X[0] * sc, X[1] * sc];
+  $('pV').textContent = p === Infinity ? '∞' : p;
+  $('xV').textContent = '(' + v.map(t => Math.abs(t) >= 100 || (Math.abs(t) < 0.01 && t !== 0) ? t.toExponential(2) : t.toFixed(3)).join(', ') + ')';
+  const direct = p === Infinity ? NaN : Math.pow(Math.pow(Math.abs(v[0]), p) + Math.pow(Math.abs(v[1]), p), 1 / p);
+  $('nDirect').textContent = p === Infinity ? '(p = ∞: use the max)' : fmt(direct);
+  $('nFact').textContent = fmt(pnorm(v, p)); $('nMax').textContent = fmt(Math.max(Math.abs(v[0]), Math.abs(v[1])));
+  const bad = p !== Infinity && (!isFinite(direct) || direct === 0) && (v[0] || v[1]);
+  $('normTxt').innerHTML = bad ? '<b>The direct formula has broken:</b> the powers $|x_i|^p$ ' + (Math.abs(v[0]) > 1 ? 'overflowed to Infinity' : 'underflowed to 0') + ' before the root could bring them back. The factored form and the max are fine.'
+    : 'Point on the blue curve ⇔ $\\lVert x\\rVert_p=1$. As $p$ grows, the norm approaches the max entry.';
+  if (window.renderMathInElement) renderMathInElement($('normTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+function setX(e){ const cv = $('ballC'), r = cv.getBoundingClientRect(), W = r.width, H = +cv.dataset.h, S = Math.min(W, H) / 2 / 1.35;
+  const t = e.touches ? e.touches[0] : e; X = [(t.clientX - r.left - W / 2) / S, -(t.clientY - r.top - H / 2) / S].map(v => Math.max(-1.3, Math.min(1.3, v))); drawBall(); }
+let dragging = false;
+$('ballC').addEventListener('mousedown', e => { dragging = true; setX(e); });
+window.addEventListener('mouseup', () => dragging = false);
+$('ballC').addEventListener('mousemove', e => { if (dragging) setX(e); });
+$('ballC').addEventListener('touchstart', e => { setX(e); e.preventDefault(); }, {passive: false});
+$('ballC').addEventListener('touchmove', e => { setX(e); e.preventDefault(); }, {passive: false});
+$('pS').addEventListener('input', drawBall); $('scS').addEventListener('change', drawBall);
+
+/* ---------- demo 2: effective learning rate ---------- */
+const BETAS = [0.9, 0.99, 0.995, 0.999];
+let pat = 'alt', seed = 7, hover = null;
+function rng(s){ return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+function grads(){ const T = 60, r = rng(seed), f = +$('fS').value / 100, g = [];
+  for (let t = 0; t < T; t++) {
+    if (pat === 'alt') g.push(t % 2 ? 0 : 1);
+    else if (pat === 'spike') g.push(t === 0 ? 1 : 0);
+    else if (pat === 'sparse') g.push(t === 0 || r() < f ? 0.3 + r() : 0);
+    else g.push((0.2 + r()) * Math.exp(-t / 25)); }
+  return g; }
+function series(){ const b = BETAS[+$('bS').value], g = grads(); let vm = 0, v2 = 0; const out = [];
+  g.forEach((gt, t) => { vm = Math.max(b * vm, Math.abs(gt)); v2 = b * v2 + (1 - b) * gt * gt; const vh = v2 / (1 - Math.pow(b, t + 1));
+    out.push({g: gt, eMax: 1 / (vm + 1e-8), eL2: 1 / (Math.sqrt(vh) + 1e-8)}); });
+  return out; }
+function drawLR(){
+  const s = series(), T = s.length, b = BETAS[+$('bS').value]; $('bV').textContent = b; $('fV').textContent = (+$('fS').value / 100).toFixed(2);
+  let [ctx, W, H] = setupCanvas($('gC')); const L = 46, R = 10, x = t => L + t / (T - 1) * (W - L - R), gmax = Math.max(...s.map(d => d.g), 1e-9);
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(L, H - 18); ctx.lineTo(W - R, H - 18); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('|∇w_t|', 2, 14);
+  const bw = Math.max(2, (W - L - R) / T * 0.6);
+  s.forEach((d, t) => { ctx.fillStyle = d.g ? cssv('--s3') : cssv('--grid'); const h = d.g / gmax * (H - 32); ctx.fillRect(x(t) - bw / 2, H - 18 - Math.max(h, 1.5), bw, Math.max(h, 1.5)); });
+  [ctx, W, H] = setupCanvas($('lrC'));
+  const ys = s.flatMap(d => [d.eMax, d.eL2]), lo = Math.min(...ys), hi = Math.max(...ys), pad = (hi - lo) * 0.08 || 0.05, y0 = lo - pad, y1 = hi + pad, T0 = 10, B = 24;
+  const y = v => T0 + (1 - (v - y0) / (y1 - y0)) * (H - T0 - B);
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui';
+  for (let i = 0; i <= 4; i++) { const v = y0 + (y1 - y0) * i / 4; ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(W - R, y(v)); ctx.stroke(); ctx.fillText(v.toFixed(v < 10 ? 3 : 1), 2, y(v) + 4); }
+  for (let t = 0; t < T; t += 10) ctx.fillText(t, x(t) - 4, H - 6);
+  [['eL2', '--s2'], ['eMax', '--s1']].forEach(([k, c]) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = 2.2; ctx.beginPath(); s.forEach((d, t) => t ? ctx.lineTo(x(t), y(d[k])) : ctx.moveTo(x(t), y(d[k]))); ctx.stroke();
+    ctx.fillStyle = cssv(c); s.forEach((d, t) => { ctx.beginPath(); ctx.arc(x(t), y(d[k]), 2.2, 0, 7); ctx.fill(); }); });
+  let swM = 0, swL = 0; for (let t = 1; t < T; t++) if (!s[t].g) { swM = Math.max(swM, Math.abs(s[t].eMax - s[t - 1].eMax)); swL = Math.max(swL, Math.abs(s[t].eL2 - s[t - 1].eL2)); }
+  $('swMax').textContent = swM.toFixed(4); $('swL2').textContent = swL.toFixed(4);
+  let txt = `Step 0: both start at η = ${s[0].eMax.toFixed(3)}. Step 1: max ${s[1].eMax.toFixed(3)}, L2 ${s[1].eL2.toFixed(3)}.`;
+  if (hover !== null && hover < T) { const d = s[hover]; ctx.strokeStyle = cssv('--muted'); ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(x(hover), T0); ctx.lineTo(x(hover), H - B); ctx.stroke(); ctx.setLineDash([]);
+    txt = `Step ${hover}: gradient ${d.g.toFixed(3)}, max-norm η = ${d.eMax.toFixed(4)}, L2 η = ${d.eL2.toFixed(4)}.`; }
+  $('lrTxt').textContent = txt;
+}
+function hov(e){ const cv = $('lrC'), r = cv.getBoundingClientRect(), t = e.touches ? e.touches[0] : e, L = 46, R = 10;
+  hover = Math.max(0, Math.min(59, Math.round((t.clientX - r.left - L) / (r.width - L - R) * 59))); drawLR(); }
+$('lrC').addEventListener('mousemove', hov); $('lrC').addEventListener('touchstart', hov, {passive: true}); $('lrC').addEventListener('mouseleave', () => { hover = null; drawLR(); });
+document.querySelectorAll('.pat').forEach(bt => bt.addEventListener('click', () => { document.querySelectorAll('.pat').forEach(o => o.classList.remove('on')); bt.classList.add('on'); pat = bt.dataset.p; drawLR(); }));
+$('bS').addEventListener('input', drawLR); $('fS').addEventListener('input', drawLR); $('reroll').addEventListener('click', () => { seed = 1 + Math.floor(Math.random() * 1e6); drawLR(); });
+
+function drawAll(){ drawBall(); drawLR(); }
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Augmentation and Parameter Sharing</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 49 · playlist video 49 (titled “L50” on YouTube) · Bias, variance and regularisation</div>
+<h1>Dataset Augmentation and Parameter Sharing</h1>
+<p class="lede">Two cheap regularisers. <b>Augmentation</b> uses what you know about the task: a slightly rotated or shifted "2" is still a 2, so you get more labelled data for free and the network can't simply memorise pixel patterns. <b>Parameter sharing and tying</b> reuse one set of weights in several places (a convolution filter slid across an image, an autoencoder's decoder set to the encoder's transpose), so the model has fewer weights and lower complexity.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=in9ZdGxGhW8" target="_blank" rel="noopener">this lecture on YouTube</a> (≈7 min). Previous: <a href="L48-l2-regularization.html">L48</a> · Next: <a href="L50-noise-at-inputs.html">L50</a> (injecting noise at the inputs).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Dataset augmentation</h2>
+<p>Take digit classification on MNIST. One training image shows a <b>2</b>. From it you can create new images by applying transformations that don't change the label:</p>
+<ul>
+<li>rotate it by a small angle, say 20°;</li>
+<li>shift it vertically or horizontally;</li>
+<li>blur it;</li>
+<li>change some pixels, i.e. add noise.</li>
+</ul>
+<p>Each result is still a 2, so it needs no manual labelling. You are <b>exploiting knowledge of the task</b>: you know these changes preserve the label. (Careful with large ones: rotate a 6 by 180° and it becomes a 9.)</p>
+<p><b>Why it regularises.</b> With only the original, the network can overfit by learning "this exact combination of pixels means 2". That no longer works for the shifted or rotated copies, whose pixels differ. It has much more to learn and can't easily memorise all of it, so it is less prone to overfitting. Modern deep networks can still overfit, but augmentation costs nothing extra, so it's always worth trying.</p>
+<div class="card">
+  <div class="row"><button id="bRot" class="on">rotate ±20°</button><button id="bSh">shift</button><button id="bBl">blur</button><button id="bNz">noise</button><button id="bMix">mix of all</button><button id="b180">rotate 180°</button></div>
+  <div class="row"><label>digit <button id="dig">2</button></label><span class="small muted">Each press of a transformation draws a new random batch of 7 copies.</span></div>
+  <canvas id="cA" height="190" aria-label="An original digit image and seven augmented copies with their labels"></canvas>
+  <p class="small" id="aTxt" style="margin-bottom:0"></p>
+</div>
+<p><b>Where it's used.</b> It works well for image classification and object recognition, and has been tried for speech and, more recently, text (there are libraries for it). Text is harder: images and speech are continuous signals that can be nudged slightly, whereas text is discrete words, so meaningful label-preserving changes are harder to come up with.</p>
+
+<h2>2 · Parameter sharing</h2>
+<p>This comes back in detail with <b>convolutional neural networks</b>. There, an image is processed with a <b>convolutional filter</b>, a small matrix of weights, and the same filter is applied to different parts of the image. You don't define a separate weight matrix for every region; you reuse one.</p>
+
+<h2>3 · Weight tying</h2>
+<p>In an <b>autoencoder</b> (later in the course), an $n$-dimensional input goes to a $d$-dimensional hidden layer and back to $n$ dimensions. The first layer has an $n\times d$ weight matrix $P$, the second a $d\times n$ matrix $Q$. <b>Weight tying</b> enforces</p>
+$$P=Q^\top ,$$
+<p>so there is no separate $P$: you use $Q^\top$, which has exactly the right shape. The same weights serve both layers. Something similar has been tried in Transformer models, which have many layers and attention heads: instead of a separate weight matrix in each layer, the weights are shared or tied across layers.</p>
+
+<h2>4 · Why both are regularisers</h2>
+<p>Using the same weight matrix in several places means fewer weights. Fewer weights means a smaller model, and a smaller model means lower complexity, which is the $\Omega(\theta)$ of <a href="L47-true-error-vs-complexity.html">L47</a>. Weight tying uses $W$ once instead of two separate $W$'s.</p>
+<div class="card">
+  <div class="row"><label>input size n <input type="range" id="nIn" min="64" max="1024" step="16" value="784"> <b id="nInV"></b></label>
+    <label>hidden size d <input type="range" id="dH" min="16" max="512" step="16" value="128"> <b id="dHV"></b></label>
+    <label>image side <input type="range" id="side" min="8" max="64" step="1" value="28"> <b id="sideV"></b></label></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="aeU">–</div><div class="l">autoencoder weights, untied (P and Q)</div></div>
+    <div class="stat"><div class="v" id="aeT">–</div><div class="l">tied, P = Qᵀ</div></div>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="cvU">–</div><div class="l">a separate 3×3 filter at every position</div></div>
+    <div class="stat"><div class="v" id="cvS">–</div><div class="l">one shared 3×3 filter</div></div>
+  </div>
+  <p class="small muted" id="pTxt" style="margin-bottom:0"></p>
+</div>
+<p class="small muted">Biases are ignored. "Every position" means every placement of a 3×3 window inside the image (no padding).</p>
+<div class="beyond"><b>Going beyond the video.</b> Augmentation can also be read as encoding an <i>invariance</i>: you tell the model that small rotations or shifts shouldn't change the output. Convolution's weight sharing builds a related property, translation equivariance, into the architecture itself, which is why the two ideas often appear together in vision models.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Dataset augmentation creates new labelled examples with label-preserving transformations (small rotations, shifts, blur, noise), at no labelling cost.</li>
+<li>It works because the network can no longer memorise exact pixel patterns; it must handle many variants of each example.</li>
+<li>It's easiest for continuous signals (images, speech) and harder for discrete text; avoid transformations that change the label (6 → 9).</li>
+<li>Parameter sharing (one convolution filter across the image) and weight tying ($P=Q^\top$ in an autoencoder, shared layers in Transformers) reduce the number of free weights.</li>
+<li>Fewer weights means lower model complexity, so both act as regularisers.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const G = 28;
+// digit strokes as polylines in the unit square (y down)
+const arc = (cx, cy, r, a0, a1, k) => Array.from({length: k + 1}, (_, i) => { const a = (a0 + (a1 - a0) * i / k) * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; });
+const DIG = {
+  '2': [arc(0.5, 0.34, 0.19, 190, 385, 24).concat([[0.29, 0.80]]), [[0.27, 0.80], [0.76, 0.80]]],
+  '6': [arc(0.5, 0.63, 0.18, 0, 360, 36), [[0.66, 0.18], [0.5, 0.25], [0.38, 0.38], [0.33, 0.5], [0.32, 0.63]]]};
+let digit = '2', mode = 'rot', tiles = [];
+function segDist(p, a, b){ const vx = b[0] - a[0], vy = b[1] - a[1], t = Math.max(0, Math.min(1, ((p[0] - a[0]) * vx + (p[1] - a[1]) * vy) / (vx * vx + vy * vy || 1))); return Math.hypot(p[0] - a[0] - t * vx, p[1] - a[1] - t * vy); }
+function render(tf){ const img = new Float32Array(G * G), c = Math.cos(-tf.rot), s = Math.sin(-tf.rot);
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) {
+    let u = (i + 0.5) / G - 0.5 - tf.dx, v = (j + 0.5) / G - 0.5 - tf.dy; const p = [0.5 + c * u - s * v, 0.5 + s * u + c * v];
+    let d = 9; DIG[digit].forEach(pl => { for (let k = 0; k + 1 < pl.length; k++) d = Math.min(d, segDist(p, pl[k], pl[k + 1])); });
+    img[j * G + i] = Math.max(0, Math.min(1, (0.075 - d) / 0.03)); }
+  let out = img;
+  if (tf.blur) { out = new Float32Array(G * G); for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { let sum = 0, n = 0;
+    for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) { const x = i + a, y = j + b; if (x >= 0 && y >= 0 && x < G && y < G) { sum += img[y * G + x]; n++; } } out[j * G + i] = sum / n; } }
+  if (tf.noise) for (let k = 0; k < G * G; k++) if (Math.random() < 0.12) out[k] = Math.random();
+  return out; }
+const rnd = (a, b) => a + Math.random() * (b - a);
+function makeTf(m){ const t = {rot: 0, dx: 0, dy: 0, blur: false, noise: false, name: ''};
+  if (m === 'rot') { t.rot = rnd(-20, 20) * Math.PI / 180; t.name = `rot ${(t.rot * 180 / Math.PI).toFixed(0)}°`; }
+  if (m === 'sh') { if (Math.random() < 0.5) { t.dy = rnd(-0.15, 0.15); t.name = 'shift ↕'; } else { t.dx = rnd(-0.15, 0.15); t.name = 'shift ↔'; } }
+  if (m === 'bl') { t.blur = true; t.name = 'blur'; }
+  if (m === 'nz') { t.noise = true; t.name = 'noise'; }
+  if (m === 'mix') { t.rot = rnd(-15, 15) * Math.PI / 180; t.dx = rnd(-0.1, 0.1); t.dy = rnd(-0.1, 0.1); t.blur = Math.random() < 0.5; t.noise = Math.random() < 0.4; t.name = 'mix'; }
+  if (m === '180') { t.rot = Math.PI; t.name = 'rot 180°'; }
+  return t; }
+function regen(){ tiles = [{img: render(makeTf('none')), name: 'original'}];
+  for (let k = 0; k < 7; k++) { const t = makeTf(mode); tiles.push({img: render(t), name: t.name}); if (mode === '180') break; } }
+function drawAll(){ const [ctx, W] = setupCanvas($('cA')), cols = W < 520 ? 4 : 8, rows = Math.ceil(tiles.length / cols), gap = 8;
+  const sz = Math.min((W - gap * (cols - 1)) / cols, (190 / rows) - 18);
+  const ink = cssv('--ink'), bg = cssv('--card');
+  tiles.forEach((t, k) => { const x0 = (k % cols) * (sz + gap), y0 = Math.floor(k / cols) * (sz + 18), px = sz / G;
+    ctx.fillStyle = bg; ctx.fillRect(x0, y0, sz, sz); ctx.fillStyle = ink;
+    for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const v = t.img[j * G + i]; if (v > 0.02) { ctx.globalAlpha = v; ctx.fillRect(x0 + i * px, y0 + j * px, px + 0.5, px + 0.5); } }
+    ctx.globalAlpha = 1; ctx.strokeStyle = cssv('--grid'); ctx.strokeRect(x0 + 0.5, y0 + 0.5, sz - 1, sz - 1);
+    const lab = mode === '180' && k ? (digit === '6' ? 'looks like 9!' : 'label?') : `label ${digit}`;
+    ctx.fillStyle = cssv(mode === '180' && k ? '--s2' : '--muted'); ctx.font = '11px system-ui'; ctx.fillText(`${t.name} · ${lab}`.slice(0, 22), x0, y0 + sz + 12); });
+  $('aTxt').innerHTML = mode === '180' ? `A 180° rotation is <b>not</b> label-preserving: a 6 turns into a 9 and a 2 into something that isn't a digit. Keep transformations small.`
+    : `From one labelled ${digit}, ${tiles.length - 1} new training images, all labelled ${digit}, at no labelling cost. The pixels differ from the original, so memorising one pixel pattern no longer works.`;
+  const n = +$('nIn').value, d = +$('dH').value, s = +$('side').value, pos = (s - 2) ** 2;
+  $('nInV').textContent = n; $('dHV').textContent = d; $('sideV').textContent = s;
+  const f = v => v.toLocaleString('en-US');
+  $('aeU').textContent = f(2 * n * d); $('aeT').textContent = f(n * d); $('cvU').textContent = f(pos * 9); $('cvS').textContent = f(9);
+  $('pTxt').textContent = `Tying halves the autoencoder's weights; sharing one filter over a ${s}×${s} image uses ${f(pos)}× fewer filter weights than giving each of its ${f(pos)} positions its own.`; }
+const modes = {bRot: 'rot', bSh: 'sh', bBl: 'bl', bNz: 'nz', bMix: 'mix', b180: '180'};
+Object.keys(modes).forEach(id => { $(id).onclick = () => { mode = modes[id]; Object.keys(modes).forEach(o => $(o).classList.toggle('on', o === id)); regen(); drawAll(); }; });
+$('dig').onclick = () => { digit = digit === '2' ? '6' : '2'; $('dig').textContent = digit; regen(); drawAll(); };
+['nIn', 'dH', 'side'].forEach(id => $(id).addEventListener('input', drawAll));
+regen();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

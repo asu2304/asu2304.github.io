@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Representation Power in 2-D</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 21 · playlist video 21 (titled “L20” on YouTube) · Representation power of sigmoid networks</div>
+<h1>Building 2-D Towers from Sigmoid Neurons</h1>
+<p class="lede">With two inputs, a sigmoid neuron is a step <i>wall</i> whose orientation is set by $w_1, w_2$. Two walls subtracted give a tower open on two sides; a second pair at right angles closes it, except for some leftover "scaffolding". Adding the two and passing the sum through one more sigmoid that keeps only the top level gives a closed 2-D tower, and many such towers approximate any function of two inputs.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=BUGi6AH1D2c" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L20-representation-power-1d.html">L20</a> (towers in 1-D) · Next: <a href="L22-feedforward-networks.html">L22</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · A function of two inputs</h2>
+<p>Back to oil mining, now with two inputs: $x_1$ = salinity, $x_2$ = pressure. Each location is a point $(x_1,x_2)$ in the plane. At some points we found oil (orange), at others not (blue). The oil points sit in a patch surrounded by no-oil points, so <b>no line separates them</b>: the data are not linearly separable.</p>
+<p>The function we want is 1 on the oil patch and 0 everywhere else: a <b>2-D tower</b>. More generally, an arbitrary surface over the $(x_1,x_2)$ plane can be approximated by many small 2-D towers placed side by side, exactly as in 1-D (<a href="L20-representation-power-1d.html">L20</a>). So the question again is: <b>how do we make one 2-D tower</b> from sigmoid neurons? Once 2-D is clear, the same idea extends to 3, 4, … $n$ dimensions.</p>
+
+<h2>2 · One sigmoid neuron with two inputs</h2>
+$$h=\frac{1}{1+e^{-(w_1x_1+w_2x_2+b)}}$$
+<ul>
+<li><b>$w_1$</b> controls the slope along the $x_1$ direction: zero gives a flat surface at 0.5, larger values give a gentle S, then a steep one, then almost a <b>step</b>.</li>
+<li><b>$w_2$</b> does the same along $x_2$ (set $w_1=0$ to see it alone).</li>
+<li><b>$b$</b> moves the step: it sets where the crossover from 0 to 1 happens.</li>
+<li>Both $w_1$ and $w_2$ non-zero: the wall runs diagonally. The orientation is yours to choose.</li>
+</ul>
+<p>So, as in 1-D, large weights give a step, now a step <b>wall</b> across the plane.</p>
+
+<h2>3 · An open tower, then four walls</h2>
+<ol class="steps">
+<li><b>Two walls along $x_1$.</b> $h_{11}$ and $h_{12}$ are steep sigmoids that use only $x_1$ ($w=60$ in the lecture's figure, $x_2$ weights zero), with different crossover points. Their difference $h_{11}-h_{12}$ is $0-0$ on one side, $1-1$ on the other and $1-0$ in between: a tower, but <b>open on two sides</b>, a long ridge running along $x_2$.</li>
+<li><b>Two walls along $x_2$.</b> $h_{13}$ and $h_{14}$ use only $x_2$ (the lecture sets $w_{31}=w_{41}=0$, $w_{32}=w_{42}=200$). $h_{13}-h_{14}$ is a second ridge, at right angles to the first.</li>
+<li><b>Add the two ridges.</b> Where both are 0 the sum is 0. Where exactly one ridge is 1 (the four arms) it is 1. In the middle, where they cross, it is $1+1=2$. The walls have now closed, and our tower sits on top at level 2, but with extra <b>scaffolding</b> at level 1 sticking out.</li>
+<li><b>Keep only what is above level 1.</b> Pass the sum through one more sigmoid whose switch-over point sits just above 1 (between levels 1 and 2). Level 0 and level 1 go to 0, level 2 goes to 1. What remains is a <b>tower closed on all four sides</b>.</li>
+</ol>
+<div class="callout">2-D tower maker: four sigmoid neurons on $(x_1,x_2)$ → two differences, added → one thresholding sigmoid. $$\text{tower}(x_1,x_2)=\sigma\!\Big(w\big[(h_{11}-h_{12})+(h_{13}-h_{14})\big]+b\Big),\quad -b/w \text{ between 1 and 2}.$$</div>
+<p>Step through the construction, and rotate the surface to see the open sides close:</p>
+
+<div class="card">
+  <div class="row" id="stages"></div>
+  <div class="row"><label>view angle <input type="range" id="rot" min="0" max="360" step="2" value="35"></label>
+    <label>steepness $w$ <input type="range" id="stp" min="1" max="60" step="1" value="12"> <span id="stpv" class="mono"></span></label></div>
+  <div class="row" id="oneRow"><label>$w_1$ <input type="range" id="ow1" min="-20" max="20" step="0.5" value="3"></label><label>$w_2$ <input type="range" id="ow2" min="-20" max="20" step="0.5" value="0"></label><label>$b$ <input type="range" id="ob" min="-20" max="20" step="0.5" value="0"></label></div>
+  <div class="row" id="manyRow"><label>towers per side <input type="range" id="kk" min="1" max="14" step="1" value="5"> <span id="kkv" class="mono"></span></label></div>
+  <canvas id="sc" height="340" aria-label="3-D surface of the 2-D tower construction"></canvas>
+  <div class="row"><div class="stat"><div class="v" id="lvl">–</div><div class="l">output range on the plane</div></div><div class="stat"><div class="v" id="nn">–</div><div class="l">sigmoid neurons used</div></div></div>
+  <p class="small" id="sTxt"></p>
+</div>
+
+<h2>4 · From one tower to any 2-D function</h2>
+<p>The resulting network: $x_1,x_2$ → four sigmoids (two oriented along each axis) → pairwise differences added → a sigmoid that keeps only levels above 1 → the tower. Make many such towers (adjustable thickness), scale each to the height of the function at its location, and add them: the last stage of the demo does exactly that. Thinner towers give a better approximation, to any desired precision.</p>
+<p>Note the honest caveat from the lecture: this construction uses <b>more than one hidden layer</b> (the thresholding sigmoid is a second one), whereas the theorem says one hidden layer suffices. Proving the one-layer version is more complicated; the illustration shows that a small, fixed number of layers can approximate an arbitrary 2-D function.</p>
+<p>Why does this matter? In machine learning there is always an $x$, a true $f(x)$ and an approximation $\hat f(x)$ we pick from some family. A neural network is just one more family: a <b>composite function</b> of $x$ (sigmoids, then additions, then sigmoids again). The theorem says this family can approximate any real function, provided we add enough neurons. Reducing that "enough" is a separate story.</p>
+<p>A closing question from the lecture: 1-D input needed <b>two</b> neurons per tower, 2-D input needed <b>four</b>. How many for $n$-dimensional input?</p>
+<div class="beyond"><b>Going beyond the video: the answer, and the cost.</b> Two walls per input dimension, so $2n$ first-layer neurons per tower (plus one thresholding neuron whose switch-over sits between levels $n-1$ and $n$). The number of towers is the real problem: with $k$ towers per axis you need $k^n$ of them. This is why, in practice, we rely on depth and learned features rather than on this brute-force construction.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>With two inputs, a steep sigmoid neuron is a step wall; $w_1,w_2$ set its orientation and steepness, $b$ its position.</li>
+<li>Two parallel walls subtracted make an open tower (a ridge); a second pair at right angles makes a crossing ridge.</li>
+<li>Their sum has levels 0, 1 and 2; a final sigmoid switching between 1 and 2 keeps only the closed tower.</li>
+<li>Many scaled towers added together approximate any function of two inputs; thinner towers, better approximation, more neurons.</li>
+<li>A neural network is just a (very flexible) composite function $\hat f(x)$ within the usual machine-learning setup.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const sig = z => 1 / (1 + Math.exp(-z));
+const fmt = (v, d = 2) => (Math.abs(v) < 0.5 * Math.pow(10, -d) ? 0 : v).toFixed(d);
+const STAGES = [
+  ['one', 'one sigmoid neuron'], ['h11', 'h₁₁ (wall)'], ['open', 'h₁₁ − h₁₂ (open tower)'], ['cross', 'h₁₃ − h₁₄ too'],
+  ['sum', 'sum: levels 0, 1, 2'], ['tower', 'threshold above 1: closed tower'], ['many', 'many towers → a 2-D function']];
+let stage = 'open';
+STAGES.forEach(([k, t]) => { const b = document.createElement('button'); b.textContent = t; b.dataset.k = k; b.onclick = () => { stage = k; drawS(); }; $('stages').appendChild(b); });
+const R = 3, G = 46;
+const target = (x, y) => Math.exp(-((x - 0.6) ** 2 + (y + 0.3) ** 2) / 1.6) + 0.6 * Math.exp(-((x + 1.3) ** 2 + (y - 1.2) ** 2) / 0.5);
+function towerFn(w, cx, cy, hw){   // 2-D tower centred at (cx,cy), half-width hw
+  return (x, y) => { const r1 = sig(w * (x - cx + hw)) - sig(w * (x - cx - hw)), r2 = sig(w * (y - cy + hw)) - sig(w * (y - cy - hw));
+    return {r1, r2, s: r1 + r2, t: sig(4 * w * (r1 + r2 - 1.5))}; }; }
+function surface(){
+  const w = +$('stp').value, T = towerFn(w, 0, 0, 1);
+  if (stage === 'one'){ const a = +$('ow1').value, c = +$('ow2').value, b = +$('ob').value; return [(x, y) => sig(a * x + c * y + b), 1, 'one']; }
+  if (stage === 'h11') return [(x, y) => sig(w * (x + 1)), 1];
+  if (stage === 'open') return [(x, y) => T(x, y).r1, 1];
+  if (stage === 'cross') return [(x, y) => T(x, y).r1, 1, 'two', (x, y) => T(x, y).r2];
+  if (stage === 'sum') return [(x, y) => T(x, y).s, 2];
+  if (stage === 'tower') return [(x, y) => T(x, y).t, 1];
+  const k = +$('kk').value, d = 2 * R / k, list = [];
+  for (let i = 0; i < k; i++) for (let j = 0; j < k; j++){ const cx = -R + (i + 0.5) * d, cy = -R + (j + 0.5) * d; list.push([towerFn(Math.max(w, 8) * 2 / d, cx, cy, d / 2), target(cx, cy)]); }
+  return [(x, y) => { let s = 0; for (const [fn, h] of list) s += h * fn(x, y).t; return s; }, 1.1, 'many', null, list.length];
+}
+function drawS(){
+  document.querySelectorAll('#stages button').forEach(b => b.classList.toggle('on', b.dataset.k === stage));
+  $('oneRow').style.display = stage === 'one' ? '' : 'none'; $('manyRow').style.display = stage === 'many' ? '' : 'none';
+  $('stpv').textContent = $('stp').value; $('kkv').textContent = $('kk').value;
+  const [ctx, W, H] = setupCanvas($('sc')), [F, zmax, kind, F2, ntow] = surface();
+  const phi = +$('rot').value * Math.PI / 180, cp = Math.cos(phi), sp = Math.sin(phi);
+  const S = Math.min(W / (2 * R * 1.5), 34), cx = W / 2, cy = H * 0.66, zs = Math.min(150, H * 0.42) / zmax;
+  const P = (x, y, z) => [cx + (x * cp - y * sp) * S, cy + (x * sp + y * cp) * S * 0.5 - z * zs];
+  const grids = [[F, '--s1']]; if (F2) grids.push([F2, '--s3']);
+  const quads = []; let lo = Infinity, hi = -Infinity;
+  grids.forEach(([fn, col]) => { const Z = [];
+    for (let i = 0; i <= G; i++){ Z.push([]); for (let j = 0; j <= G; j++){ const v = fn(-R + 2 * R * i / G, -R + 2 * R * j / G); Z[i].push(v); lo = Math.min(lo, v); hi = Math.max(hi, v); } }
+    for (let i = 0; i < G; i++) for (let j = 0; j < G; j++){ const x = -R + 2 * R * (i + 0.5) / G, y = -R + 2 * R * (j + 0.5) / G;
+      quads.push({i, j, Z, col, d: x * sp + y * cp, z: (Z[i][j] + Z[i + 1][j] + Z[i][j + 1] + Z[i + 1][j + 1]) / 4}); } });
+  quads.sort((a, b) => a.d - b.d);
+  const base = cssv('--card'), grid = cssv('--grid');
+  quads.forEach(q => { const x0 = -R + 2 * R * q.i / G, x1 = x0 + 2 * R / G, y0 = -R + 2 * R * q.j / G, y1 = y0 + 2 * R / G, Z = q.Z;
+    const p = [P(x0, y0, Z[q.i][q.j]), P(x1, y0, Z[q.i + 1][q.j]), P(x1, y1, Z[q.i + 1][q.j + 1]), P(x0, y1, Z[q.i][q.j + 1])];
+    ctx.beginPath(); ctx.moveTo(...p[0]); p.slice(1).forEach(t => ctx.lineTo(...t)); ctx.closePath();
+    ctx.globalAlpha = 1; ctx.fillStyle = base; ctx.fill();
+    ctx.globalAlpha = 0.12 + 0.8 * Math.max(0, Math.min(1, q.z / zmax)); ctx.fillStyle = cssv(q.col); ctx.fill();
+    ctx.globalAlpha = 1; ctx.strokeStyle = grid; ctx.lineWidth = 0.5; ctx.stroke(); });
+  const ax = (x, y, t) => { const [u, v] = P(x, y, 0); ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText(t, u, v); };
+  ax(R + 0.4, 0, 'x₁'); ax(0, R + 0.4, 'x₂');
+  $('lvl').textContent = fmt(lo) + ' … ' + fmt(hi);
+  $('nn').textContent = {one: 1, h11: 1, open: 2, cross: 4, sum: 4, tower: 5, many: 5 * (ntow || 0)}[stage];
+  $('sTxt').innerHTML = {
+    one: 'A single neuron σ(w₁x₁ + w₂x₂ + b). Make w₁ large for a steep wall along x₁; set w₁ = 0 and raise w₂ to turn it; move b to slide it.',
+    h11: 'h₁₁ alone: a steep wall that depends only on x₁.',
+    open: 'h₁₁ − h₁₂: 0 − 0 on one side, 1 − 1 on the other, 1 − 0 in between. A tower, but open on two sides.',
+    cross: 'The second pair, oriented along x₂ (green), gives a ridge at right angles. Rotate: the four walls now close the middle.',
+    sum: 'Their sum: 0 where both are 0, 1 on the four arms, 2 in the middle. The tower sits at level 2 on top of scaffolding at level 1.',
+    tower: 'One more sigmoid that switches over between levels 1 and 2 (here at 1.5) wipes out levels 0 and 1: a tower closed on all four sides.',
+    many: `${ntow} towers, each scaled to the height of a smooth target surface at its centre, added together. Increase the towers per side and watch the blocky surface approach the smooth one.`}[stage];
+}
+['rot', 'stp', 'ow1', 'ow2', 'ob', 'kk'].forEach(id => $(id).addEventListener('input', drawS));
+function redrawAll(){ drawS(); }
+
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Estimating the True Error</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 46 · playlist video 46 (titled “L47” on YouTube) · Bias, variance and regularisation</div>
+<h1>Estimating the True Error from Test Data</h1>
+<p class="lede">The error we care about, $\mathbb E[(\hat f(x)-f(x))^2]$, involves the unknown true function $f$. Rewriting it in terms of the observed $y$ leaves three pieces: the mean squared error on data, the noise variance $\sigma^2$, and a covariance term. On <b>test data</b> that covariance is zero, because the test labels played no part in fitting $\hat f$. So the empirical test error is, up to a small constant, the true error.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=nu6x-L04CG4" target="_blank" rel="noopener">this lecture on YouTube</a> (≈18 min). Previous: <a href="L45-train-vs-test-error.html">L45</a> · Next: <a href="L47-true-error-vs-complexity.html">L47</a> (the training-data case, and model complexity).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The setup</h2>
+<ul>
+<li>The data $D$ has $n+m$ points: $n$ for training, $m$ for testing.</li>
+<li>A true function exists with $y_i=f(x_i)+\varepsilon_i$. The noise $\varepsilon$ is zero-mean with a small variance: $\varepsilon\sim\mathcal N(0,\sigma^2)$.</li>
+<li>We don't know $f$ (if we did, there would be nothing to learn). So we pick an approximation $\hat f$ from some family of functions and estimate its parameters from the training set $T\subset D$. Its prediction is $\hat y=\hat f(x)$.</li>
+</ul>
+<p>The quantity of interest is the <b>true error</b>:</p>
+$$\mathbb E\big[(\hat f(x)-f(x))^2\big],$$
+<p>the mean, over many samples, of the squared gap between our prediction and the true function. We can't compute it directly: it needs $f(x)$.</p>
+
+<h2>2 · Rewriting it in terms of things we can see</h2>
+<p>We don't know $f$, but for the $x$'s in our data we do know the $y$'s, which come from $f(x)+\varepsilon$, and we can compute $\hat y=\hat f(x)$. So start from the error we <i>can</i> measure and substitute $y=f(x)+\varepsilon$:</p>
+<ol class="steps">
+<li>$\mathbb E[(\hat y-y)^2]=\mathbb E\big[(\hat f-f-\varepsilon)^2\big]$, writing $\hat f,f$ for $\hat f(x),f(x)$.</li>
+<li>Treat it as $(a-b)^2$ with $a=\hat f-f$ and $b=\varepsilon$: $\ \mathbb E[a^2-2ab+b^2]$.</li>
+<li>The expectation of a sum is the sum of expectations, and constants come out: $\ \mathbb E[(\hat f-f)^2]-2\,\mathbb E[\varepsilon(\hat f-f)]+\mathbb E[\varepsilon^2]$.</li>
+<li>Rearrange for the quantity we want:</li>
+</ol>
+<div class="callout">$$\underbrace{\mathbb E\big[(\hat f-f)^2\big]}_{\text{true error}}=\underbrace{\mathbb E\big[(\hat y-y)^2\big]}_{\text{estimable from data}}-\underbrace{\mathbb E[\varepsilon^2]}_{=\ \sigma^2}+\underbrace{2\,\mathbb E\big[\varepsilon(\hat f-f)\big]}_{\text{still contains }f}$$</div>
+<p>The second term is just the noise variance, a small constant. The third still contains $f$; we'll deal with it below.</p>
+
+<h2>3 · Detour: estimating an expectation</h2>
+<p>You've watched the goals scored by a team in $K$ matches. The number of goals $Z$ can be 0, 1, 2, 3, … What is $\mathbb E[Z]$? Strictly, an expectation needs infinitely many repetitions, but you have only $K$. So you do what we've always done, and average:</p>
+$$\mathbb E[Z]\approx\frac1K\sum_{i=1}^{K}z_i .$$
+<p>Same here. We can't average $(\hat y-y)^2$ over all possible $x$ (we'd need the true $y$ for every $x$, and then there would be nothing to estimate). But over the points we have, we know both $\hat y_i$ and $y_i$:</p>
+$$\mathbb E\big[(\hat y-y)^2\big]\approx\frac1m\sum_{i}(\hat y_i-y_i)^2 .$$
+<p>Which points? We could use the <b>test</b> data or the <b>training</b> data. The two cases turn out very differently.</p>
+
+<h2>4 · Case 1: estimate from the test data</h2>
+<p>Use the $m$ test points, numbered $n+1$ to $n+m$:</p>
+$$\mathbb E\big[(\hat f-f)^2\big]=\underbrace{\frac1m\sum_{i=n+1}^{n+m}(\hat y_i-y_i)^2}_{\text{empirical test error}}-\ \sigma^2\ +\ 2\,\mathbb E\big[\varepsilon(\hat f-f)\big].$$
+<p><b>The third term is a covariance.</b> For random variables $X,Y$:</p>
+<ol class="steps">
+<li>$\operatorname{Cov}(X,Y)=\mathbb E\big[(X-\mu_X)(Y-\mu_Y)\big]$.</li>
+<li>Take $X=\varepsilon$, so $\mu_X=0$: $\ \operatorname{Cov}=\mathbb E[X(Y-\mu_Y)]=\mathbb E[XY]-\mu_Y\,\mathbb E[X]$.</li>
+<li>$\mathbb E[X]=0$, so $\operatorname{Cov}(\varepsilon,Y)=\mathbb E[\varepsilon Y]$. With $Y=\hat f-f$, the third term is $2\operatorname{Cov}(\varepsilon,\ \hat f-f)$.</li>
+</ol>
+<p><b>On test data it vanishes.</b> $\varepsilon=y-f(x)$. The $y$'s here are test labels, and the test points did not participate in estimating $\hat f$; they had no say in its parameters. So $\varepsilon$ and $\hat f-f$ are independent, and</p>
+$$\mathbb E\big[\varepsilon(\hat f-f)\big]=\mathbb E[\varepsilon]\;\mathbb E[\hat f-f]=0\cdot\mathbb E[\hat f-f]=0 .$$
+<div class="callout"><b>Result.</b> $$\text{true error}=\text{empirical test error}-\sigma^2 .$$ $\sigma^2$ is a small constant, so the error you measure on held-out data is a <b>good estimate of the true error</b>.</div>
+<p class="small muted">The lecture states this as "empirical test error plus a small constant". From the algebra above the constant is $\sigma^2$ and it is subtracted; either way it is small and does not depend on the model.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Here we know $f(x)=\sin x$, so we can compute the true error exactly and compare. One training set of $n$ points; test sets of $m$ fresh points; noise $\sigma=0.4$.</p>
+  <div class="row"><button id="newTe">New test set</button><button id="newTr">New training set</button>
+    <label>degree <input type="range" id="deg" min="1" max="12" step="1" value="9"> <b id="degV"></b></label>
+    <label>n <input type="range" id="nTr" min="15" max="100" step="5" value="25"> <b id="nTrV"></b></label>
+    <label>m <input type="range" id="mTe" min="10" max="1000" step="10" value="100"> <b id="mTeV"></b></label></div>
+  <div class="pair">
+    <canvas id="cFit" height="250" aria-label="Training points, test points, the fitted curve and the true sine"></canvas>
+    <canvas id="cHist" height="250" aria-label="Histogram of test-set estimates of the true error compared with the training-set estimate and the true error"></canvas>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--ink)"></i>training points</span><span><i class="dot" style="background:var(--faint)"></i>test points</span><span><i style="background:var(--s1)"></i>$\hat f$</span><span><i style="background:var(--s2)"></i>$f=\sin$</span><span><i style="background:var(--s3)"></i>true error</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="oTrue">–</div><div class="l">true error $\mathbb E[(\hat f-f)^2]$</div></div>
+    <div class="stat"><div class="v" id="oTe">–</div><div class="l">test error − σ²</div></div>
+    <div class="stat"><div class="v" id="oTr">–</div><div class="l">training error − σ²</div></div>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="cTe">–</div><div class="l">2·avg ε(f̂−f) on test points</div></div>
+    <div class="stat"><div class="v" id="cTr">–</div><div class="l">2·avg ε(f̂−f) on training points</div></div>
+  </div>
+  <p class="small muted" id="hTxt" style="margin-bottom:0"></p>
+</div>
+<p class="small muted">Right panel: the estimate "test error − σ²" from 300 independent test sets of size $m$ (blue histogram), the true error (green), and the training-set estimate (orange). Raise $m$ and the histogram tightens around the green line; the orange line stays well to the left whenever the degree is high.</p>
+
+<h2>5 · And from the training data?</h2>
+<p>That's why, once a model is trained, you evaluate it on test data. The training error is always optimistic: as model complexity grows it heads to zero while the test error may stay high. The demo already shows the reason. On the training points the covariance term is clearly <b>not</b> zero, because those $y$'s were used to fit $\hat f$. That case is the next lecture.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The true error $\mathbb E[(\hat f-f)^2]$ can't be computed directly because $f$ is unknown.</li>
+<li>With $y=f+\varepsilon$: true error $=\mathbb E[(\hat y-y)^2]-\sigma^2+2\,\mathbb E[\varepsilon(\hat f-f)]$.</li>
+<li>Expectations are estimated by sample averages, e.g. $\frac1m\sum(\hat y_i-y_i)^2$.</li>
+<li>The last term is $2\operatorname{Cov}(\varepsilon,\hat f-f)$. On test data $\varepsilon$ is independent of $\hat f$, so it is zero.</li>
+<li>Hence true error ≈ empirical test error (minus the small constant $\sigma^2$): held-out error is the honest measure.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// ---- polynomial least squares (Chebyshev basis on [0, 2π] for numerical stability) ----
+const X0 = 0, X1 = 2 * Math.PI, ftrue = x => Math.sin(x), tx = x => 2 * (x - X0) / (X1 - X0) - 1;
+const unif = () => X0 + Math.random() * (X1 - X0);
+function feats(x, p){ const t = tx(x), r = [1]; if (p > 0) r.push(t); for (let k = 2; k <= p; k++) r.push(2 * t * r[k - 1] - r[k - 2]); return r; }
+function cholesky(G){ const n = G.length, L = G.map(r => r.slice());
+  for (let j = 0; j < n; j++) { let s = L[j][j]; for (let k = 0; k < j; k++) s -= L[j][k] * L[j][k]; L[j][j] = Math.sqrt(Math.max(s, 1e-300));
+    for (let i = j + 1; i < n; i++) { let t = L[i][j]; for (let k = 0; k < j; k++) t -= L[i][k] * L[j][k]; L[i][j] = t / L[j][j]; } } return L; }
+function cholSolve(L, b){ const n = b.length, y = [], x = [];
+  for (let i = 0; i < n; i++) { let t = b[i]; for (let k = 0; k < i; k++) t -= L[i][k] * y[k]; y[i] = t / L[i][i]; }
+  for (let i = n - 1; i >= 0; i--) { let t = y[i]; for (let k = i + 1; k < n; k++) t -= L[k][i] * x[k]; x[i] = t / L[i][i]; } return x; }
+// least-squares fit of a degree-p polynomial; returns {c, L} (L = Cholesky factor of the Gram matrix)
+function polyfit(xs, ys, p){ const q = p + 1, G = Array.from({length: q}, () => new Array(q).fill(0)), b = new Array(q).fill(0);
+  for (let i = 0; i < xs.length; i++) { const a = feats(xs[i], p); for (let r = 0; r < q; r++) { b[r] += a[r] * ys[i]; for (let c = 0; c <= r; c++) G[r][c] += a[r] * a[c]; } }
+  for (let r = 0; r < q; r++) { for (let c = 0; c < r; c++) G[c][r] = G[r][c]; G[r][r] += 1e-8 * xs.length; }
+  const L = cholesky(G); return {c: cholSolve(L, b), L, p}; }
+const peval = (m, x) => { const a = feats(x, m.p); let s = 0; for (let i = 0; i < a.length; i++) s += a[i] * m.c[i]; return s; };
+const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+const SG = 0.4, NT = 300;
+let tr = null, te = null, model = null, H = null;
+const draw = k => Array.from({length: k}, () => { const x = unif(), e = SG * randn(); return {x, e, y: ftrue(x) + e}; });
+const GX = Array.from({length: 400}, (_, i) => X0 + (i + 0.5) * (X1 - X0) / 400);
+function refit(){ model = polyfit(tr.map(p => p.x), tr.map(p => p.y), +$('deg').value); }
+const mse = S => mean(S.map(p => (peval(model, p.x) - p.y) ** 2));
+const cross = S => 2 * mean(S.map(p => p.e * (peval(model, p.x) - ftrue(p.x))));
+function hist(){ const m = +$('mTe').value; H = Array.from({length: NT}, () => mse(draw(m)) - SG * SG); }
+const fmt = v => Math.abs(v) >= 100 ? v.toExponential(1) : Math.abs(v) >= 1 ? v.toFixed(2) : v.toFixed(3);
+function drawAll(){ $('degV').textContent = $('deg').value; $('nTrV').textContent = $('nTr').value; $('mTeV').textContent = $('mTe').value;
+  const truth = mean(GX.map(x => (peval(model, x) - ftrue(x)) ** 2)), eTe = mse(te) - SG * SG, eTr = mse(tr) - SG * SG;
+  $('oTrue').textContent = fmt(truth); $('oTe').textContent = fmt(eTe); $('oTr').textContent = fmt(eTr);
+  $('cTe').textContent = fmt(cross(te)); $('cTr').textContent = fmt(cross(tr));
+  // left: data and fit
+  let [ctx, W, Hh] = setupCanvas($('cFit')); const pad = 6, YR = 2.2, X = x => pad + (x - X0) / (X1 - X0) * (W - 2 * pad), Y = y => Hh / 2 - y / YR * (Hh / 2 - pad);
+  ctx.fillStyle = cssv('--faint'); te.slice(0, 300).forEach(p => ctx.fillRect(X(p.x) - 1.5, Y(p.y) - 1.5, 3, 3));
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, Hh); ctx.clip();
+  const curve = (g, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); GX.forEach((x, i) => { const y = Math.max(-40, Math.min(40, g(x))); i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); }); ctx.stroke(); };
+  curve(ftrue, cssv('--s2'), 2); curve(x => peval(model, x), cssv('--s1'), 2.5); ctx.restore();
+  ctx.fillStyle = cssv('--ink'); tr.forEach(p => { ctx.beginPath(); ctx.arc(X(p.x), Y(p.y), 3.2, 0, 7); ctx.fill(); });
+  // right: histogram of test-based estimates
+  [ctx, W, Hh] = setupCanvas($('cHist')); const s = H.slice().sort((a, b) => a - b), q = f => s[Math.floor(f * (s.length - 1))];
+  let lo = Math.min(q(0.02), truth, eTr), hi = Math.max(q(0.98), truth, eTr); const sp = (hi - lo) || 1; lo -= 0.08 * sp; hi += 0.08 * sp;
+  const B = 30, cnt = new Array(B).fill(0); H.forEach(v => { const b = Math.floor((v - lo) / (hi - lo) * B); if (b >= 0 && b < B) cnt[b]++; });
+  const mx = Math.max(...cnt, 1), L = 8, Rr = 8, T = 22, Bt = 26, XX = v => L + (v - lo) / (hi - lo) * (W - L - Rr);
+  ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = 0.55; cnt.forEach((c, b) => { const h = c / mx * (Hh - T - Bt); ctx.fillRect(XX(lo + b * (hi - lo) / B) + 1, Hh - Bt - h, (W - L - Rr) / B - 2, h); }); ctx.globalAlpha = 1;
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(L, Hh - Bt); ctx.lineTo(W - Rr, Hh - Bt); ctx.stroke();
+  const vline = (v, col, txt, row) => { ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(XX(v), T - 4); ctx.lineTo(XX(v), Hh - Bt); ctx.stroke();
+    ctx.fillStyle = col; ctx.font = '600 12px system-ui'; const w = ctx.measureText(txt).width; ctx.fillText(txt, Math.min(Math.max(XX(v) - w / 2, 2), W - w - 2), row); };
+  vline(truth, cssv('--s3'), 'true error', 14); vline(eTr, cssv('--s2'), 'train-based', Hh - 8);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText(fmt(lo), L, Hh - Bt + 13); const t2 = fmt(hi); ctx.fillText(t2, W - Rr - ctx.measureText(t2).width, Hh - Bt + 13);
+  const avgT = mean(H);
+  $('hTxt').innerHTML = `Average of the ${NT} test-set estimates: <b>${fmt(avgT)}</b> vs true error <b>${fmt(truth)}</b>. The training-set estimate is <b>${fmt(eTr)}</b>` + (eTr < truth ? `, too optimistic by ${fmt(truth - eTr)}.` : '.'); }
+function newTrain(){ tr = draw(+$('nTr').value); refit(); te = draw(+$('mTe').value); hist(); drawAll(); }
+$('newTr').onclick = newTrain; $('nTr').addEventListener('input', newTrain);
+$('newTe').onclick = () => { te = draw(+$('mTe').value); drawAll(); };
+$('mTe').addEventListener('input', () => { te = draw(+$('mTe').value); hist(); drawAll(); });
+$('deg').addEventListener('input', () => { refit(); hist(); drawAll(); });
+tr = draw(+$('nTr').value); refit(); te = draw(+$('mTe').value); hist();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

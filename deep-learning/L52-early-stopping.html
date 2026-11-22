@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Early Stopping</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 52 · playlist video 52 (titled “L53” on YouTube) · Regularisation</div>
+<h1>Early Stopping</h1>
+<p class="lede">Train for long enough and the training error goes to zero while the validation error turns back up. Early stopping watches the validation error, stops once it has failed to improve for $p$ steps, and keeps the model from $p$ steps back. It changes nothing in the loss, yet it behaves like L2 regularisation: the number of steps limits how far the weights can travel from where they started.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=CrO__rzk9hU" target="_blank" rel="noopener">this lecture on YouTube</a> (≈24 min). Previous: <a href="L51-label-smoothing.html">L51</a> · Next: <a href="L53-ensembles.html">L53</a> (ensembles).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The plot again, with steps on the x-axis</h2>
+<p>In <a href="L47-true-error-vs-complexity.html">L47</a> the x-axis was <b>model complexity</b>: training error falls towards zero, validation error falls and then rises. The same picture appears with the <b>number of training steps</b> on the x-axis. The longer we train, the more the parameters keep adjusting until they drive the training error to zero, and in doing so they overfit: a large gap opens between training and validation (or test) error. As usual we want the sweet spot where the training error is low and the validation error is as low as it can be.</p>
+
+<h2>2 · The algorithm: a patience parameter</h2>
+<div class="card">
+<p class="mono" style="margin:0;white-space:pre-wrap">track the validation error along with the training error
+choose a patience p   (in steps or in epochs)
+slide a window of p steps along the run:
+    if the validation error has not decreased for p consecutive steps
+    (at step k):
+        stop training
+        return the model saved at step k − p</p>
+</div>
+<p>In every window of $p$ steps we check whether the validation error came down. As long as it does, carry on. The first time it hasn't decreased for $p$ consecutive steps while the training error kept falling, something is wrong: throw away the last $p$ updates and release the model from step $k-p$.</p>
+<ul>
+<li><b>Very effective and very widely used.</b></li>
+<li><b>Trivial to implement:</b> no change to the loss function at all; just watch a number and stop automatically.</li>
+<li><b>Combines with other regularisers:</b> e.g. keep an L2 term in the loss <i>and</i> stop early.</li>
+</ul>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A linear model on 12 Gaussian bumps plus a bias (13 weights) is trained by gradient descent from $w_0=0$ on 14 noisy points of $\sin 2\pi x$. Because the loss is quadratic, $w_t$ can be computed exactly for any $t$ with the formula of §4, so the run goes up to 10 million steps. Validation error is checked at 160 log-spaced steps, and the patience counts those checks.</p>
+  <div class="row">
+    <label>patience p <input type="range" id="pat" min="1" max="40" step="1" value="10"> <b id="patv">10</b> checks</label>
+    <label><input type="checkbox" id="jit"> jittery validation (as with mini-batches)</label>
+    <button id="nd">New data</button>
+  </div>
+  <div class="row"><label>inspect the model at check <input type="range" id="ins" min="0" max="159" step="1" value="0"> <b id="insv">–</b></label><button id="back">Show returned model</button></div>
+  <div class="pair half">
+    <canvas id="cv" height="260" aria-label="Training and validation error against number of steps, log scale"></canvas>
+    <canvas id="fit" height="260" aria-label="Data and the fitted curve at the inspected step"></canvas>
+  </div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>training error</span><span><i style="background:var(--s2)"></i>validation error</span><span><i style="background:var(--ink)"></i>stopped at step k</span><span><i style="background:var(--s3)"></i>returned model, step k − p</span><span><i class="dot" style="background:var(--s1)"></i>training points</span><span><i class="dot" style="background:var(--faint)"></i>validation points</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="ks">–</div><div class="l">stopped at step k</div></div>
+    <div class="stat"><div class="v" id="kr">–</div><div class="l">returned step (k − p)</div></div>
+    <div class="stat"><div class="v" id="vr">–</div><div class="l">val. error: returned / best possible / trained to the end</div></div>
+  </div>
+  <p class="small" id="esTxt"></p>
+</div>
+
+<h2>3 · Intuition: the step count is a leash</h2>
+<p>Gradient descent (and, at its core, every variant with momentum or adaptive rates) starts at $w_0$ and keeps subtracting gradients. Unroll the updates:</p>
+$$w_{t+1}=w_0-\eta\sum_{i=0}^{t}\nabla w_i .$$
+<ol class="steps">
+<li>Let $\tau$ be the largest of the gradients $\nabla w_0,\dots,\nabla w_t$ in magnitude, so each one is at most $\tau$.</li>
+<li>A sum of $t$ such terms is at most $t\tau$, hence
+$$\lvert w_{t+1}-w_0\rvert\le\eta\,t\,\tau .$$</li>
+<li>So the number of steps $t$ controls <b>how far the weights can wander from their initial value</b>. Each update moves away from $w_0$; even in the worst case, where every gradient pushes the same way, $t$ steps can only take you so far, and if the gradients sometimes point back you end up even closer.</li>
+</ol>
+<p>That is what L2 regularisation does too: its circular contours (<a href="L48-l2-regularization.html">L48</a>) limit how far the solution may go from the origin, shrinking the weights. Early stopping limits the space of exploration in the same way, by limiting $t$.</p>
+
+<h2>4 · Analysis: the same form as L2</h2>
+<p>As in the L2 derivation, take a quadratic (second-order Taylor) approximation of the unregularised training loss around its optimum $w^\ast$, where the gradient is zero:</p>
+$$\mathcal L(w)=\mathcal L(w^\ast)+\tfrac12(w-w^\ast)^\top H\,(w-w^\ast)\quad\Rightarrow\quad\nabla\mathcal L(w)=H(w-w^\ast).$$
+<ol class="steps">
+<li>Gradient descent with learning rate $\varepsilon$ (the $\eta$ above), using that gradient at $w_{t-1}$:
+$$w_t=w_{t-1}-\varepsilon H(w_{t-1}-w^\ast)=(I-\varepsilon H)\,w_{t-1}+\varepsilon Hw^\ast .$$
+(The $I$ is there so that $I-\varepsilon H$ is a valid $n\times n$ matrix.)</li>
+<li>$H$ is symmetric positive semi-definite, so $H=Q\Lambda Q^\top$ with orthonormal eigenvectors ($Q^{-1}=Q^\top$). Substitute:
+$$w_t=Q(I-\varepsilon\Lambda)Q^\top w_{t-1}+Q\,\varepsilon\Lambda\,Q^\top w^\ast .$$</li>
+<li>Start from $w_0=0$ and unroll the recursion (by induction):
+$$w_t=Q\big[I-(I-\varepsilon\Lambda)^t\big]Q^\top w^\ast .$$</li>
+<li>Compare with the L2-regularised optimum from <a href="L48-l2-regularization.html">L48</a>:
+$$\tilde w=Q\big[I-(\Lambda+\alpha I)^{-1}\alpha\big]Q^\top w^\ast .$$
+Both are $Q\,(\text{diagonal})\,Q^\top w^\ast$; only the diagonal differs (early stopping's has a power $t$).</li>
+</ol>
+<div class="callout">Early stopping after $t$ steps and L2 regularisation with constant $\alpha$ give the <b>same</b> weights when
+$$(I-\varepsilon\Lambda)^t=(\Lambda+\alpha I)^{-1}\alpha,\quad\text{i.e.}\quad(1-\varepsilon\lambda_i)^t=\frac{\alpha}{\lambda_i+\alpha}\ \text{ for every } i .$$
+In this quadratic setting, limiting the number of updates is equivalent to an L2 penalty.</div>
+<div class="beyond"><b>Going beyond the video.</b> To check the induction step: if $w_{t-1}=[I-(I-\varepsilon H)^{t-1}]w^\ast$, then $w_t=(I-\varepsilon H)w^\ast-(I-\varepsilon H)^t w^\ast+\varepsilon Hw^\ast=[I-(I-\varepsilon H)^t]w^\ast$. Taking logs of the condition and using $\log(1+x)\approx x$ for small $\varepsilon\lambda_i$ and $\lambda_i\ll\alpha$ gives $t\approx1/(\varepsilon\alpha)$ (Goodfellow, Bengio and Courville, §7.8): <b>the number of steps behaves like the inverse of the weight-decay constant</b>. The demo below uses exactly this matching.</div>
+
+<h2>5 · Important directions grow, unimportant ones stay small</h2>
+<p>For L2 we saw that weights along important directions shrink little and weights along unimportant ones shrink a lot. Early stopping does the same, implicitly.</p>
+<ul>
+<li>If $w_1$ matters for the loss, a small change in it changes the loss a lot: its <b>gradients are large</b>. If $w_2$ doesn't matter, its gradients are small.</li>
+<li>Training stops for <b>all</b> parameters at the same step $t$. Starting both at 0, after, say, $t=4$ steps $w_1$ has moved well away from its initial value and $w_2$ hardly at all.</li>
+<li>Both are clipped, but proportionately: the important parameter is allowed to grow relatively more. The diagonal factor $1-(1-\varepsilon\lambda_i)^t$ is near 1 for large curvature $\lambda_i$ and near 0 for small $\lambda_i$, just like $\lambda_i/(\lambda_i+\alpha)$.</li>
+</ul>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Fraction of $w^\ast$ recovered along an eigen-direction with curvature $\lambda$ (eigenvalues scaled so that $\varepsilon\lambda_{\max}=1$). Early stopping after $t$ steps versus L2 with the matched $\alpha=1/(\varepsilon t)$.</p>
+  <div class="row"><label>steps t <input type="range" id="lt" min="0" max="4" step="0.05" value="1.5"> <b id="ltv">–</b></label></div>
+  <canvas id="fc" height="240" aria-label="Shrinkage factor per eigen-direction for early stopping and for L2"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>early stopping: $1-(1-\varepsilon\lambda)^t$</span><span><i style="background:var(--s2)"></i>L2: $\lambda/(\lambda+\alpha)$</span><span><i class="dot" style="background:var(--ink)"></i>an important ($\varepsilon\lambda=0.5$) and an unimportant ($\varepsilon\lambda=0.005$) direction</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="f1">–</div><div class="l">important direction: ES / L2</div></div>
+    <div class="stat"><div class="v" id="f2">–</div><div class="l">unimportant direction: ES / L2</div></div>
+  </div>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Training longer keeps lowering training error but eventually raises validation error; early stopping looks for the sweet spot.</li>
+<li>Track validation error with a patience $p$: if it hasn't decreased for $p$ consecutive steps (at step $k$), stop and return the model from step $k-p$.</li>
+<li>No change to the loss, easy to automate, and it can be combined with other regularisers such as L2.</li>
+<li>$\lvert w_{t+1}-w_0\rvert\le\eta t\tau$: the number of steps limits how far the weights can move, like an L2 constraint.</li>
+<li>On a quadratic loss from $w_0=0$, $w_t=Q[I-(I-\varepsilon\Lambda)^t]Q^\top w^\ast$, which matches L2's $Q[I-(\Lambda+\alpha I)^{-1}\alpha]Q^\top w^\ast$ when $(1-\varepsilon\lambda_i)^t=\alpha/(\lambda_i+\alpha)$; high-curvature (important) directions are fitted first.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// ---------- Demo 1: exact GD path w_t = Q[I-(I-eps*Lam)^t]Q^T w*, written via b = H w* ----------
+const NB = 12, D = NB + 1, NTR = 14, NVA = 40, NCHK = 160, TMAX = 1e7, NOISE = 0.3;
+const feat = x => { const f = [1]; for (let k = 0; k < NB; k++) f.push(Math.exp(-((x - k / (NB - 1)) ** 2) / (2 * 0.06 * 0.06))); return f; };
+const ftrue = x => Math.sin(2 * Math.PI * x);
+const T = Array.from({length: NCHK}, (_, i) => Math.round(Math.exp(Math.log(TMAX) * i / (NCHK - 1))));
+let tr = [], va = [], Q, lam, epsLR, qb, trE = [], vaE = [], vaSeen = [], W = [], jit = [];
+function jacobi(A){ const n = A.length, a = A.map(r => r.slice()), V = a.map((r, i) => r.map((_, j) => +(i === j)));
+  for (let sw = 0; sw < 60; sw++) { let off = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) off += a[i][j] ** 2; if (off < 1e-22) break;
+    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) { if (Math.abs(a[p][q]) < 1e-30) continue;
+      const th = (a[q][q] - a[p][p]) / (2 * a[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+      for (let k = 0; k < n; k++) { const akp = a[k][p], akq = a[k][q]; a[k][p] = c * akp - s * akq; a[k][q] = s * akp + c * akq; }
+      for (let k = 0; k < n; k++) { const apk = a[p][k], aqk = a[q][k]; a[p][k] = c * apk - s * aqk; a[q][k] = s * apk + c * aqk; }
+      for (let k = 0; k < n; k++) { const vkp = V[k][p], vkq = V[k][q]; V[k][p] = c * vkp - s * vkq; V[k][q] = s * vkp + c * vkq; } } }
+  return [a.map((r, i) => r[i]), V]; }
+function newData(){
+  tr = Array.from({length: NTR}, (_, i) => { const x = (i + 0.2 + 0.6 * Math.random()) / NTR; return {x, y: ftrue(x) + NOISE * randn()}; });
+  va = Array.from({length: NVA}, () => { const x = Math.random(); return {x, y: ftrue(x) + NOISE * randn()}; });
+  const Phi = tr.map(p => feat(p.x)), H = Array.from({length: D}, () => Array(D).fill(0)), b = Array(D).fill(0);
+  Phi.forEach((f, s) => { for (let i = 0; i < D; i++) { b[i] += f[i] * tr[s].y / NTR; for (let j = 0; j < D; j++) H[i][j] += f[i] * f[j] / NTR; } });
+  [lam, Q] = jacobi(H); lam = lam.map(v => Math.max(v, 0)); epsLR = 1 / Math.max(...lam);
+  qb = Array.from({length: D}, (_, k) => { let s = 0; for (let i = 0; i < D; i++) s += Q[i][k] * b[i]; return s; });
+  W = T.map(t => { const c = lam.map((l, k) => { const el = epsLR * l; const g = el < 1e-12 ? epsLR * t : -Math.expm1(t * Math.log1p(-Math.min(el, 1 - 1e-12))) / l; return g * qb[k]; });
+    return Array.from({length: D}, (_, i) => c.reduce((s, ck, k) => s + Q[i][k] * ck, 0)); });
+  const mse = (w, set) => set.reduce((s, p) => s + (feat(p.x).reduce((a, f, i) => a + f * w[i], 0) - p.y) ** 2, 0) / set.length;
+  trE = W.map(w => mse(w, tr)); vaE = W.map(w => mse(w, va)); jit = T.map(() => 1 + 0.12 * randn()); setSeen(); }
+let kStop = -1, kRet = 0, ins = 0;
+function setSeen(){ vaSeen = vaE.map((v, i) => $('jit').checked ? v * Math.max(0.5, jit[i]) : v); runES(); ins = kRet; $('ins').value = String(ins); }
+function runES(){ const p = +$('pat').value; let best = Infinity, bk = 0, since = 0; kStop = -1;
+  for (let k = 0; k < NCHK; k++) { if (vaSeen[k] < best) { best = vaSeen[k]; bk = k; since = 0; } else if (++since === p) { kStop = k; break; } }
+  kRet = kStop >= 0 ? kStop - p : NCHK - 1; }
+const fmtT = t => t >= 1e6 ? (t / 1e6).toFixed(t >= 1e7 ? 0 : 1) + 'M' : t >= 1e3 ? (t / 1e3).toFixed(t >= 1e4 ? 0 : 1) + 'k' : String(t);
+function drawES(){
+  let [ctx, Wd, H] = setupCanvas($('cv')); const pl = 34, pb = 26, pt = 10, ymax = Math.min(1.6, Math.max(...vaSeen) * 1.05);
+  const X = i => pl + (Wd - pl - 8) * i / (NCHK - 1), Y = v => pt + (H - pt - pb) * (1 - Math.min(v, ymax) / ymax);
+  ctx.font = '12px system-ui'; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.fillStyle = cssv('--muted');
+  for (let v = 0; v <= ymax; v += 0.4) { ctx.beginPath(); ctx.moveTo(pl, Y(v)); ctx.lineTo(Wd - 8, Y(v)); ctx.stroke(); ctx.fillText(v.toFixed(1), 4, Y(v) + 4); }
+  [1, 100, 1e4, 1e6].forEach(t => { const i = Math.log(t) / Math.log(TMAX) * (NCHK - 1); ctx.fillText(fmtT(t), X(i) - 8, H - 8); });
+  const line = (arr, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); arr.forEach((v, i) => i ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v))); ctx.stroke(); };
+  line(trE, cssv('--s1'), 2.5); line(vaSeen, cssv('--s2'), 2.5);
+  const vline = (i, col, dash) => { ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.setLineDash(dash); ctx.beginPath(); ctx.moveTo(X(i), pt); ctx.lineTo(X(i), H - pb); ctx.stroke(); ctx.setLineDash([]); };
+  if (kStop >= 0) { vline(kStop, cssv('--ink'), [4, 4]); ctx.fillStyle = cssv('--tint'); ctx.globalAlpha = 0.6; ctx.fillRect(X(kRet), pt, X(kStop) - X(kRet), H - pt - pb); ctx.globalAlpha = 1; }
+  vline(kRet, cssv('--s3'), []); ctx.fillStyle = cssv('--muted'); ctx.fillText('steps (log)', Wd - 74, pt + 12);
+  vline(ins, cssv('--faint'), [2, 3]);
+  // fit
+  [ctx, Wd, H] = setupCanvas($('fit')); const Xf = x => 8 + (Wd - 16) * x, Yf = v => H / 2 - v * (H / 2 - 14) / 1.8;
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(0, Yf(0)); ctx.lineTo(Wd, Yf(0)); ctx.stroke();
+  ctx.strokeStyle = cssv('--faint'); ctx.setLineDash([5, 4]); ctx.lineWidth = 1.5; ctx.beginPath(); for (let i = 0; i <= 100; i++) { const x = i / 100; i ? ctx.lineTo(Xf(x), Yf(ftrue(x))) : ctx.moveTo(Xf(x), Yf(ftrue(x))); } ctx.stroke(); ctx.setLineDash([]);
+  va.forEach(p => { ctx.fillStyle = cssv('--faint'); ctx.beginPath(); ctx.arc(Xf(p.x), Yf(p.y), 3, 0, 7); ctx.fill(); });
+  tr.forEach(p => { ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(Xf(p.x), Yf(p.y), 4.5, 0, 7); ctx.fill(); });
+  const w = W[ins]; ctx.save(); ctx.beginPath(); ctx.rect(0, 0, Wd, H); ctx.clip(); ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let i = 0; i <= 300; i++) { const x = i / 300, v = feat(x).reduce((a, f, k) => a + f * w[k], 0); i ? ctx.lineTo(Xf(x), Yf(v)) : ctx.moveTo(Xf(x), Yf(v)); } ctx.stroke(); ctx.restore();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText('fit at step ' + fmtT(T[ins]), 10, 14);
+  // stats
+  const kb = vaE.indexOf(Math.min(...vaE));
+  $('ks').textContent = kStop >= 0 ? fmtT(T[kStop]) : 'never'; $('kr').textContent = fmtT(T[kRet]); $('insv').textContent = 'step ' + fmtT(T[ins]);
+  $('vr').textContent = `${vaE[kRet].toFixed(3)} / ${vaE[kb].toFixed(3)} / ${vaE[NCHK - 1].toFixed(3)}`;
+  $('esTxt').innerHTML = (kStop >= 0 ? `The validation error failed to improve for ${$('pat').value} consecutive checks, so training stopped at step ${fmtT(T[kStop])} and rolled back to step ${fmtT(T[kRet])} (shaded window = the discarded updates). ` : 'The validation error never failed to improve for p checks in a row, so training ran to the end. ')
+    + ($('jit').checked ? 'With jittery validation, a small patience can stop on a random bump too early; a larger one rides out the noise.' : 'Drag "inspect" to the far right to see the fully trained, overfitted model.'); }
+
+// ---------- Demo 2: shrinkage factors ----------
+function drawF(){
+  const t = Math.round(10 ** +$('lt').value), alpha = 1 / t, [ctx, Wd, H] = setupCanvas($('fc')), pl = 34, pb = 26, pt = 10, L0 = -4, L1 = 0;
+  const X = l => pl + (Wd - pl - 8) * (Math.log10(l) - L0) / (L1 - L0), Y = v => pt + (H - pt - pb) * (1 - v);
+  const es = l => -Math.expm1(t * Math.log1p(-Math.min(l, 1 - 1e-12))), l2 = l => l / (l + alpha);
+  ctx.font = '12px system-ui'; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(pl, Y(v)); ctx.lineTo(Wd - 8, Y(v)); ctx.stroke(); ctx.fillText(v, 8, Y(v) + 4); });
+  [1e-4, 1e-3, 1e-2, 0.1, 1].forEach(l => ctx.fillText(String(l), X(l) - 10, H - 8));
+  const curve = (f, col) => { ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i <= 200; i++) { const l = 10 ** (L0 + (L1 - L0) * i / 200); i ? ctx.lineTo(X(l), Y(f(l))) : ctx.moveTo(X(l), Y(f(l))); } ctx.stroke(); };
+  curve(l2, cssv('--s2')); curve(es, cssv('--s1'));
+  [0.5, 0.005].forEach(l => { ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(l), Y(es(l)), 4.5, 0, 7); ctx.fill(); });
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('ελ (log) →', Wd - 80, pt + 12);
+  $('ltv').textContent = `${t.toLocaleString()} (α = ${alpha < 0.01 ? alpha.toExponential(1) : alpha.toFixed(3)})`;
+  $('f1').textContent = `${es(0.5).toFixed(2)} / ${l2(0.5).toFixed(2)}`; $('f2').textContent = `${es(0.005).toFixed(2)} / ${l2(0.005).toFixed(2)}`; }
+
+$('pat').addEventListener('input', () => { $('patv').textContent = $('pat').value; runES(); ins = kRet; $('ins').value = String(ins); drawES(); });
+$('jit').addEventListener('change', () => { setSeen(); drawES(); });
+$('ins').addEventListener('input', () => { ins = Math.round(+$('ins').value); drawES(); });
+$('back').onclick = () => { ins = kRet; $('ins').value = String(ins); drawES(); };
+$('nd').onclick = () => { newData(); drawES(); };
+$('lt').addEventListener('input', drawF);
+function drawAll(){ drawES(); drawF(); }
+newData(); drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient Descent: The Update Rule in Action</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 17 · playlist video 17 (titled “L15” on YouTube) · sigmoid neurons, learning</div>
+<h1>Gradient Descent: The Update Rule in Action</h1>
+<p class="lede">Move opposite to the gradient, by a small step: $w_{t+1}=w_t-\eta\,\nabla w_t$. This lecture plays with the rule on a 1-D function with several minima, where the start point and the learning rate $\eta$ decide what happens. It then works out $\nabla w$ and $\nabla b$ for the sigmoid neuron with squared error and runs the resulting algorithm on the two-point toy problem from L16. The loss goes down at every step, slowly on flat stretches and quickly on steep ones.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=HEx-q6fkCbo" target="_blank" rel="noopener">this lecture on YouTube</a> (≈24 min). Previous: <a href="L16-learning-parameters-guesswork.html">L16</a> · Next: <a href="L18-taylor-series.html">L18</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+<div class="callout"><b>A note on order.</b> In the playlist this video comes <i>before</i> the two videos that derive the rule: <a href="L18-taylor-series.html">L18</a> (Taylor series) and <a href="L19-gradient-descent-derivation.html">L19</a> (why the best direction is minus the gradient). It opens with "I'll just demonstrate that algorithm", so it assumes the derivation is done. Read L18 and L19 first if you want the "why" before the "how".</div>
+
+<h2>1 · Playing the update rule by hand</h2>
+<p>A 1-D loss $\mathcal L(w)$ with three minima. Wherever you are, compute the derivative there, multiply by $\eta$, and step the other way:</p>
+$$w_{\text{new}}=w-\eta\,\frac{d\mathcal L}{dw}\Big|_{w}.$$
+<p>"Derivative at $w=1.2$" means: take the formula (for $w^2$, it would be $2w$) and plug in $1.2$, giving a plain number. The lecture's run, with $\eta=1$:</p>
+<ol class="steps">
+<li>$w=1.2$: $\eta\cdot\frac{d\mathcal L}{dw}=0.31$, so $w\leftarrow1.2-0.31=0.89$. Good: heading towards a minimum.</li>
+<li>$w=0.89$: $\eta\cdot\frac{d\mathcal L}{dw}=1.25$, so $w\leftarrow0.89-1.25=-0.36$. It <b>jumped across</b> the bottom of the valley and landed on the other slope.</li>
+</ol>
+<p>Why? $\eta$ is too large: the step overshoots. Prof. Khapra leaves it as a game, with questions to break your head on:</p>
+<ul>
+<li><b>Initialisation:</b> start on a different slope and you roll into a different minimum. Starting at 1.2 you may never reach the deepest one.</li>
+<li><b>Learning rate:</b> what happens when $\eta$ is very large? Very small?</li>
+</ul>
+<div class="card">
+<p class="small muted" style="margin-top:0">The game. The curve is my stand-in, built so that from $w=1.2$ with $\eta=1$ the first two steps are the lecture's ($0.31$ then $1.25$). Type the new $w$ yourself, or let the page do the step.</p>
+<div class="row"><label>start w <input type="range" id="g0" min="-3" max="3" step="0.01" value="1.2"> <span class="mono" id="g0v"></span></label>
+<label>η <input type="range" id="geta" min="0.02" max="1.5" step="0.01" value="1"> <span class="mono" id="getav"></span></label></div>
+<div class="row"><label>your new w = <input id="gin" class="mono" size="8" style="font:inherit;padding:4px 6px;border:1px solid var(--grid);border-radius:6px;background:var(--surface);color:var(--ink)"></label>
+<button id="gchk">Check and move</button><button id="gstep">Do one step for me</button><button id="g20">Do 20 steps</button><button id="greset">Restart</button></div>
+<canvas id="gc" height="260" aria-label="One-dimensional loss with three minima and the gradient descent path"></canvas>
+<div class="legend"><span><i style="background:var(--s1)"></i>𝓛(w)</span><span><i class="dot" style="background:var(--s3)"></i>current w</span><span><i style="background:var(--s2)"></i>path</span></div>
+<div class="row"><div class="stat"><div class="v" id="gw">–</div><div class="l">current w</div></div><div class="stat"><div class="v" id="gd">–</div><div class="l">η · d𝓛/dw here</div></div><div class="stat"><div class="v" id="gl">–</div><div class="l">𝓛(w)</div></div></div>
+<p class="small" id="gmsg"></p>
+</div>
+
+<h2>2 · The rule, in vector form</h2>
+<p>From the derivation (L19): the direction $u$ we move in should be at <b>180°</b> to the gradient. Move opposite to the gradient, and by a small, conservative step $\eta$, because the Taylor approximation behind the derivation is only trustworthy in a small neighbourhood (L18).</p>
+<div class="callout">
+$$w_{t+1}=w_t-\eta\,\nabla w_t,\qquad b_{t+1}=b_t-\eta\,\nabla b_t,\qquad\text{i.e.}\quad \theta_{t+1}=\theta_t-\eta\,\nabla_\theta\mathcal L(\theta_t)$$
+$$\text{where}\quad \nabla w_t=\frac{\partial\mathcal L(w,b)}{\partial w}\Big|_{w=w_t,\;b=b_t},\qquad \nabla b_t=\frac{\partial\mathcal L(w,b)}{\partial b}\Big|_{w=w_t,\;b=b_t}.$$
+</div>
+<p>Again: a <i>formula</i> first, then <i>evaluated</i> at the current point. For $\mathcal L=w^2+b^2$ the gradient formula is $(2w,\,2b)$; at $(w_t,b_t)=(1,3)$ it is the real vector $(2,6)$, which we can add and subtract.</p>
+<p>This replaces guesswork with a principled move on the $(w,b)$ plane: at each step the loss is guaranteed to decrease, and by the largest amount available to a small step. That guarantee assumes $\eta$ is small. In the game above the last step <i>increased</i> the loss because $\eta$ was too large.</p>
+
+<h2>3 · The algorithm</h2>
+<div class="card"><p class="mono" style="margin:0;white-space:pre-wrap">t ← 0;  max_iterations ← 1000
+initialise w₀, b₀ randomly
+while t &lt; max_iterations:
+    w_{t+1} ← w_t − η ∇w_t
+    b_{t+1} ← b_t − η ∇b_t
+    t ← t + 1</p></div>
+<p>Everything is known except how to compute $\nabla w$ and $\nabla b$, which needs the actual loss.</p>
+
+<h2>4 · Computing ∇w and ∇b for the sigmoid neuron</h2>
+<p>Take one data point $(x,y)$, the model $f(x)=\frac{1}{1+e^{-(wx+b)}}$, and the loss</p>
+$$\mathcal L(w,b)=\tfrac12\big(f(x)-y\big)^2 .$$
+<p>The $\tfrac12$ is for convenience: scaling the loss doesn't move the $(w,b)$ where it is smallest, and it will cancel a 2.</p>
+<ol class="steps">
+<li><b>Chain rule on the square.</b> $\displaystyle \nabla w=\frac{\partial}{\partial w}\tfrac12(f(x)-y)^2=\tfrac12\cdot2\,(f(x)-y)\,\frac{\partial}{\partial w}\big(f(x)-y\big)$.</li>
+<li><b>$y$ is a constant</b> (the true value doesn't depend on $w,b$), so its derivative is 0: $\displaystyle \nabla w=(f(x)-y)\,\frac{\partial f(x)}{\partial w}$.</li>
+<li><b>Derivative of $1/g$:</b> with $g=1+e^{-(wx+b)}$,
+$$\frac{\partial f}{\partial w}=\frac{-1}{g^2}\cdot\frac{\partial}{\partial w}e^{-(wx+b)}=\frac{-1}{g^2}\cdot e^{-(wx+b)}\cdot(-x)=\frac{1}{g}\cdot\frac{e^{-(wx+b)}}{g}\cdot x .$$</li>
+<li><b>Recognise the pieces.</b> $\frac1g=f(x)$, and $\frac{e^{-(wx+b)}}{1+e^{-(wx+b)}}=1-f(x)$. So $\frac{\partial f}{\partial w}=f(x)\,(1-f(x))\,x$.</li>
+<li><b>For $b$</b> the same steps give a factor 1 instead of $x$, because $\frac{\partial}{\partial b}(wx+b)=1$.</li>
+</ol>
+<p>With $N$ points the loss is a sum, and the derivative of a sum is the sum of the derivatives:</p>
+<div class="callout">
+$$\nabla w=\sum_{i=1}^{N}\big(f(x_i)-y_i\big)\,f(x_i)\big(1-f(x_i)\big)\,x_i,\qquad \nabla b=\sum_{i=1}^{N}\big(f(x_i)-y_i\big)\,f(x_i)\big(1-f(x_i)\big).$$
+</div>
+
+<h2>5 · Running it on the toy problem</h2>
+<p>Same two points as L16, $(0.5,0.2)$ and $(2.5,0.9)$. Initialise $w=-2$, $b=-2$, $\eta=1$, max_epochs $=1000$. Each epoch: set <span class="mono">dw = db = 0</span>, loop over the points adding each one's <span class="mono">grad_w</span> and <span class="mono">grad_b</span> (computing $f(x)$ with the current $w,b$), then update <span class="mono">w ← w − η·dw</span>, <span class="mono">b ← b − η·db</span>.</p>
+<p>What the lecture's animation shows: it starts very <b>slowly</b>. After 27 iterations the loss is still high. Then it falls quickly. By 100 iterations it is around 0.02, and it keeps creeping down after that. At <b>no</b> step does the loss go up. Why it is slow in some regions and fast in others is left for later in the course. Try it:</p>
+<div class="card">
+<p class="small muted" style="margin-top:0">The error surface of L16 ($\mathcal L=\tfrac12\sum_i(f(x_i)-y_i)^2$ over $w,b\in[-6,6]$; stronger blue = lower loss). <b>Click the surface</b> to choose a new starting point. Below: the loss after each iteration.</p>
+<div class="row"><label>η <input type="range" id="eta" min="-1" max="1.8" step="0.01" value="0"> <span class="mono" id="etav"></span></label>
+<button id="s1">1 step</button><button id="s100">Run 100</button><button id="s1000">Run to 1000</button><button id="rs">Reset to (−2, −2)</button></div>
+<div class="pair half"><canvas id="surf" height="300" aria-label="Gradient descent path on the error surface"></canvas><canvas id="lc" height="300" aria-label="Loss against iteration"></canvas></div>
+<div class="legend"><span><i style="background:var(--s2)"></i>path of (w, b)</span><span><i style="background:var(--s1)"></i>loss per iteration</span></div>
+<div class="row"><div class="stat"><div class="v" id="it">0</div><div class="l">iterations</div></div><div class="stat"><div class="v" id="wb">–</div><div class="l">(w, b)</div></div><div class="stat"><div class="v" id="lv">–</div><div class="l">loss</div></div><div class="stat"><div class="v" id="upc">0</div><div class="l">steps where the loss rose</div></div></div>
+<p class="small" id="msg"></p>
+</div>
+<p>Things to test. With $\eta=1$ from $(-2,-2)$: the long flat start, then the plunge, and zero uphill steps. Start from $(4,4)$ with $\eta=0.3$: 1000 iterations barely move it off the plateau. Push $\eta$ to 30 or more: now the "steps where the loss rose" counter starts climbing. The guarantee needs a small $\eta$.</p>
+<div class="beyond"><b>Going beyond the video: why the plateau.</b> Every term in $\nabla w$ carries $f(1-f)$, which is at most $0.25$ and nearly 0 when the sigmoid is saturated ($f\approx0$ or $1$). At $(-2,-2)$ both points give $f&lt;0.05$, so the gradient is tiny even though the loss is large. This saturation problem returns later in the course. The same algorithm for linear regression is in my ML notes, <a href="../machine-learning/L31-gradient-descent.html">L31</a>.</div>
+
+<h2>6 · Where next</h2>
+<p>The sigmoid neuron has now gone through the same cycle as the perceptron: the model, the error, a learning algorithm, a demonstration that it learns. For the perceptron the next step was its <b>representation power</b>; the same question for sigmoid neurons comes next in the course.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Gradient descent: $\theta_{t+1}=\theta_t-\eta\,\nabla_\theta\mathcal L(\theta_t)$. Opposite to the gradient, a small step $\eta$.</li>
+<li>$\nabla w_t$ is the partial derivative's formula <i>evaluated</i> at the current $(w_t,b_t)$: a number, not a formula.</li>
+<li>For $f=\sigma(wx+b)$ and $\tfrac12(f-y)^2$: $\nabla w=\sum_i(f_i-y_i)f_i(1-f_i)x_i$, and $\nabla b$ is the same without $x_i$.</li>
+<li>With a small enough $\eta$ the loss falls at every step. Too large an $\eta$ overshoots; the start point decides which minimum you reach.</li>
+<li>On the toy problem, progress is slow on flat regions and fast on steep ones, but always downhill.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const hex = c => { c = c.replace('#', ''); if (c.length === 3) c = c.split('').map(t => t + t).join(''); const v = parseInt(c, 16); return [v >> 16 & 255, v >> 8 & 255, v & 255]; };
+/* ---------- 1-D game ---------- */
+// L(w) = 0.185 w^2 − 0.507 cos(2.7 w): minima near −2.1, 0, 2.1; chosen so that from 1.2 with η=1 the steps are ≈0.31 then ≈1.25
+const gL = w => 0.185 * w * w - 0.507 * Math.cos(2.7 * w), gD = w => 0.37 * w + 1.3689 * Math.sin(2.7 * w);
+let gw = 1.2, gpath = [1.2], gmsg = '';
+const geta = () => +$('geta').value;
+function gdraw(){
+  $('g0v').textContent = (+$('g0').value).toFixed(2); $('getav').textContent = geta().toFixed(2);
+  const [ctx, W, H] = setupCanvas($('gc')), pad = 24, X0 = -3.2, X1 = 3.2, Y0 = -0.6, Y1 = 2.0, sx = x => pad + (x - X0) / (X1 - X0) * (W - 2 * pad), sy = y => H - pad - (y - Y0) / (Y1 - Y0) * (H - 2 * pad);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, sy(0)); ctx.lineTo(W - pad, sy(0)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; [-3, -2, -1, 0, 1, 2, 3].forEach(v => ctx.fillText(v, sx(v) - 4, H - 6));
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let k = 0; k <= 300; k++) { const x = X0 + (X1 - X0) * k / 300; k ? ctx.lineTo(sx(x), sy(gL(x))) : ctx.moveTo(sx(x), sy(gL(x))); } ctx.stroke();
+  const cl = x => Math.max(X0, Math.min(X1, x));
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 1.5; ctx.beginPath(); gpath.forEach((x, i) => { const p = [sx(cl(x)), sy(gL(cl(x)))]; i ? ctx.lineTo(...p) : ctx.moveTo(...p); }); ctx.stroke();
+  gpath.forEach(x => { ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(sx(cl(x)), sy(gL(cl(x))), 3.5, 0, 7); ctx.fill(); });
+  ctx.fillStyle = cssv('--s3'); ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(sx(cl(gw)), sy(gL(cl(gw))), 7, 0, 7); ctx.fill(); ctx.stroke();
+  $('gw').textContent = gw.toFixed(2); $('gd').textContent = (geta() * gD(gw)).toFixed(2); $('gl').textContent = gL(gw).toFixed(3); $('gmsg').innerHTML = gmsg;
+}
+function gmove(nw, how){ const before = gL(gw), step = geta() * gD(gw), d0 = gD(gw); gw = nw; gpath.push(gw); const after = gL(gw);
+  gmsg = `${how}${(gw).toFixed(2)}. Loss ${before.toFixed(3)} → ${after.toFixed(3)}${after > before ? ' — it <b>went up</b>: the step overshot the minimum. Try a smaller η.' : d0 * gD(gw) < 0 ? ' — lower, but it <b>jumped across</b> the bottom of the valley: η is on the large side.' : '.'}` + (Math.abs(gD(gw)) < 0.01 ? ' The derivative is ≈ 0: you are at a minimum.' : '');
+  gdraw(); return step; }
+$('gstep').onclick = () => { const s = geta() * gD(gw); gmove(gw - s, `w − η·d𝓛/dw = ${gw.toFixed(2)} − ${s.toFixed(2)} = `); };
+$('g20').onclick = () => { for (let k = 0; k < 20; k++) { gw = gw - geta() * gD(gw); gpath.push(gw); } gmsg = `After 20 more steps, w = ${gw.toFixed(3)}${Math.abs(gD(gw)) < 0.01 ? ' (settled at a minimum).' : ': still bouncing. η is too large for this valley.'}`; gdraw(); };
+$('gchk').onclick = () => { const v = parseFloat($('gin').value), right = gw - geta() * gD(gw);
+  if (!isFinite(v)) { gmsg = 'Type a number first.'; gdraw(); return; }
+  if (Math.abs(v - right) < 0.015) gmove(right, 'Correct: w = '); else { gmsg = `Not quite: w − η·d𝓛/dw = ${gw.toFixed(2)} − ${(geta() * gD(gw)).toFixed(2)} = ${right.toFixed(2)}.`; gdraw(); } $('gin').value = ''; };
+function greset(){ gw = +$('g0').value; gpath = [gw]; gmsg = 'Compute w − η · (the derivative shown), type it, and press Check.'; gdraw(); }
+$('greset').onclick = greset; $('g0').addEventListener('input', greset); $('geta').addEventListener('input', gdraw);
+greset();
+/* ---------- GD on the two-point problem ---------- */
+const sig = z => 1 / (1 + Math.exp(-z)), DX = [0.5, 2.5], DY = [0.2, 0.9];
+const loss = (w, b) => 0.5 * DX.reduce((s, x, i) => s + (sig(w * x + b) - DY[i]) ** 2, 0);
+function grad(w, b){ let dw = 0, db = 0; DX.forEach((x, i) => { const f = sig(w * x + b), g = (f - DY[i]) * f * (1 - f); dw += g * x; db += g; }); return [dw, db]; }
+const R = 6, G = 150; let img = null;
+function buildImage(){ const lo = hex(cssv('--s1')), hi = hex(cssv('--card')), cv = document.createElement('canvas'); cv.width = cv.height = G;
+  const c = cv.getContext('2d'), id = c.createImageData(G, G), L0 = Math.log10(2e-4), L1 = Math.log10(0.75);
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const w = -R + 2 * R * (i + 0.5) / G, b = R - 2 * R * (j + 0.5) / G;
+    let t = (Math.log10(loss(w, b) + 2e-4) - L0) / (L1 - L0); t = Math.max(0, Math.min(1, t)); t = Math.floor(t * 9) / 9; const s = 1 - t, k = 4 * (j * G + i);
+    for (let q = 0; q < 3; q++) id.data[k + q] = hi[q] + (lo[q] - hi[q]) * s * 0.85; id.data[k + 3] = 255; }
+  c.putImageData(id, 0, 0); img = cv; }
+let start = [-2, -2], P = [], Ls = [], ups = 0, timer = null, msg = '';
+const eta = () => 10 ** +$('eta').value;
+function reset(s){ clearInterval(timer); if (s) start = s; P = [start.slice()]; Ls = [loss(...start)]; ups = 0; msg = `Start at (${start[0].toFixed(2)}, ${start[1].toFixed(2)}).`; draw(); }
+function step(){ const [w, b] = P[P.length - 1], [dw, db] = grad(w, b), n = [w - eta() * dw, b - eta() * db], l = loss(...n); if (l > Ls[Ls.length - 1] + 1e-12) ups++; P.push(n); Ls.push(l); }
+function geom(W, H){ const S = Math.min(W, H) - 30, ox = (W - S) / 2 + 10, oy = 6; return {S, ox, oy, px: v => ox + (Math.max(-R, Math.min(R, v)) + R) / (2 * R) * S, py: v => oy + (R - Math.max(-R, Math.min(R, v))) / (2 * R) * S}; }
+function draw(){
+  if (!img) buildImage(); $('etav').textContent = eta() < 1 ? eta().toFixed(2) : eta().toFixed(1);
+  let [ctx, W, H] = setupCanvas($('surf')); const g = geom(W, H);
+  ctx.drawImage(img, g.ox, g.oy, g.S, g.S); ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1; ctx.strokeRect(g.ox, g.oy, g.S, g.S);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('w →', g.ox + g.S - 24, g.oy + g.S + 14); ctx.save(); ctx.translate(g.ox - 4, g.oy + 30); ctx.rotate(-Math.PI / 2); ctx.fillText('b →', 0, 0); ctx.restore();
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); P.forEach((p, i) => i ? ctx.lineTo(g.px(p[0]), g.py(p[1])) : ctx.moveTo(g.px(p[0]), g.py(p[1]))); ctx.stroke();
+  const stride = Math.max(1, Math.floor(P.length / 60)); ctx.fillStyle = cssv('--s2'); P.forEach((p, i) => { if (i % stride === 0) { ctx.beginPath(); ctx.arc(g.px(p[0]), g.py(p[1]), 2.5, 0, 7); ctx.fill(); } });
+  const c = P[P.length - 1]; ctx.fillStyle = cssv('--s3'); ctx.strokeStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(g.px(c[0]), g.py(c[1]), 6.5, 0, 7); ctx.fill(); ctx.stroke();
+  [ctx, W, H] = setupCanvas($('lc')); const pad = 30, n = Math.max(10, Ls.length - 1), Lmax = Math.max(0.05, ...Ls) * 1.05, sx = i => pad + i / n * (W - pad - 10), sy = v => H - pad - Math.min(v, Lmax) / Lmax * (H - pad - 10);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, 10); ctx.lineTo(pad, H - pad); ctx.lineTo(W - 10, H - pad); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('0', pad - 12, H - pad + 4); ctx.fillText(Lmax.toFixed(2), 2, 16); ctx.fillText('iteration ' + (Ls.length - 1), W - 90, H - 10);
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath(); Ls.forEach((v, i) => i ? ctx.lineTo(sx(i), sy(v)) : ctx.moveTo(sx(i), sy(v))); ctx.stroke();
+  $('it').textContent = P.length - 1; $('wb').textContent = `(${c[0].toFixed(2)}, ${c[1].toFixed(2)})`; $('lv').textContent = Ls[Ls.length - 1].toFixed(4); $('upc').textContent = ups; $('msg').innerHTML = msg;
+}
+function runTo(target){ clearInterval(timer); timer = setInterval(() => { for (let k = 0; k < 5 && P.length - 1 < target; k++) step();
+  msg = `Iteration ${P.length - 1}: loss ${Ls[Ls.length - 1].toFixed(4)}.` + (ups ? ` The loss rose on ${ups} step${ups > 1 ? 's' : ''}: η is too large for the guarantee.` : ' Not a single uphill step so far.');
+  draw(); if (P.length - 1 >= target) clearInterval(timer); }, 30); }
+$('s1').onclick = () => { clearInterval(timer); step(); const [dw, db] = grad(...P[P.length - 2]); msg = `∇w = ${dw.toFixed(4)}, ∇b = ${db.toFixed(4)} at the previous point; moved by −η times that.`; draw(); };
+$('s100').onclick = () => runTo(P.length - 1 + 100); $('s1000').onclick = () => runTo(1000); $('rs').onclick = () => reset([-2, -2]);
+$('eta').addEventListener('input', () => reset());
+$('surf').addEventListener('pointerdown', e => { const cv = $('surf'), r = cv.getBoundingClientRect(), g = geom(r.width, +cv.dataset.h || 300);
+  const w = ((e.clientX - r.left) - g.ox) / g.S * 2 * R - R, b = R - ((e.clientY - r.top) - g.oy) / g.S * 2 * R; if (Math.abs(w) <= R && Math.abs(b) <= R) reset([w, b]); });
+reset([-2, -2]);
+const redraw = () => { img = null; draw(); gdraw(); };
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { draw(); gdraw(); }, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); gdraw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

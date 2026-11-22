@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Network of Perceptrons</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 13 · playlist video 13 (titled “L11” on YouTube) · McCulloch–Pitts neuron, perceptrons</div>
+<h1>A Network of Perceptrons Can Represent Any Boolean Function</h1>
+<p class="lede">A single perceptron can't do XOR. Put a hidden layer in front of it: with two inputs, four hidden perceptrons, each wired to fire for exactly one of the four possible inputs, and one output perceptron on top. Then each output weight controls exactly one row of the truth table, the inequalities never interact, and every one of the 16 functions, XOR included, can be implemented. The same construction works for $n$ inputs, at the price of $2^n$ hidden perceptrons.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=dFnNoZeuKzQ" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L12-linearly-separable-functions.html">L12</a> · Next: <a href="L14-sigmoid-neuron.html">L14</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The setup (an illustrative proof)</h2>
+<p>This is a proof by construction: instead of a chain of mathematical steps, we build a network and show it works. For this discussion only:</p>
+<ul>
+<li><b>True is $+1$ and false is $-1$</b> (not 1 and 0 as so far). So the four possible inputs are $(-1,-1),(-1,1),(1,-1),(1,1)$.</li>
+<li>Two inputs $x_1,x_2$, each connected to <b>four perceptrons</b>. Every connection has a fixed weight, either $-1$ (red) or $+1$ (blue).</li>
+<li>Each of the four has bias $w_0=-2$. A perceptron fires when $w_0+\sum_i w_ix_i\ge0$, so here it fires only if the weighted sum of its inputs is at least 2.</li>
+<li>One more perceptron, the <b>output perceptron</b>, takes the four outputs as input with weights $w_1,w_2,w_3,w_4$. Its output $y$ is the output of the network.</li>
+</ul>
+<p>Everything except $w_1,\dots,w_4$ is hard-coded ("match fixing"). Implementing, say, XOR means: for each of the four inputs, $y$ matches the XOR truth table.</p>
+
+<h2>2 · Terminology that stays for the whole course</h2>
+<table>
+<tr><th>Term</th><th>Here</th></tr>
+<tr><td><b>Input layer</b></td><td>$x_1,x_2$</td></tr>
+<tr><td><b>Hidden layer</b></td><td>the four perceptrons, outputs $h_1,h_2,h_3,h_4$. "Hidden" because they sit between input and output: the outside world doesn't see or care about their outputs.</td></tr>
+<tr><td><b>Output layer</b></td><td>the single output perceptron, output $y$</td></tr>
+<tr><td><b>Layer 1 weights</b></td><td>the red and blue edges (fixed at $\pm1$)</td></tr>
+<tr><td><b>Layer 2 weights</b></td><td>$w_1,w_2,w_3,w_4$</td></tr>
+</table>
+<p>Three layers of neurons drawn, but we count two layers of weights (hidden and output); the input layer is just there.</p>
+
+<h2>3 · The claim</h2>
+<div class="callout">With this one template, by choosing only $w_1,w_2,w_3,w_4$, we can implement <b>any</b> of the 16 boolean functions of two inputs, including XOR and XNOR, which are not linearly separable.</div>
+<p>This sounds astonishing for two reasons: some of these functions are not linearly separable, and the network configuration is the same for all of them; only four numbers change. It stops being astonishing once you see what the hidden layer does.</p>
+
+<h2>4 · Each hidden perceptron fires for exactly one input</h2>
+<p>Hidden perceptron $j$ has layer-1 weights equal to one particular input pattern: $h_1$ has $(-1,-1)$, $h_2$ has $(-1,+1)$, $h_3$ has $(+1,-1)$, $h_4$ has $(+1,+1)$. Take $h_1$:</p>
+<ol class="steps">
+<li>Input $(-1,-1)$: $(-1)(-1)+(-1)(-1)=2$, and $-2+2=0\ge0$. It <b>fires</b>.</li>
+<li>Input $(-1,1)$: $(-1)(-1)+(-1)(1)=0$, and $-2+0&lt;0$. It doesn't fire. The same happens for $(1,-1)$.</li>
+<li>Input $(1,1)$: the weighted sum is $-2$, so $-2-2&lt;0$. It doesn't fire.</li>
+</ol>
+<p>The weighted sum reaches 2 only when the input matches the weights in both positions. So each hidden perceptron specialises in one input:</p>
+<table>
+<tr><th>input $(x_1,x_2)$</th><th>$h_1$</th><th>$h_2$</th><th>$h_3$</th><th>$h_4$</th><th>$\sum_i w_ih_i$</th></tr>
+<tr><td>$(-1,-1)$</td><td>1</td><td>0</td><td>0</td><td>0</td><td>$w_1$</td></tr>
+<tr><td>$(-1,1)$</td><td>0</td><td>1</td><td>0</td><td>0</td><td>$w_2$</td></tr>
+<tr><td>$(1,-1)$</td><td>0</td><td>0</td><td>1</td><td>0</td><td>$w_3$</td></tr>
+<tr><td>$(1,1)$</td><td>0</td><td>0</td><td>0</td><td>1</td><td>$w_4$</td></tr>
+</table>
+<p>Exactly one $h$ is 1 for each input, so the aggregate the output perceptron sees is just one weight.</p>
+
+<h2>5 · XOR without contradictions</h2>
+<p>Write the output perceptron's threshold as $w_0$: $y=1$ if $\sum_i w_ih_i\ge w_0$, else 0. For XOR (outputs 0, 1, 1, 0 in the row order above) the conditions are:</p>
+$$w_1&lt;w_0,\qquad w_2\ge w_0,\qquad w_3\ge w_0,\qquad w_4&lt;w_0 .$$
+<p>This is the same exercise as for a single perceptron in L12, where the inequalities contradicted each other. Here they can't: each condition involves a different weight, and no two weights appear together in any condition. Four inputs, four independent weights, four degrees of freedom; each weight adjusts to satisfy its own input. Any other boolean function gives a different set of four one-weight conditions, which can always be satisfied too.</p>
+<p>Build any function and check it below. Click the outputs to define the truth table, then move the layer 2 weights, or press <b>Set weights</b>.</p>
+<div class="card">
+  <div class="row"><span class="small">Target function: outputs for</span><span id="tt" class="row" style="margin:0"></span>
+    <button data-f="0110" class="pre">XOR</button><button data-f="1001" class="pre">XNOR</button><button data-f="0001" class="pre">AND</button></div>
+  <div class="row"><span class="small">Feed input:</span><span id="ins" class="row" style="margin:0"></span></div>
+  <canvas id="nc" height="300" aria-label="Network with two inputs, four hidden perceptrons and one output perceptron; active paths highlighted"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>layer 1 weight −1</span><span><i style="background:var(--s1)"></i>layer 1 weight +1</span><span><i class="dot" style="background:var(--s3)"></i>perceptron that fires</span></div>
+  <div class="row" id="sl"></div>
+  <div class="row"><button id="auto">Set weights for this function</button><button id="rand">Random weights</button></div>
+  <table id="chk"></table>
+  <p class="small" id="nTxt"></p>
+</div>
+<p>Try XOR with random weights: each row turns right or wrong by moving <i>only its own</i> slider, never another. That's the whole trick.</p>
+
+<h2>6 · More inputs, and the theorem</h2>
+<p>With three inputs, the same idea: $2^3=8$ possible inputs, so 8 hidden perceptrons, each firing only for its own input (the first for $(-1,-1,-1)$, and so on), connected to the output by $w_1,\dots,w_8$. Again each weight appears in exactly one condition, so all 8 inequalities can be satisfied for any function. With $n$ inputs: $2^n$ hidden perceptrons, $2^n$ output weights, and the hidden bias stays hand-coded at $-n$.</p>
+<div class="callout"><b>Theorem.</b> Any boolean function of $n$ inputs can be represented <b>exactly</b> by a network of perceptrons containing one hidden layer with $2^n$ perceptrons and one output layer containing one perceptron.</div>
+<p>We've already proved it, by construction. Two caveats:</p>
+<ul>
+<li><b>Sufficient, not necessary.</b> $2^n+1$ perceptrons are enough, but often far fewer will do: AND needs just one perceptron.</li>
+<li><b>Exponential size.</b> For $n=10,20,100$ the hidden layer becomes unmanageable; $2^{100}$ neurons is absurd. Getting a more compact network is a question for later.</li>
+</ul>
+<div class="row"><label>inputs $n$ = <input type="range" id="nn" min="1" max="40" value="10"> <span id="nv" class="mono"></span></label></div>
+<p class="small" id="nGrow"></p>
+
+<h2>7 · Why care about boolean functions? The movie example again</h2>
+<p>Back to deciding whether you'll like a movie: features like "is the actor Matt Damon?", "is the genre thriller?", "is the director Christopher Nolan?", and a like/dislike label for each past movie. That's a boolean function of $n$ boolean inputs, and as argued in L12 it will typically not be linearly separable. The theorem says a network of perceptrons can implement it exactly, whatever the truth table looks like, and we can learn the weights so that the network perfectly separates the training data. The catch, again, is the exponential number of perceptrons.</p>
+<div class="beyond"><b>Going beyond the video: "exactly" means on these inputs.</b> The construction is essentially a lookup table: one hidden unit per possible input, one weight per answer. It reproduces whatever truth table you give it, including noise in the labels, and it says nothing about inputs it hasn't seen. That's why "can represent" (this lecture) and "learns something that generalises" are different questions; my ML notes on <a href="../machine-learning/L66-bias-variance.html">bias and variance</a> and <a href="../machine-learning/L72-neural-networks.html">neural networks</a> pick up that thread.</div>
+
+<h2>8 · Multilayer perceptrons and representation power</h2>
+<p>Networks of this form are called <b>multilayer perceptrons (MLPs)</b>. The more accurate name is <i>multilayered network of perceptrons</i>: a single perceptron isn't multilayered; the network is. But "MLP" is what everyone says. The theorem gives the <b>representation power</b> of an MLP with a single hidden layer: it can represent any boolean function.</p>
+<p>The story so far: the perceptron learning algorithm converges (L11); a single perceptron can't handle functions that aren't linearly separable, which real data usually aren't (L12); a network of perceptrons can, but with exponentially many neurons. Still to come: getting rid of the exponential size, and doing something about the hard, linear decision boundary, starting with the sigmoid neuron in <a href="L14-sigmoid-neuron.html">L14</a>.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Network = input layer, hidden layer ($h_1,\dots$), output layer ($y$); layer 1 weights feed the hidden layer, layer 2 weights the output.</li>
+<li>With $\pm1$ inputs, layer-1 weights equal to an input pattern and bias $-n$, a hidden perceptron fires for exactly that one input.</li>
+<li>So the output perceptron sees one weight per input, giving one independent inequality per truth-table row: no contradictions, even for XOR.</li>
+<li>Any boolean function of $n$ inputs is represented exactly by one hidden layer of $2^n$ perceptrons plus one output perceptron.</li>
+<li>Sufficient but not necessary, and exponentially large: the next lectures look for more compact, smoother networks.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const IN = [[-1, -1], [-1, 1], [1, -1], [1, 1]], L1 = IN.map(v => v.slice()), B1 = -2;   // hidden j has weights equal to input pattern j
+const hidden = x => L1.map(wj => (B1 + wj[0] * x[0] + wj[1] * x[1]) >= 0 ? 1 : 0);
+let target = [0, 1, 1, 0], W = [-0.6, 0.4, 0.8, -1.2], W0 = 0, sel = 1;
+const fmt = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(1), lab = x => `(${x[0]},${x[1]})`;
+function buildControls(){
+  const tt = $('tt'); tt.innerHTML = ''; IN.forEach((x, j) => { const b = document.createElement('button'); b.className = 'mono'; b.textContent = `${lab(x)}→${target[j]}`;
+    b.onclick = () => { target[j] = 1 - target[j]; update(); }; tt.appendChild(b); });
+  const ins = $('ins'); ins.innerHTML = ''; IN.forEach((x, j) => { const b = document.createElement('button'); b.className = 'mono' + (j === sel ? ' on' : ''); b.textContent = lab(x);
+    b.onclick = () => { sel = j; update(); }; ins.appendChild(b); });
+}
+function buildSliders(){ const s = $('sl'); s.innerHTML = '';
+  [['w₁', 0], ['w₂', 1], ['w₃', 2], ['w₄', 3], ['w₀ (threshold)', 4]].forEach(([nm, i]) => { const l = document.createElement('label');
+    l.innerHTML = `${nm} <input type="range" min="-2" max="2" step="0.1" value="${i < 4 ? W[i] : W0}"> <span class="mono"></span>`;
+    const r = l.querySelector('input'); r.style.width = '110px'; r.oninput = () => { if (i < 4) W[i] = +r.value; else W0 = +r.value; update(false); }; s.appendChild(l); }); }
+function syncSliders(){ $('sl').querySelectorAll('label').forEach((l, i) => { const v = i < 4 ? W[i] : W0; l.querySelector('input').value = v; l.querySelector('span').textContent = fmt(v); }); }
+function update(rebuild = true){ if (rebuild) buildControls(); syncSliders(); draw(); table(); }
+function table(){ const t = $('chk'); let html = '<tr><th>input</th><th>h</th><th>Σ wᵢhᵢ</th><th>condition</th><th>y</th><th>want</th><th></th></tr>', ok = 0;
+  IN.forEach((x, j) => { const h = hidden(x), a = h.reduce((s, v, i) => s + v * W[i], 0), y = a >= W0 ? 1 : 0, good = y === target[j]; if (good) ok++;
+    html += `<tr${j === sel ? ' style="background:var(--tint)"' : ''}><td class="mono">${lab(x)}</td><td class="mono">${h.join('')}</td><td class="mono">${a.toFixed(1)}</td><td class="mono">w${j + 1} ${target[j] ? '≥' : '&lt;'} w0</td><td>${y}</td><td>${target[j]}</td><td style="color:var(${good ? '--s3' : '--s2'})">${good ? '✓' : '✗'}</td></tr>`; });
+  t.innerHTML = html;
+  $('nTxt').innerHTML = ok === 4 ? '<b>All four rows correct</b>: the network implements this function.' : `${ok} of 4 rows correct. Each wrong row is fixed by moving only its own weight (or the threshold).`; }
+function draw(){
+  const [ctx, Wd, H] = setupCanvas($('nc')), x = IN[sel], h = hidden(x), agg = h.reduce((s, v, i) => s + v * W[i], 0), y = agg >= W0 ? 1 : 0;
+  const cx = [Wd * 0.12, Wd * 0.5, Wd * 0.86], ry = [[H * 0.32, H * 0.68], [0, 1, 2, 3].map(i => H * (0.14 + 0.24 * i)), [H * 0.5]], R = Math.min(20, Wd / 22);
+  ctx.font = '12px system-ui';
+  // layer 1 edges
+  for (let i = 0; i < 2; i++) for (let j = 0; j < 4; j++) { const wv = L1[j][i]; ctx.strokeStyle = cssv(wv > 0 ? '--s1' : '--s2');
+    ctx.globalAlpha = h[j] ? 1 : 0.35; ctx.lineWidth = h[j] ? 3 : 1.5; ctx.beginPath(); ctx.moveTo(cx[0] + R, ry[0][i]); ctx.lineTo(cx[1] - R, ry[1][j]); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  // layer 2 edges
+  for (let j = 0; j < 4; j++) { ctx.strokeStyle = cssv(h[j] ? '--s3' : '--faint'); ctx.lineWidth = h[j] ? 3 : 1.2; ctx.beginPath(); ctx.moveTo(cx[1] + R, ry[1][j]); ctx.lineTo(cx[2] - R, ry[2][0]); ctx.stroke();
+    const mx = cx[1] + R + (cx[2] - cx[1] - 2 * R) * 0.35, my = ry[1][j] + (ry[2][0] - ry[1][j]) * 0.35; ctx.fillStyle = cssv('--ink'); ctx.fillText(`w${j + 1}=${W[j].toFixed(1)}`, mx - 18, my - 5); }
+  const node = (px, py, on, txt, sub) => { ctx.fillStyle = on ? cssv('--s3') : cssv('--card'); ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(px, py, R, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = on ? '#fff' : cssv('--ink'); ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText(txt, px, py + 4); ctx.textAlign = 'left'; ctx.font = '12px system-ui';
+    if (sub) { ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'center'; ctx.fillText(sub, px, py + R + 14); ctx.textAlign = 'left'; } };
+  node(cx[0], ry[0][0], false, String(x[0]), 'x₁'); node(cx[0], ry[0][1], false, String(x[1]), 'x₂');
+  for (let j = 0; j < 4; j++) node(cx[1], ry[1][j], !!h[j], 'h' + (j + 1), '');
+  node(cx[2], ry[2][0], !!y, 'y=' + y, `Σ=${agg.toFixed(1)} vs w0=${W0.toFixed(1)}`);
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('bias −2', cx[1] + R + 4, ry[1][0] - R + 2);
+}
+document.querySelectorAll('.pre').forEach(b => b.onclick = () => { target = b.dataset.f.split('').map(Number); update(); });
+$('auto').onclick = () => { W = target.map(t => t ? 1 : -1); W0 = 0; update(false); };
+$('rand').onclick = () => { W = W.map(() => Math.round((Math.random() * 4 - 2) * 10) / 10); update(false); };
+function grow(){ const n = +$('nn').value, hcount = 2 ** n; $('nv').textContent = n;
+  $('nGrow').innerHTML = `With $n=${n}$ inputs: <b>${hcount.toLocaleString()}</b> hidden perceptrons, ${(n * hcount).toLocaleString()} layer-1 weights and ${hcount.toLocaleString()} layer-2 weights. The construction needs one hidden perceptron per row of a truth table with ${hcount.toLocaleString()} rows.`;
+  if (window.renderMathInElement) renderMathInElement($('nGrow'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false}); }
+$('nn').addEventListener('input', grow);
+buildSliders(); update(); grow();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

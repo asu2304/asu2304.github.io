@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Attention Is All You Need</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 64 · playlist video 64 (titled “L4” on YouTube) · Transformers</div>
+<h1>Attention Is All You Need: Self-Attention Without Recurrence</h1>
+<p class="lede">The transformer keeps the encoder–decoder shape but replaces recurrence with <b>self-attention</b>: each word's new representation is an attention-weighted sum of all the words in the same sentence, $s_i=\sum_j\alpha_{ij}h_j$, with $\alpha_{ij}$ a function of $h_i$ and $h_j$ alone. Since nothing depends on a previous step, the whole $T\times T$ matrix of weights can be computed at once. The open question is which attention function to use, and the answer starts with making three vectors out of every word.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=MVeOwsggkt4" target="_blank" rel="noopener">this lecture on YouTube</a> (≈21 min). Previous: <a href="L63-transformer-intro.html">L63</a> · Next: <a href="L65-self-attention.html">L65</a> (queries, keys, values and scaled dot-product attention).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+<p class="callout small"><b>Order.</b> Although YouTube titles this “L4”, it continues directly from <a href="L63-transformer-intro.html">L63</a> (titled “L1”) and leads straight into <a href="L65-self-attention.html">L65</a> (titled “L3”).</p>
+
+<h2>1 · From attention-based RNNs to the transformer</h2>
+<p>The transformer (introduced around 2017) is still an encoder–decoder, but built from new blocks:</p>
+<table>
+<tr><th>Encoder layer</th><th>Decoder layer</th></tr>
+<tr><td>self-attention → feed-forward network</td><td>self-attention → encoder–decoder attention → feed-forward network</td></tr>
+</table>
+<p>Before the differences, the similarities:</p>
+<ul>
+<li>The <b>input</b> is still given fully; the <b>output</b> is still produced one word at a time.</li>
+<li>The input is still a sequence of <b>word embeddings</b>.</li>
+<li>Viewed as a black box, the encoder does what the RNN encoder did. The RNN mapped $x_1,\dots,x_5$ to $h_1,\dots,h_5$; the transformer encoder maps $x_1,\dots,x_5$ to $z_1,\dots,z_5$. Both outputs are <b>contextual</b>: $z_i$ knows about $x_i$ and about every other word.</li>
+</ul>
+<div class="callout">What changes is <b>how</b> the contextual representation is computed: without recurrent connections, so that it can be computed in parallel.</div>
+<p>Three components need to be understood: <b>self-attention</b>, <b>encoder–decoder (cross) attention</b> and the <b>feed-forward network</b>. Decoder self-attention reuses the encoder's, with one twist (<a href="L67-decoder-block.html">L67</a>).</p>
+
+<h2>2 · Self-attention: attention within the input</h2>
+<p>Notation changes here because there are more intermediate outputs: $h_1,\dots,h_T$ are now the <b>word embeddings</b> (in practice just randomly initialised and learned), $s_i$ is the new representation after self-attention, and $z_i$ is the encoder's final output.</p>
+<p>To compute a new representation for “movie” (word 4), take an attention-weighted sum of <b>all</b> the words in the sentence:</p>
+$$s_4=\sum_{j=1}^{T}\alpha_{4j}\,h_j,\qquad \alpha_{ij}\ \text{computed from}\ f(h_i,h_j).$$
+<p>And likewise $s_2=\sum_j\alpha_{2j}h_j$ for word 2, and so on. Compare with the old attention:</p>
+<table>
+<tr><th></th><th>Encoder–decoder attention (RNN)</th><th>Self-attention</th></tr>
+<tr><td>score</td><td>$f_{\text{ATT}}(s_{t-1},h_i)$</td><td>$f(h_i,h_j)$</td></tr>
+<tr><td>between</td><td>decoder state and encoder outputs</td><td>words of the input itself</td></tr>
+<tr><td>row $t$ needs</td><td>$s_{t-1}$, i.e. the whole previous row</td><td>only the embeddings, all known up front</td></tr>
+</table>
+<p>The embeddings are all available as soon as the sentence is looked up, so $\alpha_{1\cdot}$, $\alpha_{2\cdot}$, $\alpha_{3\cdot}$, … no longer wait on one another. The word <b>self</b> says the attention is within the input; attention between encoder and decoder will be called <b>cross-attention</b>.</p>
+
+<h2>3 · Why attend to your own sentence?</h2>
+<p>Take two sentences:</p>
+<ul>
+<li>“The animal didn't cross the street because <b>it</b> was too <b>tired</b>”: <i>it</i> refers to the <b>animal</b>.</li>
+<li>“The animal didn't cross the street because <b>it</b> was too <b>congested</b>”: <i>it</i> refers to the <b>street</b>.</li>
+</ul>
+<p>Same word, but it should draw on different context words. A static word embedding of “it” is identical in both sentences, so it cannot capture this. We need a <b>contextual</b> embedding, and the weights $\alpha$ must <b>learn</b> to focus on “animal” in one case and “street” in the other.</p>
+<p>So the goal is to fill a $T\times T$ table: row $i$ says how much each word matters when building the new representation of word $i$. In the first sentence, the row for “it” should have a large entry under “animal”. And all rows can be computed in parallel: for $\alpha_{21}$ you need only $h_2$ and $h_1$; for $\alpha_{63}$ only $h_6$ and $h_3$. Before, each row depended on the previous one through $s_{t-1}$.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A <b>hand-filled</b> version of the table the lecture wishes for (no model has been trained here), with made-up 2-D word embeddings so they can be drawn. Click a row of the matrix (or a word in the plot) to choose the query word. The plot shows each static embedding $h_j$ (circles), the selected word's static embedding (blue ring) and its contextual one $s_i=\sum_j\alpha_{ij}h_j$ (orange diamond), with lines to each $h_j$ as thick as $\alpha_{ij}$.</p>
+  <div class="row"><button id="sA" class="on">… it was too tired</button><button id="sB">… it was too congested</button>
+    <label>sharpness $\beta$ = <b id="bV">1.0</b> <input type="range" id="bS" min="0" max="2" step="0.05" value="1"></label>
+    <label><input type="checkbox" id="all"> show every word's $s_i$</label></div>
+  <div class="pair half">
+    <canvas id="hm" height="340" aria-label="Attention matrix heat map for the sentence"></canvas>
+    <canvas id="pl" height="340" aria-label="Static and contextual word embeddings in 2-D"></canvas>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="aAn">–</div><div class="l">α(it → animal)</div></div>
+    <div class="stat"><div class="v" id="aSt">–</div><div class="l">α(it → street)</div></div>
+    <div class="stat"><div class="v" id="dIt">–</div><div class="l">distance between “it” in the two sentences: static → contextual</div></div>
+  </div>
+  <p class="small" id="hTxt"></p>
+</div>
+<p class="small muted">Each row is a softmax of hand-set scores times $\beta$. At $\beta=0$ every row is uniform, so every word's $s_i$ collapses to the same average: context without selectivity is useless. That is why the weights must be <i>peaked</i> in the right places, and why they have to be learned.</p>
+<div class="beyond"><b>Going beyond the video: one layer can't make this switch on its own.</b> In a single softmax row, $\alpha_{i,\text{animal}}/\alpha_{i,\text{street}}=\exp\!\big(f(h_{\text{it}},h_{\text{animal}})-f(h_{\text{it}},h_{\text{street}})\big)$, which involves only “it”, “animal” and “street”. The word “tired” versus “congested” cannot change that ratio if $h_{\text{it}}$ is the plain static embedding. Real transformers get around this by <b>stacking layers</b> (<a href="L66-multi-head-attention.html">L66</a>): after the first layer, the representation of “it” already contains a bit of “tired”, and the next layer's scores can use it. In the demo the two rows were simply filled in differently by hand.</div>
+
+<h2>4 · Which attention function?</h2>
+<p>For now, keep the old names and think of the rows as $s_i$ and the columns as $h_j$ (here both are really the same embeddings $h$). The difference from before: all of them are available at one go, whereas decoder states used to arrive one step at a time. The function used with RNNs was</p>
+$$e_{tj}=V_{att}^{\top}\tanh\!\big(U_{att}\,s_{t-1}+W_{att}\,h_j\big).$$
+<p>Count its ingredients:</p>
+<table>
+<tr><th>Ingredient</th><th>In the RNN attention</th></tr>
+<tr><td>three vectors</td><td>$s_{t-1}$, $h_j$ and $V_{att}$</td></tr>
+<tr><td>two linear transformations</td><td>$U_{att}\,s_{t-1}$ and $W_{att}\,h_j$</td></tr>
+<tr><td>one non-linearity</td><td>$\tanh$</td></tr>
+<tr><td>a dot product</td><td>$V_{att}^{\top}(\cdot)$, which turns the vector into a scalar score</td></tr>
+</table>
+<p>So the score is ultimately a dot product between two vectors, one of which was built from two other vectors via linear transformations and a non-linearity. Self-attention, however, starts with just <b>two</b> embeddings, $h_i$ and $h_j$. Where do three vectors come from?</p>
+<div class="callout"><b>The transformer's answer:</b> apply <b>three linear transformations</b> to every embedding. They give a <b>query</b>, a <b>key</b> and a <b>value</b> vector, through learnable matrices $W_Q$, $W_K$ and $W_V$. Linear maps are not a surprise: the old function already had them. How the three vectors combine into a score is the subject of <a href="L65-self-attention.html">L65</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The transformer is an encoder–decoder built from self-attention, encoder–decoder (cross) attention and feed-forward blocks; input given fully, output produced word by word.</li>
+<li>Like the RNN encoder, it maps embeddings $x_1,\dots,x_T$ to contextual vectors $z_1,\dots,z_T$, but without recurrence.</li>
+<li>Self-attention: $s_i=\sum_j\alpha_{ij}h_j$ with $\alpha_{ij}$ from $f(h_i,h_j)$, so the whole $T\times T$ matrix can be computed at once.</li>
+<li>Contextual weights are needed because the same word (“it”) should attend to different words in different sentences.</li>
+<li>The old attention function used three vectors, two linear maps, a $\tanh$ and a dot product; the transformer makes three vectors (query, key, value) from each word with $W_Q$, $W_K$, $W_V$.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const softmax = a => { const m = Math.max(...a), e = a.map(x => Math.exp(x - m)), s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); };
+
+const EMB = {The: [-0.4, -1.7], the: [-0.4, -1.7], animal: [-2.4, 1.7], "didn't": [0.5, -0.7], cross: [1.1, -0.1], street: [2.4, 1.7],
+  because: [0.1, -2.0], it: [0, 0.5], was: [1.0, -1.3], too: [-1.0, -1.0], tired: [-1.9, 0.3], congested: [1.9, 0.3]};
+const base = ['The', 'animal', "didn't", 'cross', 'the', 'street', 'because', 'it', 'was', 'too'];
+let end = 'tired', beta = 1, q = 7;
+function logits(e){ const T = 11, L = Array.from({length: T}, () => Array(T).fill(0));
+  for (let i = 0; i < T; i++) L[i][i] = 1.5;
+  L[0][1] = 2; L[4][5] = 2; L[2][3] = 2; L[3][1] = 1; L[3][5] = 1; L[8][7] = 1.5; L[9][10] = 2; L[6][7] = 0.8; L[6][10] = 0.8; L[1][7] = 1; L[7][10] = 1;
+  if (e === 'tired') { L[7][1] = 3.5; L[10][1] = 2.5; L[5][3] = 1; } else { L[7][5] = 3.5; L[10][5] = 2.5; L[1][3] = 1; }
+  return L; }
+function compute(e){ const toks = base.concat([e]), H = toks.map(t => EMB[t]), A = logits(e).map(r => softmax(r.map(x => beta * x)));
+  const S = A.map(r => r.reduce((acc, a, j) => [acc[0] + a * H[j][0], acc[1] + a * H[j][1]], [0, 0])); return {toks, H, A, S}; }
+let cur, hmRect = null, plPts = [];
+function drawHM(){
+  const cv = $('hm'), w = cv.getBoundingClientRect().width || 340, T = 11, lw = 70, top = 62, cs = Math.max(12, Math.min(30, (w - lw - 4) / T));
+  cv.dataset.h = Math.round(top + T * cs + 6);
+  const [ctx] = setupCanvas(cv), A = cur.A; hmRect = {lw, top, cs};
+  ctx.font = '11px system-ui'; ctx.textBaseline = 'middle';
+  for (let i = 0; i < T; i++) {
+    ctx.fillStyle = i === q ? cssv('--s2') : cssv('--muted'); ctx.textAlign = 'right'; ctx.fillText(cur.toks[i], lw - 5, top + i * cs + cs / 2);
+    ctx.save(); ctx.translate(lw + i * cs + cs / 2, top - 5); ctx.rotate(-Math.PI / 3); ctx.textAlign = 'left'; ctx.fillStyle = cssv('--muted'); ctx.fillText(cur.toks[i], 0, 0); ctx.restore();
+    for (let j = 0; j < T; j++) { const x = lw + j * cs, y = top + i * cs;
+      ctx.fillStyle = cssv('--card'); ctx.fillRect(x, y, cs - 1, cs - 1);
+      ctx.globalAlpha = Math.min(1, A[i][j] * 1.6); ctx.fillStyle = cssv('--s1'); ctx.fillRect(x, y, cs - 1, cs - 1); ctx.globalAlpha = 1; }
+  }
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.strokeRect(lw - 1, top + q * cs - 1, T * cs + 1, cs + 1);
+  if (cs >= 24) { ctx.textAlign = 'center'; ctx.font = '9px system-ui';
+    for (let j = 0; j < T; j++) { const a = A[q][j]; ctx.fillStyle = a * 1.6 > 0.55 ? '#fff' : cssv('--ink'); ctx.fillText(a.toFixed(2).replace(/^0/, ''), lw + j * cs + cs / 2 - 0.5, top + q * cs + cs / 2); } }
+  ctx.textAlign = 'left';
+}
+function drawPL(){
+  const [ctx, W, H] = setupCanvas($('pl')), sc = Math.min(W / 6.6, H / 5.4), ox = W / 2, oy = H / 2, X = v => ox + v * sc, Y = v => oy - v * sc;
+  const P = cur.H, S = cur.S; plPts = [];
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+  ctx.strokeStyle = cssv('--s2');
+  for (let j = 0; j < P.length; j++) { const a = cur.A[q][j]; if (a < 0.01) continue; ctx.globalAlpha = 0.25 + 0.6 * a; ctx.lineWidth = 0.5 + 7 * a;
+    ctx.beginPath(); ctx.moveTo(X(S[q][0]), Y(S[q][1])); ctx.lineTo(X(P[j][0]), Y(P[j][1])); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  if ($('all').checked) { ctx.fillStyle = cssv('--s2'); ctx.globalAlpha = 0.45; S.forEach(s => { ctx.beginPath(); ctx.arc(X(s[0]), Y(s[1]), 3.5, 0, 7); ctx.fill(); }); ctx.globalAlpha = 1; }
+  ctx.font = '11px system-ui'; ctx.textBaseline = 'middle'; const seen = {};
+  cur.toks.forEach((t, j) => { const x = X(P[j][0]), y = Y(P[j][1]), k = P[j].join(); plPts.push([x, y, j]);
+    ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.stroke();
+    if (!seen[k]) { seen[k] = 1; const lab = (t === 'The' || t === 'the') ? 'the / The' : t; ctx.fillStyle = cssv('--ink'); ctx.textAlign = x > W - 60 ? 'right' : 'left'; ctx.fillText(lab, x + (x > W - 60 ? -8 : 8), y - 9); } });
+  ctx.textAlign = 'left';
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(X(P[q][0]), Y(P[q][1]), 8, 0, 7); ctx.stroke();
+  const sx = X(S[q][0]), sy = Y(S[q][1]); ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.moveTo(sx, sy - 9); ctx.lineTo(sx + 8, sy); ctx.lineTo(sx, sy + 9); ctx.lineTo(sx - 8, sy); ctx.fill();
+  ctx.font = '600 12px system-ui'; ctx.fillText('s(' + cur.toks[q] + ')', sx + 10, sy + 12);
+}
+function update(){
+  cur = compute(end); const a = compute('tired'), b = compute('congested');
+  $('aAn').textContent = cur.A[7][1].toFixed(2); $('aSt').textContent = cur.A[7][5].toFixed(2);
+  $('dIt').textContent = '0 → ' + Math.hypot(a.S[7][0] - b.S[7][0], a.S[7][1] - b.S[7][1]).toFixed(2);
+  const r = cur.A[q], top = r.map((v, j) => [v, j]).sort((x, y) => y[0] - x[0]).slice(0, 3).map(([v, j]) => `${cur.toks[j]} (${v.toFixed(2)})`).join(', ');
+  $('hTxt').innerHTML = `Query word <b>${cur.toks[q]}</b>: its largest weights are ${top}. ` + (beta < 0.05 ? 'With β = 0 every weight is 1/11, so every word gets the same contextual vector.'
+    : q === 7 ? `Switch the last word and watch the contextual “it” jump towards <b>${end === 'tired' ? 'street' : 'animal'}</b> while its static embedding stays put.` : 'Pick “it” to see the example from the lecture.');
+  drawHM(); drawPL();
+}
+$('hm').addEventListener('click', e => { if (!hmRect) return; const r = $('hm').getBoundingClientRect(), i = Math.floor((e.clientY - r.top - hmRect.top) / hmRect.cs); if (i >= 0 && i < 11) { q = i; update(); } });
+$('pl').addEventListener('click', e => { const r = $('pl').getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+  let best = null, bd = 18; plPts.forEach(p => { const d = Math.hypot(p[0] - x, p[1] - y); if (d < bd) { bd = d; best = p[2]; } }); if (best !== null) { q = best; update(); } });
+$('sA').onclick = () => { end = 'tired'; $('sA').classList.add('on'); $('sB').classList.remove('on'); update(); };
+$('sB').onclick = () => { end = 'congested'; $('sB').classList.add('on'); $('sA').classList.remove('on'); update(); };
+$('bS').oninput = () => { beta = +$('bS').value; $('bV').textContent = beta.toFixed(2); update(); };
+$('all').addEventListener('change', update);
+update();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(update, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', update);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); update(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

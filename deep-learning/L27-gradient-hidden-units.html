@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradient w.r.t. Hidden Units</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 27 · playlist video 27 (titled “L28” on YouTube) · Backpropagation, part 2 of 3</div>
+<h1>Gradient w.r.t. the Hidden Units</h1>
+<p class="lede">A hidden unit $h_{ij}$ affects the loss along several paths, one through each unit of the next layer. So its derivative is a sum of chain-rule products, and for the whole layer that sum becomes a matrix–vector product: $\nabla_{h_i}L=W_{i+1}^{\top}\nabla_{a_{i+1}}L$. One more step through the activation, $\nabla_{a_i}L=\nabla_{h_i}L\odot g'(a_i)$, and the same two formulas carry the gradient down through any number of layers.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=7g-THFmBpRA" target="_blank" rel="noopener">this lecture on YouTube</a> (≈29 min). Previous: <a href="L26-gradient-output-units.html">L26</a> · Next: <a href="L28-gradient-parameters.html">L28</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The goal: one formula for every hidden layer</h2>
+<p>The output layer was done in <a href="L26-gradient-output-units.html">L26</a>; it is special, and deriving a formula just for it was fine. But a network can have many hidden layers, and we don't want to re-derive the gradient for layer 1, 2, 3, … separately. We want one <b>generic</b> computation that works at whatever depth we are.</p>
+<p>Notation (as in <a href="L22-feedforward-networks.html">L22</a>): $a_i=b_i+W_ih_{i-1}$, $h_i=g(a_i)$, with $h_0=x$. $h_{ij}$ is neuron $j$ of hidden layer $i$. In the lecture's picture the unit of interest is $h_{22}$, and the loss is connected to it through <b>many paths</b>.</p>
+
+<h2>2 · Chain rule across multiple paths</h2>
+<p>A quick calculus refresher. Take a variable $z$ and compute three functions of it, $q_1(z)=z^2$, $q_2(z)=z^3$, $q_3(z)=e^z$, then compute $p$ from them, say $p=q_1/q_2$. Then $p$ is a function of $z$, because everything it is built from depends on $z$. So $dp/dz$ exists, and it is the <b>sum of the chain rule along each path</b>:</p>
+$$\frac{\partial p}{\partial z}=\sum_{m=1}^{M}\frac{\partial p}{\partial q_m}\,\frac{\partial q_m}{\partial z}.$$
+<p>Each term is the ordinary chain rule along one path $z\to q_m\to p$; with $M$ paths you add $M$ such products.</p>
+<div class="beyond"><b>Going beyond the video: checking the example.</b> Summing the three paths: $$\frac{1}{z^3}\cdot2z-\frac{z^2}{z^6}\cdot3z^2+0\cdot e^z=\frac{2}{z^2}-\frac{3}{z^2}=-\frac{1}{z^2},$$ which is $\tfrac{d}{dz}\tfrac{z^2}{z^3}=\tfrac{d}{dz}z^{-1}$. The $q_3$ path contributes 0 because this $p$ doesn't use $q_3$.</div>
+<p>That is exactly the situation in the network. With $p\to L(\theta)$, $z\to h_{ij}$, and the intermediate $q$'s being the next layer's pre-activations $a_{i+1,1},\dots,a_{i+1,k}$: the loss depends on all of them, and each depends on $h_{ij}$. That gives $k$ paths.</p>
+
+<h2>3 · One hidden unit</h2>
+$$\frac{\partial L(\theta)}{\partial h_{ij}}=\sum_{m=1}^{k}\frac{\partial L(\theta)}{\partial a_{i+1,m}}\;\frac{\partial a_{i+1,m}}{\partial h_{ij}} .$$
+<p>The first factor we <b>already have</b>. For $i+1=L$ it is the output-layer gradient from L26. The second factor is a single weight. To see why, take the lecture's example: two output units and three units in $h_2$, so $W_3$ is $2\times3$:</p>
+$$\begin{bmatrix}a_{31}\\a_{32}\end{bmatrix}=\begin{bmatrix}W_{311}&amp;W_{312}&amp;W_{313}\\W_{321}&amp;W_{322}&amp;W_{323}\end{bmatrix}\begin{bmatrix}h_{21}\\h_{22}\\h_{23}\end{bmatrix}+\begin{bmatrix}b_{31}\\b_{32}\end{bmatrix}$$
+<ol class="steps">
+<li>Write one row out: $a_{31}=W_{311}h_{21}+W_{312}h_{22}+W_{313}h_{23}+b_{31}$.</li>
+<li>Differentiate w.r.t. $h_{22}$: every term without $h_{22}$ vanishes, leaving $\partial a_{31}/\partial h_{22}=W_{312}$.</li>
+<li>Read the indices: 3 is $i+1$, 1 is $m$, 2 is $j$. In general $\partial a_{i+1,m}/\partial h_{ij}=W_{i+1,m,j}$, the $(m,j)$ entry of $W_{i+1}$.</li>
+</ol>
+<p>So the sum is over $m$ of (gradient entry $m$) × (entry $(m,j)$ of $W_{i+1}$). That is a <b>dot product</b> between the gradient vector $\nabla_{a_{i+1}}L$ and the $j$-th column of $W_{i+1}$, written $W_{i+1,\cdot,j}$ (the dot means "all rows"):</p>
+$$\frac{\partial L(\theta)}{\partial h_{ij}}=\sum_{m=1}^{k}\frac{\partial L(\theta)}{\partial a_{i+1,m}}\,W_{i+1,m,j}=\big(W_{i+1,\cdot,j}\big)^{\top}\nabla_{a_{i+1}}L(\theta).$$
+
+<h2>4 · The whole hidden layer</h2>
+<p>Stack the partials for $j=1,\dots,n$. Entry $j$ is "column $j$ of $W_{i+1}$, dotted with the gradient vector". Writing those columns as the <b>rows</b> of $W_{i+1}^{\top}$, the whole stack is one matrix–vector product:</p>
+<div class="callout">
+$$\nabla_{h_i}L(\theta)=\begin{bmatrix}(W_{i+1,\cdot,1})^{\top}\nabla_{a_{i+1}}L(\theta)\\ \vdots\\ (W_{i+1,\cdot,n})^{\top}\nabla_{a_{i+1}}L(\theta)\end{bmatrix}=W_{i+1}^{\top}\,\nabla_{a_{i+1}}L(\theta)$$
+</div>
+<p>Both pieces are in hand: $W_{i+1}$ is just the current weights, and for $i=2$ (so $i+1=3=L$) the gradient is the one from L26. But try $i=1$: we'd need $W_2^{\top}\nabla_{a_2}L$, and <b>$\nabla_{a_2}L$ is not known yet</b>. We only have the pre-activation gradient for the output layer. One piece is missing.</p>
+
+<h2>5 · The missing piece: pre-activations of a hidden layer</h2>
+<p>Going from $h_i$ to $a_i$ is easy because the connection is one-to-one: $h_{ij}=g(a_{ij})$ (for example $h_{22}=g(a_{22})$). So only one path, and</p>
+$$\frac{\partial L(\theta)}{\partial a_{ij}}=\frac{\partial L(\theta)}{\partial h_{ij}}\,\frac{\partial h_{ij}}{\partial a_{ij}}=\frac{\partial L(\theta)}{\partial h_{ij}}\,g'(a_{ij}).$$
+<p>Stacking over $j$ multiplies two vectors <b>element by element</b>. That's not a dot product (which would give a scalar); it is the <b>Hadamard product</b> $\odot$:</p>
+<div class="callout">
+$$\nabla_{a_i}L(\theta)=\nabla_{h_i}L(\theta)\odot\big[g'(a_{i1}),\ \dots,\ g'(a_{in})\big]^{\top}$$
+</div>
+<p>$g'$ is cheap. For the logistic $g(z)=1/(1+e^{-z})$ you can differentiate directly; <a href="L29-backprop-pseudocode.html">L29</a> gives the closed forms.</p>
+
+<h2>6 · Walking down the chain</h2>
+<p>Now every step needs only things computed in the step before:</p>
+<table>
+<thead><tr><th>compute</th><th>formula</th><th>needs</th></tr></thead>
+<tbody>
+<tr><td>$\nabla_{a_3}L$</td><td>$-(e(\ell)-\hat y)$</td><td>forward pass, label (L26)</td></tr>
+<tr><td>$\nabla_{h_2}L$</td><td>$W_3^{\top}\nabla_{a_3}L$</td><td>$W_3$, row above</td></tr>
+<tr><td>$\nabla_{a_2}L$</td><td>$\nabla_{h_2}L\odot g'(a_2)$</td><td>row above, $a_2$ from forward pass</td></tr>
+<tr><td>$\nabla_{h_1}L$</td><td>$W_2^{\top}\nabla_{a_2}L$</td><td>$W_2$, row above</td></tr>
+<tr><td>$\nabla_{a_1}L$</td><td>$\nabla_{h_1}L\odot g'(a_1)$</td><td>row above, $a_1$</td></tr>
+</tbody></table>
+<p>Two formulas, used alternately, reach every hidden layer, whether it's the first, second or tenth.</p>
+
+<h2>7 · Try it: backward through a small network</h2>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Network $2\to3\to3\to3$ with logistic $g$ and softmax output ($L=3$), random weights, true class $\ell=1$. Each column is one vector: $h_0=x$, $a_1$, $h_1$, $a_2$, $h_2$, $a_3$, $\hat y$. Press <b>Backward step</b> to fill in the gradients one vector at a time (green = negative, orange = positive, darker = larger). Pick a hidden unit to see its $k$ paths, the per-path products, their sum, and a finite-difference check that nudges $h_{ij}$ and reruns the rest of the forward pass.</p>
+  <div class="row"><button id="bstep">Backward step</button><button id="breset">Restart</button><button id="bnew">New weights</button></div>
+  <div class="row"><span class="small">pick a hidden unit:</span><span id="picks"></span></div>
+  <canvas id="net" height="300" aria-label="Small network with gradients flowing backward"></canvas>
+  <div class="legend"><span><i style="background:var(--s3)"></i>∂L/∂· &lt; 0</span><span><i style="background:var(--s2)"></i>∂L/∂· &gt; 0</span><span><i style="background:var(--s1)"></i>paths from the picked unit</span></div>
+  <p id="stepTxt" class="mono" style="white-space:pre-wrap;margin:10px 0"></p>
+  <table><thead><tr><th>path via</th><th>∂L/∂a<sub>i+1,m</sub></th><th>× W<sub>i+1,m,j</sub></th><th>= contribution</th></tr></thead><tbody id="ptb"></tbody></table>
+  <div class="row">
+    <div class="stat"><div class="v" id="psum">–</div><div class="l">sum over paths</div></div>
+    <div class="stat"><div class="v" id="pfd">–</div><div class="l">finite difference: nudge $h_{ij}$</div></div>
+  </div>
+</div>
+<p>Notice that the paths partly cancel: individual contributions can be large and of opposite sign while their sum is small. Only the sum matters.</p>
+<div class="beyond"><b>Going beyond the video: why this ordering is efficient, and a warning.</b> Every unit in layer $i$ reuses the same vector $\nabla_{a_{i+1}}L$, so the whole layer costs one matrix–vector product instead of re-walking every path from the loss. That reuse is the "propagation" in backpropagation. The warning: each layer multiplies by $g'(a_i)$, and for the logistic function $g'\le 0.25$. Stack many layers and the gradient can shrink geometrically. In the demo the colours often fade towards $a_1$; this is the vanishing-gradient problem, which comes up later in the course. My ML notes derive the same recursion in scalar form: <a href="../machine-learning/L73-backpropagation.html">ML L73</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>If a variable reaches the output through several paths, its derivative is the sum of the chain-rule products along each path.</li>
+<li>$\partial a_{i+1,m}/\partial h_{ij}=W_{i+1,m,j}$, so $\partial L/\partial h_{ij}$ is column $j$ of $W_{i+1}$ dotted with $\nabla_{a_{i+1}}L$.</li>
+<li>For the whole layer: $\nabla_{h_i}L=W_{i+1}^{\top}\nabla_{a_{i+1}}L$.</li>
+<li>Through the one-to-one activation: $\nabla_{a_i}L=\nabla_{h_i}L\odot g'(a_i)$, an element-wise (Hadamard) product.</li>
+<li>Alternating these two formulas from the output down, each step uses only what the previous step produced, for any number of hidden layers.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const sig = z => 1 / (1 + Math.exp(-z)), dsig = z => sig(z) * (1 - sig(z));
+const softmax = v => { const M = Math.max(...v), e = v.map(x => Math.exp(x - M)), s = e.reduce((p, q) => p + q, 0); return e.map(x => x / s); };
+const S = [2, 3, 3, 3], L = 3, ELL = 0; let W, B, x, F, G, step = 0, pick = [2, 1];
+const R = () => Math.round((Math.random() * 4 - 2) * 100) / 100;
+function init(){ W = [null]; B = [null]; for (let k = 1; k <= L; k++) { W.push(Array.from({length: S[k]}, () => Array.from({length: S[k - 1]}, R))); B.push(Array.from({length: S[k]}, () => R() / 2)); }
+  x = [0.8, -0.5]; F = forward(); G = backward(); step = 0; }
+function forward(override){ const h = [x], A = [null];
+  for (let k = 1; k <= L; k++) { const hp = override && override.k === k - 1 ? override.v : h[k - 1];
+    const ak = W[k].map((row, i) => B[k][i] + row.reduce((s, w, j) => s + w * hp[j], 0)); A.push(ak); h.push(k < L ? ak.map(sig) : softmax(ak)); }
+  return {h, A, loss: -Math.log(h[L][ELL])}; }
+function backward(){ const gA = [], gH = []; gA[L] = F.h[L].map((v, i) => v - (i === ELL ? 1 : 0));
+  for (let k = L; k >= 2; k--) { gH[k - 1] = F.h[k - 1].map((_, j) => W[k].reduce((s, row, m) => s + row[j] * gA[k][m], 0)); gA[k - 1] = gH[k - 1].map((v, j) => v * dsig(F.A[k - 1][j])); }
+  return {gA, gH}; }
+// columns: [label, kind, layer]
+const COLS = [['h₀=x', 'h', 0], ['a₁', 'a', 1], ['h₁', 'h', 1], ['a₂', 'a', 2], ['h₂', 'h', 2], ['a₃', 'a', 3], ['ŷ', 'y', 3]];
+const known = (kind, k) => { if (kind === 'a') return k === 3 ? step >= 1 : k === 2 ? step >= 3 : step >= 5; if (kind === 'h') return k === 2 ? step >= 2 : k === 1 ? step >= 4 : false; return false; };
+const gradOf = (kind, k) => kind === 'a' ? G.gA[k] : kind === 'h' ? G.gH[k] : null;
+const TXT = ['Forward pass done: all a\'s, h\'s and ŷ are stored. Loss = ', '∇a₃ L = ŷ − e(ℓ)                       (L26)', '∇h₂ L = W₃ᵀ ∇a₃ L                      (matrix × vector)', '∇a₂ L = ∇h₂ L ⊙ g′(a₂)                 (element-wise)', '∇h₁ L = W₂ᵀ ∇a₂ L', '∇a₁ L = ∇h₁ L ⊙ g′(a₁)                 done: every hidden layer reached'];
+function pos(W_, H_){ const pad = 26, cw = (W_ - 2 * pad) / (COLS.length - 1);
+  return (c, r, n) => [pad + c * cw, 34 + (H_ - 60) * (n === 1 ? 0.5 : (r + 0.5) / n)]; }
+function draw(){
+  const [ctx, Wd, Hd] = setupCanvas($('net')), P = pos(Wd, Hd), rad = Math.min(15, (Wd - 52) / 6 / 2.6);
+  // edges
+  for (let c = 0; c < COLS.length - 1; c++) { const [, kind, k] = COLS[c], n1 = S[k], n2 = S[COLS[c + 1][2]];
+    for (let r = 0; r < n1; r++) for (let s = 0; s < n2; s++) { if (kind === 'a' && k < L && r !== s) continue;
+      const hl = kind === 'h' && k === pick[0] && r === pick[1] && known('a', k + 1);
+      const p1 = P(c, r, n1), p2 = P(c + 1, s, n2); ctx.strokeStyle = hl ? cssv('--s1') : cssv('--grid'); ctx.lineWidth = hl ? 2.5 : 1;
+      ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke(); } }
+  const all = [].concat(...[1, 2, 3].map(k => G.gA[k]), ...[1, 2].map(k => G.gH[k])), mx = Math.max(...all.map(Math.abs), 1e-9);
+  ctx.textAlign = 'center';
+  COLS.forEach(([lab, kind, k], c) => { const n = S[k], g = gradOf(kind, k), kn = known(kind, k);
+    ctx.fillStyle = cssv('--muted'); ctx.font = '600 13px system-ui'; ctx.fillText(lab, P(c, 0, n)[0], 16);
+    for (let r = 0; r < n; r++) { const [cx, cy] = P(c, r, n); ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 7);
+      ctx.fillStyle = cssv('--card'); ctx.fill();
+      if (kn) { const t = Math.min(1, Math.abs(g[r]) / mx); ctx.globalAlpha = 0.15 + 0.85 * Math.sqrt(t); ctx.fillStyle = cssv(g[r] < 0 ? '--s3' : '--s2'); ctx.fill(); ctx.globalAlpha = 1; }
+      const sel = kind === 'h' && k === pick[0] && r === pick[1]; ctx.strokeStyle = sel ? cssv('--s1') : cssv('--muted'); ctx.lineWidth = sel ? 3 : 1; ctx.stroke();
+      if (kind === 'y' && r === ELL) { ctx.fillStyle = cssv('--ink'); ctx.font = '11px system-ui'; ctx.fillText('ℓ', cx + rad + 6, cy + 4); } } });
+  ctx.textAlign = 'left';
+  $('stepTxt').textContent = step === 0 ? TXT[0] + F.loss.toFixed(4) : TXT[step];
+  // paths panel
+  const [i, j] = pick, ready = known('a', i + 1), gN = G.gA[i + 1];
+  if (!ready) { $('ptb').innerHTML = `<tr><td colspan="4" class="muted">Run the backward pass until ∇a${i + 1} L is known: the paths from h${i}${j + 1} need it.</td></tr>`; $('psum').textContent = '–'; $('pfd').textContent = '–'; return; }
+  let sum = 0; $('ptb').innerHTML = gN.map((gm, m) => { const w = W[i + 1][m][j], c = gm * w; sum += c;
+    return `<tr><td>a<sub>${i + 1},${m + 1}</sub></td><td>${gm.toFixed(4)}</td><td>${w.toFixed(2)}</td><td>${c.toFixed(4)}</td></tr>`; }).join('');
+  const eps = 1e-5, hp = F.h[i].slice(), hm = F.h[i].slice(); hp[j] += eps; hm[j] -= eps;
+  const fd = (forward({k: i, v: hp}).loss - forward({k: i, v: hm}).loss) / (2 * eps);
+  $('psum').textContent = sum.toFixed(5); $('pfd').textContent = fd.toFixed(5);
+}
+function buildPicks(){ const L2 = []; [1, 2].forEach(i => [0, 1, 2].forEach(j => L2.push([i, j])));
+  $('picks').innerHTML = L2.map(([i, j]) => `<button id="p${i}${j}">h<sub>${i}${j + 1}</sub></button>`).join(' ');
+  L2.forEach(([i, j]) => $('p' + i + j).onclick = () => { pick = [i, j]; L2.forEach(([a, b]) => $('p' + a + b).className = a === i && b === j ? 'on' : ''); draw(); });
+  $('p' + pick[0] + pick[1]).className = 'on'; }
+$('bstep').onclick = () => { step = Math.min(5, step + 1); draw(); };
+$('breset').onclick = () => { step = 0; draw(); };
+$('bnew').onclick = () => { init(); draw(); };
+$('net').addEventListener('click', e => { const r = $('net').getBoundingClientRect(), P = pos(r.width, +$('net').dataset.h);
+  let best = null, bd = 1e9; COLS.forEach(([, kind, k], c) => { if (kind !== 'h' || k === 0) return; for (let q = 0; q < S[k]; q++) { const [cx, cy] = P(c, q, S[k]), d = Math.hypot(e.clientX - r.left - cx, e.clientY - r.top - cy); if (d < bd) { bd = d; best = [k, q]; } } });
+  if (best && bd < 30) $('p' + best[0] + best[1]).onclick(); });
+init(); buildPicks(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unsupervised Pre-training, One Layer at a Time</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 57 · playlist video 57 (titled “L58” on YouTube) · the deep learning revival</div>
+<h1>Unsupervised Pre-training, One Layer at a Time</h1>
+<p class="lede">A deep network was hard to train, but a one-hidden-layer network was not. So train each layer on its own, as a small autoencoder that must reconstruct its own input, freeze it, and stack the next one on top. Once every layer has been pre-trained this way without labels, use those weights as the starting point for ordinary supervised training of the whole network.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=TNcZ5l54pLc" target="_blank" rel="noopener">this lecture on YouTube</a> (≈22 min). Previous: <a href="L56-unsupervised-pretraining.html">L56</a> · Next: <a href="L58-optimization-or-regularization.html">L58</a> (does it help optimization or regularization?).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · What changed in 2006?</h2>
+<p>The seminal 2006 paper that made deep networks trainable phrased its idea with <b>RBMs</b> (restricted Boltzmann machines). RBMs aren't part of this offering of the course, and neither are autoencoders (they were dropped to make room for newer optimization methods and Transformers; his older recorded lectures cover them). So Prof. Khapra explains the idea with <b>autoencoders</b>, introducing just the parts he needs.</p>
+<p>One caution: unsupervised pre-training still exists today, mostly for Transformers, with different loss functions and many other moving parts. Conceptually it is similar, but this lecture is about the <b>2006 version for feed-forward networks</b>.</p>
+<p>Setting: inputs $x\in\mathbb R^n$, one real output $y\in\mathbb R$, and a deep network (four hidden layers plus input and output) as the function $f(x)$. Before 2006, networks four, five or six layers deep did not converge well.</p>
+
+<h2>2 · Step 1: make the first layer an autoencoder</h2>
+<p>Forget the full network. Keep only the input and the first hidden layer $h_1$, cut the connection to the next layer, and ask the network to <b>predict $x$ again</b>. For example, a 1024-dimensional input, a 256-dimensional hidden layer and a 1024-dimensional output:</p>
+$$h_1=\sigma(W_1x+b_1),\qquad \hat x=W^{*}h_1+c .$$
+<p>(He drops the biases at first and adds them back "if that makes you more comfortable".) The objective is reconstruction error, averaged over the $m$ training examples and summed over the $n$ dimensions:</p>
+$$\min\ \frac1m\sum_{i=1}^{m}\sum_{j=1}^{n}\big(\hat x_{ij}-x_{ij}\big)^2 .$$
+<h3 style="font-size:17px;margin:18px 0 4px">Why reconstructing the input is a useful goal</h3>
+<p>Suppose the error reaches zero. We went from 1024 numbers down to 256 and back, losing nothing, so <b>$h_1$ captures all the information in $x$</b>. That's possible because real inputs are full of redundancy:</p>
+<ul>
+<li>weight, height <i>and</i> BMI: from weight and height you can compute BMI;</li>
+<li>weight in kilograms, in pounds and in grams; height in centimetres;</li>
+<li>salary and income tax: completely correlated.</li>
+</ul>
+<p>The narrow middle layer (the <b>bottleneck</b>) forces a compact representation that keeps the important characteristics and drops the rest. That is exactly what an <b>autoencoder</b> does. Under certain conditions it is equivalent to PCA, which is also a dimensionality-reduction technique (see my ML notes on <a href="../machine-learning/L6-pca-error-minimization.html">PCA as error minimization</a>).</p>
+<div class="callout"><b>The trick.</b> Training the whole deep network was the hard problem, so set it aside. Define what a <i>good</i> first layer means (it keeps everything needed to rebuild its input), and train for that. This is a network with one hidden layer, and shallow networks were never hard to train.</div>
+<p><b>Where "unsupervised" comes from:</b> this objective never uses $y$. Only the inputs appear in the loss, so it would work even if nobody gave you labels.</p>
+
+<h2>3 · Test the compression claim</h2>
+<p>Below, each "person" has 5 features: weight in kg, weight in lb, height in cm, height in inches, and BMI. Underneath there are only <b>two</b> real factors (weight and height), just like the lecture's example. A small autoencoder $5\to k\to5$ (sigmoid bottleneck, linear output) is trained on standardized data. With $k\ge2$ it should rebuild the input almost perfectly; with $k=1$ it can't. Tick the box to replace the data with 5 <b>independent</b> features: with no redundancy, a narrow bottleneck must lose information.</p>
+<div class="card">
+  <div class="row"><button id="aeRun">Train with k = 1, 2, 3, 4</button><label><input type="checkbox" id="aeInd"> independent features (no redundancy)</label></div>
+  <canvas id="aec" height="260" aria-label="Reconstruction error curves for autoencoders with bottleneck sizes 1 to 4"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>k = 1</span><span><i style="background:var(--s2)"></i>k = 2</span><span><i style="background:var(--s3)"></i>k = 3</span><span><i style="background:var(--lv1)"></i>k = 4</span><span><i style="background:var(--faint)"></i>always predict the mean (error 1)</span></div>
+  <table id="aet" style="margin-top:8px"><tr><th>bottleneck k</th><th>1</th><th>2</th><th>3</th><th>4</th></tr><tr><td>final reconstruction error</td><td>–</td><td>–</td><td>–</td><td>–</td></tr></table>
+  <p class="small" id="aetxt">Press the button. Each run is 1,500 full-batch Adam steps on 150 examples; the y-axis is mean squared error per feature (log scale).</p>
+</div>
+
+<h2>4 · Step 2 onwards: repeat, one layer at a time</h2>
+<ol class="steps">
+<li>After step 1, $W_1$ is good: training loss has dropped and $h_1$ is a good representation. <b>Freeze it.</b> Compute $h_1$ for all $m$ training examples. These become the new training data.</li>
+<li>Plug in $h_2$ on top of $h_1$ and reconstruct $\hat h_1$ from it, with the same objective and $x$ replaced by $h_1$. Again a shallow network: input $h_1$ (fixed), hidden $h_2$, output $\hat h_1$. Only this layer trains.</li>
+<li>Just as $x$ is $h_0$, $h_1$ is now the input. $h_1$ is an abstract representation of $x$; $h_2$ captures everything in $h_1$, so it is a <b>deeper</b> abstract representation of $x$. That is the whole idea of a feed-forward network: each layer is more abstract than the last.</li>
+<li>Freeze $h_1$ and $h_2$, use $h_2$ as input, add $h_3$, reconstruct $h_2$, and so on through all $L$ layers.</li>
+</ol>
+<p>It is <b>greedy</b> because each layer is trained without caring what happens in the other layers, and <b>unsupervised</b> because no label is used.</p>
+
+<h2>5 · Step last: fine-tune with the real objective</h2>
+<p>Return to the original problem: learn $y=f(x)$. $f$ is a composition of layers, and each of those components has already been learned well. So:</p>
+<ul>
+<li>Keep the pre-trained weights as the <b>initialization</b> (instead of random).</li>
+<li>Initialize the output-layer weights randomly (they were never pre-trained).</li>
+<li>Train on the supervised objective with full backprop, <b>updating every weight</b>, including the pre-trained ones:</li>
+</ul>
+$$\min_\theta\ \mathcal L(\theta)=\frac1m\sum_{i=1}^{m}\big(y_i-f(x_i)\big)^2 .$$
+<p>He calls the reconstruction objective $\Omega(\theta)$ and the supervised one $\mathcal L(\theta)$, a naming that matters in <a href="L58-optimization-or-regularization.html">the next lecture</a>. With this recipe, the 2006 authors could train quite deep networks effectively, though by modern standards they were still shallow.</p>
+<p>Step through the whole procedure:</p>
+<div class="card">
+  <div class="row"><button id="stPrev">← Back</button><button id="stNext">Next stage →</button><span class="small muted" id="stLab"></span></div>
+  <canvas id="stc" height="260" aria-label="Greedy layer-wise pre-training, stage by stage"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>being trained now</span><span><i style="background:var(--faint)"></i>frozen (pre-trained)</span><span><i style="background:var(--s2)"></i>temporary decoder / random init</span></div>
+  <p class="small" id="stTxt"></p>
+</div>
+
+<h2>6 · Why does it work? Two candidate answers</h2>
+<p>In effect, the network's weights were <b>initialized with a greedy, unsupervised objective</b>. Why does that help? Two options:</p>
+<table>
+<tr><th></th><th>Better optimization?</th><th>Better regularization?</th></tr>
+<tr><td>Concerns</td><td>Training data only: driving $\mathcal L(\theta)$ on the training set down</td><td>Generalization: doing better on <b>test</b> data</td></tr>
+<tr><td>The claim would be</td><td>Without pre-training we could not even drive training error to zero</td><td>Training error was fine, but pre-training gives better test performance</td></tr>
+</table>
+<p>So far in the course we assumed training error can always be driven to zero by making the model complex enough. Was that false for deep networks before 2006?</p>
+<div class="callout"><b>Why the question mattered more than its answer.</b> The 2006–2009 investigations gave no conclusive answer. But they convinced people that something real was happening, and that it might be optimization, regularization, initialization or the gradients themselves. So researchers went after each of these directly:
+<ul style="margin:6px 0 0">
+<li><b>better optimizers</b> (from 2011–12, converging on <a href="L40-adam.html">Adam</a> and its variants);</li>
+<li><b>better regularizers</b> (<a href="L54-dropout.html">dropout</a>, around 2012–14, still popular; <a href="L52-early-stopping.html">early stopping</a>);</li>
+<li><b>better initialization</b> (pre-training looks like a clever initialization, so why not design one directly?);</li>
+<li><b>better activation functions</b> (they change the gradients).</li>
+</ul></div>
+<p>The optimizers and regularizers are done. The remaining two, activation functions and initialization, come next, after a look at the evidence for each view in <a href="L58-optimization-or-regularization.html">L58</a>.</p>
+<div class="beyond"><b>Going beyond the video.</b> The first 2006 papers were Hinton, Osindero and Teh (deep belief nets, RBMs) and Hinton and Salakhutdinov (deep autoencoders in <i>Science</i>); Bengio et al. (2007) did the stacked-autoencoder version described here. The modern descendant is self-supervised pre-training of Transformers (e.g. masked-word prediction in BERT): still "learn from inputs alone, then fine-tune", but on the whole network at once instead of greedily layer by layer.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>An autoencoder layer learns $h=\sigma(Wx+b)$ such that $x$ can be rebuilt from $h$; the reconstruction error uses no labels.</li>
+<li>Zero reconstruction error through a bottleneck means $h$ keeps all the information in $x$, which is possible because real inputs are redundant.</li>
+<li>Greedy layer-wise pre-training: train $h_1$ to rebuild $x$, freeze it, train $h_2$ to rebuild $h_1$, and so on. Each step is an easy shallow network.</li>
+<li>Then initialize the deep network with these weights (output layer random) and fine-tune everything on the supervised loss.</li>
+<li>Whether this helps optimization or regularization was unclear, but asking that question launched the work on optimizers, regularizers, initialization and activations.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const sig = a => 1 / (1 + Math.exp(-a));
+
+/* ---------- autoencoder demo ---------- */
+const M = 150, N = 5, ITERS = 1500, KCOL = ['--s1', '--s2', '--s3', '--lv1'];
+let X = [], curves = [[], [], [], []], finals = [null, null, null, null], running = false;
+function makeData(){
+  const ind = $('aeInd').checked; const raw = [];
+  for (let i = 0; i < M; i++) {
+    if (ind) { raw.push([randn(), randn(), randn(), randn(), randn()]); continue; }
+    const h = 170 + 10 * randn(), w = 70 + 0.5 * (h - 170) + 10 * randn(), e = () => 1 + 0.005 * randn();
+    raw.push([w * e(), 2.2046 * w * e(), h * e(), h / 2.54 * e(), w / Math.pow(h / 100, 2) * e()]);
+  }
+  X = raw.map(r => r.slice());
+  for (let j = 0; j < N; j++) { let mu = 0, s = 0; X.forEach(r => mu += r[j]); mu /= M; X.forEach(r => s += (r[j] - mu) ** 2); s = Math.sqrt(s / M) || 1; X.forEach(r => r[j] = (r[j] - mu) / s); }
+}
+function newAE(k){ const g = () => 0.5 * randn(), P = {k, W1: [], b1: Array(k).fill(0), W2: [], b2: Array(N).fill(0)};
+  for (let a = 0; a < k; a++) P.W1.push(Array.from({length: N}, g)); for (let j = 0; j < N; j++) P.W2.push(Array.from({length: k}, g));
+  P.m = JSON.parse(JSON.stringify({W1: P.W1, b1: P.b1, W2: P.W2, b2: P.b2})); P.v = JSON.parse(JSON.stringify(P.m));
+  ['W1', 'b1', 'W2', 'b2'].forEach(n => { const z = o => Array.isArray(o) ? o.map(z) : 0; P.m[n] = z(P.m[n]); P.v[n] = z(P.v[n]); }); P.t = 0; return P; }
+function aeStep(P){ const k = P.k, gW1 = P.W1.map(r => r.map(() => 0)), gb1 = Array(k).fill(0), gW2 = P.W2.map(r => r.map(() => 0)), gb2 = Array(N).fill(0); let loss = 0;
+  const h = Array(k), d = Array(N), dh = Array(k);
+  for (const x of X) {
+    for (let a = 0; a < k; a++) { let s = P.b1[a]; for (let j = 0; j < N; j++) s += P.W1[a][j] * x[j]; h[a] = sig(s); }
+    for (let j = 0; j < N; j++) { let s = P.b2[j]; for (let a = 0; a < k; a++) s += P.W2[j][a] * h[a]; const e = s - x[j]; loss += e * e; d[j] = 2 * e / (M * N); }
+    for (let a = 0; a < k; a++) dh[a] = 0;
+    for (let j = 0; j < N; j++) { gb2[j] += d[j]; for (let a = 0; a < k; a++) { gW2[j][a] += d[j] * h[a]; dh[a] += P.W2[j][a] * d[j]; } }
+    for (let a = 0; a < k; a++) { const da = dh[a] * h[a] * (1 - h[a]); gb1[a] += da; for (let j = 0; j < N; j++) gW1[a][j] += da * x[j]; }
+  }
+  P.t++; const lr = 0.02, b1 = 0.9, b2 = 0.999, c1 = 1 - b1 ** P.t, c2 = 1 - b2 ** P.t;
+  const upd = (p, g, m, v) => { for (let i = 0; i < p.length; i++) { if (Array.isArray(p[i])) { upd(p[i], g[i], m[i], v[i]); continue; }
+    m[i] = b1 * m[i] + (1 - b1) * g[i]; v[i] = b2 * v[i] + (1 - b2) * g[i] * g[i]; p[i] -= lr * (m[i] / c1) / (Math.sqrt(v[i] / c2) + 1e-8); } };
+  upd(P.W1, gW1, P.m.W1, P.v.W1); upd(P.b1, gb1, P.m.b1, P.v.b1); upd(P.W2, gW2, P.m.W2, P.v.W2); upd(P.b2, gb2, P.m.b2, P.v.b2);
+  return loss / (M * N); }
+function drawAE(){
+  const [ctx, W, H] = setupCanvas($('aec')), pl = 46, pr = 10, pt = 10, pb = 26, lo = -5, hi = 0.3;
+  const Xp = i => pl + (W - pl - pr) * i / ITERS, Yp = v => pt + (H - pt - pb) * (1 - (Math.log10(Math.max(v, 1e-5)) - lo) / (hi - lo));
+  ctx.font = '12px system-ui'; ctx.lineWidth = 1;
+  for (let e = lo; e <= 0; e++) { const y = Yp(10 ** e); ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(pl, y); ctx.lineTo(W - pr, y); ctx.stroke(); ctx.fillStyle = cssv('--muted'); ctx.fillText('1e' + e, 6, y + 4); }
+  ctx.fillText('step →', W - pr - 46, H - 8);
+  ctx.setLineDash([5, 4]); ctx.strokeStyle = cssv('--faint'); ctx.beginPath(); ctx.moveTo(pl, Yp(1)); ctx.lineTo(W - pr, Yp(1)); ctx.stroke(); ctx.setLineDash([]);
+  curves.forEach((c, k) => { if (!c.length) return; ctx.strokeStyle = cssv(KCOL[k]); ctx.lineWidth = 2; ctx.beginPath(); c.forEach((v, i) => i ? ctx.lineTo(Xp(i), Yp(v)) : ctx.moveTo(Xp(i), Yp(v))); ctx.stroke(); });
+  const cells = $('aet').rows[1].cells; finals.forEach((f, k) => cells[k + 1].textContent = f == null ? '–' : f.toExponential(1));
+}
+function runAll(){ if (running) return; running = true; makeData(); curves = [[], [], [], []]; finals = [null, null, null, null];
+  let k = 0, P = newAE(1), it = 0;
+  const tick = () => { for (let s = 0; s < 60 && it < ITERS; s++, it++) curves[k].push(aeStep(P));
+    if (it >= ITERS) { finals[k] = curves[k][curves[k].length - 1]; k++; if (k < 4) { P = newAE(k + 1); it = 0; } }
+    drawAE();
+    if (k < 4) requestAnimationFrame(tick); else { running = false; report(); } };
+  $('aetxt').innerHTML = 'Training…'; tick(); }
+function report(){ const ind = $('aeInd').checked;
+  $('aetxt').innerHTML = ind
+    ? `Independent features: every extra unit in the bottleneck buys a real drop in error, but k = 4 still can't rebuild 5 independent numbers (final error ${finals[3].toExponential(1)}). Without redundancy there is nothing to compress.`
+    : `Redundant features: k = 1 is stuck at ${finals[0].toExponential(1)}, but k = 2 already gets ${finals[1].toExponential(1)}. Two hidden units are enough because the 5 features come from 2 underlying factors (weight and height). The remaining error is the 0.5% measurement noise plus the curvature of BMI.`; }
+$('aeRun').onclick = runAll;
+$('aeInd').addEventListener('change', () => { if (!running) { curves = [[], [], [], []]; finals = [null, null, null, null]; drawAE(); $('aetxt').textContent = 'Data changed. Press the button to train.'; } });
+
+/* ---------- layer-wise stepper ---------- */
+let stage = 0;
+const STAGES = [
+  ['Stage 1 of 4: pre-train layer 1', 'Train $x\\to h_1\\to\\hat x$ to minimise reconstruction error. Only $W_1$ (and the temporary decoder) learn. No labels used.'],
+  ['Stage 2 of 4: pre-train layer 2', 'Freeze $W_1$. Compute $h_1$ for every training example; these are the new inputs. Train $h_1\\to h_2\\to\\hat h_1$. Throw the decoder away afterwards.'],
+  ['Stage 3 of 4: pre-train layer 3', 'Freeze $W_1,W_2$. Train $h_2\\to h_3\\to\\hat h_2$. Each layer is a deeper abstract representation of $x$.'],
+  ['Stage 4 of 4: supervised fine-tuning', 'Start from the pre-trained $W_1,W_2,W_3$, add a randomly initialised output layer, and minimise $\\mathcal L(\\theta)$ on $(x,y)$ with full backprop. <b>All</b> weights are updated.']];
+function drawStages(){
+  const [ctx, W, H] = setupCanvas($('stc')), sizes = [5, 4, 4, 4, 1], names = ['x', 'h₁', 'h₂', 'h₃', 'ŷ'];
+  const ncol = 6, cx = i => 24 + (W - 48) * i / (ncol - 1), cy = (n, j) => H / 2 - 14 + (j - (n - 1) / 2) * 34;
+  const col = (i, n, c, label, fill) => { for (let j = 0; j < n; j++) { ctx.beginPath(); ctx.arc(cx(i), cy(n, j), 9, 0, 7); ctx.fillStyle = fill ? c : cssv('--card'); ctx.fill(); ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.stroke(); }
+    ctx.fillStyle = cssv('--ink'); ctx.font = '600 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText(label, cx(i), H - 12); ctx.textAlign = 'left'; };
+  const edges = (i, n1, i2, n2, c, dash) => { ctx.strokeStyle = c; ctx.lineWidth = 1.2; ctx.setLineDash(dash ? [4, 3] : []);
+    for (let a = 0; a < n1; a++) for (let b = 0; b < n2; b++) { ctx.beginPath(); ctx.moveTo(cx(i), cy(n1, a)); ctx.lineTo(cx(i2), cy(n2, b)); ctx.stroke(); } ctx.setLineDash([]); };
+  const s1 = cssv('--s1'), s2 = cssv('--s2'), fa = cssv('--faint'), gr = cssv('--grid');
+  if (stage < 3) {
+    const s = stage + 1;
+    for (let i = 1; i < s; i++) edges(i - 1, sizes[i - 1], i, sizes[i], fa);
+    edges(s - 1, sizes[s - 1], s, sizes[s], s1);
+    edges(s, sizes[s], s + 1, sizes[s - 1], s2, true);
+    for (let i = 0; i <= s; i++) col(i, sizes[i], i === s ? s1 : fa, names[i], i < s);
+    col(s + 1, sizes[s - 1], s2, s === 1 ? 'x̂' : names[s - 1] + '̂', false);
+    for (let i = s + 2; i < ncol; i++) { ctx.fillStyle = gr; ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('·', cx(i), H / 2); ctx.textAlign = 'left'; }
+  } else {
+    for (let i = 1; i <= 3; i++) edges(i - 1, sizes[i - 1], i, sizes[i], s1);
+    edges(3, 4, 4, 1, s2, true);
+    for (let i = 0; i <= 4; i++) col(i, sizes[i], i === 4 ? s2 : s1, names[i], i === 0);
+    ctx.fillStyle = cssv('--ink'); ctx.font = '13px system-ui'; ctx.fillText('L(y, ŷ)', cx(4) + 16, H / 2 - 10);
+  }
+  $('stLab').textContent = STAGES[stage][0]; $('stTxt').innerHTML = STAGES[stage][1];
+  if (window.renderMathInElement) renderMathInElement($('stTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+  $('stPrev').disabled = stage === 0; $('stNext').disabled = stage === 3;
+}
+$('stPrev').onclick = () => { stage = Math.max(0, stage - 1); drawStages(); };
+$('stNext').onclick = () => { stage = Math.min(3, stage + 1); drawStages(); };
+
+function drawAll(){ drawAE(); drawStages(); }
+makeData(); drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

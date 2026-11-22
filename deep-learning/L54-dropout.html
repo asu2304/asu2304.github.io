@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dropout</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 54 · playlist video 54 (titled “L57” on YouTube) · Regularisation</div>
+<h1>Dropout</h1>
+<p class="lede">Ensembles help, but training and running $k$ large networks is prohibitively expensive. Dropout gets the averaging effect almost for free: for every mini-batch, randomly drop neurons to get a "thinned" network, train that one, and let all $2^n$ possible thinned networks <b>share the same weights</b>. At test time, run the single full network with each neuron's output scaled by its retention probability $p$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=WzScUPDGFVA" target="_blank" rel="noopener">this lecture on YouTube</a> (≈18 min). Previous: <a href="L53-ensembles.html">L53</a> · Next: <a href="L55-regularization-summary.html">L55</a> (summary of regularisation).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Why ensembles are hard for deep networks</h2>
+<p>The last lecture (<a href="L53-ensembles.html">L53</a>) showed that averaging several models helps. For deep networks there are two ways to build the ensemble, and both are expensive:</p>
+<ul>
+<li><b>Option 1:</b> train several networks with <b>different architectures</b>.</li>
+<li><b>Option 2:</b> train the <b>same architecture</b> on different subsets of the training data (bagging).</li>
+</ul>
+<p>Either way the cost hits twice. <b>Training</b> one deep network is already expensive, and now we need $k$ of them. And at <b>test time</b>, where we want answers fast, every test input must go through all $k$ networks before their outputs are combined. Dropout addresses both problems: it effectively trains many networks without paying for $k$ trainings, and at inference it uses one network plus a simple trick to get the averaging effect.</p>
+
+<h2>2 · The idea: drop units, get a thinned network</h2>
+<p>Start from the original network and <b>drop some neurons</b> at random. What remains is a network with a different architecture, just as in option 1. This is temporary: the drop applies to the current training instance (or mini-batch), and the next one gets a different drop.</p>
+<ul>
+<li>Each node is <b>retained with a fixed probability</b> $p$, e.g. kept with 80% chance and dropped with 20%, decided afresh for every mini-batch.</li>
+<li>With $n$ droppable nodes, each is either kept (1) or dropped (0), so a 0/1 vector of length $n$ picks out one thinned network. There are $2^n$ such vectors, so <b>$2^n$ possible networks</b>.</li>
+</ul>
+<p>If training $k$ networks was too expensive, how can we possibly train $2^n$? Two tricks.</p>
+<table>
+<tr><th>trick</th><th>what it means</th></tr>
+<tr><td><b>1. Share the weights</b></td><td>All $2^n$ networks use the <b>same</b> weight matrices. A weight is present in only some of the networks (half of them, if $p=\tfrac12$), but wherever it appears it is the same copy.</td></tr>
+<tr><td><b>2. Sample a network per step</b></td><td>We never build the $2^n$ networks up front. For each training instance / mini-batch, sample one thinned network by dropping nodes at random, and train that.</td></tr>
+</table>
+
+<h2>3 · Training, step by step</h2>
+<ol class="steps">
+<li><b>Initialise all the weights</b> of the one base network. With $n$ inputs, two hidden layers of $n$ nodes and one output (ignoring biases), that is $n^2+n^2+n=2n^2+n$ weights.</li>
+<li><b>First mini-batch:</b> drop some nodes to get a thinned network. Do forward propagation through it to get the loss, then back-propagate.</li>
+<li><b>Update only the weights that took part.</b> A weight attached to a dropped node did not participate in the forward pass, so it gets no gradient and is not updated. It works both ways: only the active weights are used forward and updated backward.</li>
+<li><b>Second mini-batch:</b> sample a new thinned network (a different random drop). Again update only the participating weights.</li>
+<li><b>Shared weights carry over.</b> A weight $w$ active in both networks was updated at step 1 to $w_1$; at step 2 it starts from $w_1$, not $w_0$. Weights active in both batches got two updates, those active in only one got one.</li>
+</ol>
+<p>So although it looks like a different network every step, it is one network from which different nodes are temporarily removed.</p>
+<div class="callout">With $n$ large, $2^n$ is astronomically large: most thinned networks are sampled once or <b>never</b>. That's fine, because of weight sharing. Every weight is trained whenever <b>some</b> sampled network contains it. If each node is kept with probability 0.8, a weight between two droppable nodes is present when both are kept: $0.8\times0.8=0.64$. Over 1,000 steps it gets about 640 updates.</div>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">A base network with 5 inputs, two hidden layers of 5 and one output: $2\cdot5^2+5=55$ weights, and 15 droppable nodes, so $2^{15}=32{,}768$ thinned networks. Each mini-batch samples a mask; only the highlighted weights take part in forward and backward propagation, and only they are updated.</p>
+  <div class="row"><button id="mb">Next mini-batch</button><button id="mb1k">Run 1,000 mini-batches</button><button id="rs">Reset counts</button>
+    <label>keep probability p <input type="range" id="pk" min="0.1" max="1" step="0.05" value="0.8"> <b id="pkv">0.80</b></label></div>
+  <canvas id="net" height="280" aria-label="Network with randomly dropped nodes; active weights highlighted"></canvas>
+  <div class="legend"><span><i style="background:var(--s1)"></i>weight updated this mini-batch</span><span><i class="dot" style="background:var(--s1)"></i>kept node</span><span><i class="dot" style="background:var(--grid)"></i>dropped node</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="nmb">0</div><div class="l">mini-batches</div></div>
+    <div class="stat"><div class="v" id="fr">–</div><div class="l">avg. fraction of steps a hidden–hidden weight was updated (expect p²)</div></div>
+    <div class="stat"><div class="v" id="dn">0</div><div class="l">distinct thinned networks trained (of 32,768)</div></div>
+  </div>
+</div>
+
+<h2>4 · Test time: scale by $p$</h2>
+<p>At test time we can't sample $2^n$ networks, pass the input through all of them and combine. Instead, a neat trick: each node was present only a fraction $p$ of the time during training, say 80%. It "took part in only 80% of the discussions", so <b>trust its output only that much</b>: multiply every node's output by $p$ before it goes to the next layer.</p>
+<div class="callout">Test time: one pass through the <b>full</b> network, with the output of every (droppable) neuron scaled by its retention probability $p$. This stands in for averaging the outputs of all the thinned networks.</div>
+<p>How good a stand-in is it? Below, a fixed random network (1 input, two hidden layers of 16, 1 output) is turned into an ensemble by sampling 300 thinned networks and averaging their outputs. Compare that average with the single weight-scaled network.</p>
+<div class="card">
+  <div class="row">
+    <button class="on" id="a_lin">linear</button><button id="a_relu">ReLU</button><button id="a_tanh">tanh</button>
+    <label>keep probability p <input type="range" id="p2" min="0.2" max="1" step="0.05" value="0.6"> <b id="p2v">0.60</b></label>
+    <button id="newnet">New random network</button>
+  </div>
+  <canvas id="avg" height="260" aria-label="Average of thinned networks versus the weight-scaled network"></canvas>
+  <div class="legend"><span><i style="background:var(--faint)"></i>a few individual thinned networks</span><span><i style="background:var(--s1)"></i>average of 300 thinned networks</span><span><i style="background:var(--s2)"></i>full network, outputs scaled by p</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="gapv">–</div><div class="l">max gap between the two, in units of σ (spread of the individual thinned networks)</div></div>
+  </div>
+  <p class="small" id="avgTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> When everything between the dropped units and the output is linear, scaling by $p$ gives <b>exactly</b> the ensemble average (the expectation of a product of independent masks is a product of $p$'s); with non-linearities it is an approximation, usually a good one, as the demo shows. Frameworks today use <b>inverted dropout</b>: divide the kept activations by $p$ during training and do nothing at test time. It is the same model, with the scaling moved to training. Note also that frameworks specify the <i>drop</i> rate $1-p$, e.g. <span class="mono">Dropout(0.2)</span> for $p=0.8$.</div>
+
+<h2>5 · How it is implemented: a masking noise</h2>
+<p>You don't visit every node and flip a coin one by one. For a layer of $n$ nodes, draw a random 0/1 vector $m$ of length $n$, with about 80% ones and 20% zeros, and multiply the layer's output element-wise by it. A masked node outputs 0, which is the same as not taking part in the computation at all. So dropout <b>applies a masking noise to the hidden units</b>, the hidden-layer cousin of the input noise of <a href="L50-noise-at-inputs.html">L50</a>.</p>
+
+<h2>6 · Why it regularises: no co-adaptation</h2>
+<p>With all nodes always present, neurons can <b>co-adapt</b>. Say the task is to tell whether an image contains a face. One neuron learns to detect noses, another eyes, and a lazy one does little, because the others do the work. Or neurons divide the job: "you fire for noses, I fire only for clearly visible eyes". (Neurons don't literally talk, but this kind of reliance does arise.)</p>
+<p>Now drop nodes at random. An image with a nose comes in and the nose detector has been dropped: no one in the layer detects noses. The others can no longer rely on it, since it is unreliable, sometimes there and sometimes not. So either several nodes learn to detect noses, or other nodes learn to detect the face <b>without</b> the nose, from the eyes or even the eyebrows, which the network may never have used before. Each node has to act more independently and take more responsibility, and the network becomes more <b>robust</b>.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Ensembles of deep networks are expensive at training time ($k$ networks) and at test time ($k$ forward passes); dropout avoids both.</li>
+<li>Each mini-batch, every node is kept with probability $p$; the result is one of $2^n$ thinned networks, and only its weights are used and updated.</li>
+<li>All thinned networks share one set of weights, so every weight keeps being trained (about $p^2$ of the steps for a weight between two droppable nodes) even though most networks are never sampled.</li>
+<li>At test time use the full network and scale each neuron's output by $p$, approximating the average over all thinned networks.</li>
+<li>Implemented as a random 0/1 mask on each layer's output; it prevents co-adaptation and forces redundant, robust features.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+// ---------- Demo 1: thinned networks with shared weights ----------
+const LS = [5, 5, 5, 1];                       // input, hidden 1, hidden 2, output (output never dropped)
+let mask = LS.map(n => Array(n).fill(1)), steps = 0, seen = new Set(), cnt = [];
+function resetCounts(){ steps = 0; seen = new Set(); cnt = [0, 1, 2].map(l => Array.from({length: LS[l]}, () => Array(LS[l + 1]).fill(0))); mask = LS.map(n => Array(n).fill(1)); }
+function sampleMask(){ const p = +$('pk').value; mask = LS.map((n, l) => Array.from({length: n}, () => l === 3 ? 1 : +(Math.random() < p)));
+  steps++; seen.add(mask.slice(0, 3).flat().join(''));
+  for (let l = 0; l < 3; l++) for (let i = 0; i < LS[l]; i++) for (let j = 0; j < LS[l + 1]; j++) if (mask[l][i] && mask[l + 1][j]) cnt[l][i][j]++; }
+function drawNet(){
+  const [ctx, W, H] = setupCanvas($('net')), pos = LS.map((n, l) => Array.from({length: n}, (_, i) => [30 + (W - 60) * l / 3, H / 2 + (i - (n - 1) / 2) * Math.min(52, (H - 30) / 5)]));
+  for (let l = 0; l < 3; l++) for (let i = 0; i < LS[l]; i++) for (let j = 0; j < LS[l + 1]; j++) {
+    const on = mask[l][i] && mask[l + 1][j]; ctx.strokeStyle = on ? cssv('--s1') : cssv('--grid'); ctx.lineWidth = on ? 2 : 1;
+    ctx.beginPath(); ctx.moveTo(...pos[l][i]); ctx.lineTo(...pos[l + 1][j]); ctx.stroke(); }
+  pos.forEach((layer, l) => layer.forEach(([x, y], i) => { const k = mask[l][i]; ctx.fillStyle = k ? cssv('--s1') : cssv('--grid'); ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fill();
+    if (!k) { ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6); ctx.moveTo(x + 6, y - 6); ctx.lineTo(x - 6, y + 6); ctx.stroke(); } }));
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ['input', 'hidden 1', 'hidden 2', 'output'].forEach((t, l) => ctx.fillText(t, pos[l][0][0] - 18, 14));
+  let s = 0, c = 0; for (let l = 0; l < 2; l++) cnt[l].forEach(r => r.forEach(v => { s += v; c++; }));
+  const p = +$('pk').value;
+  $('nmb').textContent = steps.toLocaleString(); $('dn').textContent = seen.size.toLocaleString();
+  $('fr').textContent = steps ? `${(s / c / steps).toFixed(3)} (p² = ${(p * p).toFixed(3)})` : `– (p² = ${(p * p).toFixed(3)})`; }
+$('mb').onclick = () => { sampleMask(); drawNet(); };
+$('mb1k').onclick = () => { for (let t = 0; t < 1000; t++) sampleMask(); drawNet(); };
+$('rs').onclick = () => { resetCounts(); drawNet(); };
+$('pk').addEventListener('input', () => { $('pkv').textContent = (+$('pk').value).toFixed(2); resetCounts(); drawNet(); });
+
+// ---------- Demo 2: average of thinned networks vs weight scaling ----------
+const NH = 16, M = 300, NX = 121;
+let act = 'lin', net = null, masks = [];
+const ACT = {lin: v => v, relu: v => Math.max(0, v), tanh: Math.tanh};
+function newNet(){ const g = s => randn() * s;
+  net = {W1: Array.from({length: NH}, () => g(1)), b1: Array.from({length: NH}, () => g(0.8)),
+         W2: Array.from({length: NH}, () => Array.from({length: NH}, () => g(1 / Math.sqrt(NH)))), b2: Array.from({length: NH}, () => g(0.3)),
+         W3: Array.from({length: NH}, () => g(1 / Math.sqrt(NH))), b3: 0}; newMasks(); }
+function newMasks(){ const p = +$('p2').value; masks = Array.from({length: M}, () => [Array.from({length: NH}, () => +(Math.random() < p)), Array.from({length: NH}, () => +(Math.random() < p))]); }
+function fwd(x, m1, m2){ const f = ACT[act], h1 = net.W1.map((w, i) => f(w * x + net.b1[i]) * m1[i]);
+  const h2 = net.W2.map((r, j) => f(r.reduce((s, w, i) => s + w * h1[i], 0) + net.b2[j]) * m2[j]);
+  return net.W3.reduce((s, w, j) => s + w * h2[j], 0) + net.b3; }
+function drawAvg(){
+  const p = +$('p2').value, xs = Array.from({length: NX}, (_, i) => -3 + 6 * i / (NX - 1)), sc = Array(NH).fill(p);
+  const outs = xs.map(x => masks.map(([a, b]) => fwd(x, a, b))), ens = outs.map(o => o.reduce((s, v) => s + v, 0) / M);
+  const sd = outs.reduce((acc, o, i) => acc + Math.sqrt(o.reduce((s, v) => s + (v - ens[i]) ** 2, 0) / M), 0) / NX, scaled = xs.map(x => fwd(x, sc, sc));
+  const few = masks.slice(0, 6).map(([a, b]) => xs.map(x => fwd(x, a, b)));
+  const all = ens.concat(scaled), lo = Math.min(...all), hi = Math.max(...all), span = Math.max(hi - lo, 1e-6), pad = span * 0.6;
+  const [ctx, W, H] = setupCanvas($('avg')), X = x => 10 + (W - 20) * (x + 3) / 6, Y = v => 10 + (H - 20) * (1 - (v - lo + pad) / (span + 2 * pad));
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H); ctx.stroke();
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  const line = (arr, col, lw, a) => { ctx.globalAlpha = a; ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); arr.forEach((v, i) => i ? ctx.lineTo(X(xs[i]), Y(v)) : ctx.moveTo(X(xs[i]), Y(v))); ctx.stroke(); ctx.globalAlpha = 1; };
+  few.forEach(c => line(c, cssv('--faint'), 1, 0.7)); line(ens, cssv('--s1'), 4, 1); line(scaled, cssv('--s2'), 2, 1); ctx.restore();
+  const gap = Math.max(...ens.map((v, i) => Math.abs(v - scaled[i]))) / Math.max(sd, 1e-9);
+  $('gapv').textContent = gap.toFixed(2) + ' σ';
+  $('avgTxt').innerHTML = act === 'lin' ? 'Linear activations: the scaled network is the <b>exact</b> expectation over masks; the remaining gap is Monte Carlo noise from averaging only 300 networks (about 0.06 σ per point, so a maximum over the whole curve of up to about 0.25 σ).'
+    : `With ${act === 'relu' ? 'ReLU' : 'tanh'} the scaling is an approximation, yet the orange curve still tracks the ensemble average closely. Lower p (more dropping) makes the thinned networks, and the approximation, rougher.`; }
+['lin', 'relu', 'tanh'].forEach(a => { $('a_' + a).onclick = () => { act = a; ['lin', 'relu', 'tanh'].forEach(b => $('a_' + b).classList.toggle('on', b === a)); drawAvg(); }; });
+$('p2').addEventListener('input', () => { $('p2v').textContent = (+$('p2').value).toFixed(2); newMasks(); drawAvg(); });
+$('newnet').onclick = () => { newNet(); drawAvg(); };
+
+function drawAll(){ drawNet(); drawAvg(); }
+resetCounts(); newNet(); drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

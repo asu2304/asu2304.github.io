@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RMSProp: A History That Forgets</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 38 · playlist video 38 (titled “L38” on YouTube) · Optimisation algorithms</div>
+<h1>RMSProp: A History That Forgets</h1>
+<p class="lede">AdaGrad's denominator only ever grows, so learning rates die. RMSProp replaces the running sum with an exponentially decaying average. The history can then shrink again, and the effective learning rate can rise on flat ground. The price is that the rate can settle to a constant and the iterates oscillate near the minimum, so RMSProp is sensitive to the initial learning rate $\eta_0$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=ubOy0NPI2cY" target="_blank" rel="noopener">this lecture on YouTube</a> (≈32 min). Previous: <a href="L37-adagrad.html">L37</a> · Next: <a href="L39-adadelta.html">L39</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The problem: AdaGrad's history grows without limit</h2>
+<p>In AdaGrad (<a href="L37-adagrad.html">L37</a>) the history $v_t$ just keeps adding squared gradients. Frequently updated (dense) parameters therefore get ever smaller updates, until they hardly move. Can we slow the growth of the denominator?</p>
+
+<h2>2 · RMSProp: take only a fraction, and decay the past</h2>
+<div class="callout">
+$$v_t=\beta\,v_{t-1}+(1-\beta)(\nabla w_t)^2$$
+$$w_{t+1}=w_t-\frac{\eta}{\sqrt{v_t+\epsilon}}\,\nabla w_t$$
+with a typical $\beta=0.9$, and the same for $b$.</div>
+<p>Only the history line changes. In code, <span class="mono">v_w = v_w + dw**2</span> becomes <span class="mono">v_w = beta*v_w + (1-beta)*dw**2</span>. Both multipliers are less than 1. At every step the whole accumulated history is scaled by 0.9, and only 0.1 of the new squared gradient is added. Unrolling with $\beta=0.9$:</p>
+<table>
+<tr><th></th><th>AdaGrad</th><th>RMSProp ($\beta=0.9$)</th></tr>
+<tr><td>$v_0$</td><td>$(\nabla w_0)^2$</td><td>$0.1(\nabla w_0)^2$</td></tr>
+<tr><td>$v_1$</td><td>$(\nabla w_0)^2+(\nabla w_1)^2$</td><td>$0.09(\nabla w_0)^2+0.1(\nabla w_1)^2$</td></tr>
+<tr><td>$v_2$</td><td>$(\nabla w_0)^2+(\nabla w_1)^2+(\nabla w_2)^2$</td><td>$0.081(\nabla w_0)^2+0.09(\nabla w_1)^2+0.1(\nabla w_2)^2$</td></tr>
+</table>
+<p>In general, the same kind of formula we met for momentum (<a href="L32-momentum.html">L32</a>):</p>
+$$v_t=(1-\beta)\sum_{\tau=0}^{t}\beta^{\,t-\tau}(\nabla w_\tau)^2 .$$
+<p>The takeaway: $v_t$ is an <b>exponentially decaying average</b>, so the denominator grows less aggressively and the effective learning rate $\eta/\sqrt{v_t+\epsilon}$ decays more slowly.</p>
+
+<h2>3 · Running it: faster, but it oscillates</h2>
+<p>On the same sparse toy problem RMSProp reaches the minimum quickly. Its rate isn't being killed, and it follows the hypotenuse: proportionate moves in $w$ and $b$ even though the $w$-gradients are small. But once there it <b>oscillates</b> around the minimum. Even after the sigmoid fitted the points, the iterate kept moving. Two questions follow: <b>why would the learning rate become constant</b>, and <b>why would a constant rate cause oscillations</b>?</p>
+
+<h2>4 · Why the rate can become constant: the history can shrink</h2>
+<p>In AdaGrad, $v_t$ rises and then saturates once the gradients reach zero, but it <b>never decreases</b>. In RMSProp the plotted $v_t$ rises, then <b>falls</b>. How can an "accumulation" decrease?</p>
+<p>Because of the exponential weighting, $v_t$ behaves like a moving window. Old terms get weights $0.1,\,0.09,\,0.081,\dots$ that keep shrinking. Once the current gradients are small, the new sum is less than the previous one. When the gradients are all near zero, the history levels off and barely changes from one step to the next. Then $\eta/\sqrt{v_t}$ barely changes either. So RMSProp's effective rate <b>can increase, decrease, or stay constant</b>.</p>
+
+<h2>5 · Why a constant rate can oscillate</h2>
+<p>Take a curve and a point on one side of the minimum. Compute the slope and step against it. With the right (or wrong) rate you land at the symmetrically opposite point. The slope there has the same magnitude and the opposite sign. With the rate unchanged, you step straight back, and so on forever. This needn't always happen, but it can. If the derivative is only slightly different, you still go back and forth instead of directly to the minimum. In AdaGrad this couldn't persist, because the ever-growing history kept shrinking the rate.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">A constant learning rate on the curve $L(w)=w^2$: each step is $w\leftarrow w-\eta\cdot 2w$. Slide $\eta$ and watch where the iterates go.</p>
+  <canvas id="bounce" height="230" aria-label="Iterates of gradient descent with a constant learning rate on a parabola"></canvas>
+  <div class="row"><label>constant rate $\eta$ <input type="range" id="bEta" min="0.05" max="1.05" step="0.01" value="1"></label><span class="mono" id="bV"></span></div>
+  <p class="small" id="bMsg"></p>
+</div>
+
+<h2>6 · The fix is the initial learning rate, and that's the problem</h2>
+<p>The effective rate is $\eta_0/\sqrt{v_t+\epsilon}$, where the numerator $\eta_0$ is the initial learning rate we choose and it stays constant throughout. Everything else equal (same loss surface, same points), Prof. Khapra compares three values:</p>
+<table>
+<tr><th>$\eta_0$</th><th>what happens</th></tr>
+<tr><td>0.6</td><td>wide oscillation between two <b>high-loss</b> points; the sigmoid is nowhere near the data</td></tr>
+<tr><td>0.1</td><td>slower progress, still oscillating, but between two <b>low-loss</b> points: an acceptable solution</td></tr>
+<tr><td>0.05</td><td>no oscillation; it settles into the minimum</td></tr>
+</table>
+<p>The message is <b>not</b> "tune $\eta_0$ and RMSProp works". The point is the opposite: <b>RMSProp is sensitive to the initial learning rate</b>. Converging, settling for an acceptable solution and staying far off can all happen depending on $\eta_0$. For well-studied benchmarks (say machine translation), people know a good range from many experiments. For a new data set, you don't.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">The sparse toy from L37 (sigmoid neuron, 500 points, 80% of $x$ zero, start $(-4,4)$, minimum ×). AdaGrad with $\eta=0.1$ for reference; RMSProp with $\beta=0.9$ and the $\eta_0$ you pick. On my version of the toy the oscillation shrinks as $\eta_0$ falls, and is essentially gone by $\eta_0=0.02$ (the exact thresholds depend on the data).</p>
+  <div class="row"><span class="small">RMSProp $\eta_0$:</span><button data-e="0.6">0.6</button><button data-e="0.1" class="on">0.1</button><button data-e="0.05">0.05</button><button data-e="0.02">0.02</button>
+    <label><input type="checkbox" id="cADA" checked> show AdaGrad</label></div>
+  <canvas id="surf" height="340" aria-label="Loss contours with AdaGrad and RMSProp paths"></canvas>
+  <div class="legend"><span><i style="background:var(--s3)"></i>AdaGrad ($\eta=0.1$)</span><span><i style="background:var(--s1)"></i>RMSProp</span></div>
+  <div class="row"><button id="play">▶ Play</button><label>iteration <input type="range" id="tS" min="0" max="499" value="0"></label><span class="mono" id="tV">t = 0</span></div>
+  <div class="pair half">
+    <div><canvas id="cL" height="190" aria-label="Loss over iterations"></canvas><p class="small muted" style="margin:2px 0 0">loss (log scale): green AdaGrad, blue RMSProp</p></div>
+    <div><canvas id="cE" height="190" aria-label="Effective learning rate over iterations"></canvas><p class="small muted" style="margin:2px 0 0">effective rate for <select id="par"><option value="1">b</option><option value="0">w</option></select> (log); dashed blue = $\sqrt{v_t}$</p></div>
+  </div>
+  <div class="row">
+    <div class="stat"><div class="v" id="sL">–</div><div class="l">RMSProp loss at t</div></div>
+    <div class="stat"><div class="v" id="sOsc">–</div><div class="l">RMSProp: how far it wanders, last 100 steps</div></div>
+    <div class="stat"><div class="v" id="sE">–</div><div class="l">RMSProp effective rate at t</div></div>
+  </div>
+</div>
+
+<h2>7 · How the effective rate follows the surface</h2>
+<p>The lecture animates $v_t$, $\eta_0$ and (something proportional to) the effective rate with $\eta_0=0.6$:</p>
+<ul>
+<li><b>Going down steep regions</b>, the current gradients are large, so $v_t$ keeps increasing and the effective rate <b>steadily decreases</b>. That is what we want on steep ground.</li>
+<li><b>Entering flat regions</b>, the new gradients are tiny and the old large ones are multiplied by large powers of $\beta$. After a tipping point $v_t$ starts <b>decreasing</b>, so the effective rate <b>increases</b>. Also what we want.</li>
+</ul>
+<p>With $\eta_0=0.1$ the curve has the same shape, but scaled down. It decreases more slowly, always stays below the lowest point of the 0.6 curve, and on flat ground never rises as high. That's why the oscillations are milder; with 0.05 they're smaller still. <b>How fast the rate adapts depends on $\eta_0$.</b> In the demo, choose $b$ and compare the blue rate curve for the different $\eta_0$ buttons.</p>
+
+<h2>8 · No single $\eta_0$ is right everywhere</h2>
+<p>Suppose you found a "good" $\eta_0$. Even that isn't guaranteed to stay good along the same loss surface. The lecture's illustration divides by $v_t$ directly (it drops the square root to keep the arithmetic simple):</p>
+<table>
+<tr><th>where you are</th><th>$v_t$</th><th>$\eta_0=0.6$</th><th>$\eta_0=0.1$</th><th>preferred</th></tr>
+<tr><td>steep region</td><td>1.25</td><td>0.48</td><td>0.08</td><td>small rate, so $\eta_0=0.1$</td></tr>
+<tr><td>flat region</td><td>0.1</td><td>high</td><td>low</td><td>large rate, so $\eta_0=0.6$</td></tr>
+</table>
+<p>So the better $\eta_0$ changes as you move, but you choose it once at the start and you're stuck with it. We want the <b>numerator to change with the gradients too</b>. Numerator and denominator should adjust together, giving a small effective rate on steep ground and a large one on flat ground. Right now only the denominator adapts.</p>
+
+<h2>9 · Summary: where AdaGrad and RMSProp stand</h2>
+<table>
+<tr><th>drawback</th><th>AdaGrad</th><th>RMSProp</th></tr>
+<tr><td>sensitive to the initial learning rate</td><td>yes</td><td>yes</td></tr>
+<tr><td>large initial gradients make $v$ large early, so the rate is tiny from the start and never recovers</td><td>yes ($v_t$ never decreases)</td><td>alleviated (old terms decay)</td></tr>
+<tr><td>on reaching a gentle region, no way to raise the rate again</td><td>yes (seen as the slow crawl in $b$ near the minimum)</td><td>resolved: $v_t$ can fall, so the rate rises</td></tr>
+</table>
+<p>The remaining problem, dependence on $\eta_0$, is what Adadelta removes (<a href="L39-adadelta.html">L39</a>).</p>
+<div class="beyond"><b>Going beyond the video.</b> RMSProp was never formally published; it comes from Geoffrey Hinton's Coursera lecture slides (2012), which suggested $\beta=0.9$ and a base rate around 0.001 for neural networks. In modern libraries it is mostly used with momentum (or replaced by Adam, <a href="L40-adam.html">L40</a>). When a run "trains, then jitters around a plateau of loss", lowering the base rate or adding a decay schedule is the usual cure, exactly the sensitivity this lecture shows.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>RMSProp: $v_t=\beta v_{t-1}+(1-\beta)(\nabla w_t)^2$, with the same per-parameter update $\eta/\sqrt{v_t+\epsilon}$ as AdaGrad. Only the history changes.</li>
+<li>The exponentially decaying average grows slowly and can shrink, so the rate decreases on steep ground and increases on flat ground.</li>
+<li>Near the minimum the history levels off and the rate becomes roughly constant. A constant rate can bounce between points on either side of the minimum.</li>
+<li>The outcome (converge, acceptable oscillation, or far off) depends on $\eta_0$; 0.6, 0.1 and 0.05 gave all three in the lecture.</li>
+<li>The ideal $\eta_0$ differs between steep and flat regions, so the numerator should adapt too. That leads to Adadelta.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+// ---- the lecture's toy problem: a sigmoid neuron f(x)=σ(wx+b), 500 (x,y) pairs, most x set to 0 ----
+const sig = z => 1 / (1 + Math.exp(-z));
+const rng = s => () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+const N = 500, WS = 2, BS = -1, W0 = -4, B0 = 4, BOX = [-6, 6, -6, 6];
+function makeData(sp){ const R = rng(7), X = [], Y = []; let n0 = 0;
+  for (let i = 0; i < N; i++) { let x = R(); if (R() < sp) x = 0; if (x === 0) n0++; else { X.push(x); Y.push(sig(WS * x + BS)); } }
+  return {X, Y, n0, y0: sig(BS), sp}; }   // the x = 0 points all share y = σ(b*), so they are summed in one go
+function grad(D, w, b){ const X = D.X, Y = D.Y, f0 = sig(b), e0 = f0 - D.y0, d0 = e0 * f0 * (1 - f0);
+  let gw = 0, gb = D.n0 * d0, L = D.n0 * 0.5 * e0 * e0;
+  for (let i = 0; i < X.length; i++) { const f = sig(w * X[i] + b), e = f - Y[i], d = e * f * (1 - f); gw += d * X[i]; gb += d; L += 0.5 * e * e; }
+  return [gw, gb, L]; }
+// one optimiser run; j = 0 is w, j = 1 is b. Records gradient, history v (and u), effective learning rate per step.
+function run(D, m, T){ T = T || 500; const P = [W0, B0], v = [0, 0], u = [0, 0], mm = [0, 0], h = [0, 0];
+  const o = {path: [], g: [[], []], v: [[], []], u: [[], []], eta: [[], []]};
+  for (let t = 0; t < T; t++) { const cur = grad(D, P[0], P[1]); o.path.push([P[0], P[1], cur[2]]);
+    const G = m.k === 'nag' ? grad(D, P[0] - m.beta * h[0], P[1] - m.beta * h[1]) : cur;
+    for (let j = 0; j < 2; j++) { const g = G[j]; let d, e;
+      if (m.k === 'gd') { e = m.eta; d = -e * g; }
+      else if (m.k === 'mom' || m.k === 'nag') { h[j] = m.beta * h[j] + m.eta * g; e = m.eta; d = -h[j]; }
+      else if (m.k === 'ada') { v[j] += g * g; e = m.eta / (m.nosqrt ? v[j] + m.eps : Math.sqrt(v[j] + m.eps)); d = -e * g; }
+      else if (m.k === 'rms') { v[j] = m.beta * v[j] + (1 - m.beta) * g * g; e = m.eta / Math.sqrt(v[j] + m.eps); d = -e * g; }
+      else if (m.k === 'adad') { v[j] = m.beta * v[j] + (1 - m.beta) * g * g; o.u[j].push(u[j]); e = Math.sqrt(u[j] + m.eps) / Math.sqrt(v[j] + m.eps); d = -e * g; u[j] = m.beta * u[j] + (1 - m.beta) * d * d; }
+      else { const n = t + 1; mm[j] = m.beta1 * mm[j] + (1 - m.beta1) * g; v[j] = m.beta2 * v[j] + (1 - m.beta2) * g * g;
+        const mh = m.nobc ? mm[j] : mm[j] / (1 - Math.pow(m.beta1, n)), vh = m.nobc ? v[j] : v[j] / (1 - Math.pow(m.beta2, n));
+        e = m.eta / (Math.sqrt(vh) + m.eps); d = -e * mh; }
+      o.g[j].push(g); o.v[j].push(v[j]); o.eta[j].push(e); P[j] += d; }
+    if (!isFinite(P[0]) || !isFinite(P[1]) || Math.abs(P[0]) > 1e4 || Math.abs(P[1]) > 1e4) break; }
+  return o; }
+// ---- drawing helpers ----
+const hexRgb = c => { c = c.replace('#', ''); if (c.length === 3) c = c.split('').map(x => x + x).join(''); return [0, 2, 4].map(i => parseInt(c.substr(i, 2), 16) || 0); };
+const isDark = () => { const [r, g, b] = hexRgb(cssv('--surface') || '#fcfcfb'); return r + g + b < 300; };
+function surfGrid(D, G){ G = G || 90; const Z = new Float32Array(G * G); let zmax = 0;
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const w = BOX[0] + (BOX[1] - BOX[0]) * (i + 0.5) / G, b = BOX[3] - (BOX[3] - BOX[2]) * (j + 0.5) / G;
+    const z = grad(D, w, b)[2]; Z[j * G + i] = z; if (z > zmax) zmax = z; } return {G, Z, zmax}; }
+const fmt = v => !isFinite(v) ? '–' : Math.abs(v) >= 1000 ? v.toExponential(1).replace('e+', 'e') : Math.abs(v) >= 10 ? v.toFixed(1) : Math.abs(v) >= 1 ? v.toFixed(2) : Math.abs(v) >= 0.01 ? v.toFixed(3) : v === 0 ? '0' : v.toExponential(1);
+// draws the loss surface (red = high, blue = low, banded like contours) with axes; returns [ctx, X, Y] mappers
+function drawSurface(cv, S){ const [ctx, W, H] = setupCanvas(cv), l = 30, r = 8, t = 8, bm = 26, pw = W - l - r, ph = H - t - bm;
+  const X = w => l + (w - BOX[0]) / (BOX[1] - BOX[0]) * pw, Y = b => t + (BOX[3] - b) / (BOX[3] - BOX[2]) * ph;
+  const off = document.createElement('canvas'); off.width = S.G; off.height = S.G; const oc = off.getContext('2d'), img = oc.createImageData(S.G, S.G);
+  const dk = isDark(), lo = dk ? [28, 52, 92] : [196, 218, 246], mid = dk ? [38, 38, 36] : [250, 250, 247], hi = dk ? [104, 44, 30] : [245, 190, 166];
+  for (let k = 0; k < S.Z.length; k++) { const q = Math.round(Math.sqrt(S.Z[k] / S.zmax) * 14) / 14, a = q < 0.5 ? lo : mid, c = q < 0.5 ? mid : hi, s = q < 0.5 ? q * 2 : (q - 0.5) * 2;
+    for (let n = 0; n < 3; n++) img.data[k * 4 + n] = a[n] + (c[n] - a[n]) * s; img.data[k * 4 + 3] = 255; }
+  oc.putImageData(img, 0, 0); ctx.imageSmoothingEnabled = true; ctx.drawImage(off, l, t, pw, ph);
+  ctx.strokeStyle = cssv('--grid'); ctx.strokeRect(l, t, pw, ph); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  for (let v = -6; v <= 6; v += 2) { ctx.fillText(v, X(v), t + ph + 13); ctx.textAlign = 'right'; ctx.fillText(v, l - 4, Y(v) + 4); ctx.textAlign = 'center'; }
+  ctx.font = 'italic 13px system-ui'; ctx.fillText('w', l + pw - 8, t + ph + 24); ctx.fillText('b', 9, t + 14);
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, pw, ph); ctx.clip();
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(W0), Y(B0), 4, 0, 7); ctx.fill();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(WS) - 6, Y(BS) - 6); ctx.lineTo(X(WS) + 6, Y(BS) + 6); ctx.moveTo(X(WS) + 6, Y(BS) - 6); ctx.lineTo(X(WS) - 6, Y(BS) + 6); ctx.stroke();
+  return [ctx, X, Y]; }
+function drawPath(ctx, X, Y, path, upto, col, dash){ const n = Math.min(upto, path.length - 1); if (n < 0) return;
+  ctx.strokeStyle = col; ctx.lineWidth = 2.2; ctx.setLineDash(dash ? [5, 4] : []); ctx.beginPath();
+  for (let i = 0; i <= n; i++) { const p = path[i]; i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1])); } ctx.stroke(); ctx.setLineDash([]);
+  const p = path[n]; ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(p[0]), Y(p[1]), 5, 0, 7); ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1.5; ctx.stroke(); }
+// line chart over iterations. series: [{y:[...], col, dash, w}]; o: {n, log, t, ylab, hline}
+function chart(cv, series, o){ const [ctx, W, H] = setupCanvas(cv), l = 50, r = 10, t = 10, bm = 24, pw = W - l - r, ph = H - t - bm;
+  const tr = o.log ? v => Math.log10(Math.max(v, 1e-12)) : v => v; let lo = Infinity, hi = -Infinity;
+  series.forEach(s => s.y.forEach(v => { if (!isFinite(v) || (o.log && v <= 0)) return; const z = tr(v); if (z < lo) lo = z; if (z > hi) hi = z; }));
+  if (o.hline !== undefined) { lo = Math.min(lo, tr(o.hline)); hi = Math.max(hi, tr(o.hline)); }
+  if (!isFinite(lo)) { lo = 0; hi = 1; } if (o.zero && !o.log) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); } if (hi - lo < 1e-9) { hi += 0.5; lo -= 0.5; }
+  const pad = (hi - lo) * 0.06; lo -= pad; hi += pad;
+  const X = i => l + i / Math.max(1, o.n - 1) * pw, Y = v => t + (hi - tr(v)) / (hi - lo) * ph;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right';
+  const ticks = []; if (o.log) { for (let e = Math.ceil(lo); e <= Math.floor(hi); e++) ticks.push(e); while (ticks.length > 6) for (let i = ticks.length - 2; i > 0; i -= 2) ticks.splice(i, 1); }
+  else { const st = Math.pow(10, Math.floor(Math.log10((hi - lo) / 4))), s2 = (hi - lo) / st > 20 ? st * 5 : (hi - lo) / st > 8 ? st * 2 : st; for (let v = Math.ceil(lo / s2) * s2; v <= hi; v += s2) ticks.push(v); }
+  ticks.forEach(z => { const y = t + (hi - z) / (hi - lo) * ph; ctx.beginPath(); ctx.moveTo(l, y); ctx.lineTo(l + pw, y); ctx.stroke(); ctx.fillText(o.log ? fmt(Math.pow(10, z)) : fmt(+z.toPrecision(6)), l - 5, y + 4); });
+  ctx.textAlign = 'center'; for (let k = 0; k <= 4; k++) { const i = Math.round((o.n - 1) * k / 4); ctx.fillText(i, X(i), t + ph + 15); }
+  if (o.hline !== undefined) { ctx.setLineDash([3, 4]); ctx.strokeStyle = cssv('--muted'); ctx.beginPath(); ctx.moveTo(l, Y(o.hline)); ctx.lineTo(l + pw, Y(o.hline)); ctx.stroke(); ctx.setLineDash([]); }
+  ctx.save(); ctx.beginPath(); ctx.rect(l, t, pw, ph); ctx.clip();
+  series.forEach(s => { ctx.strokeStyle = s.col; ctx.lineWidth = s.w || 2; ctx.setLineDash(s.dash ? [5, 4] : []); ctx.beginPath(); let on = false;
+    s.y.forEach((v, i) => { if (!isFinite(v) || (o.log && v <= 0)) { on = false; return; } on ? ctx.lineTo(X(i), Y(v)) : ctx.moveTo(X(i), Y(v)); on = true; }); ctx.stroke(); });
+  ctx.setLineDash([]); ctx.restore();
+  if (o.t !== undefined) { ctx.strokeStyle = cssv('--ink'); ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(X(o.t), t); ctx.lineTo(X(o.t), t + ph); ctx.stroke(); ctx.globalAlpha = 1; }
+  if (o.ylab) { ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.fillText(o.ylab, l + 6, t + 12); } }
+// play/pause driver for an iteration slider
+function player(btn, slider, onT, speed){ let raf = 0; const stop = () => { cancelAnimationFrame(raf); raf = 0; btn.textContent = '▶ Play'; };
+  const tick = () => { const v = Math.min(+slider.max, +slider.value + speed); slider.value = v; onT(); if (v >= +slider.max) stop(); else raf = requestAnimationFrame(tick); };
+  btn.onclick = () => { if (raf) return stop(); if (+slider.value >= +slider.max) slider.value = 0; btn.textContent = '❚❚ Pause'; raf = requestAnimationFrame(tick); };
+  slider.addEventListener('input', () => { onT(); }); return stop; }
+function boot(draw){ let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); }); }
+const D = makeData(0.8), S = surfGrid(D), T = 500;
+const ADA = run(D, {k: 'ada', eta: 0.1, eps: 1e-8}, T); let eta0 = 0.1, RMS;
+const recompute = () => { RMS = run(D, {k: 'rms', eta: eta0, beta: 0.9, eps: 1e-8}, T); };
+function draw(){ const t = +$('tS').value, j = +$('par').value; $('tV').textContent = 't = ' + t;
+  const [ctx, X, Y] = drawSurface($('surf'), S);
+  if ($('cADA').checked) drawPath(ctx, X, Y, ADA.path, t, cssv('--s3')); drawPath(ctx, X, Y, RMS.path, t, cssv('--s1')); ctx.restore();
+  chart($('cL'), [{y: ADA.path.map(p => p[2]), col: cssv('--s3')}, {y: RMS.path.map(p => p[2]), col: cssv('--s1')}], {n: T, log: true, t});
+  chart($('cE'), [{y: ADA.eta[j], col: cssv('--s3')}, {y: RMS.eta[j], col: cssv('--s1')}, {y: RMS.v[j].map(Math.sqrt), col: cssv('--s1'), dash: true, w: 1.2}], {n: T, log: true, t});
+  const i = Math.min(t, RMS.path.length - 1), p = RMS.path; $('sL').textContent = fmt(p[i][2]); $('sE').textContent = fmt(RMS.eta[j][i]);
+  const tail = p.slice(-100), e = p[p.length - 1]; $('sOsc').textContent = Math.max(...tail.map(q => Math.hypot(q[0] - e[0], q[1] - e[1]))).toFixed(2); }
+document.querySelectorAll('button[data-e]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('button[data-e]').forEach(x => x.classList.remove('on')); b.classList.add('on'); eta0 = +b.dataset.e; recompute(); draw(); }));
+$('cADA').addEventListener('change', draw); $('par').addEventListener('change', draw);
+player($('play'), $('tS'), draw, 4);
+function drawBounce(){ const eta = +$('bEta').value, [ctx, W, H] = setupCanvas($('bounce')), X = w => W / 2 + w * W / 4.4, Y = L => H - 18 - L * (H - 30) / 4.4;
+  $('bV').textContent = 'η = ' + eta.toFixed(2);
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(W, Y(0)); ctx.stroke();
+  ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 2; ctx.beginPath(); for (let w = -2.2; w <= 2.2; w += 0.02) { const x = X(w), y = Y(w * w); w > -2.2 ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke();
+  let w = 1.5; const pts = [w]; for (let k = 0; k < 14; k++) { w = w - eta * 2 * w; pts.push(w); }
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 1.5; ctx.beginPath(); pts.forEach((v, k) => { const c = Math.max(-2.2, Math.min(2.2, v)); k ? ctx.lineTo(X(c), Y(c * c)) : ctx.moveTo(X(c), Y(c * c)); }); ctx.stroke();
+  pts.forEach((v, k) => { if (Math.abs(v) > 2.2) return; ctx.fillStyle = k ? cssv('--s2') : cssv('--ink'); ctx.beginPath(); ctx.arc(X(v), Y(v * v), k ? 4 : 6, 0, 7); ctx.fill(); });
+  const f = 1 - 2 * eta;
+  $('bMsg').innerHTML = `Each step multiplies $w$ by $1-2\\eta=${f.toFixed(2)}$. ` + (Math.abs(f + 1) < 0.005 ? '<b>Exactly −1: the iterate jumps between the two symmetric points w = ±1.5 forever.</b>' :
+    f < -1 ? '<b>Below −1: every jump lands higher than the last, so it diverges.</b>' : f < 0 ? 'Negative: it zig-zags from side to side, but each jump is shorter, so it gets there.' : 'Positive: it slides down one side without crossing.');
+  if (window.renderMathInElement) renderMathInElement($('bMsg'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false}); }
+$('bEta').addEventListener('input', drawBounce);
+recompute();
+boot(() => { draw(); drawBounce(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

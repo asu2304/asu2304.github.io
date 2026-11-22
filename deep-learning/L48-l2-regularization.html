@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>L2 Regularisation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 48 · playlist video 48 (titled “L46” on YouTube) · Bias, variance and regularisation</div>
+<h1>L2 Regularisation: Shrinking Weights Along the Hessian's Eigenvectors</h1>
+<p class="lede">Add $\frac{\alpha}{2}\lVert w\rVert^2$ to the loss. The update rule gains one term, $-\eta\alpha w$. Near the unregularised optimum $w^*$, a second-order Taylor expansion gives the regularised optimum in closed form: $\tilde w=Q(\Lambda+\alpha I)^{-1}\Lambda Q^\top w^*$. Rotate into the Hessian's eigenbasis, scale each component by $\lambda_i/(\lambda_i+\alpha)$, rotate back. Directions the loss cares about (large $\lambda_i$) survive; the others shrink towards zero.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=eqATcLh_X64" target="_blank" rel="noopener">this lecture on YouTube</a> (≈38 min). Previous: <a href="L47-true-error-vs-complexity.html">L47</a> · Next: <a href="L49-augmentation-parameter-sharing.html">L49</a> (dataset augmentation, parameter sharing).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Where we are</h2>
+<p>From <a href="L47-true-error-vs-complexity.html">L47</a>: minimising the training error alone doesn't minimise the true error, which also contains a term that grows with model complexity. So we minimise</p>
+$$\tilde{\mathcal L}(\theta)=\mathcal L_{\text{train}}(\theta)+\Omega(\theta),$$
+<p>where $\Omega$ is a proxy for complexity: high when the model is complex, low when it is simple. The methods ahead are <b>L2 regularisation</b>, dataset augmentation, parameter sharing, adding noise to the inputs, adding noise to the outputs, early stopping, ensemble methods and dropout. This lecture looks at the formula in detail for L2.</p>
+
+<h2>2 · The L2-regularised loss</h2>
+$$\tilde{\mathcal L}(w)=\mathcal L(w)+\frac{\alpha}{2}\lVert w\rVert^2,\qquad \lVert w\rVert^2=w^\top w,$$
+<p>where $\mathcal L(w)$ is the training loss (squared error, averaged over the $m$ examples). $\alpha$ decides how much weight the penalty gets. With $\alpha=0$ you're back to the unregularised loss.</p>
+<p><b>How does this control complexity?</b> Think of two weights, $w_1,w_2$. Without the penalty, the whole $\mathbb R^2$ plane is open to you: any values, however large, if they lower the training loss. With it, you're told the weights can't blow up: the further out you go, the larger $\lVert w\rVert^2$, and the larger the total loss. You may have as many parameters as you like, a million or a billion, but you don't get the freedom to give them any values you want. That restriction is the proxy for model complexity.</p>
+
+<h2>3 · Gradient and update rule</h2>
+<p>The penalty is $\frac{\alpha}{2}w^\top w$; think of it as $\frac\alpha2 w^2$, whose derivative is $\alpha w$ (the 2 cancels). So</p>
+$$\nabla\tilde{\mathcal L}(w)=\nabla\mathcal L(w)+\alpha w,$$
+$$w_{t+1}=w_t-\eta\,\nabla\mathcal L(w_t)-\eta\,\alpha\,w_t .$$
+<p>If you've implemented gradient descent, L2 regularisation is one extra term in the update. (It gets more involved for Adam and its variants, which the lecture doesn't go into.)</p>
+
+<h2>4 · What does the optimum look like?</h2>
+<p>A slightly longer derivation, but each step follows from the previous one.</p>
+<ol class="steps">
+<li>Let $w^*$ be the optimum of the <b>unregularised</b> loss $\mathcal L(w)$. Take a point near it, $w=w^*+u$, i.e. $u=w-w^*$.</li>
+<li>Second-order Taylor expansion (so far the course has used first order):
+$$\mathcal L(w)=\mathcal L(w^*)+u^\top\nabla\mathcal L(w^*)+\tfrac12u^\top Hu,$$ with $H$ the Hessian, the matrix of second-order partial derivatives.</li>
+<li>$w^*$ is a minimum, so $\nabla\mathcal L(w^*)=0$ and the middle term drops:
+$$\mathcal L(w)=\mathcal L(w^*)+\tfrac12(w-w^*)^\top H(w-w^*).$$</li>
+<li>Differentiate (like the derivative of $\frac12 hx^2$ being $hx$): $\ \nabla\mathcal L(w)=H(w-w^*)$.</li>
+<li>So the regularised gradient is $\ \nabla\tilde{\mathcal L}(w)=H(w-w^*)+\alpha w$.</li>
+<li>Let $\tilde w$ be the optimum of the <b>regularised</b> loss. Its gradient is zero: $\ H(\tilde w-w^*)+\alpha\tilde w=0$.</li>
+<li>Collect the $\tilde w$ terms and write $\alpha=\alpha I$: $\ (H+\alpha I)\,\tilde w=Hw^*$.</li>
+</ol>
+<div class="callout">$$\tilde w=(H+\alpha I)^{-1}H\,w^*$$
+Sanity check: $\alpha\to0$ gives $\tilde w=H^{-1}Hw^*=w^*$. No regulariser, same optimum.</div>
+<p class="small muted">On the inverse: the lecture justifies it by $H$ being positive semi-definite. More precisely, $H$ is PSD at a minimum, so for any $\alpha&gt;0$ the matrix $H+\alpha I$ has eigenvalues $\lambda_i+\alpha&gt;0$ and is invertible.</p>
+
+<h2>5 · Eigen-decomposition: rotate, scale, rotate back</h2>
+<p>$H$ is symmetric positive semi-definite, so it has an eigen-decomposition with orthonormal eigenvectors: $H=Q\Lambda Q^\top$, with $QQ^\top=Q^\top Q=I$.</p>
+<ol class="steps">
+<li>Substitute, and write $I=QQ^\top$: $\ \tilde w=(Q\Lambda Q^\top+\alpha QQ^\top)^{-1}Q\Lambda Q^\top w^*$.</li>
+<li>Factor the bracket as a product of three matrices: $\ \big[Q(\Lambda+\alpha I)Q^\top\big]^{-1}Q\Lambda Q^\top w^*$.</li>
+<li>$(ABC)^{-1}=C^{-1}B^{-1}A^{-1}$, with $(Q^\top)^{-1}=Q$ and $Q^{-1}=Q^\top$: $\ Q(\Lambda+\alpha I)^{-1}Q^\top Q\Lambda Q^\top w^*$.</li>
+<li>$Q^\top Q=I$: $\ \tilde w=Q(\Lambda+\alpha I)^{-1}\Lambda\,Q^\top w^*$. (Again, $\alpha=0$ gives $QQ^\top w^*=w^*$.)</li>
+</ol>
+<p>$(\Lambda+\alpha I)^{-1}\Lambda$ is a product of diagonal matrices, so it is diagonal. Call it $D$:</p>
+<div class="callout">$$\tilde w=Q\,D\,Q^\top w^*,\qquad D=\operatorname{diag}\!\Big(\frac{\lambda_1}{\lambda_1+\alpha},\ \dots,\ \frac{\lambda_n}{\lambda_n+\alpha}\Big)$$</div>
+<p>Read it right to left: <b>rotate</b> $w^*$ by $Q^\top$ (its coordinates along the eigenvectors), <b>scale</b> each coordinate by its diagonal entry, <b>rotate back</b> by $Q$. Without the scaling, the two rotations would cancel.</p>
+<table>
+<tr><th>Eigenvalue</th><th>$\lambda_i/(\lambda_i+\alpha)$</th><th>Effect on that component</th></tr>
+<tr><td>$\lambda_i\gg\alpha$</td><td>$\approx1$</td><td>kept as it was</td></tr>
+<tr><td>$\lambda_i\ll\alpha$</td><td>$\approx0$</td><td>shrunk almost to zero</td></tr>
+</table>
+<p>The weights shrink, as we hoped, but not uniformly. The significant directions, those with large eigenvalues, are retained; the others are heavily penalised. And the model now behaves as if it had fewer parameters:</p>
+$$n_{\text{effective}}=\sum_{i=1}^{n}\frac{\lambda_i}{\lambda_i+\alpha}\ &lt;\ n .$$
+<p>You have given the model capacity, but not the freedom to use all of it.</p>
+
+<h2>6 · The picture</h2>
+<p>Draw the contours of the unregularised loss $\mathcal L(w)$ (ellipses around $w^*$) and of the penalty $w^\top w$ (circles around the origin). $\tilde w$ is where the two balance. Two observations:</p>
+<ol>
+<li><b>The weights shrank</b>: $\tilde w$ is closer to the origin than $w^*$.</li>
+<li><b>Not uniformly.</b> One coordinate shrinks much more than the other, by the factors $\lambda_i/(\lambda_i+\alpha)$.</li>
+</ol>
+<p>Which one shrinks more? Look at the spacing of the loss contours. Along a direction where they are <b>far apart</b>, the loss changes slowly (small slope, small eigenvalue): you can shrink that weight a lot and lose little. Along a direction where they are <b>close together</b>, the loss changes fast (large eigenvalue): even a small shrink costs a lot of loss, which isn't acceptable when you want both a small penalty and a small loss. So the compromise shrinks the insensitive direction hard and the sensitive one gently. The Hessian's eigenvalues are exactly what say which directions are sensitive.</p>
+<p class="small muted">In the video the labels "$w_1$" and "$w_2$" get swapped a couple of times while explaining the figure. The rule itself is unambiguous: the direction with widely spaced contours (small $\lambda$) shrinks more. The demo's default reproduces the lecture's figure.</p>
+
+<div class="card">
+  <div class="pair">
+    <div>
+      <div class="row" style="flex-direction:column;align-items:flex-start">
+        <label>α <input type="range" id="al" min="0" max="5" step="0.05" value="1"> <b id="alV"></b></label>
+        <label>λ₁ <input type="range" id="l1" min="-1.5" max="1" step="0.05" value="-0.7"> <b id="l1V"></b></label>
+        <label>λ₂ <input type="range" id="l2" min="-1.5" max="1" step="0.05" value="0.6"> <b id="l2V"></b></label>
+        <label>rotate eigenvectors <input type="range" id="th" min="0" max="90" step="1" value="0"> <b id="thV"></b></label>
+      </div>
+      <div class="row"><button id="gd">Run GD with weight decay</button></div>
+      <table id="tbl" class="small"></table>
+      <div class="row"><div class="stat"><div class="v" id="neff">–</div><div class="l">effective parameters (of 2)</div></div></div>
+    </div>
+    <canvas id="cv" height="360" aria-label="Loss contours, penalty circles, the unregularised and regularised optima"></canvas>
+  </div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>contours of $\mathcal L(w)$</span><span><i style="background:var(--faint)"></i>circles $w^\top w=$ const</span><span><i class="dot" style="background:var(--s2)"></i>$w^*$</span><span><i class="dot" style="background:var(--s3)"></i>$\tilde w$</span><span><i style="background:var(--s3)"></i>$\tilde w$ as α grows (dashed)</span><span><i style="background:var(--ink)"></i>GD path</span></div>
+  <p class="small" id="gTxt" style="margin-bottom:0"></p>
+</div>
+<p class="small muted">The loss is the quadratic $\frac12(w-w^*)^\top H(w-w^*)$ from step 3 of the derivation, with $w^*=(2,2)$ and $H$ built from your eigenvalues and rotation. "Run GD" applies $w\leftarrow w-\eta\nabla\mathcal L(w)-\eta\alpha w$ from a corner and lands exactly on the closed-form $\tilde w$. Set α to 0 and it lands on $w^*$.</p>
+
+<div class="beyond"><b>Going beyond the video.</b> For linear regression the Hessian of the squared loss is $X^\top X$ (up to a constant), so this is exactly ridge regression, where the scaling $\lambda_i/(\lambda_i+\alpha)$ acts on the principal directions of the data: <a href="../machine-learning/L37-ridge-regression.html">ML L37 · ridge</a> and <a href="../machine-learning/L38-ridge-geometry.html">ML L38 · ridge geometry</a> (the ellipse-meets-circle picture). <a href="../machine-learning/L36-bayesian-ridge.html">ML L36</a> shows the same penalty arising from a Gaussian prior on $w$. For a neural network the quadratic expansion only holds near $w^*$, so this analysis is local, but the update rule in section 3 applies everywhere; it's usually called <b>weight decay</b>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>L2 regularisation: $\tilde{\mathcal L}(w)=\mathcal L(w)+\frac\alpha2\lVert w\rVert^2$; you keep all the parameters but can't let them grow freely.</li>
+<li>Gradient $\nabla\mathcal L+\alpha w$; the update gains one term, $-\eta\alpha w_t$.</li>
+<li>Near the optimum (second-order Taylor): $\tilde w=(H+\alpha I)^{-1}Hw^*=Q(\Lambda+\alpha I)^{-1}\Lambda Q^\top w^*$.</li>
+<li>In the Hessian's eigenbasis, each component of $w^*$ is scaled by $\lambda_i/(\lambda_i+\alpha)$: kept if $\lambda_i\gg\alpha$, near zero if $\lambda_i\ll\alpha$.</li>
+<li>Effective number of parameters $\sum_i\lambda_i/(\lambda_i+\alpha)$ is less than $n$: that's how it controls complexity.</li>
+<li>Geometrically: weights shrink, more in directions where the loss is flat, less where it is steep.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const randn = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const WS = [2, 2];
+let path = [], timer = null;
+function params(){ const a = +$('al').value, l = [10 ** +$('l1').value, 10 ** +$('l2').value], t = +$('th').value * Math.PI / 180;
+  const q = [[Math.cos(t), Math.sin(t)], [-Math.sin(t), Math.cos(t)]];   // q[0], q[1] = eigenvectors
+  const H = [[0, 0], [0, 0]]; for (let k = 0; k < 2; k++) for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) H[i][j] += l[k] * q[k][i] * q[k][j];
+  return {a, l, q, H}; }
+const dot = (u, v) => u[0] * v[0] + u[1] * v[1];
+function wTilde(P, a){ let w = [0, 0]; for (let k = 0; k < 2; k++) { const c = dot(P.q[k], WS) * P.l[k] / (P.l[k] + a); w = [w[0] + c * P.q[k][0], w[1] + c * P.q[k][1]]; } return w; }
+function drawAll(){ const P = params(), wt = wTilde(P, P.a);
+  $('alV').textContent = P.a.toFixed(2); $('l1V').textContent = P.l[0].toFixed(2); $('l2V').textContent = P.l[1].toFixed(2); $('thV').textContent = $('th').value + '°';
+  const f = P.l.map(l => l / (l + P.a));
+  $('tbl').innerHTML = `<tr><th></th><th>λᵢ</th><th>λᵢ/(λᵢ+α)</th><th>qᵢᵀw*</th><th>qᵢᵀw̃</th></tr>` + [0, 1].map(k =>
+    `<tr><td>q${k ? '₂' : '₁'}</td><td>${P.l[k].toFixed(2)}</td><td><b>${f[k].toFixed(2)}</b></td><td>${dot(P.q[k], WS).toFixed(2)}</td><td>${dot(P.q[k], wt).toFixed(2)}</td></tr>`).join('');
+  $('neff').textContent = (f[0] + f[1]).toFixed(2);
+  const [ctx, W, Hh] = setupCanvas($('cv')), lo = -1, hi = 3.4, S = Math.min(W, Hh) / (hi - lo), ox = (W - S * (hi - lo)) / 2;
+  const X = x => ox + (x - lo) * S, Y = y => Hh - (y - lo) * S;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(lo), Y(0)); ctx.lineTo(X(hi), Y(0)); ctx.moveTo(X(0), Y(lo)); ctx.lineTo(X(0), Y(hi)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText('w₁', X(hi) - 18, Y(0) - 6); ctx.fillText('w₂', X(0) + 6, Y(hi) + 14);
+  ctx.save(); ctx.beginPath(); ctx.rect(X(lo), 0, S * (hi - lo), Hh); ctx.clip();
+  ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1; [0.75, 1.5, 2.25, 3, 3.75].forEach(r => { ctx.beginPath(); ctx.arc(X(0), Y(0), r * S, 0, 7); ctx.stroke(); });
+  const rt = Math.hypot(...wt); ctx.strokeStyle = cssv('--s3'); ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.arc(X(0), Y(0), rt * S, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 1.5;
+  const Lt = 0.5 * (P.l[0] * dot(P.q[0], [wt[0] - WS[0], wt[1] - WS[1]]) ** 2 + P.l[1] * dot(P.q[1], [wt[0] - WS[0], wt[1] - WS[1]]) ** 2);
+  const levels = [0.02, 0.08, 0.2, 0.4, 0.7, 1.1, 1.6]; if (Lt > 1e-4) levels.push(Lt);
+  levels.forEach((c, n) => { ctx.lineWidth = n === levels.length - 1 && Lt > 1e-4 ? 2.5 : 1.2; ctx.beginPath();
+    for (let i = 0; i <= 90; i++) { const t = i / 90 * 2 * Math.PI, r0 = Math.sqrt(2 * c / P.l[0]) * Math.cos(t), r1 = Math.sqrt(2 * c / P.l[1]) * Math.sin(t);
+      const x = WS[0] + r0 * P.q[0][0] + r1 * P.q[1][0], y = WS[1] + r0 * P.q[0][1] + r1 * P.q[1][1]; i ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); });
+  ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.beginPath();
+  for (let i = 0; i <= 80; i++) { const a = i ? 10 ** (-3 + i / 80 * 5.5) : 0, w = wTilde(P, a); i ? ctx.lineTo(X(w[0]), Y(w[1])) : ctx.moveTo(X(w[0]), Y(w[1])); } ctx.stroke(); ctx.setLineDash([]);
+  if (path.length) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); path.forEach((w, i) => i ? ctx.lineTo(X(w[0]), Y(w[1])) : ctx.moveTo(X(w[0]), Y(w[1]))); ctx.stroke();
+    ctx.fillStyle = cssv('--ink'); path.forEach(w => ctx.fillRect(X(w[0]) - 1.5, Y(w[1]) - 1.5, 3, 3)); }
+  ctx.restore();
+  const dotAt = (w, col, txt) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(X(w[0]), Y(w[1]), 6, 0, 7); ctx.fill(); ctx.font = '600 13px system-ui'; ctx.fillText(txt, X(w[0]) + 8, Y(w[1]) - 8); };
+  dotAt(WS, cssv('--s2'), 'w*'); dotAt(wt, cssv('--s3'), 'w̃');
+  const r1 = wt[0] / WS[0], r2 = wt[1] / WS[1];
+  $('gTxt').innerHTML = `w̃ = (${wt[0].toFixed(2)}, ${wt[1].toFixed(2)}): w₁ kept at ${(100 * r1).toFixed(0)}% of its unregularised value, w₂ at ${(100 * r2).toFixed(0)}%. ` +
+    (Math.abs(r1 - r2) > 0.05 ? `The ${r1 < r2 ? 'w₁' : 'w₂'} weight shrinks more` + (+$('th').value === 0 ? `, because the loss is flatter along it (λ = ${P.l[r1 < r2 ? 0 : 1].toFixed(2)}).` : '.') : 'Both shrink by about the same factor.') +
+    (path.length ? ` GD: ${path.length - 1} steps, ending ${Math.hypot(path[path.length - 1][0] - wt[0], path[path.length - 1][1] - wt[1]).toExponential(1)} from the closed-form w̃.` : ''); }
+function runGD(){ clearInterval(timer); const P = params(), eta = 1 / (Math.max(...P.l) + P.a); let w = [-0.6, 3.1]; path = [w];
+  const step = () => { const g = [P.H[0][0] * (w[0] - WS[0]) + P.H[0][1] * (w[1] - WS[1]) + P.a * w[0], P.H[1][0] * (w[0] - WS[0]) + P.H[1][1] * (w[1] - WS[1]) + P.a * w[1]];
+    w = [w[0] - eta * g[0], w[1] - eta * g[1]]; path.push(w); return Math.hypot(...g) < 1e-5 || path.length > 3000; };
+  timer = setInterval(() => { let done = false; for (let j = 0; j < 12 && !done; j++) done = step(); drawAll(); if (done) { clearInterval(timer); timer = null; } }, 30); }
+$('gd').onclick = runGD;
+['al', 'l1', 'l2', 'th'].forEach(id => $(id).addEventListener('input', () => { clearInterval(timer); timer = null; path = []; drawAll(); }));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

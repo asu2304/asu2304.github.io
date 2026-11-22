@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nesterov Accelerated Gradient Descent</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+.s4{color:var(--s4)}
+:root{--s4:#8a5cc9}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--s4:#a27ee0}}
+:root[data-theme="dark"]{--s4:#a27ee0}
+.ctl{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:8px 0;font-size:14px}
+.ctl output{font-variant-numeric:tabular-nums;min-width:3.2em;display:inline-block}
+.box{border:2px solid var(--s1);border-radius:10px;padding:4px 14px;margin:14px 0;background:var(--card)}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 33 · playlist video 33 (titled “L35” on YouTube) · Optimisation algorithms</div>
+<h1>Nesterov Accelerated Gradient Descent</h1>
+<p class="lede">Look before you leap. Momentum's update has two parts, the history and the current gradient, and the history part is already known before we compute anything. So move by the history first, compute the gradient <i>there</i>, and let that look-ahead gradient decide the rest of the step. If the history is about to carry you past the minimum, the look-ahead gradient notices and pulls you back early: shorter U-turns, smaller oscillations.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=dIYDPtHWBNA" target="_blank" rel="noopener">this lecture on YouTube</a> (≈14 min). Previous: <a href="L32-momentum.html">L32</a> · Next: <a href="L34-stochastic-vs-batch.html">L34</a> (stochastic and mini-batch versions).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The question</h2>
+<p><a href="L32-momentum.html">Momentum</a> converges faster than gradient descent, but it overshoots the minimum and comes back, again and again. Can we reduce these oscillations? Yes: <b>Nesterov accelerated gradient (NAG)</b>. Its one-phrase summary: <i>look before you leap</i>.</p>
+
+<h2>2 · Two parts of one step</h2>
+<p>Recall momentum, written as one step:</p>
+$$w_{t+1}=w_t-\eta\,u_t=w_t-\underbrace{\eta\beta\,u_{t-1}}_{\text{history: already known}}-\underbrace{\eta\,\nabla w_t}_{\text{gradient at }w_t} .$$
+<p>The current derivative is computed at the current weight $w_t$. But we are going to move by the history part anyway, and we already know it. So why not:</p>
+<ol class="steps">
+<li>Move by the history part first, to the partially updated point $w_{\text{look ahead}}=w_t-\eta\beta\,u_{t-1}$.</li>
+<li>Compute the derivative <b>there</b>, at the look-ahead point, instead of at $w_t$.</li>
+<li>Use that derivative to make the second part of the move.</li>
+</ol>
+<div class="box">
+$$u_t=\beta\,u_{t-1}+\nabla\big(w_t-\eta\beta\,u_{t-1}\big),\qquad w_{t+1}=w_t-\eta\,u_t$$
+<p class="small" style="margin-top:0">$\nabla(\cdot)$ means the derivative of the loss with respect to $w$, evaluated at whatever is inside the bracket. Same equations for $b$; $u_{-1}=0$. Compared with momentum, the <b>only</b> change is where the gradient is evaluated.</p>
+</div>
+<p class="small muted">The lecture describes the look-ahead point as "$w_t$ minus the history". Since the step is $\eta\,u$, the history part of the move is $\eta\beta\,u_{t-1}$, so that is what I subtract; with the lecture's $\eta=1$ the two are identical.</p>
+
+<h2>3 · Why it helps: a 1-D picture</h2>
+<p>The lecture draws a loss curve $\mathscr{L}(w)$ and follows a few steps. Starting at $w_0$, the history accumulates and the steps grow: $w_1$, then $w_2$ further down. At $w_2$ the history says "go right" (we've been going down that way), and the slope at $w_2$ is negative, so the gradient also says "go right". Momentum adds both and takes a big step, landing far beyond the minimum.</p>
+<p>NAG instead first moves by the history alone. That look-ahead point is already past the minimum, where the slope is <b>positive</b>, so its gradient says "go left". The second part of the step pulls back, and the effective $w_3$ ends up much closer to the minimum. It checks "have I already crossed the minimum?" before committing.</p>
+<p>Step through both on the same curve. Each panel shows the next move split into its two parts: the <span style="color:var(--s1)">history part</span> and the <span style="color:var(--s2)">gradient part</span> (with the tangent where the gradient is taken).</p>
+<div class="card">
+  <div class="row"><button id="oStep">Next step</button><button id="oRun">Run 10 steps</button><button id="oReset">Reset</button>
+    <label>β = <input type="range" id="oB" min="0.5" max="0.98" step="0.01" value="0.9"> <output id="oBO"></output></label><span class="small muted">η = 3, start w₀ = −6</span></div>
+  <div class="pair half"><div><p class="small" style="margin:0"><b style="color:var(--s1)">Momentum</b>: gradient at $w_t$</p><canvas id="oM" height="230" aria-label="Momentum steps on a 1-D loss curve"></canvas></div>
+    <div><p class="small" style="margin:0"><b style="color:var(--s2)">NAG</b>: gradient at the look-ahead point</p><canvas id="oN" height="230" aria-label="Nesterov steps on a 1-D loss curve"></canvas></div></div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>history part ηβu<sub>t−1</sub></span><span><i style="background:var(--s2)"></i>gradient part η∇</span><span><i class="dot" style="background:var(--faint)"></i>earlier positions</span><span><i class="dot" style="border:2px solid var(--ink);background:transparent"></i>look-ahead point</span></div>
+  <p class="small" id="oTxt" style="margin-bottom:0"></p>
+</div>
+
+<h2>4 · Momentum vs NAG on the toy problem</h2>
+<p>Now both on the familiar error surface of the sigmoid neuron through $(0.5,\,0.2)$ and $(2.5,\,0.9)$, same start, same $\eta=1$ and $\beta=0.9$. Watch where each makes its U-turns.</p>
+<div class="card">
+  <div class="row"><button id="nPlay">▶ Play</button><button id="nStep">Step ×1</button><button id="nReset">Reset</button>
+    <label>Start <select id="nStart"><option value="-2,-2">(−2, −2), as in the code</option><option value="-4,-4">(−4, −4), deep on the plateau</option><option value="-2,2">(−2, 2), on a slope</option></select></label>
+    <label><input type="checkbox" id="nGD"> also show gradient descent</label></div>
+  <div class="ctl"><label>β = <input type="range" id="nB" min="0.5" max="0.99" step="0.01" value="0.9"> <output id="nBO"></output></label><label>Speed <input type="range" id="nSpd" min="2" max="100" value="25"></label><span class="small muted">Click the map to start elsewhere.</span></div>
+  <div class="pair"><div><canvas id="nSig" height="170" aria-label="Current sigmoids and the two data points"></canvas><canvas id="nLoss" height="150" aria-label="Loss against iteration"></canvas></div><canvas id="nMap" height="330" aria-label="Paths of momentum and NAG on the contour map"></canvas></div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>momentum</span><span><i style="background:var(--s2)"></i>NAG</span><span><i style="background:var(--s3)"></i>gradient descent</span></div>
+  <div class="row"><div class="stat"><div class="v" id="nIt">0</div><div class="l">iteration t</div></div><div class="stat"><div class="v" id="nOm">0</div><div class="l">overshoots: momentum</div></div><div class="stat"><div class="v" id="nOn">0</div><div class="l">overshoots: NAG</div></div><div class="stat"><div class="v" id="nC">–</div><div class="l">first t with loss &lt; 10⁻⁴ (mom / NAG)</div></div></div>
+  <p class="small" id="nTxt" style="margin-bottom:0"></p>
+</div>
+<p>What the lecture points out in its animation:</p>
+<ul>
+<li>Momentum (blue) takes a long U-turn; NAG, having looked ahead and realised it is overshooting, does not go the full distance and turns sooner.</li>
+<li>Throughout the run, NAG's oscillations are shorter. It corrects its course quickly; momentum keeps going and only later realises it made a mistake.</li>
+<li>Because momentum enters the valley fast and relies on the (large) gradient at its current point, it can shoot right out of the valley. NAG's partial update reveals that it is already crossing the valley, so it comes back instead. The chance of escaping the minimum valley is smaller.</li>
+</ul>
+<div class="callout"><b>Takeaway.</b> Looking ahead lets NAG correct its course quicker than momentum, so its oscillations are smaller and it is less likely to escape the minimum valley, while keeping momentum's speed on flat regions.</div>
+<div class="beyond"><b>Going beyond the video.</b> NAG costs nothing extra: still one gradient per step, just evaluated at a different point. Deep-learning libraries implement it with a change of variables (tracking the look-ahead point itself), so the code looks like momentum with one extra term; e.g. PyTorch's <span class="mono">SGD(..., momentum=0.9, nesterov=True)</span>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Momentum's step = history part $\eta\beta u_{t-1}$ (already known) + gradient part.</li>
+<li>NAG: move by the history first, evaluate the gradient at $w_t-\eta\beta u_{t-1}$, then finish the step: $u_t=\beta u_{t-1}+\nabla(w_t-\eta\beta u_{t-1})$, $w_{t+1}=w_t-\eta u_t$.</li>
+<li>If the history is about to carry you past the minimum, the look-ahead gradient points back and shortens the step.</li>
+<li>Result: shorter U-turns, smaller oscillations, less chance of escaping the valley, with the same speed on plateaus.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const fmt = (v, d = 3) => (isFinite(v) ? v.toFixed(d) : '–');
+
+// ---- The lecture's toy problem: one sigmoid neuron f(x) = σ(wx + b), squared error ----
+const sg = z => 1 / (1 + Math.exp(-z));
+function Toy(X, Y, mean){ const n = X.length, s = mean ? 1 / n : 1;
+  return { X, Y, n,
+    L(w, b){ let t = 0; for (let i = 0; i < n; i++) { const f = sg(w * X[i] + b); t += 0.5 * (f - Y[i]) ** 2; } return t * s; },
+    G(w, b, idx){ let gw = 0, gb = 0; const m = idx ? idx.length : n;
+      for (let k = 0; k < m; k++) { const i = idx ? idx[k] : k, f = sg(w * X[i] + b), d = (f - Y[i]) * f * (1 - f); gw += d * X[i]; gb += d; }
+      const sc = mean ? 1 / m : 1; return [gw * sc, gb * sc]; } }; }
+const TOY = Toy([0.5, 2.5], [0.2, 0.9], false);   // the two points used throughout the lecture
+const RANGE = [-6, 6, -6, 6];                     // w from −6 to 6, b from −6 to 6
+
+// ---- Optimiser steps (notation as in the lecture: u_t history, η, β) ----
+// o = {w, b, uw, ub}; P = {eta, beta}; idx = optional mini-batch indices
+const STEP = {
+  gd(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx); o.w -= P.eta * g[0]; o.b -= P.eta * g[1]; },
+  mom(o, toy, P, idx){ const g = toy.G(o.w, o.b, idx);
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; },
+  nag(o, toy, P, idx){ const g = toy.G(o.w - P.eta * P.beta * o.uw, o.b - P.eta * P.beta * o.ub, idx);   // look ahead first
+    o.uw = P.beta * o.uw + g[0]; o.ub = P.beta * o.ub + g[1]; o.w -= P.eta * o.uw; o.b -= P.eta * o.ub; } };
+
+// number of times the loss turned from falling to rising (an overshoot / U-turn)
+function overshoots(l){ let c = 0; for (let i = 2; i < l.length; i++) if (l[i] > l[i - 1] + 1e-9 && l[i - 1] <= l[i - 2]) c++; return c; }
+
+// ---- Contour map: colour-coded loss (blue = low, red = high) + level rings at equal loss intervals ----
+const HEAT = {};
+function lossGrid(toy, key, nx, ny, R = RANGE){
+  const k = key + nx + 'x' + ny; if (HEAT[k]) return HEAT[k];
+  const g = new Float64Array(nx * ny); let mx = -Infinity, mn = Infinity;
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const w = R[0] + (R[1] - R[0]) * i / (nx - 1), b = R[3] - (R[3] - R[2]) * j / (ny - 1), v = toy.L(w, b);
+    g[j * nx + i] = v; if (v > mx) mx = v; if (v < mn) mn = v; }
+  return (HEAT[k] = { g, nx, ny, mx, mn }); }
+function isoSegs(G, lev){ G.seg = G.seg || {}; if (G.seg[lev]) return G.seg[lev]; const { g, nx, ny } = G, out = G.seg[lev] = [];
+  const at = (i, j) => g[j * nx + i];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
+    const c = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]], v = c.map(p => at(p[0], p[1])), pts = [];
+    for (let e = 0; e < 4; e++) { const a = v[e], b = v[(e + 1) % 4];
+      if ((a < lev) !== (b < lev)) { const t = (lev - a) / (b - a), p = c[e], q = c[(e + 1) % 4];
+        pts.push([p[0] + t * (q[0] - p[0]), p[1] + t * (q[1] - p[1])]); } }
+    if (pts.length === 2) out.push(pts); else if (pts.length === 4) { out.push([pts[0], pts[1]]); out.push([pts[2], pts[3]]); } }
+  return out; }
+function heatRGB(t){ const lo = [42, 110, 214], hi = [214, 64, 40];
+  return lo.map((c, k) => Math.round(c + (hi[k] - c) * t)); }
+function drawContour(ctx, W, H, toy, key, opt = {}){
+  const R = opt.range || RANGE, pad = opt.pad || 28, levels = opt.levels || [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7];
+  const pw = W - pad - 8, ph = H - pad - 8, X = w => pad + (w - R[0]) / (R[1] - R[0]) * pw, Y = b => 8 + (R[3] - b) / (R[3] - R[2]) * ph;
+  const nx = 90, ny = 90, G = lossGrid(toy, key, nx, ny, R);
+  const cw = pw / (nx - 1), chh = ph / (ny - 1);
+  ctx.save(); ctx.beginPath(); ctx.rect(pad, 8, pw, ph); ctx.clip();
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const t = Math.pow((G.g[j * nx + i] - G.mn) / (G.mx - G.mn || 1), opt.gamma || 0.5), c = heatRGB(t);
+    ctx.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},0.55)`; ctx.fillRect(X(R[0]) + (i - 0.5) * cw, 8 + (j - 0.5) * chh, cw + 0.6, chh + 0.6); }
+  ctx.strokeStyle = cssv('--ink'); ctx.globalAlpha = 0.45; ctx.lineWidth = 1;
+  levels.forEach(lev => { if (opt.hi === lev) return; ctx.beginPath(); isoSegs(G, lev).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); });
+  ctx.globalAlpha = 1;
+  if (opt.hi != null) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 3; ctx.beginPath();
+    isoSegs(G, opt.hi).forEach(s => { ctx.moveTo(pad + s[0][0] * cw, 8 + s[0][1] * chh); ctx.lineTo(pad + s[1][0] * cw, 8 + s[1][1] * chh); }); ctx.stroke(); }
+  ctx.restore();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(pad, 8, pw, ph);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  for (let v = R[0]; v <= R[1]; v += 2) ctx.fillText(v, X(v), H - pad + 16);
+  ctx.textAlign = 'right'; for (let v = R[2]; v <= R[3]; v += 2) ctx.fillText(v, pad - 4, Y(v) + 4);
+  ctx.textAlign = 'left'; ctx.fillText('w →', W - 34, H - pad + 16); ctx.fillText('b', 4, 16);
+  return { X, Y, inv: (px, py) => [R[0] + (px - pad) / pw * (R[1] - R[0]), R[3] - (py - 8) / ph * (R[3] - R[2])], pad, pw, ph }; }
+
+// ---- Sigmoid panel: current σ(wx+b) of each runner, with the data points ----
+function drawSigmoid(ctx, W, H, toy, curves){
+  const x0 = -1, x1 = 4, X = x => 30 + (x - x0) / (x1 - x0) * (W - 40), Y = y => H - 22 - y * (H - 34);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(30, Y(0)); ctx.lineTo(W - 10, Y(0)); ctx.moveTo(30, Y(1)); ctx.lineTo(W - 10, Y(1)); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(0), Y(1)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText('1', 26, Y(1) + 4); ctx.fillText('0', 26, Y(0) + 4);
+  ctx.textAlign = 'center'; for (let x = 0; x <= 4; x++) ctx.fillText(x, X(x), H - 6); ctx.textAlign = 'left';
+  curves.forEach(c => { ctx.strokeStyle = c.color; ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let k = 0; k <= 100; k++) { const x = x0 + (x1 - x0) * k / 100, y = sg(c.w * x + c.b); k ? ctx.lineTo(X(x), Y(y)) : ctx.moveTo(X(x), Y(y)); } ctx.stroke(); });
+  const r = toy.n > 10 ? 3 : 6; ctx.fillStyle = cssv('--ink');
+  for (let i = 0; i < toy.n; i++) { ctx.beginPath(); ctx.arc(X(toy.X[i]), Y(toy.Y[i]), r, 0, 7); ctx.fill(); } }
+
+// ---- A race of optimisers on one contour map (+ loss curve, + sigmoid fit) ----
+function Race(cfg){
+  const S = { it: 0, playing: false, start: cfg.start.slice(), runners: [] };
+  const key = cfg.key || 'toy', toy = cfg.toy;
+  function reset(st){ if (st) S.start = st.slice(); S.it = 0;
+    S.runners = cfg.runners().map(r => Object.assign({ w: S.start[0], b: S.start[1], uw: 0, ub: 0, path: [[S.start[0], S.start[1]]], loss: [toy.L(S.start[0], S.start[1])], last: 0 }, r));
+    if (cfg.onReset) cfg.onReset(S); draw(); }
+  function stepAll(){ if (S.it >= cfg.maxIter) return false;
+    S.runners.forEach(r => { if (r.on === false) return; const w0 = r.w, b0 = r.b; r.step(r, S.it);
+      if (!isFinite(r.w) || !isFinite(r.b)) { r.w = w0; r.b = b0; }
+      r.last = Math.hypot(r.w - w0, r.b - b0); r.path.push([r.w, r.b]); r.loss.push(toy.L(r.w, r.b)); });
+    S.it++; return true; }
+  function draw(){
+    const [ctx, W, H] = setupCanvas(cfg.map); ctx.clearRect(0, 0, W, H);
+    const M = drawContour(ctx, W, H, toy, key, cfg.contourOpt); S.M = M;
+    ctx.save(); ctx.beginPath(); ctx.rect(M.pad, 8, M.pw, M.ph); ctx.clip();
+    S.runners.forEach(r => { if (r.on === false) return; const col = cssv(r.color); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6;
+      ctx.beginPath(); r.path.forEach((p, k) => k ? ctx.lineTo(M.X(p[0]), M.Y(p[1])) : ctx.moveTo(M.X(p[0]), M.Y(p[1]))); ctx.stroke();
+      const dots = r.path.length < 400; r.path.forEach((p, k) => { if (dots || k % 4 === 0) { ctx.beginPath(); ctx.arc(M.X(p[0]), M.Y(p[1]), 2, 0, 7); ctx.fill(); } });
+      ctx.beginPath(); ctx.arc(M.X(r.w), M.Y(r.b), 5.5, 0, 7); ctx.fill(); ctx.strokeStyle = cssv('--card'); ctx.lineWidth = 1.5; ctx.stroke(); });
+    ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(M.X(S.start[0]), M.Y(S.start[1]), 4, 0, 7); ctx.fill();
+    ctx.restore();
+    if (cfg.lossCv) drawLoss();
+    if (cfg.sigCv) { const [c2, W2, H2] = setupCanvas(cfg.sigCv); drawSigmoid(c2, W2, H2, toy, S.runners.filter(r => r.on !== false).map(r => ({ w: r.w, b: r.b, color: cssv(r.color) }))); }
+    if (cfg.onDraw) cfg.onDraw(S); }
+  function drawLoss(){
+    const [ctx, W, H] = setupCanvas(cfg.lossCv), n = Math.max(cfg.lossX || 100, S.it), pad = 34;
+    const top = Math.max(...S.runners.map(r => r.loss[0])) * 1.05 || 1;
+    const X = i => pad + i / n * (W - pad - 10), Y = v => 8 + (1 - Math.min(v, top) / top) * (H - 30);
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, 8); ctx.lineTo(pad, H - 22); ctx.lineTo(W - 10, H - 22); ctx.stroke();
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right'; ctx.fillText(top.toFixed(2), pad - 4, 14); ctx.fillText('0', pad - 4, H - 22);
+    ctx.textAlign = 'center'; ctx.fillText((cfg.lossLabel || 'iteration') + ' (0 – ' + n + ')', (W + pad) / 2, H - 6); ctx.textAlign = 'left';
+    S.runners.forEach(r => { if (r.on === false) return; ctx.strokeStyle = cssv(r.color); ctx.lineWidth = 2; ctx.beginPath();
+      const stride = Math.max(1, Math.floor(r.loss.length / 600));
+      for (let k = 0; k < r.loss.length; k += stride) k ? ctx.lineTo(X(k), Y(r.loss[k])) : ctx.moveTo(X(k), Y(r.loss[k]));
+      ctx.lineTo(X(r.loss.length - 1), Y(r.loss[r.loss.length - 1])); ctx.stroke(); }); }
+  let raf = null, acc = 0, tPrev = 0;
+  function loop(ts){ if (!S.playing) return; const dt = tPrev ? Math.min(100, ts - tPrev) : 16; tPrev = ts;
+    acc += dt / 1000 * (cfg.speed ? cfg.speed() : 25); let k = 0;
+    while (acc >= 1 && k < 400) { acc -= 1; k++; if (!stepAll()) { S.playing = false; break; } }
+    draw(); if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  function play(on){ S.playing = on == null ? !S.playing : on; tPrev = 0; acc = 0; if (cfg.onPlay) cfg.onPlay(S.playing); if (S.playing) raf = requestAnimationFrame(loop); }
+  cfg.map.addEventListener('click', e => { if (!S.M) return; const r = cfg.map.getBoundingClientRect(), p = S.M.inv(e.clientX - r.left, e.clientY - r.top);
+    if (p[0] < RANGE[0] || p[0] > RANGE[1] || p[1] < RANGE[2] || p[1] > RANGE[3]) return; play(false); reset([+p[0].toFixed(2), +p[1].toFixed(2)]); });
+  return { S, reset, draw, play, step(n = 1){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); }, run(n){ for (let i = 0; i < n; i++) if (!stepAll()) break; draw(); } }; }
+
+// redraw hooks
+const REDRAW = [];
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => REDRAW.forEach(f => f()), 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => REDRAW.forEach(f => f()));
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); REDRAW.forEach(f => f()); });
+
+// ---------- 1-D look-ahead illustration ----------
+const s1 = 2, L1 = w => 1 - Math.exp(-w * w / (2 * s1 * s1)), D1 = w => w / (s1 * s1) * Math.exp(-w * w / (2 * s1 * s1)), ETA1 = 3;
+let OM, ON;
+function oReset(){ OM = { w: -6, u: 0, trail: [-6], t: 0 }; ON = { w: -6, u: 0, trail: [-6], t: 0 }; oDraw(); }
+function plan(o, nag){ const be = +$('oB').value, hist = ETA1 * be * o.u, gAt = nag ? o.w - hist : o.w, g = D1(gAt);
+  return { hist, gAt, g, next: o.w - hist - ETA1 * g, u: be * o.u + g }; }
+function oStep(){ [[OM, false], [ON, true]].forEach(([o, nag]) => { const p = plan(o, nag); o.w = p.next; o.u = p.u; o.trail.push(o.w); o.t++; }); oDraw(); }
+function oPanel(cv, o, nag){
+  const [ctx, W, H] = setupCanvas(cv); ctx.clearRect(0, 0, W, H);
+  const X = w => 12 + (w + 7) / 14 * (W - 24), Y = v => 14 + (1 - v) * (H - 70);
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(12, Y(0)); ctx.lineTo(W - 12, Y(0)); ctx.stroke();
+  ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); for (let k = 0; k <= 200; k++) { const w = -7 + 14 * k / 200; k ? ctx.lineTo(X(w), Y(L1(w))) : ctx.moveTo(X(w), Y(L1(w))); } ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText('minimum', X(0), Y(0) + 13);
+  ctx.fillStyle = cssv('--faint'); o.trail.slice(0, -1).forEach(w => { if (w > -7 && w < 7) { ctx.beginPath(); ctx.arc(X(w), Y(L1(w)), 3.5, 0, 7); ctx.fill(); } });
+  const p = plan(o, nag), yA = H - 38, yB = H - 22, cl = w => Math.max(-7, Math.min(7, w));
+  const arrow = (a, b, y, col) => { a = cl(a); b = cl(b); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(X(a), y); ctx.lineTo(X(b), y); ctx.stroke();
+    const d = Math.sign(b - a) || 1; if (Math.abs(X(b) - X(a)) > 4) { ctx.beginPath(); ctx.moveTo(X(b), y); ctx.lineTo(X(b) - d * 8, y - 5); ctx.lineTo(X(b) - d * 8, y + 5); ctx.fill(); } };
+  const wl = o.w - p.hist;
+  arrow(o.w, wl, yA, cssv('--s1')); arrow(wl, p.next, yB, cssv('--s2'));
+  ctx.setLineDash([3, 3]); ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 1; [o.w, wl, p.next].forEach(w => { if (Math.abs(w) < 7) { ctx.beginPath(); ctx.moveTo(X(w), Y(L1(w))); ctx.lineTo(X(w), yB + 6); ctx.stroke(); } }); ctx.setLineDash([]);
+  // tangent where the gradient is evaluated
+  if (Math.abs(p.gAt) < 7) { const y0 = L1(p.gAt); ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(p.gAt - 1.3), Y(y0 - 1.3 * p.g)); ctx.lineTo(X(p.gAt + 1.3), Y(y0 + 1.3 * p.g)); ctx.stroke(); }
+  if (nag && Math.abs(wl) < 7) { ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(X(wl), Y(L1(wl)), 6, 0, 7); ctx.stroke(); }
+  if (Math.abs(o.w) < 7) { ctx.fillStyle = cssv(nag ? '--s2' : '--s1'); ctx.beginPath(); ctx.arc(X(o.w), Y(L1(o.w)), 6, 0, 7); ctx.fill(); }
+  ctx.textAlign = 'left'; ctx.fillStyle = cssv('--ink'); ctx.font = '12px system-ui'; ctx.fillText(`t = ${o.t},  w_t = ${fmt(o.w, 2)}  →  w_t+1 = ${fmt(p.next, 2)}`, 12, 12);
+  return p; }
+function oDraw(){ $('oBO').textContent = (+$('oB').value).toFixed(2);
+  const pm = oPanel($('oM'), OM, false), pn = oPanel($('oN'), ON, true), mx = a => Math.max(...a.trail.map(Math.abs).slice(1).concat([0]));
+  const sgn = g => g > 0 ? 'positive (pointing back left)' : 'negative (pointing on to the right)';
+  $('oTxt').innerHTML = `Next step. <b>Momentum</b> takes the slope at w<sub>t</sub> = ${fmt(OM.w, 2)}: ${sgn(pm.g)}. <b>NAG</b> takes it at the look-ahead point ${fmt(ON.w - pn.hist, 2)}: ${sgn(pn.g)}. ` +
+    (OM.t ? `Furthest distance from the minimum after the start so far: momentum ${fmt(mx(OM), 2)}, NAG ${fmt(mx(ON), 2)}.` : 'Press "Next step" a few times; the interesting moment is when the history carries the point past the minimum.'); }
+$('oStep').onclick = oStep; $('oRun').onclick = () => { for (let i = 0; i < 10; i++) oStep(); }; $('oReset').onclick = oReset;
+$('oB').addEventListener('input', oReset); oReset(); REDRAW.push(oDraw);
+
+// ---------- race: momentum vs NAG (vs GD) ----------
+const P = () => ({ eta: 1, beta: +$('nB').value });
+const race = Race({ map: $('nMap'), lossCv: $('nLoss'), sigCv: $('nSig'), toy: TOY, start: [-2, -2], maxIter: 1000, lossX: 300,
+  speed: () => +$('nSpd').value,
+  runners: () => [{ color: '--s3', on: $('nGD').checked, step: o => STEP.gd(o, TOY, P()) },
+                  { color: '--s1', step: o => STEP.mom(o, TOY, P()) }, { color: '--s2', step: o => STEP.nag(o, TOY, P()) }],
+  onPlay: p => { $('nPlay').textContent = p ? '❚❚ Pause' : '▶ Play'; },
+  onDraw: S => { const [, m, n] = S.runners, om = overshoots(m.loss), on = overshoots(n.loss), c = r => { const k = r.loss.findIndex(v => v < 1e-4); return k < 0 ? '…' : k; };
+    $('nIt').textContent = S.it; $('nOm').textContent = om; $('nOn').textContent = on; $('nC').textContent = S.it ? `${c(m)} / ${c(n)}` : '–';
+    $('nTxt').textContent = S.it === 0 ? 'Press Play. Overshoots count the moments a method\'s loss turned from falling to rising (it crossed the valley floor and had to come back).'
+      : om > on ? `So far NAG has overshot ${on} time${on === 1 ? '' : 's'}, momentum ${om}. Compare the size of the loops near the valley.`
+      : 'Keep watching the first U-turn in the valley.'; } });
+$('nPlay').onclick = () => race.play(); $('nStep').onclick = () => { race.play(false); race.step(1); };
+$('nReset').onclick = () => { race.play(false); race.reset($('nStart').value.split(',').map(Number)); };
+$('nStart').addEventListener('change', () => $('nReset').onclick()); $('nGD').addEventListener('change', () => $('nReset').onclick());
+$('nB').addEventListener('input', () => { $('nBO').textContent = (+$('nB').value).toFixed(2); $('nReset').onclick(); });
+$('nBO').textContent = '0.90'; race.reset(); REDRAW.push(race.draw);
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

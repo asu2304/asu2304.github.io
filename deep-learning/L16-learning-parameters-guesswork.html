@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Learning Parameters by Guesswork</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 16 · playlist video 16 (titled “L14” on YouTube) · sigmoid neurons, learning</div>
+<h1>Learning Parameters by Guesswork</h1>
+<p class="lede">Two training points, one sigmoid neuron, two parameters $w$ and $b$. The loss turns "this fit looks bad" into a number, so we can try values of $(w,b)$ and keep the ones that lower it. That guesswork does eventually find a perfect fit, but only because the lecturer knew the answer. Plotted on the error surface, the guesses jump about, sometimes climbing uphill. We need a principled way to walk down that surface.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=LbPKf7UVkyU" target="_blank" rel="noopener">this lecture on YouTube</a> (≈18 min). Previous: <a href="L15-supervised-learning-setup.html">L15</a> · Next: <a href="L17-gradient-descent.html">L17</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The toy setup, and a notation change</h2>
+<p>The model is the sigmoid neuron of <a href="L14-sigmoid-neuron.html">L14</a>, cut down to <b>one input</b>:</p>
+$$\hat f(x)=\sigma(wx+b)=\frac{1}{1+e^{-(wx+b)}} .$$
+<ul>
+<li><b>$b$ replaces $w_0$.</b> Earlier the always-on input $x_0=1$ had weight $w_0$. From here on, "to be consistent with the literature", that weight is called the <b>bias</b> $b$, for the rest of the course.</li>
+<li><b>$f$ means $\hat f$.</b> The true function is unknown, so whenever we write $f(x)$ we mean our approximation.</li>
+<li><b>A real-valued output.</b> Instead of liked / not liked, predict a movie's IMDb rating scaled to $[0,1]$. This makes some things easier to explain; nothing changes for a boolean output.</li>
+<li><b>Counting.</b> Now $N$ = number of training pairs and $n$ = number of inputs (here $n=1$). Note this is the other way round from L15, where $n$ counted the points.</li>
+</ul>
+<p>The objective: find $w,b$ minimising the average squared difference between predictions and truths.</p>
+$$\min_{w,\,b}\ \mathcal L(w,b)=\frac{1}{N}\sum_{i=1}^{N}\big(y_i-f(x_i)\big)^2 .$$
+
+<h2>2 · Two points, and what "trained" would look like</h2>
+<p>The training data are just two points: $(x_1,y_1)=(0.5,\,0.2)$ and $(x_2,y_2)=(2.5,\,0.9)$. If training finds good values $w^*,b^*$, then</p>
+$$f(0.5)\to0.2,\qquad f(2.5)\to0.9 .$$
+<p><b>Geometrically:</b> the S-shaped curve $\sigma(w^*x+b^*)$ passes through (or close to) both points. That links the algebra (plug in, get the right outputs) to the picture (the curve goes through the data).</p>
+
+<h2>3 · How bad is a guess? Ask the loss</h2>
+<p>Start with $w=3$, $b=-1$. The curve misses both points, so it's bad. To say <i>how</i> bad, compute the loss (here $N=2$):</p>
+<ol class="steps">
+<li>$f(0.5)=\sigma(3\cdot0.5-1)=\sigma(0.5)\approx0.622$ and $f(2.5)=\sigma(6.5)\approx0.998$.</li>
+<li>$\mathcal L=\tfrac12\big[(0.9-0.998)^2+(0.2-0.622)^2\big]=\tfrac12\,[0.0097+0.1785]\approx0.094$.</li>
+</ol>
+<p>(The lecture's slide shows ≈0.099; working it out gives 0.094. Either way it's far from 0, which a perfect fit would give.) Now any $(w,b)$ gets a number, and we can try to push it towards zero.</p>
+
+<h2>4 · The guesswork algorithm</h2>
+<p>Try values, look at the loss, adjust. The lecture's sequence:</p>
+<table>
+<tr><th>$w$</th><th>$b$</th><th>$\mathcal L(w,b)$</th><th>what the guesser thinks</th></tr>
+<tr><td>0.50</td><td>0.00</td><td>0.0731</td><td>better than (3, −1)</td></tr>
+<tr><td>−0.10</td><td>0.00</td><td>0.1481</td><td>worse! maybe making $w$ negative was the problem</td></tr>
+<tr><td>0.94</td><td>−0.94</td><td>0.0217</td><td>increase $w$, make $b$ more negative: it helps</td></tr>
+<tr><td>1.42</td><td>−1.73</td><td>0.0029</td><td rowspan="3">keep going in that direction</td></tr>
+<tr><td>1.65</td><td>−2.08</td><td>0.0003</td></tr>
+<tr><td>1.78</td><td>−2.27</td><td>0.0000</td></tr>
+</table>
+<p class="small muted">Losses recomputed from the formula (the lecture quotes 0.0214 for the third row). The two middle "keep going" rows are illustrative steps along the direction the lecture describes.</p>
+<p>It is "slightly not so random": each guess uses the previous losses. But Prof. Khapra admits he reverse-engineered these numbers, knowing the answer. Truly random guessing might never end.</p>
+
+<h2>5 · Better than guessing? Plot the whole error surface</h2>
+<p>For this toy problem we can compute $\mathcal L(w,b)$ for every $(w,b)$ on a grid and plot it: a surface with a low-loss valley and high plateaus. Then just pick a point in the valley. We saw the same argument with perceptrons (<a href="L9-error-surfaces.html">L9</a>), and the same fallacy:</p>
+<ul>
+<li>it only covers a <b>finite range</b> (here $-6$ to $6$). A lower loss might sit just outside the plot;</li>
+<li>each point costs a pass over all the data, so it gets expensive as the number of data points grows;</li>
+<li>there are infinitely many $(w,b)$, and real networks have far more than two parameters.</li>
+</ul>
+<p>It's a good way to <i>see</i> what's going on, but not a way to <i>train</i>.</p>
+
+<h2>6 · What the guesses were really doing</h2>
+<p>Draw the guesses on the error surface. Without knowing it, the guesser was <b>navigating the error surface</b>, but randomly: from (3, −1) down to (0.5, 0), back <b>up</b> to (−0.1, 0), down again to (0.94, −0.94), and only then steadily down to (1.78, −2.27), where the loss is essentially zero and the curve passes through both points. Replay it below.</p>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Left: the two training points and $\sigma(wx+b)$. Right: $\mathcal L(w,b)$ over $w,b\in[-6,6]$. Stronger blue means lower loss; the bands are contour levels on a log scale. <b>Click or drag on the surface</b> to make your own guess. Each guess is added to the trail.</p>
+<div class="row"><button id="replay">Replay the lecture's guesses</button><button id="rand">Random guess</button><button id="clear">Clear trail</button></div>
+<div class="pair half"><canvas id="fit" height="300" aria-label="Two data points and the sigmoid for the current guess"></canvas><canvas id="surf" height="300" aria-label="Error surface over w and b with the trail of guesses"></canvas></div>
+<div class="legend"><span><i class="dot" style="background:var(--s2)"></i>training points</span><span><i style="background:var(--s3)"></i>σ(wx+b)</span><span><i style="background:var(--s2)"></i>trail of guesses</span><span><i class="dot" style="background:var(--s3)"></i>current guess</span></div>
+<div class="row"><div class="stat"><div class="v" id="cur">–</div><div class="l">current (w, b)</div></div><div class="stat"><div class="v" id="loss">–</div><div class="l">loss L(w, b)</div></div><div class="stat"><div class="v" id="ups">0 of 0</div><div class="l">guesses that went uphill</div></div></div>
+<p class="small" id="msg"></p>
+</div>
+
+<div class="card">
+<p style="margin-top:0"><b>How fast does brute force blow up?</b> Evaluate the loss on a grid with $k$ values per parameter, for $d$ parameters and $N$ data points. That's $k^d$ grid points, each needing a pass over $N$ examples.</p>
+<div class="row"><label>k per axis <input type="range" id="k" min="10" max="1000" step="10" value="100"> <span class="mono" id="kv"></span></label>
+<label>parameters d <input type="range" id="d" min="1" max="30" step="1" value="2"> <span class="mono" id="dv"></span></label>
+<label>data points N <input type="range" id="n" min="0" max="7" step="1" value="0"> <span class="mono" id="nv"></span></label></div>
+<div class="row"><div class="stat"><div class="v" id="ev">–</div><div class="l">example evaluations</div></div><div class="stat"><div class="v" id="tm">–</div><div class="l">at 10⁹ evaluations per second</div></div></div>
+<p class="small muted" style="margin-bottom:0">And the grid still only covers a finite box, at a finite resolution.</p>
+</div>
+
+<div class="beyond"><b>Going beyond the video.</b> With $d=2$ the grid works fine: that's how the right-hand plot above is drawn. Move $d$ to even 10 and it's hopeless. A small modern network has millions of parameters. This is why every practical method looks only at the loss <i>near</i> the current point, which is exactly where the next lectures go.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Toy setup: $f(x)=\sigma(wx+b)$, with $b$ (bias) replacing $w_0$ from here on; $\mathcal L=\frac1N\sum_i(y_i-f(x_i))^2$.</li>
+<li>"Trained" means the curve passes through (or near) the training points: $f(0.5)\approx0.2$, $f(2.5)\approx0.9$.</li>
+<li>The loss quantifies how bad a guess is, so guesses can be compared. Guesswork can reach $(1.78,-2.27)$ with loss ≈ 0, but only with luck or hindsight.</li>
+<li>Brute-force plotting of the error surface is infeasible: infinite, unbounded parameter space, and a cost that explodes with parameters and data.</li>
+<li>Guessing = randomly navigating the error surface, with uphill steps. We want a principled way to always go down.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const sig = z => 1 / (1 + Math.exp(-z));
+const DX = [0.5, 2.5], DY = [0.2, 0.9];
+const loss = (w, b) => 0.5 * ((DY[0] - sig(w * DX[0] + b)) ** 2 + (DY[1] - sig(w * DX[1] + b)) ** 2);
+const hex = c => { c = c.replace('#', ''); if (c.length === 3) c = c.split('').map(t => t + t).join(''); const v = parseInt(c, 16); return [v >> 16 & 255, v >> 8 & 255, v & 255]; };
+// Error-surface image: banded log-loss, low = dark/saturated, high = card colour
+const R = 6, G = 150; let img = null;
+function buildImage(){ const lo = hex(cssv('--s1')), hi = hex(cssv('--card')), cv = document.createElement('canvas'); cv.width = cv.height = G;
+  const c = cv.getContext('2d'), id = c.createImageData(G, G), L0 = Math.log10(2e-4), L1 = Math.log10(0.75);
+  for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) { const w = -R + 2 * R * (i + 0.5) / G, b = R - 2 * R * (j + 0.5) / G;
+    let t = (Math.log10(loss(w, b) + 2e-4) - L0) / (L1 - L0); t = Math.max(0, Math.min(1, t)); t = Math.floor(t * 9) / 9; const s = 1 - t, k = 4 * (j * G + i);
+    for (let q = 0; q < 3; q++) id.data[k + q] = hi[q] + (lo[q] - hi[q]) * s * 0.85; id.data[k + 3] = 255; }
+  c.putImageData(id, 0, 0); img = cv; }
+let w = 3, b = -1, trail = [[3, -1]], msg = 'Start: (w, b) = (3, −1). The curve misses both points.', timer = null;
+function geom(W, H){ const S = Math.min(W, H) - 30, ox = (W - S) / 2 + 10, oy = 6; return {S, ox, oy, px: v => ox + (v + R) / (2 * R) * S, py: v => oy + (R - v) / (2 * R) * S}; }
+function draw(){
+  if (!img) buildImage();
+  let [ctx, W, H] = setupCanvas($('fit')); const pad = 28, X0 = -1, X1 = 4, sx = x => pad + (x - X0) / (X1 - X0) * (W - 2 * pad), sy = y => H - pad - y * (H - 2 * pad);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); [0, 0.5, 1].forEach(v => { ctx.moveTo(pad, sy(v)); ctx.lineTo(W - pad, sy(v)); }); ctx.moveTo(sx(0), sy(0)); ctx.lineTo(sx(0), sy(1)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; [0, 0.5, 1].forEach(v => ctx.fillText(v, 4, sy(v) + 4)); [0, 1, 2, 3].forEach(v => ctx.fillText(v, sx(v) - 3, H - 10));
+  ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let k = 0; k <= 200; k++) { const x = X0 + (X1 - X0) * k / 200, y = sig(w * x + b); k ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y)); } ctx.stroke();
+  DX.forEach((x, i) => { const f = sig(w * x + b); ctx.strokeStyle = cssv('--faint'); ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(sx(x), sy(DY[i])); ctx.lineTo(sx(x), sy(f)); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(sx(x), sy(DY[i]), 6, 0, 7); ctx.fill(); });
+  [ctx, W, H] = setupCanvas($('surf')); const g = geom(W, H);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(img, g.ox, g.oy, g.S, g.S);
+  ctx.strokeStyle = cssv('--muted'); ctx.lineWidth = 1; ctx.strokeRect(g.ox, g.oy, g.S, g.S);
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('w →', g.ox + g.S - 24, g.oy + g.S + 14); ctx.fillText('−6', g.ox - 2, g.oy + g.S + 14); ctx.fillText('6', g.ox + g.S - 34, g.oy + g.S + 14);
+  ctx.save(); ctx.translate(g.ox - 4, g.oy + 30); ctx.rotate(-Math.PI / 2); ctx.fillText('b →', 0, 0); ctx.restore();
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); trail.forEach((p, i) => i ? ctx.lineTo(g.px(p[0]), g.py(p[1])) : ctx.moveTo(g.px(p[0]), g.py(p[1]))); ctx.stroke();
+  trail.forEach(p => { ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(g.px(p[0]), g.py(p[1]), 3.5, 0, 7); ctx.fill(); });
+  ctx.fillStyle = cssv('--s3'); ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(g.px(w), g.py(b), 6.5, 0, 7); ctx.fill(); ctx.stroke();
+  $('cur').textContent = `(${w.toFixed(2)}, ${b.toFixed(2)})`; $('loss').textContent = loss(w, b).toFixed(4); const ups = trail.slice(1).filter((p, i) => loss(p[0], p[1]) > loss(trail[i][0], trail[i][1])).length; $('ups').textContent = `${ups} of ${trail.length - 1}`; $('msg').innerHTML = msg;
+}
+function guess(nw, nb, text){ const before = loss(w, b); w = nw; b = nb; trail.push([w, b]); const after = loss(w, b);
+  msg = (text ? text + ' ' : '') + (after > before ? `<b>Uphill:</b> loss rose from ${before.toFixed(4)} to ${after.toFixed(4)}.` : `Loss fell from ${before.toFixed(4)} to ${after.toFixed(4)}.`); draw(); }
+const LEC = [[0.5, 0, 'Jump to (0.5, 0).'], [-0.1, 0, 'Try (−0.1, 0).'], [0.94, -0.94, 'Maybe negative w was the problem: (0.94, −0.94).'], [1.42, -1.73, 'Keep increasing w, decreasing b.'], [1.65, -2.08, 'Same direction again.'], [1.78, -2.27, 'Arrive at (1.78, −2.27): both points on the curve.']];
+$('replay').onclick = () => { clearInterval(timer); w = 3; b = -1; trail = [[3, -1]]; msg = 'Start at (3, −1), loss ≈ 0.094.'; draw(); let k = 0;
+  timer = setInterval(() => { if (k >= LEC.length) { clearInterval(timer); return; } const [a, c, t] = LEC[k++]; guess(a, c, t); }, 1100); };
+$('rand').onclick = () => { clearInterval(timer); guess(Math.round((Math.random() * 12 - 6) * 100) / 100, Math.round((Math.random() * 12 - 6) * 100) / 100, 'A random guess.'); };
+$('clear').onclick = () => { clearInterval(timer); trail = [[w, b]]; msg = 'Trail cleared.'; draw(); };
+let dragging = false;
+function pick(e, add){ const cv = $('surf'), r = cv.getBoundingClientRect(), g = geom(r.width, +cv.dataset.h || 300);
+  const nw = Math.max(-R, Math.min(R, ((e.clientX - r.left) - g.ox) / g.S * 2 * R - R)), nb = Math.max(-R, Math.min(R, R - ((e.clientY - r.top) - g.oy) / g.S * 2 * R));
+  if (add) guess(nw, nb, 'Your guess.'); else { w = nw; b = nb; trail[trail.length - 1] = [w, b]; msg = 'Dragging: release to keep this guess.'; draw(); } }
+$('surf').addEventListener('pointerdown', e => { clearInterval(timer); dragging = true; pick(e, true); });
+$('surf').addEventListener('pointermove', e => { if (dragging) pick(e, false); });
+window.addEventListener('pointerup', () => { if (dragging) { dragging = false; msg = `Guess kept at (${w.toFixed(2)}, ${b.toFixed(2)}), loss ${loss(w, b).toFixed(4)}.`; draw(); } });
+// brute-force cost
+const fmtLog = l => { if (l < 6) return Math.round(10 ** l).toLocaleString('en'); const e = Math.floor(l); return (10 ** (l - e)).toFixed(1) + ' × 10' + String(e).split('').map(c => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+c]).join(''); };
+function cost(){ const k = +$('k').value, d = +$('d').value, N = 10 ** +$('n').value; $('kv').textContent = k; $('dv').textContent = d; $('nv').textContent = N.toLocaleString('en');
+  const l = d * Math.log10(k) + Math.log10(N); $('ev').textContent = fmtLog(l);
+  const s = l - 9; let t; if (s < 0) t = 'under a second'; else if (s < Math.log10(3600)) t = Math.round(10 ** s) + ' s'; else if (s < Math.log10(86400 * 365)) t = (10 ** s / 86400).toFixed(1) + ' days'; else { const yl = s - Math.log10(86400 * 365); t = fmtLog(yl) + ' years'; }
+  $('tm').textContent = t; }
+['k', 'd', 'n'].forEach(id => $(id).addEventListener('input', cost));
+cost();
+const redraw = () => { img = null; draw(); };
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+draw();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

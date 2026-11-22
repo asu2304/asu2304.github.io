@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Output and Loss Functions</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 24 · playlist video 24 (titled “L21” on YouTube) · Feedforward networks and backpropagation</div>
+<h1>Choosing the Output Function and the Loss</h1>
+<p class="lede">The output function and the loss go together, and both depend on the problem. For <b>regression</b> (real-valued outputs), use a linear output, so predictions aren't trapped in $(0,1)$, with the squared error loss. For <b>classification</b>, use a softmax output so the prediction is a probability distribution, with the cross-entropy loss, which reduces to $-\log$ of the probability given to the true class.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=1hefEWZHvJg" target="_blank" rel="noopener">this lecture on YouTube</a> (≈25 min). Previous: <a href="L23-learning-parameters-intuition.html">L23</a> · Next: <a href="L25-backpropagation-intuition.html">L25</a> (backpropagation, the intuition).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The loss depends on the problem</h2>
+<p>To run gradient descent (<a href="L23-learning-parameters-intuition.html">L23</a>) we need a loss to differentiate, and the right loss depends on what the network outputs, i.e. on the output function $O$ in $\hat y=O(a_L)$ (<a href="L22-feedforward-networks.html">L22</a>). Two problem types cover around 90% of what you'll meet: <b>regression</b> and <b>classification</b>.</p>
+
+<h2>2 · Regression: predicting movie ratings</h2>
+<p>Input: an $n$-dimensional description of a movie (director, actors, …). Output: <b>three</b> ratings, IMDb, critics and Rotten Tomatoes, so $y\in\mathbb R^3$ ($k=3$). Outputs need not be one number. The loss should measure how far the predicted vector is from the true one: the <b>mean squared error</b>,</p>
+$$\mathcal L(\theta)=\frac1N\sum_{i=1}^{N}\sum_{j=1}^{3}\left(\hat y_{ij}-y_{ij}\right)^2 .$$
+<p><b>Which output function?</b> Could $O$ be the logistic function, applied element-wise, $\hat y_j=\sigma(a_{Lj})$? No: the logistic function <b>clamps every output into $(0,1)$</b>, while ratings live on a scale of 0–10, or 0–100. Whatever the network does, it can never say "9.5".</p>
+<p>Use a <b>linear</b> output instead: a linear transformation of $a_L$ (a weight matrix and a bias, here $3\times3$ and $3$), which is unbounded because nothing in it is bounded.</p>
+<p><b>But then what stops it from predicting 1000?</b> The loss. If the true rating is 9.5 and the network says 1000, the term $(9.5-1000)^2$ is huge; gradient descent reads that as "this parameter configuration is bad" and pushes away from it. The only way to make the loss small is to predict values in the natural range. With a sigmoid output, the loss would send the same signal, but no setting of $W_1,W_2,W_3,b_1,b_2,b_3$ could ever produce more than 1.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Test the claim for one output. The true rating is $y$; the final pre-activation is $a$. Plotted: the squared loss as a function of $a$ for a sigmoid output $\sigma(a)$ and a linear output $a$.</p>
+  <div class="row"><label>true rating $y$ <input type="range" id="ry" min="0" max="10" step="0.1" value="9.5"> <span id="ryv" class="mono"></span></label>
+    <label>pre-activation $a$ <input type="range" id="ra" min="-4" max="14" step="0.05" value="2"> <span id="rav" class="mono"></span></label></div>
+  <canvas id="rc" height="250" aria-label="Squared loss against pre-activation for sigmoid and linear outputs"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>loss with sigmoid output</span><span><i style="background:var(--s1)"></i>loss with linear output</span></div>
+  <div class="row"><div class="stat"><div class="v" id="rs">–</div><div class="l">sigmoid: $\hat y$ / loss</div></div><div class="stat"><div class="v" id="rl">–</div><div class="l">linear: $\hat y$ / loss</div></div><div class="stat"><div class="v" id="rf">–</div><div class="l">best possible loss with sigmoid</div></div></div>
+</div>
+
+<h2>3 · Classification: what should come out?</h2>
+<p>(The lecture relies on a separate preparation video on information content, entropy and cross entropy; watch it first if those are new.) Classify an image into one of four classes: apple, banana, mango, orange. Think of the label as a random variable $y$ with four values. The true label tells us its distribution with certainty: for an apple image, $y=[1,0,0,0]$. The network predicts some distribution, say $\hat y=[0.2,0.3,0.4,0.1]$. Two problems:</p>
+<ol class="steps">
+<li>The true output is a probability distribution, so the <b>predicted output must be one too</b>: every entry in $[0,1]$, summing to 1. Which output function guarantees that?</li>
+<li>Given two distributions, which <b>loss</b> measures the difference? Squared error would work (treat them as plain vectors), but since they are probabilities, probability theory offers something better.</li>
+</ol>
+
+<h2>4 · The softmax output function</h2>
+$$\hat y_j=O(a_L)_j=\frac{e^{a_{L,j}}}{\sum_{i=1}^{k}e^{a_{L,i}}}$$
+<p>Worked example from the lecture: $a_L=[-10,\ 10,\ 20,\ 30]$, clearly not a distribution (negative entries, entries above 1). Softmax gives</p>
+$$\hat y=\left[\frac{e^{-10}}{Z},\ \frac{e^{10}}{Z},\ \frac{e^{20}}{Z},\ \frac{e^{30}}{Z}\right],\qquad Z=e^{-10}+e^{10}+e^{20}+e^{30}.$$
+<ul>
+<li><b>Every entry is positive</b>, because $e^{\text{anything}}&gt;0$, even $e^{-10}=1/e^{10}$.</li>
+<li><b>They sum to 1</b>, because the denominator is the sum of the numerators.</li>
+<li>Positive and summing to 1 forces each into $(0,1)$. A valid distribution.</li>
+</ul>
+<p><b>Why the exponential?</b> Why not just $a_{L,j}/\sum_i a_{L,i}$? Because negative scores would give negative "probabilities": here $-10/(-10+10+20+30)=-0.2$. Exponentiating first makes everything positive.</p>
+
+<h2>5 · The cross-entropy loss</h2>
+$$\mathcal L(\theta)=-\sum_{c=1}^{k}y_c\log\hat y_c$$
+<p>(where this formula comes from is the topic of the preparation video). Since $y$ is one-hot, $y_c=1$ only for the true class $c=\ell$ and 0 otherwise, so every term but one vanishes:</p>
+<ol class="steps">
+<li>Write the sum out: $$\mathcal L(\theta)=-\big(y_1\log\hat y_1+\dots+y_\ell\log\hat y_\ell+\dots+y_k\log\hat y_k\big)$$</li>
+<li>$=-\,y_\ell\log\hat y_\ell$, all other $y_c$ being 0</li>
+<li>$=-\log\hat y_\ell$, since $y_\ell=1$.</li>
+</ol>
+<div class="callout">$$\mathcal L(\theta)=-\log\hat y_\ell$$ the negative log of the predicted probability of the true class, the <b>negative log-likelihood</b>. Minimising it is the same as maximising the log-likelihood of the correct class: we want $\hat y_\ell$ as close to 1 as possible.</div>
+<p>Is $\hat y_\ell$ a function of the parameters? Of course: $x$ goes through every layer, the output function produces the vector $\hat y$, and we pick its $\ell$-th entry. So the loss depends on all of $W_1,\dots,W_L,b_1,\dots,b_L$, and what remains is computing its derivatives (<a href="L25-backpropagation-intuition.html">L25</a> onwards).</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Softmax and cross entropy for the four-fruit example. Drag the pre-activations $a_L$, pick the true class, and compare softmax with naive normalisation $a_j/\sum_i a_i$.</p>
+  <div id="sl"></div>
+  <div class="row"><label>true class <select id="cls"><option value="0">apple</option><option value="1">banana</option><option value="2">mango</option><option value="3">orange</option></select></label>
+    <button id="ex">Lecture example: −10, 10, 20, 30</button><button id="ex2">Undecided: all 0</button></div>
+  <canvas id="bc" height="230" aria-label="Bar chart of softmax probabilities and naive normalisation"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s1)"></i>softmax $\hat y$</span><span><i class="dot" style="background:var(--s2)"></i>naive $a_j/\sum a_i$</span><span><i class="dot" style="background:var(--s3)"></i>true $y$ (one-hot)</span></div>
+  <div class="row"><div class="stat"><div class="v" id="ce">–</div><div class="l">cross entropy $-\log\hat y_\ell$</div></div><div class="stat"><div class="v" id="se">–</div><div class="l">squared error $\sum(\hat y_c-y_c)^2$</div></div><div class="stat"><div class="v" id="ss">–</div><div class="l">sum of softmax outputs</div></div></div>
+  <p class="small" id="bTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> (1) Try a confidently wrong prediction: cross entropy grows without bound as $\hat y_\ell\to0$, while squared error can never exceed 2, so cross entropy punishes confident mistakes much harder. (2) Subtracting the same constant from every $a_{L,j}$ leaves softmax unchanged; code uses this (subtract $\max_j a_{L,j}$) so that $e^{30}$ or $e^{1000}$ never overflows. (3) A linear output after $a_L=W_Lh_{L-1}+b_L$ is usually taken as the identity, $\hat y=a_L$, since a linear map of a linear map is still linear. My ML notes discuss logistic loss vs other classification losses in <a href="../machine-learning/L69-classification-losses.html">ML L69</a>.</div>
+
+<h2>6 · Summary</h2>
+<table>
+<tr><th></th><th>Outputs</th><th>Output function $O$</th><th>Loss</th></tr>
+<tr><td><b>Regression</b></td><td>real values</td><td>linear</td><td>squared error</td></tr>
+<tr><td><b>Classification</b></td><td>probabilities</td><td>softmax</td><td>cross entropy</td></tr>
+</table>
+<p>Other losses exist, but these two (or variants) handle the vast majority of problems. From here on the course derives backpropagation for <b>softmax + cross entropy</b>; the regression case needs only a small tweak.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Choose the output function and loss together, according to the problem: regression or classification.</li>
+<li>Regression: a linear output, because a sigmoid would cap predictions at 1; the squared error keeps predictions in the natural range.</li>
+<li>Softmax $e^{a_{L,j}}/\sum_ie^{a_{L,i}}$ turns any score vector into a distribution; the exponential removes negative values.</li>
+<li>With a one-hot target, cross entropy is $-\log\hat y_\ell$: the negative log-likelihood of the true class.</li>
+<li>The coming backprop derivation uses softmax + cross entropy.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const sig = z => 1 / (1 + Math.exp(-z));
+const fmt = (v, d = 2) => (Math.abs(v) < 0.5 * Math.pow(10, -d) ? 0 : v).toFixed(d);
+// ---------- regression: sigmoid vs linear output ----------
+function drawR(){ const y = +$('ry').value, a = +$('ra').value; $('ryv').textContent = y.toFixed(1); $('rav').textContent = a.toFixed(2);
+  const [ctx, W, H] = setupCanvas($('rc')), p = 26, a0 = -4, a1 = 14, Lmax = 110;
+  const X = v => p + (v - a0) / (a1 - a0) * (W - 2 * p), Y = v => H - p - Math.min(Lmax, v) / Lmax * (H - 2 * p);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(p, Y(0)); ctx.lineTo(W - p, Y(0)); ctx.moveTo(X(0), p); ctx.lineTo(X(0), H - p); ctx.stroke();
+  ctx.fillStyle = cssv('--faint'); ctx.font = '11px system-ui'; ctx.fillText('a', W - p + 6, Y(0) + 4); ctx.fillText('loss', X(0) + 4, p + 2);
+  const fl = (y - 1) ** 2; ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--s2'); ctx.beginPath(); ctx.moveTo(p, Y(fl)); ctx.lineTo(W - p, Y(fl)); ctx.stroke(); ctx.setLineDash([]);
+  [[t => (sig(t) - y) ** 2, '--s2'], [t => (t - y) ** 2, '--s1']].forEach(([fn, c]) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = 2.5; ctx.beginPath();
+    for (let i = 0; i <= 300; i++){ const t = a0 + (a1 - a0) * i / 300; i ? ctx.lineTo(X(t), Y(fn(t))) : ctx.moveTo(X(t), Y(fn(t))); } ctx.stroke();
+    ctx.fillStyle = cssv(c); ctx.beginPath(); ctx.arc(X(a), Y(fn(a)), 5, 0, 7); ctx.fill(); });
+  const s = sig(a); $('rs').textContent = s.toFixed(2) + ' / ' + ((s - y) ** 2).toFixed(2); $('rl').textContent = a.toFixed(2) + ' / ' + ((a - y) ** 2).toFixed(2);
+  $('rf').textContent = y >= 1 ? fl.toFixed(2) + ' (never 0)' : '≈ 0';
+}
+['ry', 'ra'].forEach(id => $(id).addEventListener('input', drawR));
+
+// ---------- softmax and cross entropy ----------
+const names = ['apple', 'banana', 'mango', 'orange'];
+names.forEach((nm, j) => { const r = document.createElement('div'); r.className = 'row'; r.style.margin = '4px 0';
+  r.innerHTML = `<label style="min-width:70px">a<sub>L,${j + 1}</sub> ${nm}</label><input type="range" id="a${j}" min="-10" max="30" step="0.1" value="${[2, 1, 0.5, -1][j]}"> <span class="mono" id="a${j}v"></span>`;
+  $('sl').appendChild(r); $('a' + j).addEventListener('input', drawB); });
+function drawB(){ const a = names.map((_, j) => +$('a' + j).value), l = +$('cls').value; names.forEach((_, j) => $('a' + j + 'v').textContent = a[j].toFixed(1));
+  const m = Math.max(...a), e = a.map(t => Math.exp(t - m)), Z = e.reduce((p, q) => p + q, 0), yh = e.map(t => t / Z);
+  const sa = a.reduce((p, q) => p + q, 0), nv = a.map(t => Math.abs(sa) < 1e-9 ? NaN : t / sa);
+  const [ctx, W, H] = setupCanvas($('bc')), p = 22, lo = -1, hi = 1.2, Y = v => H - p - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (H - 2 * p - 10);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); [0, 1].forEach(v => { ctx.moveTo(p, Y(v)); ctx.lineTo(W - 4, Y(v)); }); ctx.stroke();
+  ctx.fillStyle = cssv('--faint'); ctx.font = '11px system-ui'; ctx.fillText('0', 4, Y(0) + 4); ctx.fillText('1', 4, Y(1) + 4);
+  const gw = (W - p - 8) / 4, bw = Math.min(26, gw / 4);
+  names.forEach((nm, j) => { const x0 = p + j * gw + gw / 2 - 1.5 * bw;
+    [[yh[j], '--s1'], [nv[j], '--s2'], [j === l ? 1 : 0, '--s3']].forEach(([v, c], k) => { if (!isFinite(v)) return; ctx.fillStyle = cssv(c); const y0 = Y(0), y1 = Y(v); ctx.fillRect(x0 + k * bw, Math.min(y0, y1), bw - 3, Math.max(1, Math.abs(y1 - y0))); });
+    ctx.fillStyle = cssv(j === l ? '--ink' : '--muted'); ctx.font = (j === l ? '600 ' : '') + '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText(nm, p + j * gw + gw / 2, H - 4); ctx.textAlign = 'left'; });
+  const ce = -Math.log(Math.max(1e-300, yh[l])), se = yh.reduce((s, v, c) => s + (v - (c === l ? 1 : 0)) ** 2, 0);
+  $('ce').textContent = ce > 1e3 ? ce.toExponential(2) : ce.toFixed(3); $('se').textContent = se.toFixed(3); $('ss').textContent = yh.reduce((p, q) => p + q, 0).toFixed(3);
+  const neg = nv.some(v => v < 0) || !isFinite(sa) || Math.abs(sa) < 1e-9;
+  $('bTxt').innerHTML = `Softmax: [${yh.map(v => v < 1e-3 && v > 0 ? v.toExponential(1) : v.toFixed(3)).join(', ')}]. ` +
+    (neg ? '<b>Naive normalisation fails here</b>: ' + (Math.abs(sa) < 1e-9 ? 'the scores sum to 0, so it divides by zero.' : 'it gives negative (or above-1) "probabilities".') : 'Naive normalisation happens to be valid here (all scores positive), but it breaks as soon as a score goes negative.') +
+    ` The true class gets ŷ = ${yh[l] < 1e-3 ? yh[l].toExponential(2) : yh[l].toFixed(3)}, so the loss is −log ŷ = ${$('ce').textContent}.`;
+}
+$('cls').addEventListener('change', drawB);
+$('ex').onclick = () => { [-10, 10, 20, 30].forEach((v, j) => $('a' + j).value = v); drawB(); };
+$('ex2').onclick = () => { [0, 0, 0, 0].forEach((v, j) => $('a' + j).value = v); drawB(); };
+function redrawAll(){ drawR(); drawB(); }
+
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

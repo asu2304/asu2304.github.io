@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Maxout: Letting the Strongest Unit Specialize</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 60 · playlist video 60 (titled “L62” on YouTube) · activation functions</div>
+<h1>Maxout: Letting the Strongest Unit Specialize</h1>
+<p class="lede">In bagging, each model gets to overfit its own bucket of data. In dropout, each sub-network is sampled so rarely that it never gets the chance to specialize. Maxout restores some of that: compute several affine functions of the input and pass on only the largest, so the gradient flows only to the unit that responded most strongly. The result also generalizes ReLU and its variants.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=oW7ZBLss2L0" target="_blank" rel="noopener">this lecture on YouTube</a> (≈20 min). Previous: <a href="L59-better-activations.html">L59</a> · Next: <a href="L61-gelu-silu.html">L61</a> (GELU to SiLU).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<p><b>So far</b> (<a href="L59-better-activations.html">L59</a>): tanh beat sigmoid because it is zero-centred; ReLU beat both because it is cheap and doesn't saturate for positive inputs; the ReLU variants let some gradient flow for negative inputs. Three or four more activation functions remain, starting with <b>Maxout</b>, which he motivates through an analogy with dropout.</p>
+
+<h2>1 · Recap: model averaging lets each model overfit its bucket</h2>
+<p>Bagging (<a href="L53-ensembles.html">L53</a>): from a dataset of 1000 points, build a new dataset of 1000 by <b>sampling with replacement</b>. Pick a random example, copy it into the bucket, leave the original in place, and repeat until the bucket holds 1000. Do this $K$ times and train model $k$ (all its parameters together called $W_k$) on bucket $k$.</p>
+<ul>
+<li>Each bucket contains many <b>duplicates</b> (he quotes roughly half of the samples).</li>
+<li>So each model sees the same examples again and again, and gets to <b>overfit its own bucket</b>.</li>
+<li>At inference, combine the $K$ predictions: arithmetic mean, geometric mean, max or voting.</li>
+</ul>
+<div class="beyond"><b>Going beyond the video: how many duplicates?</b> The chance a given point is never picked in $n$ draws is $(1-1/n)^n\approx e^{-1}\approx0.368$. So a bootstrap bucket contains only about <b>63%</b> of the distinct original points, and about 37% of its entries are repeats. See my ML note on <a href="../machine-learning/L67-bagging.html">bagging</a>.</div>
+
+<h2>2 · The gap in dropout</h2>
+<p><a href="L54-dropout.html">Dropout</a> was the cheap substitute for training many models. But there is a difference:</p>
+<table>
+<tr><th></th><th>Bagging</th><th>Dropout</th></tr>
+<tr><td>Number of models</td><td>$K$, each trained fully</td><td>Exponentially many sub-networks, sharing weights</td></tr>
+<tr><td>How often a model sees a sample</td><td>Many times (duplicates, many epochs)</td><td>A given sub-network is sampled so rarely it may not see a sample even once</td></tr>
+<tr><td>Specialization</td><td>Each model overfits its bucket</td><td>No sub-network gets to specialize</td></tr>
+</table>
+<p>Could we make a <b>larger update</b> whenever a sub-network does see a sample? Raising the learning rate is risky in general, and because parameters are <b>shared</b> across sub-networks, a big step for one disturbs all the others. At inference, dropout scales each neuron by $p$, effectively assuming all neurons were equally on and equally sensitive to all examples. Can we close this gap?</p>
+
+<h2>3 · From dropout to max</h2>
+<p>Hidden layer $h_{11},\dots,h_{14}$ with a dropout mask: say only $h_{11}$ and $h_{14}$ are on. Then</p>
+$$a_{21}=w_{11}h_{11}+w_{14}h_{14},\qquad a_{22}=w_{21}h_{11}+w_{24}h_{14}.$$
+<p>Suppose both are positive (ReLU, so neither is dead) and $0&lt;a_{21}&lt;a_{22}$. Then neuron 22 is <b>reacting more strongly</b> to this training example (like an MP neuron firing harder for a certain input pattern). We would like to respect that preference: let neuron 22 specialize for this example and leave neuron 21, which showed little interest, alone. Take the max:</p>
+$$h_{21}=\max(a_{21},a_{22})=a_{22}\quad\Rightarrow\quad \frac{\partial h_{21}}{\partial a_{22}}=1,\qquad \frac{\partial h_{21}}{\partial a_{21}}=0 .$$
+<div class="callout">The gradient flows <b>only to the winner</b>. Different units end up adapted to different training examples, which is the specialization model averaging enjoyed.</div>
+<p>$a_{21}$ and $a_{22}$ are two linear (really <b>affine</b>, since a bias can be added) transformations of the same input, and we keep the larger. Nothing restricts us to two:</p>
+$$h=\max_{i=1,\dots,k}\big(w_i^\top x+b_i\big).$$
+<p>Comparing what happens in a layer:</p>
+<ul>
+<li><b>Dropout:</b> nodes are either dropped (no part in the computation) or kept. Every kept node gets gradient, strong or weak responder alike, so none specializes on this input. At inference all participate with equal weight.</li>
+<li><b>Maxout:</b> one maxout neuron holds $k$ affine units $w_1^\top x,\ w_2^\top x,\ w_3^\top x$; only the max passes forward. The other two are effectively dropped as well: among the units that take part, <b>only the strongest is active</b>.</li>
+</ul>
+
+<h2>4 · Maxout generalizes ReLU, and more</h2>
+<table>
+<tr><th>Pieces inside one maxout neuron</th><th>Result</th></tr>
+<tr><td>$0\cdot x+0$ and $1\cdot x+0$</td><td>$\max(0,x)$ = <b>ReLU</b></td></tr>
+<tr><td>$0.1x$ and $x$</td><td>$\max(0.1x,x)$ = <b>leaky ReLU</b> (learn the slope and it's PReLU)</td></tr>
+<tr><td>$0.5x$ and $-0.5x$</td><td>a <b>V shape</b>, $0.5\lvert x\rvert$: the absolute value</td></tr>
+<tr><td>4 suitably chosen lines</td><td>a piecewise-linear approximation of $x^2$</td></tr>
+</table>
+<p>(The transcript's version of leaky ReLU, "max of 0 and 0.1x", is garbled; the formula above is the one that makes sense.)</p>
+<ul>
+<li><b>No saturation, no death:</b> the max always passes through some affine piece, so gradient always flows.</li>
+<li><b>Cost:</b> parameters grow in proportion to $k$.</li>
+<li><b>Power:</b> there is a proof that <b>two</b> maxout neurons, each with enough affine pieces, form a <b>universal approximator</b>.</li>
+</ul>
+<p>Despite all this, maxout <b>isn't very popular</b>: its special cases, ReLU and its variants, are used far more. It is still worth knowing for the dropout analogy, for seeing how it generalizes ReLU, and for the two-neuron universality.</p>
+
+<h2>5 · Try it: a maxout neuron with $k$ pieces</h2>
+<p>Load a preset from the table, or train $k$ affine pieces (thin lines) to fit a target. The neuron's output is their upper envelope (thick). The coloured strip under the plot shows which piece wins at each $x$: that piece, and only that piece, receives the gradient for those inputs.</p>
+<div class="card">
+  <div class="row"><span class="small muted">Presets:</span><button data-p="relu">ReLU</button><button data-p="leaky">leaky ReLU</button><button data-p="abs">|x| (0.5x, −0.5x)</button><button data-p="sq">x² (4 lines)</button></div>
+  <div class="row"><span class="small muted">Train to fit:</span>
+    <label><select id="mxT"><option value="sq">x²</option><option value="abs">|x|</option><option value="sin">sin(2x) (not convex)</option><option value="relu">ReLU</option></select></label>
+    <label>pieces $k$ <input type="range" id="mxK" min="1" max="8" step="1" value="4"> <b id="mxKv"></b></label>
+    <button id="mxRun">Train</button></div>
+  <div class="row"><label>probe input $x$ <input type="range" id="mxX" min="-2" max="2" step="0.02" value="0.7"> <b id="mxXv"></b></label></div>
+  <canvas id="mxc" height="320" aria-label="Affine pieces of a maxout neuron and their upper envelope"></canvas>
+  <div class="row"><div class="stat"><div class="v" id="mxOut">–</div><div class="l">output $h(x)$ at the probe</div></div><div class="stat"><div class="v" id="mxWin">–</div><div class="l">piece receiving the gradient</div></div><div class="stat"><div class="v" id="mxL">–</div><div class="l">fit error (MSE)</div></div></div>
+  <p class="small" id="mxTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> Maxout is from Goodfellow et al. (2013), designed as a companion to dropout. A single maxout unit is always <b>convex</b> (a max of lines), so it cannot fit $\sin(2x)$ above however large $k$ is. The universality result uses the <b>difference</b> of two maxout units, because any continuous function can be approximated by a difference of two convex piecewise-linear ones. Also note that a piece which never wins anywhere gets no gradient at all: the unit as a whole can't die, but individual pieces can sit idle.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Bagging lets each model overfit its own bucket; dropout's rarely-sampled, weight-sharing sub-networks never get to specialize.</li>
+<li>Maxout passes on $\max_i(w_i^\top x+b_i)$; the gradient reaches only the winning affine unit, so units specialize on the inputs they respond to most.</li>
+<li>ReLU, leaky ReLU and PReLU are maxout with two pieces; more pieces give $\lvert x\rvert$, approximations of $x^2$, and so on.</li>
+<li>No saturation and no dead units, at the cost of $k$ times the parameters; two maxout neurons with enough pieces are universal approximators.</li>
+<li>Still, ReLU and its variants are far more popular in practice.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const PAL = ['--s1', '--s2', '--s3', '--lv1', '--lv2', '--lv0', '--lv3', '--muted'];
+const TGT = {sq: x => x * x, abs: x => Math.abs(x), sin: x => Math.sin(2 * x), relu: x => Math.max(0, x)};
+const XS = Array.from({length: 81}, (_, i) => -2 + i * 0.05);
+let pieces = [], target = null, running = false, msg = '';
+const PRE = {relu: [[0, 0], [1, 0]], leaky: [[0.1, 0], [1, 0]], abs: [[0.5, 0], [-0.5, 0]], sq: [[-3, -2.25], [-1, -0.25], [1, -0.25], [3, -2.25]]};
+const PREMSG = {relu: 'max(0·x + 0, 1·x + 0) is exactly ReLU.', leaky: 'max(0.1x, x) is leaky ReLU; make 0.1 learnable and it is PReLU.', abs: 'max(0.5x, −0.5x) = 0.5|x|: the V shape from the lecture.',
+  sq: 'Four tangent lines of x² (at x = ±0.5, ±1.5); their max hugs the parabola.'};
+const hOf = x => { let b = -1e9, i0 = 0; pieces.forEach((p, i) => { const v = p[0] * x + p[1]; if (v > b) { b = v; i0 = i; } }); return [b, i0]; };
+const mse = () => target ? XS.reduce((s, x) => s + (hOf(x)[0] - target(x)) ** 2, 0) / XS.length : null;
+function draw(){
+  const k = +$('mxK').value, px = +$('mxX').value; $('mxKv').textContent = k; $('mxXv').textContent = px.toFixed(2);
+  const [ctx, W, H] = setupCanvas($('mxc')), x0 = -2, x1 = 2, y0 = -1.5, y1 = 4.2, strip = 16, pb = 34;
+  const X = v => 10 + (W - 20) * (v - x0) / (x1 - x0), Y = v => (H - pb) * (1 - (v - y0) / (y1 - y0));
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(x0), Y(0)); ctx.lineTo(X(x1), Y(0)); ctx.moveTo(X(0), 0); ctx.lineTo(X(0), H - pb); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; [-2, -1, 1, 2].forEach(t => ctx.fillText(t, X(t) - 4, Y(0) + 13));
+  if (target) { ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 6; ctx.globalAlpha = 0.5; ctx.beginPath(); XS.forEach((x, i) => i ? ctx.lineTo(X(x), Y(target(x))) : ctx.moveTo(X(x), Y(target(x)))); ctx.stroke(); ctx.globalAlpha = 1; }
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H - pb); ctx.clip();
+  pieces.forEach((p, i) => { ctx.strokeStyle = cssv(PAL[i % PAL.length]); ctx.lineWidth = 1.2; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(X(x0), Y(p[0] * x0 + p[1])); ctx.lineTo(X(x1), Y(p[0] * x1 + p[1])); ctx.stroke(); });
+  ctx.setLineDash([]);
+  let prev = null; for (let s = 0; s <= 400; s++) { const x = x0 + (x1 - x0) * s / 400, [v, i] = hOf(x);
+    if (prev) { ctx.strokeStyle = cssv(PAL[i % PAL.length]); ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(X(prev[0]), Y(prev[1])); ctx.lineTo(X(x), Y(v)); ctx.stroke(); } prev = [x, v]; }
+  ctx.restore();
+  for (let s = 0; s < 200; s++) { const x = x0 + (x1 - x0) * (s + 0.5) / 200, i = hOf(x)[1]; ctx.fillStyle = cssv(PAL[i % PAL.length]); ctx.fillRect(X(x0) + (W - 20) * s / 200, H - strip - 2, (W - 20) / 200 + 1, strip); }
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('winning piece (gets the gradient)', 12, H - strip - 6);
+  const [hv, wi] = hOf(px); ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(px), Y(hv), 6, 0, 7); ctx.fill();
+  $('mxOut').textContent = hv.toFixed(3); $('mxWin').innerHTML = `<span style="color:${cssv(PAL[wi % PAL.length])}">■</span> piece ${wi + 1} of ${pieces.length}`;
+  const m = mse(); $('mxL').textContent = m === null ? '–' : m.toFixed(4);
+  const idle = target ? pieces.filter((_, i) => !XS.some(x => hOf(x)[1] === i)).length : 0;
+  $('mxTxt').innerHTML = msg + (idle ? ` (${idle} piece${idle > 1 ? 's' : ''} never win on [−2, 2], so they receive no gradient.)` : '');
+}
+function preset(n){ pieces = PRE[n].map(p => p.slice()); target = TGT[n] || null; msg = PREMSG[n]; draw(); }
+document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => preset(b.dataset.p));
+function train(){ if (running) return; running = true; const k = +$('mxK').value; target = TGT[$('mxT').value];
+  pieces = Array.from({length: k}, (_, i) => { const s = k === 1 ? 0 : -2 + 4 * i / (k - 1); return [s + 0.3 * (Math.random() - 0.5), Math.random() * 0.5]; });
+  let it = 0;
+  const tick = () => { for (let s = 0; s < 40; s++, it++) { const g = pieces.map(() => [0, 0]);
+      for (const x of XS) { const [v, i] = hOf(x), e = 2 * (v - target(x)) / XS.length; g[i][0] += e * x; g[i][1] += e; }
+      pieces.forEach((p, i) => { p[0] -= 0.3 * g[i][0]; p[1] -= 0.3 * g[i][1]; }); }
+    msg = `Gradient descent, step ${it}: each point updates only the piece that wins there.`; draw();
+    if (it < 1600) requestAnimationFrame(tick); else { running = false; msg = `Done: ${k} piece${k > 1 ? 's' : ''}, MSE ${mse().toFixed(4)}.` + ($('mxT').value === 'sin' ? ' A single maxout unit is a max of lines, hence convex, so it can\'t follow the dips of sin(2x).' : ' More pieces give a finer piecewise-linear fit.'); draw(); } };
+  tick(); }
+$('mxRun').onclick = train;
+['mxK', 'mxX'].forEach(id => $(id).addEventListener('input', draw));
+preset('sq');
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

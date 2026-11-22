@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pre-training: Better Optimization or Better Regularization?</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 58 · playlist video 58 (titled “L55” on YouTube) · the deep learning revival</div>
+<h1>Pre-training: Better Optimization or Better Regularization?</h1>
+<p class="lede">Why did unsupervised pre-training make deep networks trainable? One camp showed that small-capacity networks could only drive training error to zero after pre-training: an optimization effect. Another argued that pre-training confines the weights to a region of parameter space, which is what a regularizer does. A third observation was that pre-trained networks were far less sensitive to random initialization. No lens was conclusive, but together they set the research agenda: better optimizers, regularizers, initialization and activation functions.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=n5ZP4Ek9cxE" target="_blank" rel="noopener">this lecture on YouTube</a> (≈14 min). Previous: <a href="L57-autoencoder-pretraining.html">L57</a> · Next: <a href="L59-better-activations.html">L59</a> (better activation functions).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<p>Recall from <a href="L57-autoencoder-pretraining.html">L57</a>: $\Omega(\theta)$ is the layer-wise reconstruction objective used for pre-training, and $\mathcal L(\theta)$ is the supervised loss we actually care about.</p>
+
+<h2>1 · The optimization view</h2>
+<p>The optimization problem is to minimize $\mathcal L(\theta)$ (squared error, cross-entropy, whatever) on the <b>training data</b>. The hypothesis: without pre-training this problem itself is hard and $\mathcal L(\theta)$ can't be driven to zero; with pre-training it can.</p>
+<p>The error surface of a deep network is highly <b>non-convex</b>: plateaus, valleys, very steep points that are hard to climb out of, several minima, maybe several equally good ones. A convex surface has just one minimum.</p>
+<p>Still, a deep network has <b>large capacity</b>, and the <a href="L20-representation-power-1d.html">universal approximation theorem</a> says a big enough network can reach any precision, so it should be possible to land in one of the zero-error regions. The catch: the theorem's "big enough" can mean an exponential number of neurons. Maybe a large but reasonable capacity is enough.</p>
+<h3 style="font-size:17px;margin:18px 0 4px">The experiment: grow the last layer</h3>
+<p>Researchers tested this by increasing the capacity of the <b>last layer</b>, i.e. adding many neurons just before the output. His illustration: 100 inputs, a few hidden layers of 20 neurons, then a last hidden layer of 100 neurons predicting 10 outputs. That's $20\times100$ weights into the last layer and $100\times10$ out of it. Make that layer 1000 wide and the capacity jumps.</p>
+<table>
+<tr><th>Network</th><th>Without pre-training</th><th>With pre-training</th></tr>
+<tr><td>Large capacity (wide last layer)</td><td>Training error → 0</td><td>Training error → 0</td></tr>
+<tr><td>Smaller capacity</td><td>Can't drive training error to zero</td><td>Training error → 0</td></tr>
+</table>
+<p>(On the slide this reads "even without training"; he means without <b>pre</b>-training.) So for smaller networks, pre-training makes the <b>optimization problem</b> solvable. Large networks don't need it, but they cost more to train.</p>
+<div class="callout">These were early, small-scale, empirical experiments. The lasting insight: <i>if pre-training helps optimization, then designing better optimizers should help too.</i> Pre-training is one way to optimize better; what are the others?</div>
+
+<h2>2 · The regularization view</h2>
+<p>(The slide heading says "generalization"; he corrects it to "regularization".) What does a regularizer actually do? It <b>constrains the weights to lie in certain regions of parameter space</b>:</p>
+<ul>
+<li><a href="L48-l2-regularization.html">L2</a> keeps them inside a circle (the magnitude can't grow beyond it);</li>
+<li>L1 keeps them inside a diamond;</li>
+<li><a href="L52-early-stopping.html">early stopping</a> doesn't let them grow too much.</li>
+</ul>
+<p>Pre-training does the same thing. Minimizing $\Omega(\theta)$ layer by layer puts the weights in a region where they <b>capture the characteristics of the input data</b>. Then $\mathcal L(\theta)$ is optimized <i>starting from there</i>. Most of the parameter space is never visited; you may move out of that region, but where you go is governed by where you started.</p>
+<ol class="steps">
+<li>Regularization as studied earlier minimizes the sum, <b>jointly</b>: $\ \min_\theta\ \mathcal L(\theta)+\Omega(\theta)$.</li>
+<li>Pre-training does it <b>sequentially</b>: first $\min_\theta \Omega(\theta)$, then $\min_\theta \mathcal L(\theta)$ starting from that solution.</li>
+<li>Same two ingredients, different schedule. Seen this way, pre-training acts as a regularizer.</li>
+</ol>
+
+<h2>3 · Robustness to random initialization</h2>
+<p>A third experiment: train the same network many times (say 100), each time from a different random initialization, and record the final error. Draw the spread as a box plot.</p>
+<ul>
+<li><b>Shallow networks:</b> small spread.</li>
+<li><b>Deep networks, no pre-training:</b> the error varies a lot from one initialization to the next. The outcome depends heavily on the starting point.</li>
+<li><b>Deep networks with pre-training</b> (random $W\to$ pre-trained $W_u\to$ fine-tuned): the spread is low even for deep networks.</li>
+</ul>
+<div class="callout">So <b>deep networks are sensitive to initialization</b>, and pre-training is a way to escape that. Natural next step: design better initialization methods directly. People did, and training deep networks got better again.</div>
+
+<h2>4 · A toy picture of all three views</h2>
+<p>This is a cartoon, not a neural network. The landscape is a made-up 2-parameter $\mathcal L(\theta)$ with one good zero-loss valley, two poor local minima and a high, almost flat plateau. $\Omega(\theta)$ (dashed circles) is a bowl whose minimum sits inside the good valley, playing the role of "weights that describe the input well". Run 40 random initializations each way and compare where they end up and the spread of final losses.</p>
+<div class="card">
+  <div class="row"><button id="mR" class="on">Random init → minimize 𝓛</button><button id="mP">Random init → minimize Ω → minimize 𝓛</button><button id="mJ">Random init → minimize 𝓛 + λΩ</button><button id="again">New random inits</button></div>
+  <canvas id="lc" height="320" aria-label="Contour map of a toy loss with gradient-descent paths from 40 random starts"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--faint)"></i>start</span><span><i style="background:var(--s2)"></i>Ω (pre-training) phase</span><span><i style="background:var(--s1)"></i>𝓛 phase</span><span><i class="dot" style="background:var(--s3)"></i>end point</span><span>darker = lower 𝓛</span></div>
+  <canvas id="bc" height="150" aria-label="Final training loss of every run, for each procedure"></canvas>
+  <p class="small" id="ltxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the video.</b> The experiments described are from Erhan, Bengio et al., "Why does unsupervised pre-training help deep learning?" (JMLR 2010), and Bengio et al. (2007). Erhan et al. leaned towards the regularization explanation: pre-trained networks reached <i>worse</i> training error in some settings but better test error. Today, with ReLUs, careful initialization, normalization and Adam, layer-wise pre-training of feed-forward networks is rarely needed, which supports the view that it mostly patched problems those later ideas solved directly.</div>
+
+<h2>5 · What the 2006–2009 period left behind</h2>
+<p>Unsupervised pre-training <b>worked</b>, but nobody fully understood why. People examined it through different lenses, each giving suggestive but not conclusive answers:</p>
+<table>
+<tr><th>Lens</th><th>What it suggested</th><th>What followed</th></tr>
+<tr><td>Optimization</td><td>Pre-training makes $\mathcal L(\theta)$ easier to minimize</td><td>A series of better optimizers (<a href="L32-momentum.html">momentum</a> … <a href="L40-adam.html">Adam</a>)</td></tr>
+<tr><td>Regularization</td><td>Pre-training restricts the weights to a good region</td><td>L2/L1, early stopping popularized for deep learning; <a href="L54-dropout.html">dropout</a> invented for it</td></tr>
+<tr><td>Initialization</td><td>Deep nets are sensitive to the starting point</td><td>Better weight-initialization strategies</td></tr>
+<tr><td>Activation functions</td><td>The gradients themselves may be the problem</td><td>Better activation functions</td></tr>
+</table>
+<p>That explains why the course studied optimizers and regularizers, and it sets up the next two topics: <b>activation functions</b> (starting in <a href="L59-better-activations.html">L59</a>) and <b>weight initialization</b>.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Optimization concerns training error; regularization concerns test error. The question was which one pre-training improves.</li>
+<li>Optimization evidence: with a wide enough last layer, training error reaches zero without pre-training; smaller networks need pre-training to get there.</li>
+<li>Regularization view: pre-training minimizes $\Omega$ first, then $\mathcal L$. It is a sequential version of minimizing $\mathcal L+\Omega$, and it confines the weights to a region.</li>
+<li>Deep networks without pre-training are very sensitive to random initialization; with pre-training the spread of outcomes is small.</li>
+<li>The answers were inconclusive, but they pointed research at four axes: optimization, regularization, initialization and activation functions.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+
+// Toy landscape: plateau at 1.2, a good valley at A (min 0), poor minima at B and C.
+const BUMPS = [{c: [1.2, 0.6], a: 1.2, s: 1.6}, {c: [-1.6, 1.3], a: 0.55, s: 0.35}, {c: [-1.0, -1.6], a: 0.45, s: 0.3}];
+const P = [1.6, 0.9], LAM = 0.3, R = 3.2;
+function Lf(t){ let v = 1.2; for (const b of BUMPS) v -= b.a * Math.exp(-((t[0] - b.c[0]) ** 2 + (t[1] - b.c[1]) ** 2) / b.s); return v; }
+function Lg(t){ const g = [0, 0]; for (const b of BUMPS) { const e = b.a * Math.exp(-((t[0] - b.c[0]) ** 2 + (t[1] - b.c[1]) ** 2) / b.s) * 2 / b.s; g[0] += e * (t[0] - b.c[0]); g[1] += e * (t[1] - b.c[1]); } return g; }
+const Om = t => 0.5 * ((t[0] - P[0]) ** 2 + (t[1] - P[1]) ** 2), Og = t => [t[0] - P[0], t[1] - P[1]];
+let starts = [], mode = 'R', runs = {}, grid = null;
+function newStarts(){ starts = []; for (let i = 0; i < 40; i++) starts.push([(Math.random() * 2 - 1) * R, (Math.random() * 2 - 1) * R]); runs = {}; }
+function run(m){
+  return starts.map(s => { let t = s.slice(); const pre = [t.slice()], fin = [];
+    if (m === 'P') for (let i = 0; i < 120; i++) { const g = Og(t); t = [t[0] - 0.08 * g[0], t[1] - 0.08 * g[1]]; if (i % 4 === 3) pre.push(t.slice()); }
+    fin.push(t.slice());
+    for (let i = 0; i < 400; i++) { const g = Lg(t); if (m === 'J') { const o = Og(t); g[0] += LAM * o[0]; g[1] += LAM * o[1]; }
+      t = [t[0] - 0.15 * g[0], t[1] - 0.15 * g[1]]; if (i % 4 === 3) fin.push(t.slice()); }
+    return {pre: m === 'P' ? pre : [], fin, end: t, loss: Lf(t)}; });
+}
+function draw(){
+  if (!runs[mode]) runs[mode] = run(mode);
+  const [ctx, W, H] = setupCanvas($('lc')), S = Math.min(W, H) / (2 * R), ox = W / 2, oy = H / 2, X = v => ox + v * S, Y = v => oy - v * S;
+  ctx.fillStyle = cssv('--card'); ctx.fillRect(0, 0, W, H);
+  const cs = 6, s1 = cssv('--s1');
+  for (let px = 0; px < W; px += cs) for (let py = 0; py < H; py += cs) { const t = [(px + cs / 2 - ox) / S, (oy - py - cs / 2) / S], v = Lf(t);
+    ctx.globalAlpha = Math.max(0, Math.min(1, (1.25 - v) / 1.25)) * 0.55; ctx.fillStyle = s1; ctx.fillRect(px, py, cs, cs); }
+  ctx.globalAlpha = 1;
+  if (mode !== 'R') { ctx.setLineDash([5, 4]); ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 1.2; [0.4, 1.2, 2.2].forEach(r => { ctx.beginPath(); ctx.arc(X(P[0]), Y(P[1]), r * S, 0, 7); ctx.stroke(); }); ctx.setLineDash([]); }
+  ctx.font = '600 12px system-ui'; ctx.fillStyle = cssv('--ink');
+  ctx.fillText('good valley (𝓛≈0)', X(BUMPS[0].c[0]) - 40, Y(BUMPS[0].c[1]) + 28);
+  ctx.fillText('poor min', X(BUMPS[1].c[0]) - 24, Y(BUMPS[1].c[1]) - 12); ctx.fillText('poor min', X(BUMPS[2].c[0]) - 24, Y(BUMPS[2].c[1]) + 20);
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('plateau (𝓛≈1.2, almost flat)', 8, 16);
+  const path = (pts, col) => { if (pts.length < 2) return; ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(X(p[0]), Y(p[1])) : ctx.moveTo(X(p[0]), Y(p[1]))); ctx.stroke(); };
+  for (const r of runs[mode]) { path(r.pre, cssv('--s2')); path(r.fin, cssv('--s1')); }
+  for (let i = 0; i < starts.length; i++) { const r = runs[mode][i];
+    ctx.fillStyle = cssv('--faint'); ctx.beginPath(); ctx.arc(X(starts[i][0]), Y(starts[i][1]), 3, 0, 7); ctx.fill();
+    ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(X(r.end[0]), Y(r.end[1]), 4.5, 0, 7); ctx.fill(); }
+  drawStrip();
+}
+const NAMES = {R: 'random → 𝓛', P: 'random → Ω → 𝓛', J: 'random → 𝓛+λΩ'};
+const stats = a => { const n = a.length, m = a.reduce((s, v) => s + v, 0) / n, sd = Math.sqrt(a.reduce((s, v) => s + (v - m) ** 2, 0) / n); return [m, sd]; };
+function drawStrip(){
+  const [ctx, W, H] = setupCanvas($('bc')), pl = 120, pr = 12, X = v => pl + (W - pl - pr) * v / 1.25, modes = ['R', 'P', 'J'];
+  ctx.font = '12px system-ui'; ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1;
+  for (let v = 0; v <= 1.2001; v += 0.2) { ctx.beginPath(); ctx.moveTo(X(v), 6); ctx.lineTo(X(v), H - 22); ctx.stroke(); ctx.fillStyle = cssv('--muted'); ctx.fillText(v.toFixed(1), X(v) - 8, H - 6); }
+  ctx.fillText('final 𝓛 →', W - pr - 60, H - 6);
+  modes.forEach((m, k) => { const y = 24 + k * 38; ctx.fillStyle = m === mode ? cssv('--ink') : cssv('--muted'); ctx.fillText(NAMES[m], 4, y + 4);
+    if (!runs[m]) { ctx.fillStyle = cssv('--faint'); ctx.fillText('(click its button)', pl + 4, y + 4); return; }
+    runs[m].forEach((r, i) => { ctx.fillStyle = cssv('--s3'); ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.arc(X(r.loss), y + ((i * 7) % 15) - 7, 3.5, 0, 7); ctx.fill(); ctx.globalAlpha = 1; }); });
+  const r = runs[mode], ls = r.map(x => x.loss), [mu, sd] = stats(ls), good = ls.filter(v => v < 0.05).length, stuck = ls.filter(v => v > 1.1).length;
+  $('ltxt').innerHTML = `<b>${NAMES[mode]}:</b> ${good}/40 runs reach the good valley, ${stuck} stall on the plateau, ${40 - good - stuck} settle in a poor minimum. Mean final 𝓛 = ${Math.max(0, mu).toFixed(2)}, spread (s.d.) = ${sd.toFixed(2)}.` +
+    (mode === 'R' ? ' The outcome depends heavily on the starting point: the "deep network without pre-training" box plot.'
+      : mode === 'P' ? ' Minimizing Ω first moves every start into the same region, so fine-tuning 𝓛 lands in the same valley almost every time: low spread.'
+      : ' The joint objective also pulls runs towards Ω\'s region, but its minimum is a compromise between 𝓛 and Ω, so the end points sit slightly off the zero-loss valley floor.');
+}
+function setMode(m){ mode = m; ['mR', 'mP', 'mJ'].forEach(id => $(id).classList.toggle('on', id === 'm' + m)); draw(); }
+$('mR').onclick = () => setMode('R'); $('mP').onclick = () => setMode('P'); $('mJ').onclick = () => setMode('J');
+$('again').onclick = () => { newStarts(); draw(); };
+newStarts(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

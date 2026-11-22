@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Typical Supervised Machine Learning Setup</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 15 · playlist video 15 (titled “L13” on YouTube) · sigmoid neurons, learning</div>
+<h1>A Typical Supervised Machine Learning Setup</h1>
+<p class="lede">Every supervised problem has the same five parts: <b>data</b> of $(x,y)$ pairs, a <b>model</b> $\hat f(x;\theta)$ that guesses how $y$ depends on $x$, <b>parameters</b> $\theta$ that let the data shape that guess, an <b>objective</b> (loss) that scores the guess, and a <b>learning algorithm</b> that finds the $\theta$ minimising it. With real data we no longer ask for zero error, only for the smallest error we can get.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Evhb4HxI32I" target="_blank" rel="noopener">this lecture on YouTube</a> (≈26 min). Previous: <a href="L14-sigmoid-neuron.html">L14</a> · Next: <a href="L16-learning-parameters-guesswork.html">L16</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+<p>Prof. Khapra calls this "the most important module of the course". The pattern so far: for perceptrons we saw the <b>model</b>, then took a detour into <b>errors</b> (<a href="L9-error-surfaces.html">L9</a>), then built a <b>learning algorithm</b> (<a href="L10-perceptron-learning.html">L10</a>). For the sigmoid neuron (<a href="L14-sigmoid-neuron.html">L14</a>) we repeat that: revisit error now, and get to the algorithm (gradient descent) in the next few videos.</p>
+
+<h2>1 · From "zero error" to "minimum error"</h2>
+<p>Run the perceptron algorithm on data that are <b>not</b> linearly separable. It never converges, because some points keep toggling. Stop it after, say, a thousand iterations anyway: it still ends with some line through the middle of the data. On the lecture's second example, that line misclassifies about two or three of ten orange points and a couple of the ten blue ones, roughly <b>20% error</b>.</p>
+<p>For most real applications that is acceptable. Predicting which party someone will vote for, being wrong on 20% of people still gives a rough idea of how the election is going (unless the race is very close, or the application is mission-critical). Getting to zero error here would need a wildly complex boundary, with islands around stray points.</p>
+<div class="callout">From now on the goal is to <b>minimise the error</b>, not to make it zero.</div>
+
+<h2>2 · The data</h2>
+<p>We are always given $n$ training pairs</p>
+$$\{(x_i,\,y_i)\}_{i=1}^{n},\qquad x_i\in\mathbb R^m,\quad y_i\in\mathbb R .$$
+<p>($m$ for the input dimension, because $n$ is already the number of points.) $y$ could also be a vector, for example predicting both a movie's box-office collection and its IMDb rating, but for now it is one real number. The lecture's examples all fit this table:</p>
+<table>
+<tr><th>Problem</th><th>Each $x_i$ (an $m$-dim vector)</th><th>$y_i$</th></tr>
+<tr><td>Oil mining</td><td>salinity, pressure, density, … at an existing drilling station</td><td>amount of oil mined</td></tr>
+<tr><td>Bank interest rate</td><td>salary, education, family size, past loans and their rates, how fast they were repaid</td><td>the rate that suited this customer</td></tr>
+<tr><td>Box office</td><td>budget, number of superstars, music director, cinematographer, genre</td><td>collection</td></tr>
+</table>
+<p>Every supervised problem can be cast as this matrix of $x$'s with a column of $y$'s.</p>
+
+<h2>3 · The model: assume a form, learn its parameters</h2>
+<p>We believe $y$ depends on $x$, so $y=f(x)$ for some function $f$. If we knew $f$, we would just plug in a new location's salinity, pressure, … and drill wherever it predicts the most oil: "all of us would be billionaires". We know a function <i>exists</i> (if you think an input is missing, add it to $x$), but not <i>what</i> it is.</p>
+<p>The crux of machine learning: <b>assume</b> a form $\hat y=\hat f(x;\theta)$ with parameters $\theta$ (or $w$), and <b>learn $\theta$ from the data</b>. The assumed relation is called the <b>model</b>.</p>
+<p>School version: assume $y=mx+c$. Given two $(x,y)$ pairs you get two simultaneous equations and solve for $m$ and $c$. Real problems have many points and many parameters, but the idea extrapolates: known $x$'s and $y$'s pin down unknown parameters.</p>
+<table>
+<tr><th>Assumed model</th><th>Name</th></tr>
+<tr><td>$\hat y=\dfrac{1}{1+e^{-w^\top x}}$</td><td>logistic (the sigmoid neuron of L14)</td></tr>
+<tr><td>$\hat y=w^\top x$</td><td>linear regression</td></tr>
+<tr><td>$\hat y=x^\top W x$</td><td>a quadratic relation</td></tr>
+<tr><td>a deep composite function</td><td>deep learning: just another, very complex, choice of $\hat f$</td></tr>
+</table>
+<p>None of these is right or wrong in advance. Each is an assumption.</p>
+
+<h2>4 · Why parameters at all?</h2>
+<p>Why not simply assume $\hat y=\frac{1}{1+e^{-x}}$? It is a function of $x$ too. But it is the same as declaring "$y=3x+2$": you cooked the numbers up without looking at the data, so you can throw the data away and live with whatever it predicts. Nothing is learned.</p>
+<p>Parameters keep the <b>form</b> fixed (an S-shape) but let the data choose its <b>shape</b>: $w$ and $b$ decide how steep the S is and where it sits. In the demo below, untick "use parameters" and the sliders stop mattering: whatever the data, the curve can't move.</p>
+
+<h2>5 · The learning algorithm and its objective</h2>
+<p>For $y=mx+c$ the algorithm was "solve two simultaneous equations". With many points and parameters we need something more principled. We have seen one, the perceptron learning algorithm; next comes <b>gradient descent</b>.</p>
+<p>What should guide it? The perceptron looped "while not converged", i.e. until zero error, which only made sense for separable data. Now the objective must be to <b>minimise a loss</b>. For the movie example ($x_i$ = everything about movie $i$, $y_i\in\{0,1\}$, model $\hat y=\sigma(w^\top x)$) we want $\hat y_i$ close to $y_i$ on every training point:</p>
+$$\min_{w}\ \sum_{i=1}^{n} d(\hat y_i,\,y_i)\qquad\text{e.g. the squared error}\qquad \mathcal L(w)=\sum_{i=1}^{n}(\hat y_i-y_i)^2 .$$
+<ol class="steps">
+<li><b>Why square?</b> So positive and negative errors don't cancel. Want $y=1$, predict $0.5$: error $-0.5$. Another point: want $1$, predict $1.5$: error $+0.5$. The plain sum is $0$, which looks perfect, though both predictions are off by $0.5$. Squaring removes the sign: $0.25+0.25=0.5$.</li>
+<li><b>Why not the absolute value?</b> $|\hat y-y|$ also removes the sign, but it is not smooth: it has a kink at zero. The square is smooth and differentiable, and "the hero of the course is going to be calculus".</li>
+<li><b>What "learning" now means.</b> $w$ has $m+1$ components (with $w_0$), each anywhere in $(-\infty,\infty)$: infinitely many candidates. We want the one that, plugged into $\mathcal L$, gives the smallest value.</li>
+</ol>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Six training points (say, movies scored by one feature, with a rating in $[0,1]$) and the model $\hat y=\sigma(wx+b)$. Grey bars are the errors $\hat y_i-y_i$. Right: each loss as you sweep $w$ with $b$ held at its slider value (each curve scaled to fit; the dot marks the current $w$).</p>
+<div class="row"><label>w <input type="range" id="w" min="-4" max="4" step="0.01" value="0.4"> <span id="wv" class="mono"></span></label>
+<label>b <input type="range" id="b" min="-4" max="4" step="0.01" value="0.9"> <span id="bv" class="mono"></span></label></div>
+<div class="row"><label><input type="checkbox" id="usep" checked> use parameters (untick: $\hat y=\sigma(x)$, fixed)</label>
+<button id="cancel">Find a bad fit whose errors cancel</button><button id="best">Minimise the squared loss</button></div>
+<div class="pair half"><canvas id="fit" height="260" aria-label="Data and sigmoid fit with error bars"></canvas><canvas id="sweep" height="260" aria-label="Three losses as a function of w"></canvas></div>
+<div class="legend"><span><i class="dot" style="background:var(--s1)"></i>data $y_i$</span><span><i style="background:var(--s3)"></i>$\hat y=\sigma(wx+b)$</span><span><i style="background:var(--faint)"></i>plain sum $\sum(\hat y-y)$</span><span><i style="background:var(--s2)"></i>absolute $\sum|\hat y-y|$</span><span><i style="background:var(--s1)"></i>squared $\sum(\hat y-y)^2$</span></div>
+<div class="row"><div class="stat"><div class="v" id="sSum">–</div><div class="l">plain sum of errors</div></div><div class="stat"><div class="v" id="sAbs">–</div><div class="l">sum of |errors|</div></div><div class="stat"><div class="v" id="sSq">–</div><div class="l">sum of squared errors</div></div></div>
+<p class="small" id="msg"></p>
+</div>
+<p>Things to try. Press <b>Find a bad fit whose errors cancel</b>: the plain sum is about zero while the curve is plainly wrong, the lecture's 0.5/1.5 example on six points. Then watch the right panel as you drag $w$: the absolute loss has visible <b>corners</b> (wherever the curve passes exactly through a point), while the squared loss bends smoothly.</p>
+
+<h2>6 · Training, validation and test: the textbook analogy</h2>
+<p>Learning is always driven by an objective. Think of learning a trigonometry chapter in high school:</p>
+<table>
+<tr><th>School</th><th>Machine learning</th><th>What you may do</th></tr>
+<tr><td>reading the chapter, getting every formula in it right</td><td><b>training set</b>: minimise the error on the given points</td><td>look at it as much as you like</td></tr>
+<tr><td>exercises at the end of the chapter</td><td><b>validation set</b></td><td>make mistakes, go back and relearn, toggle between the two</td></tr>
+<tr><td>the exam</td><td><b>test set</b></td><td>no more training once you are there</td></tr>
+</table>
+<p>So there is a training, a validation and a test error. The loss above, minimised during training, is the <b>training error</b>. The lecturer says this slide will return later, with more to say about the learning algorithm and the loss.</p>
+<div class="beyond"><b>Going beyond the video.</b> My ML notes treat the same setup with a linear model (<a href="../machine-learning/L27-supervised-learning.html">L27</a>, <a href="../machine-learning/L28-linear-regression.html">L28</a>), why a validation set matters (<a href="../machine-learning/L35-cross-validation.html">L35</a>), and why low training error alone isn't the goal (<a href="../machine-learning/L66-bias-variance.html">L66</a>, bias–variance).</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Real data are rarely separable, so the aim becomes <b>minimum</b> error, not zero error.</li>
+<li>Setup: data $\{(x_i,y_i)\}_{i=1}^n$ with $x_i\in\mathbb R^m$; model $\hat y=\hat f(x;\theta)$; a loss; an algorithm that finds $\theta$.</li>
+<li>The model is an assumption (logistic, linear, quadratic, or a deep composite function). Its parameters are what let the data shape it; with none, there is nothing to learn.</li>
+<li>Squared error: the square stops positive and negative errors cancelling, and unlike $|\cdot|$ it is smooth, which gradient-based learning needs.</li>
+<li>Training, validation, test ≈ chapter, exercises, exam. Training minimises the training error.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const sig = z => 1 / (1 + Math.exp(-z));
+const X = [-2.6, -1.5, -0.6, 0.4, 1.4, 2.5], Y = [0.12, 0.2, 0.3, 0.62, 0.78, 0.9];
+const pred = (w, b, x) => $('usep').checked ? sig(w * x + b) : sig(x);
+function losses(w, b){ let s = 0, a = 0, q = 0; X.forEach((x, i) => { const e = pred(w, b, x) - Y[i]; s += e; a += Math.abs(e); q += e * e; }); return [s, a, q]; }
+let note = '';
+function draw(){
+  const w = +$('w').value, b = +$('b').value, P = $('usep').checked;
+  $('wv').textContent = w.toFixed(2); $('bv').textContent = b.toFixed(2); $('w').disabled = $('b').disabled = !P;
+  // left: data + fit
+  let [ctx, W, H] = setupCanvas($('fit')); const pad = 26, X0 = -3.2, X1 = 3.2, sx = x => pad + (x - X0) / (X1 - X0) * (W - 2 * pad), sy = y => H - pad - y * (H - 2 * pad);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); [0, 0.5, 1].forEach(v => { ctx.moveTo(pad, sy(v)); ctx.lineTo(W - pad, sy(v)); }); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; [0, 0.5, 1].forEach(v => ctx.fillText(v, 4, sy(v) + 4)); ctx.fillText('x', W - pad + 6, sy(0) + 4);
+  X.forEach((x, i) => { ctx.strokeStyle = cssv('--faint'); ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(sx(x), sy(Y[i])); ctx.lineTo(sx(x), sy(pred(w, b, x))); ctx.stroke(); });
+  ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let k = 0; k <= 200; k++) { const x = X0 + (X1 - X0) * k / 200; k ? ctx.lineTo(sx(x), sy(pred(w, b, x))) : ctx.moveTo(sx(x), sy(pred(w, b, x))); } ctx.stroke();
+  X.forEach((x, i) => { ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(sx(x), sy(Y[i]), 5.5, 0, 7); ctx.fill(); });
+  // right: sweep over w
+  [ctx, W, H] = setupCanvas($('sweep')); const W0 = -4, W1 = 4, K = 240, rows = [[], [], []];
+  for (let k = 0; k <= K; k++) { const l = losses(W0 + (W1 - W0) * k / K, b); rows[0].push(l[0]); rows[1].push(l[1]); rows[2].push(l[2]); }
+  const tx = v => pad + (v - W0) / (W1 - W0) * (W - 2 * pad);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, H / 2); ctx.lineTo(W - pad, H / 2); ctx.moveTo(tx(0), 10); ctx.lineTo(tx(0), H - pad); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('w →', W - pad - 14, H - 8); ctx.fillText('0', 6, H / 2 + 4);
+  const cols = ['--faint', '--s2', '--s1'], cur = losses(w, b);
+  rows.forEach((r, j) => { const m = Math.max(...r.map(Math.abs)) || 1, ty = v => H / 2 - v / m * (H / 2 - 14);
+    ctx.strokeStyle = cssv(cols[j]); ctx.lineWidth = j === 0 ? 1.5 : 2.5; ctx.beginPath(); r.forEach((v, k) => { const px = tx(W0 + (W1 - W0) * k / K); k ? ctx.lineTo(px, ty(v)) : ctx.moveTo(px, ty(v)); }); ctx.stroke();
+    if (P) { ctx.fillStyle = cssv(cols[j]); ctx.beginPath(); ctx.arc(tx(w), ty(cur[j]), 4.5, 0, 7); ctx.fill(); } });
+  $('sSum').textContent = cur[0].toFixed(3); $('sAbs').textContent = cur[1].toFixed(3); $('sSq').textContent = cur[2].toFixed(3);
+  $('msg').innerHTML = P ? note : 'No parameters: ŷ = σ(x) is fixed, so the data cannot change it. The losses are whatever they happen to be, and the curves on the right go flat: w no longer appears in the model.';
+}
+function setWB(w, b, t){ $('w').value = w; $('b').value = b; note = t; draw(); }
+$('cancel').onclick = () => { $('usep').checked = true; let best = null;
+  for (let w = -4; w <= 4.001; w += 0.05) for (let b = -4; b <= 4.001; b += 0.05) { const [s, , q] = losses(w, b); const sc = q; if (Math.abs(s) < 0.01 && (!best || sc > best[2])) best = [w, b, sc]; }
+  if (!best) return; const [s, , q] = losses(best[0], best[1]);
+  setWB(best[0], best[1], `Plain sum of errors ≈ ${s.toFixed(3)}: by that measure this fit is "perfect". The squared loss, ${q.toFixed(3)}, says otherwise: the positive and negative errors cancelled.`); };
+$('best').onclick = () => { $('usep').checked = true; let w = 0, b = 0;   // a few hundred gradient steps (the method of the next lectures)
+  for (let t = 0; t < 3000; t++) { let dw = 0, db = 0; X.forEach((x, i) => { const f = sig(w * x + b), g = 2 * (f - Y[i]) * f * (1 - f); dw += g * x; db += g; }); w -= 0.5 * dw; b -= 0.5 * db; }
+  setWB(Math.max(-4, Math.min(4, w)), Math.max(-4, Math.min(4, b)), `Smallest squared loss for this model: ${losses(w, b)[2].toFixed(4)}. Not zero: no S-curve passes through all six points, and that's fine. We settle for the minimum.`); };
+['w', 'b'].forEach(id => $(id).addEventListener('input', () => { note = ''; draw(); }));
+$('usep').addEventListener('change', draw);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+draw();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

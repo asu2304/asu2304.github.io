@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Convolutional Neural Networks: What the CNN Lectures Cover</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Deep learning (Mitesh Khapra)</a></p>
+<div class="kicker">Lecture 62 · playlist video 62 (titled “L40” on YouTube) · convolutional neural networks</div>
+<h1>Convolutional Neural Networks: What the CNN Lectures Cover</h1>
+<p class="lede">This short video only sets the context. The CNN material hasn't changed in this offering of the course, so instead of re-recording it, Prof. Khapra points to his earlier recorded lectures and lists what they cover: the convolution operation, max pooling, full CNNs and their parameter counts, the classic ImageNet architectures, and how to visualize what a CNN's neurons respond to.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Dsq-fSb_lj4" target="_blank" rel="noopener">this lecture on YouTube</a> (≈3 min). Previous: <a href="L61-gelu-silu.html">L61</a> · Next: <a href="L63-transformer-intro.html">L63</a> (introduction to the Transformer).</p>
+<div class="credit"><b>Credit.</b> These notes follow the Deep Learning lectures of <b>Prof. Mitesh M. Khapra</b> (Department of Computer Science and Engineering, IIT Madras; co-founder of AI4Bharat), published by the <a href="https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM" target="_blank" rel="noopener">IIT Madras B.S. Degree Programme</a> and taught at IIT Madras as <a href="https://www.cse.iitm.ac.in/~miteshk/CS6910.html" target="_blank" rel="noopener">CS6910</a>. The structure, the story and the examples are his; any mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Why this video is short</h2>
+<p>Most lectures in this offering were updated for material introduced in the past two or three years. The lecture on <b>convolutional neural networks</b> is the exception: nothing new was added to the syllabus. It is the same as what he has taught for a while, and the same as his <b>earlier recorded videos on YouTube</b>. So this lecture relies on those recordings.</p>
+
+<h2>2 · The roadmap he lays out</h2>
+<ol class="steps">
+<li><b>The basic intuition</b> of the convolution operation.</li>
+<li><b>Max pooling.</b></li>
+<li>What a <b>full convolutional neural network</b> looks like.</li>
+<li>How to <b>compute the number of parameters</b> in a CNN, and where the density of parameters is higher.</li>
+<li><b>Standard architectures</b>, starting with <b>LeNet</b> (mainly for completeness), then the networks from around 2011–12 onwards: <b>AlexNet, ZFNet, VGG</b>, and then <b>Inception (GoogLeNet) and ResNet</b>. For each: its building blocks, its number of parameters, how they compare, and its performance on the <b>ImageNet</b> dataset.</li>
+<li><b>Visualizing CNNs:</b> a bit more on backpropagation, and how <b>guided backpropagation</b> helps you understand which kinds of images make a particular neuron in the network fire.</li>
+</ol>
+<p>That's all this video says. The actual teaching is in the older recordings he switches to next. (The next video in this playlist, <a href="L63-transformer-intro.html">L63</a>, moves on to Transformers.)</p>
+
+<h2>3 · A first feel for convolution, stride and padding</h2>
+<div class="beyond"><b>Going beyond the video.</b> Everything in this section goes beyond the 3-minute video, which explains none of it; it's a small preview of the first item on the roadmap. A 2-D convolution slides a small $K\times K$ <b>filter</b> (kernel) over the input. At each position it multiplies the overlapping numbers element-wise and sums them into one output value. The <b>stride</b> $S$ is how far the filter moves each time; <b>padding</b> $P$ adds a border of zeros so the filter can sit over the edges. For an $N\times N$ input the output is
+$$\Big\lfloor\frac{N+2P-K}{S}\Big\rfloor+1$$
+values on each side. The same $K^2$ weights are reused at every position, which is why CNNs have far fewer parameters than a fully connected layer on the same image.</div>
+<div class="card">
+  <div class="row">
+    <label>input $N$ <input type="range" id="cN" min="4" max="9" step="1" value="7"> <b id="cNv"></b></label>
+    <label>filter $K$ <input type="range" id="cK" min="1" max="5" step="1" value="3"> <b id="cKv"></b></label>
+    <label>stride $S$ <input type="range" id="cS" min="1" max="3" step="1" value="1"> <b id="cSv"></b></label>
+    <label>padding $P$ <input type="range" id="cP" min="0" max="2" step="1" value="0"> <b id="cPv"></b></label>
+  </div>
+  <div class="row"><button id="cStep">Slide the filter →</button><button id="cRand">New input</button></div>
+  <canvas id="cc" height="300" aria-label="Input grid with the filter window and the resulting output grid"></canvas>
+  <div class="row"><div class="stat"><div class="v" id="cOut">–</div><div class="l">output size</div></div><div class="stat"><div class="v" id="cVal">–</div><div class="l">value at the highlighted output</div></div><div class="stat"><div class="v" id="cPar">–</div><div class="l">weights in the filter (vs. a dense layer)</div></div></div>
+  <p class="small" id="cTxt"></p>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The CNN content is unchanged from earlier offerings, so the course uses Prof. Khapra's older recorded CNN lectures.</li>
+<li>They cover convolution, max pooling, complete CNNs, and counting parameters (and where they concentrate).</li>
+<li>Architectures: LeNet, then AlexNet, ZFNet, VGG, Inception and ResNet, compared by building blocks, parameter counts and ImageNet performance.</li>
+<li>They end with visualizing CNNs via guided backpropagation: which images make a given neuron fire.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+let IN = [], pos = 0;
+function newInput(){ IN = Array.from({length: 9}, () => Array.from({length: 9}, () => Math.floor(Math.random() * 3))); pos = 0; }
+const kern = K => Array.from({length: K}, (_, i) => Array.from({length: K}, (_, j) => K === 1 ? 1 : (j < (K - 1) / 2 ? 1 : j > (K - 1) / 2 ? -1 : 0)));
+function draw(){
+  const N = +$('cN').value, K = +$('cK').value, S = +$('cS').value, P = +$('cP').value;
+  ['N', 'K', 'S', 'P'].forEach(k => $('c' + k + 'v').textContent = $('c' + k).value);
+  const O = Math.floor((N + 2 * P - K) / S) + 1, M = N + 2 * P, F = kern(K);
+  const at = (r, c) => (r < P || c < P || r >= N + P || c >= N + P) ? 0 : IN[r - P][c - P];
+  const [ctx, W, H] = setupCanvas($('cc'));
+  if (O < 1) { ctx.fillStyle = cssv('--ink'); ctx.font = '14px system-ui'; ctx.fillText('Filter larger than the padded input: no output.', 10, 30); $('cOut').textContent = '0'; $('cVal').textContent = '–'; $('cTxt').textContent = ''; $('cPar').textContent = K * K; return; }
+  pos = pos % (O * O); const orow = Math.floor(pos / O), ocol = pos % O;
+  const cell = Math.min((W * 0.58) / M, (H - 30) / M, 34), ocell = Math.min((W * 0.36) / O, (H - 30) / O, 34), gx = 4, ox = W - O * ocell - 4, top = 22;
+  ctx.font = '600 12px system-ui'; ctx.fillStyle = cssv('--muted'); ctx.fillText(`input ${N}×${N}` + (P ? ` + padding ${P}` : ''), gx, 14); ctx.fillText(`output ${O}×${O}`, ox, 14);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = Math.max(9, cell * 0.4) + 'px system-ui';
+  for (let r = 0; r < M; r++) for (let c = 0; c < M; c++) { const pad = r < P || c < P || r >= N + P || c >= N + P, x = gx + c * cell, y = top + r * cell;
+    ctx.fillStyle = pad ? cssv('--warn-bg') : cssv('--card'); ctx.fillRect(x, y, cell, cell); ctx.strokeStyle = cssv('--grid'); ctx.strokeRect(x, y, cell, cell);
+    ctx.fillStyle = pad ? cssv('--faint') : cssv('--ink'); ctx.fillText(at(r, c), x + cell / 2, y + cell / 2); }
+  const r0 = orow * S, c0 = ocol * S; ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 3; ctx.strokeRect(gx + c0 * cell, top + r0 * cell, K * cell, K * cell); ctx.lineWidth = 1;
+  let val = 0; for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) val += F[i][j] * at(r0 + i, c0 + j);
+  ctx.font = Math.max(9, ocell * 0.4) + 'px system-ui';
+  for (let r = 0; r < O; r++) for (let c = 0; c < O; c++) { const x = ox + c * ocell, y = top + r * ocell, idx = r * O + c;
+    ctx.fillStyle = idx === pos ? cssv('--tint') : cssv('--card'); ctx.fillRect(x, y, ocell, ocell); ctx.strokeStyle = idx === pos ? cssv('--s2') : cssv('--grid'); ctx.strokeRect(x, y, ocell, ocell);
+    if (idx <= pos) { let v = 0; for (let i = 0; i < K; i++) for (let j = 0; j < K; j++) v += F[i][j] * at(r * S + i, c * S + j); ctx.fillStyle = cssv('--ink'); ctx.fillText(v, x + ocell / 2, y + ocell / 2); } }
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  $('cOut').textContent = `${O} × ${O}`; $('cVal').textContent = val; $('cPar').textContent = `${K * K} (vs ${(N * N) * (O * O)})`;
+  $('cTxt').innerHTML = `Output size = ⌊(${N} + 2·${P} − ${K}) / ${S}⌋ + 1 = ${O}. The filter here is a simple vertical-edge detector (+1 left columns, −1 right columns); the highlighted window starts at row ${r0}, column ${c0} of the padded input and moves ${S} cell${S > 1 ? 's' : ''} per step.` + ((N + 2 * P - K) % S ? ' Note: the stride does not divide evenly, so the last column/row of the input is skipped.' : '');
+}
+$('cStep').onclick = () => { pos++; draw(); };
+$('cRand').onclick = () => { newInput(); draw(); };
+['cN', 'cK', 'cS', 'cP'].forEach(id => $(id).addEventListener('input', () => { pos = 0; draw(); }));
+newInput(); draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); draw(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

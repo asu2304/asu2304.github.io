@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Policy Gradient as Weighted Log-Likelihood, and Reward-to-Go</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 4 · part 1 of 6 · Stanford CS229, Spring 2026</div>
+<h1>Policy Gradient as Weighted Log-Likelihood, and Reward-to-Go</h1>
+<p class="lede">The policy gradient pushes up the log-probability of every sampled trajectory, weighted by how much reward it earned. Because the score $\nabla_\theta\log\pi_\theta$ averages to zero, any weight that an action cannot influence drops out, so each action only needs to be weighted by the reward that comes <b>after</b> it: the reward-to-go.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=0" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 0:00 to 15:54 of a 79-min video; published as “Lecture 20: GMM (EM), PCA”, though it is about reinforcement learning). Previous: <a href="L3-6-reinforce.html">Lecture 3, part 6</a> · Next: <a href="L4-2-baselines-on-policy.html">part 2</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<p>This is the last lecture of the quarter. The plan: finish the policy-gradient discussion from last week (this page and the next), introduce <b>PPO</b>, an extension of policy gradient that is one of the most popular algorithms for training large language models (parts 3–4), and then use reinforcement learning to train LLMs to produce long chains of thinking tokens before answering (parts 5–6).</p>
+
+<h2>1 · Where we left off <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=55" target="_blank" rel="noopener">▶ 0:55</a></h2>
+<p>A stochastic policy $\pi_\theta(a\mid s)$ (a neural network that gives the probability of action $a$ in state $s$) is judged by its <b>expected return</b>:</p>
+$$\eta(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\Big[\sum_{t=0}^{T-1}\gamma^t R(s_t,a_t)\Big]$$
+<p>Here $\tau=(s_0,a_0,s_1,a_1,\dots)$ is a trajectory: $s_0$ from the initial distribution, each $a_t\sim\pi_\theta(\cdot\mid s_t)$, each $s_{t+1}$ from the transition dynamics. The discount $\gamma$ "is not that important" here (for language models it is usually 1).</p>
+<p><b>The difficulty.</b> Nothing <i>inside</i> the expectation depends on $\theta$. The dependence on $\theta$ lives in the <b>sampling probabilities</b> of the actions. If you just swapped $\nabla_\theta$ and $\mathbb{E}$, you'd differentiate a sum of rewards that has no $\theta$ in it and get zero, ignoring the real dependence. That's why we needed the policy-gradient estimator. Last lecture's derivation (the transition probabilities drop out because they don't depend on $\theta$) gave</p>
+<div class="callout">
+$$\nabla_\theta\eta(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\Big[\underbrace{\Big(\sum_{t=0}^{T-1}\nabla_\theta\log\pi_\theta(a_t\mid s_t)\Big)}_{\nabla_\theta\log(\text{prob. of the actions in }\tau)}\;\underbrace{\Big(\sum_{t=0}^{T-1}\gamma^t R(s_t,a_t)\Big)}_{\text{total reward }R(\tau)}\Big]$$
+</div>
+<p>The sum of the log-probabilities is the log-probability of the whole sequence of actions in the trajectory (given the states), so you can put $\nabla_\theta$ in front of each term or in front of the sum; it doesn't matter.</p>
+
+<h2>2 · Reading the formula: reward-weighted maximum likelihood <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=168" target="_blank" rel="noopener">▶ 2:48</a></h2>
+<p>Last time this came out of the algebra. Stare at it and it makes sense on its own:</p>
+<ul>
+<li>Following this gradient <b>maximises the log-likelihood of the trajectories you sampled</b>, the same thing supervised learning does with data.</li>
+<li>But each trajectory gets a <b>weight</b>, its total reward. High reward: you push its likelihood up hard. Reward 0: weight 0, so you don't increase its likelihood at all.</li>
+<li>Good trajectories get more weight, bad ones less. That's all policy gradient does.</li>
+</ul>
+
+<h2>3 · The key fact: the score has mean zero <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=240" target="_blank" rel="noopener">▶ 4:00</a></h2>
+<p>To simplify further we need one quantity. Sample $a_t\sim\pi_\theta(\cdot\mid s_t)$, evaluate its log-probability under the same policy, take the gradient in $\theta$ (a vector of numbers), and average over $a_t$. The answer is <b>zero</b>. In the abstract form:</p>
+<div class="callout"><b>Claim.</b> If $x\sim p_\theta$, then $\;\mathbb{E}_{x\sim p_\theta}\big[\nabla_\theta\log p_\theta(x)\big]=0.$</div>
+<ol class="steps">
+<li>Write the expectation as an integral: $$\mathbb{E}_{x\sim p_\theta}[\nabla_\theta\log p_\theta(x)]=\int p_\theta(x)\,\nabla_\theta\log p_\theta(x)\,dx$$</li>
+<li>Chain rule with $(\log u)'=1/u$: $\nabla_\theta\log p_\theta(x)=\dfrac{\nabla_\theta p_\theta(x)}{p_\theta(x)}$. The two $p_\theta(x)$ cancel, leaving $\displaystyle\int\nabla_\theta p_\theta(x)\,dx$.</li>
+<li>Swap the integral and the gradient (every derivative is with respect to $\theta$): $\displaystyle\nabla_\theta\int p_\theta(x)\,dx$.</li>
+<li>A probability distribution integrates to 1, so this is $\nabla_\theta 1=0$.</li>
+</ol>
+<p><b>What it means.</b> Compare with the policy gradient. There, each action's log-likelihood is <i>weighted</i> by reward. Here there's no weighting at all, and the gradient is 0. That makes sense: if you have no idea which actions are good or bad, you have no preference, so the update should be nothing.</p>
+<p><b>The useful corollary.</b> Multiplying by any constant doesn't change that zero, as long as the constant is <b>not a function of $a_t$</b>. Something that depends only on $s_t$ is fine:</p>
+$$\mathbb{E}_{a_t\sim\pi_\theta(\cdot\mid s_t)}\big[\nabla_\theta\log\pi_\theta(a_t\mid s_t)\;c(s_t)\big]=c(s_t)\cdot 0=0 .$$
+<p>Try it below: with rewards equal for every action there is no preference, and the exact gradient vanishes. The sampled average of the raw score also drifts to zero as you add samples.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">One state, four actions, softmax policy $\pi_\theta(a)\propto e^{\theta_a}$. Set each action's reward. Bars: <b>blue</b> = $\pi_\theta(a)$; <b>green</b> = exact gradient $\partial\eta/\partial\theta_a=\pi_\theta(a)\big(R(a)-\bar R\big)$ with $\bar R=\sum_b\pi_\theta(b)R(b)$ (drawn ×4 so it is visible).</p>
+  <div class="pair half">
+    <div id="rsl"></div>
+    <canvas id="c1" height="210" aria-label="Policy probabilities and policy-gradient components for four actions"></canvas>
+  </div>
+  <div class="row"><button id="eq">Make all rewards equal</button><button id="stp">Take a gradient step (α = 1)</button><button id="samp">Sample 1,000 actions</button><button id="rs1">Reset</button></div>
+  <div class="legend"><span><i style="background:var(--s1)"></i>π(a)</span><span><i style="background:var(--s3)"></i>∂η/∂θ_a (×4)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="eta1">–</div><div class="l">η(θ) = expected reward</div></div>
+    <div class="stat"><div class="v" id="gn1">–</div><div class="l">‖exact gradient‖</div></div>
+    <div class="stat"><div class="v" id="sc1">–</div><div class="l">‖sample mean of ∇log π‖ (no weights)</div></div>
+  </div>
+  <p class="small" id="t1"></p>
+</div>
+
+<h2>4 · Reward-to-go: the past can't be changed <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=460" target="_blank" rel="noopener">▶ 7:40</a></h2>
+<p>Now use the corollary. Pull the sum over $t$ outside the expectation and rename the reward index to $t'$:</p>
+$$\nabla_\theta\eta(\theta)=\sum_{t=0}^{T-1}\mathbb{E}_{\tau\sim\pi_\theta}\Big[\nabla_\theta\log\pi_\theta(a_t\mid s_t)\sum_{t'=0}^{T-1}\gamma^{t'}R(s_{t'},a_{t'})\Big]$$
+<p>(Nothing has been used yet; this is just rewriting.) Split the inner sum into rewards <b>before</b> step $t$ and the rest:</p>
+$$\sum_{t'=0}^{T-1}\gamma^{t'}R(s_{t'},a_{t'})=\underbrace{\sum_{t'&lt;t}\gamma^{t'}R(s_{t'},a_{t'})}_{\text{past: }R_{&lt;t}}+\underbrace{\sum_{t'\ge t}\gamma^{t'}R(s_{t'},a_{t'})}_{\text{future: }R_{\ge t}}$$
+<p><b>Claim:</b> $\mathbb{E}\big[\nabla_\theta\log\pi_\theta(a_t\mid s_t)\,R_{&lt;t}\big]=0$. Reason: $a_t$ has nothing to do with what happened before step $t$; all of that happened before $s_t$ was even seen. Mathematically:</p>
+<ol class="steps">
+<li><b>Law of total expectation.</b> Split the randomness into two batches: first the history $s_0,a_0,\dots,s_{t-1},a_{t-1},s_t$, then $a_t$ given that history:
+$$\mathbb{E}\big[\nabla\log\pi_\theta(a_t\mid s_t)\,R_{&lt;t}\big]=\mathbb{E}_{s_0,a_0,\dots,s_t}\Big[\,\mathbb{E}_{a_t}\big[\nabla\log\pi_\theta(a_t\mid s_t)\,R_{&lt;t}\;\big|\;s_0,a_0,\dots,s_t\big]\Big]$$</li>
+<li><b>Condition, then factor out.</b> Once the history is fixed, $R_{&lt;t}$ is literally a constant, so it moves outside the inner expectation: $R_{&lt;t}\cdot\mathbb{E}_{a_t}\big[\nabla\log\pi_\theta(a_t\mid s_t)\mid s_0,\dots,s_t\big]$.</li>
+<li><b>Markov property.</b> Conditioning on the whole history is the same as conditioning on $s_t$ alone: $a_t\sim\pi_\theta(\cdot\mid s_t)$.</li>
+<li><b>Score has mean zero</b> (section 3): the inner expectation is 0. A constant times 0 is 0, and the outer expectation of 0 is 0.</li>
+</ol>
+<p class="small muted">A student asked whether this uses $\mathbb{E}[AB]=\mathbb{E}[A]\,\mathbb{E}[B]$. It doesn't (that's false in general). It uses the fact that, <i>after conditioning on the past</i>, $B=R_{&lt;t}$ is a constant (<a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1238" target="_blank" rel="noopener">▶ 20:38</a>).</p>
+<p>Intuitively: the past reward is something you can't change, so it shouldn't affect how you weight this decision. Only the reward you can still influence matters. What survives is</p>
+<div class="callout">
+$$\nabla_\theta\eta(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\Big[\sum_{t=0}^{T-1}\nabla_\theta\log\pi_\theta(a_t\mid s_t)\,R_{\ge t}\Big],\qquad R_{\ge t}=\sum_{t'=t}^{T-1}\gamma^{t'}R(s_{t'},a_{t'})$$
+</div>
+<p>$R_{\ge t}$ is usually called the <b>reward-to-go</b>: the future reward that action $a_t$ can affect. (The lecture calls it "$R$ larger than $t$"; it includes the reward at step $t$ itself, since $a_t$ affects $R(s_t,a_t)$.)</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Check the claim on a made-up MDP: 2 states, 2 actions, horizon $T=4$, $\gamma=0.9$, tabular softmax policy (4 parameters). The exact gradient is computed by enumerating all 256 trajectories. Then we draw single trajectories and use each one as a gradient estimate, with the total return $R(\tau)$ as the weight or with the reward-to-go $R_{\ge t}$.</p>
+  <div class="row"><button id="mc">Draw 2,000 trajectories</button><button id="mc5">Draw 20,000</button></div>
+  <div style="overflow-x:auto"><table id="tab1"></table></div>
+  <p class="small" id="t2"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture: the variance.</b> The lecture's argument is that the two estimators have the <i>same expectation</i>. The table also shows the other half of the story: dropping $R_{&lt;t}$ removes terms that only add noise, so the reward-to-go estimator usually has a smaller spread per trajectory. The next page makes this the explicit goal.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>$\eta(\theta)$ depends on $\theta$ only through the sampling distribution, so you can't just push $\nabla_\theta$ inside the expectation; the policy-gradient estimator handles this.</li>
+<li>The policy gradient is maximum likelihood on your own samples, with each trajectory weighted by its reward.</li>
+<li>$\mathbb{E}_{x\sim p_\theta}[\nabla_\theta\log p_\theta(x)]=0$; multiplying by anything that doesn't depend on the sampled action keeps it zero.</li>
+<li>Rewards earned before step $t$ are constants once you condition on the history, so they drop out: weight $\nabla\log\pi_\theta(a_t\mid s_t)$ by the reward-to-go $R_{\ge t}$ only.</li>
+</ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+const redraws = [];
+
+// ---- demo 1: weighted log-likelihood on a 4-action softmax ----
+const TH0 = [0.6, 0, -0.4, 0.2], R0 = [1, 0, 0.5, 0.2];
+let th1 = TH0.slice(), R1 = R0.slice(), score = null;
+const soft = t => { const m = Math.max(...t), e = t.map(x => Math.exp(x - m)), z = e.reduce((a, b) => a + b, 0); return e.map(x => x / z); };
+function grad1(){ const p = soft(th1), Rb = p.reduce((s, x, i) => s + x * R1[i], 0); return [p.map((x, i) => x * (R1[i] - Rb)), Rb, p]; }
+$('rsl').innerHTML = R1.map((r, i) => `<div class="row" style="margin:4px 0"><label style="min-width:84px">R(a<sub>${i + 1}</sub>) = <b id="rv${i}">${r.toFixed(2)}</b></label><input type="range" id="r${i}" min="-1" max="2" step="0.05" value="${r}"></div>`).join('');
+R1.forEach((_, i) => $('r' + i).addEventListener('input', e => { R1[i] = +e.target.value; $('rv' + i).textContent = R1[i].toFixed(2); score = null; draw1(); }));
+function draw1(){
+  const [ctx, W, H] = setupCanvas($('c1')), [g, Rb, p] = grad1(), mid = H * 0.62, bw = W / 4;
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke();
+  ctx.font = '12px system-ui'; ctx.textAlign = 'center';
+  p.forEach((pi, i) => { const x0 = i * bw + bw * 0.18;
+    ctx.fillStyle = cssv('--s1'); const hp = pi * (mid - 18); ctx.fillRect(x0, mid - hp, bw * 0.3, hp);
+    const hg = Math.max(-H + mid + 16, Math.min(mid - 16, g[i] * 4 * (mid - 18))); ctx.fillStyle = cssv('--s3');
+    if (hg >= 0) ctx.fillRect(x0 + bw * 0.34, mid - hg, bw * 0.3, hg); else ctx.fillRect(x0 + bw * 0.34, mid, bw * 0.3, -hg);
+    ctx.fillStyle = cssv('--muted'); ctx.fillText('a' + (i + 1), i * bw + bw / 2, H - 4); });
+  const gn = Math.hypot(...g); $('eta1').textContent = fmt(Rb); $('gn1').textContent = fmt(gn, 4);
+  $('sc1').textContent = score === null ? '–' : fmt(score, 4);
+  const allEq = R1.every(r => Math.abs(r - R1[0]) < 1e-9);
+  $('t1').innerHTML = allEq ? 'All rewards are equal: no action is better than another, so the gradient is exactly zero, whatever the policy.'
+    : `Actions with reward above the average $\\bar R$ = ${fmt(Rb)} get pushed up, those below get pushed down. The pushes always sum to zero (probabilities must still add to 1).`;
+  if (window.renderMathInElement) renderMathInElement($('t1'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+$('eq').onclick = () => { R1 = R1.map(() => 0.5); R1.forEach((r, i) => { $('r' + i).value = r; $('rv' + i).textContent = r.toFixed(2); }); draw1(); };
+$('stp').onclick = () => { const [g] = grad1(); th1 = th1.map((t, i) => t + g[i]); score = null; draw1(); };
+$('rs1').onclick = () => { th1 = TH0.slice(); R1 = R0.slice(); R1.forEach((r, i) => { $('r' + i).value = r; $('rv' + i).textContent = r.toFixed(2); }); score = null; draw1(); };
+$('samp').onclick = () => { const p = soft(th1), r = rng(Date.now() & 0xffff), s = [0, 0, 0, 0], N = 1000;
+  for (let n = 0; n < N; n++) { let u = r(), a = 0; while (a < 3 && u > p[a]) { u -= p[a]; a++; } for (let b = 0; b < 4; b++) s[b] += ((b === a ? 1 : 0) - p[b]) / N; }
+  score = Math.hypot(...s); draw1(); };
+redraws.push(draw1);
+
+// ---- demo 2: full return vs reward-to-go on a tiny MDP ----
+const T2 = 4, G2 = 0.9, P2 = [[[0.7, 0.3], [0.2, 0.8]], [[0.5, 0.5], [0.9, 0.1]]], RR = [[1, 0], [0.3, 2]], D02 = [0.6, 0.4], TH2 = [[0.3, -0.5], [1.1, 0.2]];
+const pol = s => soft(TH2[s]);
+function exactGrad(){ const g = [0, 0, 0, 0];
+  function rec(t, s, pr, acts){ if (t === T2) { let G = 0; acts.forEach(([s_, a], k) => G += Math.pow(G2, k) * RR[s_][a]);
+      acts.forEach(([s_, a]) => { const p = pol(s_); for (let b = 0; b < 2; b++) g[2 * s_ + b] += pr * G * ((b === a ? 1 : 0) - p[b]); }); return; }
+    for (let a = 0; a < 2; a++) for (let s2 = 0; s2 < 2; s2++) rec(t + 1, s2, pr * pol(s)[a] * P2[s][a][s2], acts.concat([[s, a]])); }
+  rec(0, 0, D02[0], []); rec(0, 1, D02[1], []); return g; }
+const EX = exactGrad();
+function runMC(N){ const r = rng(12345 + N), m1 = [0, 0, 0, 0], m2 = [0, 0, 0, 0], v1 = [0, 0, 0, 0], v2 = [0, 0, 0, 0];
+  const pick = p => (r() < p[0] ? 0 : 1);
+  for (let n = 0; n < N; n++) { let s = r() < D02[0] ? 0 : 1; const tr = [];
+    for (let t = 0; t < T2; t++) { const a = pick(pol(s)); tr.push([s, a, Math.pow(G2, t) * RR[s][a]]); s = r() < P2[s][a][0] ? 0 : 1; }
+    const G = tr.reduce((x, y) => x + y[2], 0), e1 = [0, 0, 0, 0], e2 = [0, 0, 0, 0];
+    tr.forEach(([s_, a], t) => { const p = pol(s_); let r2g = 0; for (let k = t; k < T2; k++) r2g += tr[k][2];
+      for (let b = 0; b < 2; b++) { const sc = (b === a ? 1 : 0) - p[b]; e1[2 * s_ + b] += sc * G; e2[2 * s_ + b] += sc * r2g; } });
+    for (let i = 0; i < 4; i++) { m1[i] += e1[i] / N; m2[i] += e2[i] / N; v1[i] += e1[i] * e1[i] / N; v2[i] += e2[i] * e2[i] / N; } }
+  const sd1 = v1.map((v, i) => Math.sqrt(Math.max(0, v - m1[i] * m1[i]))), sd2 = v2.map((v, i) => Math.sqrt(Math.max(0, v - m2[i] * m2[i])));
+  const names = ['θ(s₁,a₁)', 'θ(s₁,a₂)', 'θ(s₂,a₁)', 'θ(s₂,a₂)'];
+  $('tab1').innerHTML = '<tr><th>parameter</th><th>exact ∂η/∂θ</th><th>mean, weight R(τ)</th><th>mean, weight R≥t</th><th>std per trajectory: R(τ) → R≥t</th></tr>' +
+    names.map((nm, i) => `<tr><td>${nm}</td><td>${fmt(EX[i])}</td><td>${fmt(m1[i])}</td><td>${fmt(m2[i])}</td><td>${fmt(sd1[i], 2)} → ${fmt(sd2[i], 2)}</td></tr>`).join('');
+  $('t2').textContent = `${N.toLocaleString()} trajectories. Both sample means approach the exact gradient (their difference is only sampling noise, shrinking like 1/√N); the reward-to-go weights are less noisy.`; }
+$('mc').onclick = () => runMC(2000); $('mc5').onclick = () => runMC(20000);
+runMC(2000);
+const redrawAll = () => redraws.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Causal Masking, Multi-Head Attention and the Cost of Attention</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 1 · part 5 of 5 · Stanford CS229, Spring 2026</div>
+<h1>Causal Masking, Multi-Head Attention and the Cost of Attention</h1>
+<p class="lede">In matrix form attention is $\operatorname{softmax}(QK^\top/c)\,V$, and as written every position can see the future. Adding $-\infty$ above the diagonal before the softmax makes it causal. Several heads with different weights run in parallel and are concatenated and projected. Residuals and normalisation glue the layers together, and the $T\times T$ score matrix makes compute grow like $T^2$.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3485" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 58:05 to 77:31 of a 77-min video; published as “Lecture 14: Transformers, In-Context Learning”). Previous: <a href="L1-4-attention.html">single-head attention</a> · Next: <a href="L2-1-kv-cache-gqa.html">Lecture 2, part 1</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Attention in matrix form <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3491" target="_blank" rel="noopener">▶ 58:11</a></h2>
+<p>The per-position notation is messy. Stack the row vectors: the queries form $Q\in\mathbb R^{T\times d_h}$ (row $t$ is $q_t$), and likewise the keys $K$ and values $V$. Then the whole output sequence, stacked as rows, is</p>
+<div class="callout">$$H^{\text{out}} = \operatorname{softmax}_{\text{row}}\!\Big(\frac{QK^\top}{c}\Big)\,V .$$</div>
+<ol class="steps">
+<li>$QK^\top/c$ is $T\times T$ with entry $(i,j)=q_ik_j^\top/c$: all the query–key inner products.</li>
+<li>A <b>row-wise</b> softmax turns each row into a probability vector: row $t$ is $(P_{t1},\dots,P_{tT})$.</li>
+<li>Multiplying by $V$ takes, for each row, the linear combination $\sum_iP_{ti}v_i$: exactly $h^{\text{out}}_t$.</li>
+</ol>
+<p>"Just very basic linear algebra": mostly notation, worth checking yourself.</p>
+
+<h2>2 · The cheat: nothing is causal yet <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3618" target="_blank" rel="noopener">▶ 60:18</a></h2>
+<p>As defined, the output at time $t$ depends on <b>every</b> value, including $v_T$, a function of the last input $h^{\text{in}}_T$. That breaks the autoregressive property from part 2: $u_t$ may only depend on what comes before.</p>
+<p>The fix, <b>masking</b>: for each $t$, delete the terms after $t$,</p>
+$$h^{\text{out}}_t = P_{t1}v_1+\cdots+P_{tt}v_t+\underbrace{P_{t,t+1}v_{t+1}+\cdots+P_{tT}v_T}_{\text{delete}},$$
+<p>and renormalise the remaining $P$'s to sum to 1, so the output is still a convex combination of $v_1,\dots,v_t$.</p>
+
+<h2>3 · Implementing the mask with −∞ <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3729" target="_blank" rel="noopener">▶ 62:09</a></h2>
+<p>Mathematically, and in code, you <b>add a mask matrix</b> before the softmax:</p>
+$$H^{\text{out}}=\operatorname{softmax}_{\text{row}}\!\Big(\frac{QK^\top}{c}+M\Big)V,\qquad M_{tj}=\begin{cases}0 & j\le t\\ -\infty & j&gt;t.\end{cases}$$
+<ol class="steps">
+<li>Row 1: $q_1k_1^\top$ is fine, but $q_1$ shouldn't see $k_2$, $k_3$, …: add $-\infty$ to those entries.</li>
+<li>Row 2: $q_2k_1^\top$ and $q_2k_2^\top$ are fine, $q_2k_3^\top$ onwards get $-\infty$. The whole <b>upper triangle</b> becomes $-\infty$.</li>
+<li>In the softmax, $e^{-\infty}=0$, so those probabilities vanish and the rest automatically sum to 1: deletion and renormalisation in one step.</li>
+</ol>
+<p><b>Why mask?</b> <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3907" target="_blank" rel="noopener">▶ 65:07</a> In an autoregressive model the output at $t$ must not depend on anything after $t$. In generation you can't see future tokens, so every token may depend only on what precedes it.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">A $6\times6$ attention matrix for a toy sentence (scores are made up). Cells show $P_{tj}$ after the row softmax; darker = more attention. Toggle the mask, click a row to read its output, and press “New scores” to reshuffle.</p>
+  <div class="row"><button id="mOn" class="on">Causal mask: on</button><button id="mNew">New scores</button></div>
+  <canvas id="mat" height="330" aria-label="Attention probability matrix with optional causal mask"></canvas>
+  <p class="small" id="matTxt"></p>
+</div>
+
+<h2>4 · Multi-head attention <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3949" target="_blank" rel="noopener">▶ 65:49</a></h2>
+<p>What we have so far is <b>single-head attention</b> (the course notes call it $\text{Attn}_{1h}$). In practice you run several copies, each with its <b>own</b> $W_Q,W_K,W_V$ ("copy" doesn't mean identical, which would be useless), on the <b>same input</b>:</p>
+$$\big(h^{(j)}_1,\dots,h^{(j)}_T\big)=\text{Attn}_{1h}^{(j)}\big(h^{\text{in}}_1,\dots,h^{\text{in}}_T\big),\qquad j=1,\dots,n_h.$$
+<p>That gives $n_h$ sequences, but we want one. At each position, <b>concatenate</b> the heads' outputs and multiply by another projection matrix:</p>
+<div class="callout">$$h^{\text{out}}_t=\big[\,h^{(1)}_t,\ h^{(2)}_t,\ \dots,\ h^{(n_h)}_t\,\big]\;W_O .$$</div>
+<ul>
+<li><b>Why?</b> More power to compute different kinds of attention. Intuitively each head does a special job: one finds which <b>entity</b> in the earlier passage matters to me, another tracks the <b>sentiment</b> of the passage and which part of it matters. The results are aggregated into one big vector and projected to a single output.</li>
+<li><b>Sequential or parallel?</b> <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=4219" target="_blank" rel="noopener">▶ 70:19</a> Parallel. All heads read the same input inside one attention layer; the next layer has its own set of parallel heads.</li>
+<li><b>How many heads?</b> The lecturer's rough answer: on the order of up to 100, depending on model size; perhaps hundreds for a 100-billion-parameter model (he was unsure of exact figures).</li>
+<li><b>Other designs?</b> Many variants have been considered, mostly for <b>efficiency</b>: without efficiency concerns you could just use a gigantic generic network. These structures are ways to use parameters well.</li>
+</ul>
+<div class="beyond"><b>Going beyond the lecture: dimensions.</b> Commonly $d_h=d/n_h$, so the concatenation has width $n_hd_h=d$ and $W_O\in\mathbb R^{d\times d}$: multi-head attention costs the same parameters as one wide head. See also <a href="../deep-learning/L66-multi-head-attention.html">Multi-head attention</a> in my Khapra notes.</div>
+
+<h2>5 · Residual connections and normalisation <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=4340" target="_blank" rel="noopener">▶ 72:20</a></h2>
+<p>The layer picture from part 4 (attention, then MLP) is slightly simplified. After attention there is a <b>normalisation layer</b> (often <b>RMSNorm</b>, briefly met in the neural-network part of the course), then the MLP, and the <b>residual</b> is added back, as in residual networks, before the next layer.</p>
+<p>There are different orders for applying normalisation, residuals and attention, known as <b>pre-norm</b> and <b>post-norm</b>; the lecture leaves the details to the course notes.</p>
+<div class="beyond"><b>Going beyond the lecture: the two orders.</b>
+<p style="margin:6px 0">Post-norm (original 2017 transformer): $\;h\leftarrow\text{Norm}(h+\text{Attn}(h))$, then $h\leftarrow\text{Norm}(h+\text{MLP}(h))$.</p>
+<p style="margin:6px 0">Pre-norm (most modern LLMs): $\;h\leftarrow h+\text{Attn}(\text{Norm}(h))$, then $h\leftarrow h+\text{MLP}(\text{Norm}(h))$.</p>
+Pre-norm leaves an untouched "residual stream" from input to output, which makes deep stacks easier to train. RMSNorm rescales a vector by its root-mean-square: $\text{RMSNorm}(h)=h/\sqrt{\tfrac1d\sum_ih_i^2+\epsilon}\odot g$, with a learned gain $g$.</div>
+
+<h2>6 · Compute: the $T^2$ problem <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=4420" target="_blank" rel="noopener">▶ 73:40</a></h2>
+<p>Looking ahead to the systems lecture: how many operations does attention take? Dependence on parameter counts is multiplicative and linear and relatively easy; what matters is the dependence on $T$.</p>
+<ol class="steps">
+<li>Each position computes an inner product with all $T$ keys: $T$ inner products.</li>
+<li>There are $T$ positions, so the score matrix is $T\times T$: $T^2$ inner products.</li>
+<li>Each is between vectors in $\mathbb R^{d_h}$, so about $T^2d_h$ operations.</li>
+</ol>
+<div class="callout"><b>Compute $\sim T^2 d_h$.</b> The $d_h$ factor matters less; the $T^2$ is critical: at $T=10^6$, that's $10^{12}$ inner products per head per layer, prohibitive.</div>
+<p>This is one source of <b>long-context</b> problems. In ChatGPT or Claude Code you'll see "let me compact my context" after a while: shrinking the context keeps the computation affordable. In real production systems the cost is probably <b>closer to linear</b> in $T$, thanks to transformer variants that reduce the dependence (a few come next lecture). Exactly which ones OpenAI or Anthropic use isn't publicly known; many open papers propose different approaches.</p>
+
+<h2>7 · Memory, flash attention, and the trade-off <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=4575" target="_blank" rel="noopener">▶ 76:15</a></h2>
+<p>At first sight memory is also $T^2$: the score matrix alone has $T^2$ entries. But you don't need the whole matrix at once. Compute <b>part</b> of it, multiply by the matching part of $V$, discard it, and move to the next part. This idea is <b>flash attention</b>, which reduces the memory footprint.</p>
+<p>Ideas that change the <b>architecture</b> to improve the $T^2$ dependence come with a <b>trade-off</b> <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=4618" target="_blank" rel="noopener">▶ 76:58</a>: the architecture becomes less expressive, and you may lose some performance.</p>
+<div class="card">
+  <div class="row"><label>context length $T$ <input type="range" id="cT" min="3" max="7" step="0.1" value="5"></label> <b class="mono" id="cTT"></b></div>
+  <div class="row"><label>head dim $d_h$ <input type="range" id="cD" min="5" max="8" step="1" value="7"></label> <b class="mono" id="cDT"></b>
+    <label>heads $n_h$ <input type="range" id="cH" min="1" max="128" step="1" value="32"></label> <b class="mono" id="cHT"></b></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="oOps"></div><div class="l">score operations $T^2 d_h n_h$ per layer</div></div>
+    <div class="stat"><div class="v" id="oMem"></div><div class="l">full score matrices, fp16 (all heads)</div></div>
+    <div class="stat"><div class="v" id="oTile"></div><div class="l">one 128×128 tile at a time, per head</div></div>
+  </div>
+  <p class="small" id="cNote"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> Flash attention also needs the softmax to be computed tile by tile; it keeps a running maximum and running sum per row and rescales earlier partial results when a larger score appears (an "online softmax"). The compute stays $\sim T^2d_h$; only memory and memory traffic shrink.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>$H^{\text{out}}=\operatorname{softmax}_{\text{row}}(QK^\top/c)V$ with $Q,K,V\in\mathbb R^{T\times d_h}$.</li>
+<li>Without a mask, $h^{\text{out}}_t$ sees the future; adding $M$ with $-\infty$ above the diagonal zeroes those weights and renormalises the rest.</li>
+<li>Multi-head: $n_h$ heads with separate weights run in parallel; concatenate per position and project with $W_O$.</li>
+<li>Each layer also has normalisation (often RMSNorm) and residual connections, in pre-norm or post-norm order.</li>
+<li>Attention costs $\sim T^2d_h$ compute; naive memory is $T^2$, which flash attention avoids by working on blocks. Cheaper architectures trade away expressiveness.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const fmt = (x, k = 3) => Number.isFinite(x) ? (Math.abs(x) >= 1e4 || (Math.abs(x) < 1e-3 && x !== 0) ? x.toExponential(2) : x.toFixed(k)) : '–';
+function softmax(z){ const m = Math.max(...z); if (!Number.isFinite(m)) return z.map(() => 1 / z.length); const e = z.map(v => Math.exp(v - m)), s = e.reduce((a, b) => a + b, 0); return e.map(v => v / s); }
+
+const TOK = ['⟨bos⟩', 'A', 'black', 'dog', 'runs', ','];
+let masked = true, row = 3, S = [];
+function newScores(){ S = TOK.map(() => TOK.map(() => Math.round((Math.random() * 4 - 1.5) * 10) / 10)); }
+function probs(){ return S.map((r, t) => softmax(r.map((v, j) => masked && j > t ? -Infinity : v))); }
+function drawMat(){ const [ctx, W, H] = setupCanvas($('mat')), n = TOK.length, lab = 56, cell = Math.min((W - lab - 4) / n, (H - lab - 4) / n), P = probs();
+  const x0 = lab, y0 = lab; ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let j = 0; j < n; j++) { ctx.fillStyle = cssv('--muted'); ctx.save(); ctx.translate(x0 + (j + 0.5) * cell, y0 - 8); ctx.rotate(-0.6); ctx.textAlign = 'left'; ctx.fillText('k' + (j) + ' ' + TOK[j], 0, 0); ctx.restore(); }
+  for (let t = 0; t < n; t++) { ctx.textAlign = 'right'; ctx.fillStyle = t === row ? cssv('--s1') : cssv('--muted'); ctx.fillText('q' + t + ' ' + TOK[t], x0 - 6, y0 + (t + 0.5) * cell); ctx.textAlign = 'center';
+    for (let j = 0; j < n; j++) { const x = x0 + j * cell, y = y0 + t * cell, isM = masked && j > t;
+      ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = isM ? 0 : 0.08 + 0.92 * P[t][j]; ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2); ctx.globalAlpha = 1;
+      if (isM) { ctx.fillStyle = cssv('--grid'); ctx.fillRect(x + 1, y + 1, cell - 2, cell - 2); }
+      ctx.fillStyle = isM ? cssv('--faint') : (P[t][j] > 0.5 ? '#fff' : cssv('--ink')); ctx.font = (cell < 40 ? '10px' : '12px') + ' system-ui';
+      ctx.fillText(isM ? '−∞→0' : P[t][j].toFixed(2), x + cell / 2, y + cell / 2); } }
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.strokeRect(x0, y0 + row * cell, n * cell, cell);
+  ctx.textBaseline = 'alphabetic';
+  const used = P[row].map((p, j) => p > 1e-9 ? `${p.toFixed(2)}·v${j}` : null).filter(Boolean);
+  const leak = P[row].slice(row + 1).reduce((a, b) => a + b, 0);
+  $('matTxt').innerHTML = `Row ${row} (“${TOK[row]}”): h<sup>out</sup><sub>${row}</sub> = ${used.join(' + ')}. ` +
+    (masked ? `Only v<sub>0</sub>…v<sub>${row}</sub> appear; the row still sums to 1.` : (leak > 0 ? `<b>${(leak * 100).toFixed(0)}% of the weight is on future tokens</b>: the prediction at this position could peek at what it's supposed to predict.` : 'No future tokens in this row.'));
+  $('mOn').textContent = 'Causal mask: ' + (masked ? 'on' : 'off'); $('mOn').classList.toggle('on', masked); }
+$('mOn').onclick = () => { masked = !masked; drawMat(); };
+$('mNew').onclick = () => { newScores(); drawMat(); };
+$('mat').addEventListener('click', e => { const r = $('mat').getBoundingClientRect(), n = TOK.length, W = r.width, H = +$('mat').dataset.h, lab = 56, cell = Math.min((W - lab - 4) / n, (H - lab - 4) / n);
+  const t = Math.floor((e.clientY - r.top - lab) / cell); if (t >= 0 && t < n) { row = t; drawMat(); } });
+
+function human(x){ const u = [[1e15, ' P'], [1e12, ' T'], [1e9, ' G'], [1e6, ' M'], [1e3, ' k']]; for (const [v, s] of u) if (x >= v) return (x / v).toFixed(1) + s; return x.toFixed(0); }
+function bytes(x){ const u = [[2 ** 40, ' TB'], [2 ** 30, ' GB'], [2 ** 20, ' MB'], [2 ** 10, ' KB']]; for (const [v, s] of u) if (x >= v) return (x / v).toFixed(1) + s; return x.toFixed(0) + ' B'; }
+function cost(){ const T = Math.round(10 ** +$('cT').value), dh = 2 ** +$('cD').value, nh = +$('cH').value;
+  $('cTT').textContent = T.toLocaleString(); $('cDT').textContent = dh; $('cHT').textContent = nh;
+  const ops = T * T * dh * nh, mem = T * T * nh * 2, tile = 128 * 128 * 2;
+  $('oOps').textContent = human(ops); $('oMem').textContent = bytes(mem); $('oTile').textContent = bytes(tile);
+  $('cNote').textContent = `Doubling T multiplies both the operations and the full-matrix memory by 4. ` + (mem > 80 * 2 ** 30 ? `The full score matrices would not fit on one 80 GB GPU; tiling keeps only small blocks in fast memory.` : `Still fits, but grows quadratically.`); }
+['cT', 'cD', 'cH'].forEach(i => $(i).addEventListener('input', cost)); cost();
+newScores(); drawMat();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawMat, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawMat);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawMat(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

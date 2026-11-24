@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Baselines, the Policy-Gradient Loop, and Why It Is On-Policy</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 4 · part 2 of 6 · Stanford CS229, Spring 2026</div>
+<h1>Baselines, the Policy-Gradient Loop, and Why It Is On-Policy</h1>
+<p class="lede">Subtracting a baseline $b(s_t)$ from the reward-to-go leaves the expected gradient unchanged but can shrink its variance enormously, and it turns "reinforce everything a little" into "reinforce the good, penalise the bad". The resulting algorithm is simple: sample, estimate, step. Its weakness is that every sample can be used only once.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=954" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 15:54 to 29:25 of a 79-min video; published as “Lecture 20: GMM (EM), PCA”, though it is about reinforcement learning). Previous: <a href="L4-1-policy-gradient-reward-to-go.html">part 1</a> · Next: <a href="L4-3-importance-sampling-ratio.html">part 3</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Adding a baseline <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=957" target="_blank" rel="noopener">▶ 15:57</a></h2>
+<p>The whole calculation on the previous page rested on one point: inside $\mathbb{E}\big[\nabla_\theta\log\pi_\theta(a_t\mid s_t)\,(\cdots)\big]$ you may add any term that is <b>not a function of $a_t$</b>. Anything that depends only on $s_t$, and not on any future state or action, contributes exactly zero. So subtract such a term, $b(s_t)$:</p>
+<div class="callout">
+$$\nabla_\theta\eta(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\Big[\sum_{t=0}^{T-1}\nabla_\theta\log\pi_\theta(a_t\mid s_t)\,\big(R_{\ge t}-b(s_t)\big)\Big]$$
+</div>
+<p>$b$ is called a <b>baseline</b>. With or without it, the expectation is identical. So why bother? Because in practice you never compute the expectation exactly; you <b>sample</b> some trajectories and average. The baseline is there to <b>reduce the variance</b> of that estimate.</p>
+
+<h2>2 · The 10-to-11 example <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1048" target="_blank" rel="noopener">▶ 17:28</a></h2>
+<p>Suppose the reward is always between 10 and 11. Then the weight $R_{\ge t}$ is always a number between 10 and 11, large and nearly the same for every sample. Subtract about 10.5 and the adjusted reward lives between −0.5 and 0.5. This is what people actually do these days: estimate the <b>average reward-to-go</b> and subtract it, so the rewards are balanced around zero.</p>
+<p><b>Why does this reduce variance?</b> It's the classical <b>control variate</b> idea. You have a random variable whose variance you want to reduce. Find something that is <b>correlated</b> with it but has <b>mean zero</b>, and subtract it. Here $\nabla\log\pi_\theta(a_t\mid s_t)\,b(s_t)$ has mean zero and is correlated with $\nabla\log\pi_\theta(a_t\mid s_t)\,R_{\ge t}$ (over all the randomness), so subtracting it lowers the variance without changing the mean.</p>
+<p><b>A student's objection</b> <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1176" target="_blank" rel="noopener">▶ 19:36</a>: "isn't that just subtracting a constant 10.5?" The lecturer agreed the example was oversimplified: the real gain comes from a baseline that <b>depends on $s_t$</b>. Say in one state the reward is between 10 and 11 and in another between 0 and 1. You subtract 10.5 in the first and 0.5 in the second, and now everything is on the same scale. Without it, one kind of trajectory multiplies its score by 10 or 11 and the other by 0 or 1.</p>
+<p><b>Another way to see it</b> <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1334" target="_blank" rel="noopener">▶ 22:14</a>. One state, two actions: one gets reward 10, the other 11. Since 10 is the worst you can do, you really ought to <i>penalise</i> the 10-action. But with raw rewards, the gradient <b>reinforces both</b>: the 11-action a bit more strongly, the 10-action a bit less. In expectation that's fine, because only the relative difference matters. In practice it's more direct to recentre, so that the 10-action is a <b>negative example</b> and the 11-action a <b>positive</b> one.</p>
+
+<p>Train it yourself. Two equally likely states, two actions each: in state A the rewards are 10 (bad action) and 11 (good action); in state B they are 0 and 1. Every run starts at a uniform policy and does REINFORCE with $N$ samples per step. Each curve averages 30 independent runs.</p>
+<div class="card">
+  <div class="row">
+    <label>samples per step $N$ = <b id="nv">2</b> <input type="range" id="nN" min="1" max="32" step="1" value="2"></label>
+    <label>learning rate $\alpha$ = <b id="av">0.10</b> <input type="range" id="aA" min="0.01" max="0.3" step="0.01" value="0.1"></label>
+    <button id="run2">Run again (new seeds)</button>
+  </div>
+  <canvas id="c2" height="250" aria-label="Probability of choosing the good action over training for three baseline choices"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>no baseline</span><span><i style="background:var(--s1)"></i>one constant $b=5.5$</span><span><i style="background:var(--s3)"></i>state baseline $b(A)=10.5,\ b(B)=0.5$</span><span><i style="background:var(--faint)"></i>y-axis: P(good action), averaged over both states and 30 runs</span></div>
+  <div style="overflow-x:auto"><table id="tab2"></table></div>
+  <p class="small" id="t2b"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture: a constant baseline isn't useless either.</b> Mathematically, even one constant changes the variance (not the mean). For a single state with rewards 10 and 11, subtracting 10.5 is a constant and cuts the variance a lot. With states on different scales, the best single constant (5.5 here, the average reward) helps only partly, and the per-state baseline is far better, as the table's first column shows. The "stuck" column shows the failure the lecturer describes: with all-positive weights, whichever action you happen to sample gets reinforced, and a run can lock into the bad action.</div>
+
+<h2>3 · A warning before PPO <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1419" target="_blank" rel="noopener">▶ 23:39</a></h2>
+<p>That's everything about policy gradient. Next comes <b>PPO</b>, a variant of it (the name stands for <i>proximal policy optimization</i>). The lecturer is candid about its status:</p>
+<ul>
+<li>Exactly why it works, and in which cases, is still somewhat of a mystery, especially at the theoretical level. There are many explanations; none is very convincing to him. What follows repeats existing justifications with some of his own tweaks.</li>
+<li>It isn't perfect: later in the lecture come several ways people have tried to fix it, and the fixes aren't perfect either.</li>
+<li><b>Stability of post-training</b> is a big issue in general; it takes some "magic". There's no consensus on the best way to stabilise it, at least in the open-source community. Frontier labs may know more.</li>
+</ul>
+
+<h2>4 · The policy-gradient loop <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1598" target="_blank" rel="noopener">▶ 26:38</a></h2>
+<p>Every policy-gradient algorithm has the same structure:</p>
+<div class="card">
+<p class="mono" style="margin:0;white-space:pre-wrap">repeat:
+    1. sample many trajectories τ⁽¹⁾, …, τ⁽ⁿ⁾ from the current policy π_θ
+    2. estimate ∇η(θ): replace the expectation by the
+       empirical mean over the sampled trajectories (say ~120 of them)
+    3. update  θ ← θ + α · (estimated ∇η(θ))</p>
+</div>
+<p>Step 3 is gradient <b>ascent</b>, since we maximise return. Step 2 is the same move as mini-batch SGD, an average over samples standing in for the expectation (see <a href="../deep-learning/L34-stochastic-vs-batch.html">stochastic vs mini-batch gradient descent</a>).</p>
+
+<h2>5 · The catch: it is on-policy <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1682" target="_blank" rel="noopener">▶ 28:02</a></h2>
+<p>The estimator needs trajectories sampled from <b>the policy whose gradient you are computing</b>. You sample from $\pi_\theta$, take the gradient at $\theta$, update $\theta$. Algorithms like this are called <b>on-policy</b>.</p>
+<p>What if you want two gradient steps on one batch? Strictly speaking, that isn't allowed. After the first step you're at a new $\theta$, and estimating the gradient there needs fresh samples from the new policy; trajectories from a different distribution don't estimate the right thing. So <b>each trajectory is used for one gradient step and then thrown away</b>. For language models, where generating trajectories is the expensive part (see part 6), that's painful.</p>
+<p>PPO's answer is <b>importance sampling</b>: reuse trajectories sampled from an <i>old</i> policy to estimate the gradient at the <i>current</i> one. That's the next page.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Any $b(s_t)$ that doesn't depend on $a_t$ or the future can be subtracted from $R_{\ge t}$ without changing the expected gradient.</li>
+<li>The point is variance: a baseline is a control variate, and recentring rewards around zero (for example, subtracting the average reward-to-go) makes samples comparable.</li>
+<li>A state-dependent baseline puts states with very different reward scales on one footing, and turns worse-than-average actions into negative examples.</li>
+<li>Policy gradient = sample from $\pi_\theta$, average to estimate $\nabla\eta$, step $\theta\leftarrow\theta+\alpha\hat\nabla\eta$.</li>
+<li>It is on-policy: samples must come from the current $\theta$, so each batch is used once. PPO tries to fix that.</li>
+</ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+const redraws = [];
+
+const RW = [[11, 10], [1, 0]]; // RW[state][action]; action 0 = good
+const VARIANTS = [{name: 'no baseline', col: '--s2', b: () => 0}, {name: 'constant 5.5', col: '--s1', b: () => 5.5}, {name: 'state baseline', col: '--s3', b: s => (s === 0 ? 10.5 : 0.5)}];
+const K = 150, M = 30;
+let curves = null, stats = null, seed = 7;
+function softmax2(t){ const m = Math.max(t[0], t[1]), e0 = Math.exp(t[0] - m), e1 = Math.exp(t[1] - m); return [e0 / (e0 + e1), e1 / (e0 + e1)]; }
+function exactVar(v){ // single-sample gradient variance (trace) at the uniform start
+  let e2 = 0; const mean = [0, 0, 0, 0];
+  for (let s = 0; s < 2; s++) for (let a = 0; a < 2; a++) { const w = RW[s][a] - v.b(s), sc = [(a === 0 ? 1 : 0) - 0.5, (a === 1 ? 1 : 0) - 0.5];
+    e2 += 0.25 * w * w * (sc[0] * sc[0] + sc[1] * sc[1]); mean[2 * s] += 0.25 * w * sc[0]; mean[2 * s + 1] += 0.25 * w * sc[1]; }
+  return e2 - mean.reduce((x, y) => x + y * y, 0); }
+function train(){
+  const N = +$('nN').value, al = +$('aA').value;
+  curves = VARIANTS.map(() => new Float64Array(K + 1)); stats = VARIANTS.map(() => ({stuck: 0, fin: 0}));
+  VARIANTS.forEach((v, vi) => { for (let m = 0; m < M; m++) { const r = rng(seed * 1000 + m); const th = [[0, 0], [0, 0]];
+    const pg = () => (softmax2(th[0])[0] + softmax2(th[1])[0]) / 2; curves[vi][0] += pg() / M;
+    for (let k = 1; k <= K; k++) { const g = [[0, 0], [0, 0]];
+      for (let n = 0; n < N; n++) { const s = r() < 0.5 ? 0 : 1, p = softmax2(th[s]), a = r() < p[0] ? 0 : 1, w = RW[s][a] - v.b(s);
+        g[s][0] += w * ((a === 0 ? 1 : 0) - p[0]) / N; g[s][1] += w * ((a === 1 ? 1 : 0) - p[1]) / N; }
+      for (let s = 0; s < 2; s++) for (let a = 0; a < 2; a++) th[s][a] += al * g[s][a];
+      curves[vi][k] += pg() / M; }
+    const pA = softmax2(th[0])[0]; if (pA < 0.1) stats[vi].stuck++; stats[vi].fin += pg() / M; } });
+  $('tab2').innerHTML = '<tr><th>baseline</th><th>variance of one-sample gradient at start</th><th>final P(good)</th><th>runs stuck on the bad action in state A</th></tr>' +
+    VARIANTS.map((v, i) => `<tr><td>${v.name}</td><td>${exactVar(v).toFixed(2)}</td><td>${stats[i].fin.toFixed(2)}</td><td>${stats[i].stuck} / ${M}</td></tr>`).join('');
+  $('t2b').textContent = `All three estimators have the same expected gradient. Only their noise differs. (N = ${N}, α = ${al}, ${K} steps.)`;
+  draw2(); }
+function draw2(){ if (!curves) return;
+  const [ctx, W, H] = setupCanvas($('c2')), L = 34, B = 22, X = k => L + (W - L - 8) * k / K, Y = p => 8 + (H - B - 8) * (1 - p);
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.lineWidth = 1;
+  [0, 0.25, 0.5, 0.75, 1].forEach(p => { ctx.beginPath(); ctx.moveTo(L, Y(p)); ctx.lineTo(W - 8, Y(p)); ctx.stroke(); ctx.fillText(p.toFixed(2), 2, Y(p) + 4); });
+  ctx.fillText('step 0', L, H - 6); ctx.textAlign = 'right'; ctx.fillText('step ' + K, W - 8, H - 6); ctx.textAlign = 'left';
+  curves.forEach((c, vi) => { ctx.strokeStyle = cssv(VARIANTS[vi].col); ctx.lineWidth = 2.2; ctx.beginPath(); for (let k = 0; k <= K; k++) { const x = X(k), y = Y(c[k]); k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.stroke(); }); }
+$('nN').addEventListener('input', e => { $('nv').textContent = e.target.value; train(); });
+$('aA').addEventListener('input', e => { $('av').textContent = (+e.target.value).toFixed(2); train(); });
+$('run2').onclick = () => { seed++; train(); };
+train(); redraws.push(draw2);
+const redrawAll = () => redraws.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

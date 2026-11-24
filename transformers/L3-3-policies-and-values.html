@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Policies and Value Functions</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 3 · part 3 of 6 · Stanford CS229, Spring 2026</div>
+<h1>Policies and Value Functions</h1>
+<p class="lede">Because the next state depends only on the current state and action, the best action can depend only on the current state: what we look for is a <b>policy</b>, a map from states to actions. Some deterministic policy is always optimal, yet training uses <b>randomised</b> policies because they change smoothly. The <b>value function</b> scores a policy from every starting state.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=1942" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 32:22 to 43:12 of a 76-min video; published as “Lecture 18: GMM (EM), PCA”). Previous: <a href="L3-2-rewards-and-returns.html">Rewards, returns and discounting</a> · Next: <a href="L3-4-bellman-equation.html">The Bellman equation</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · The Markov property <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=1942" target="_blank" rel="noopener">▶ 32:22</a></h2>
+<p>To maximise the expected return you have to pick the right sequence of actions. One fact makes that much simpler. The process is <b>Markov</b>: where you go next depends only on where you are now and what you do now,</p>
+$$s_{t+1}\sim P_{s_ta_t}\quad\text{depends on } (s_t,a_t)\text{ only, not on } s_0,a_0,\dots,s_{t-1},a_{t-1}.$$
+<p>E.g. the move to $s_2$ depends only on $s_1$ and $a_1$. You don't have to remember the history. Two consequences:</p>
+<ol class="steps">
+<li><b>The future forgets the past.</b> Given $s_t$, what happens at $s_{t+1}$, or at any $s_{t+j}$, depends only on $s_t$ and the actions taken from $t$ on, not on anything before $t$.</li>
+<li><b>So the optimal action at time $t$ depends only on $s_t$.</b> How you arrived at $s_t$ is irrelevant: "the past is the past".</li>
+</ol>
+
+<h2>2 · Policies <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2052" target="_blank" rel="noopener">▶ 34:12</a></h2>
+<p>That justifies a very specific RL term. A <b>policy</b> is a map from states to actions:</p>
+$$\pi:\;S\to A,\qquad a_t=\pi(s_t).$$
+<p>Finding a good policy is the only thing you need to achieve the goal: you just need the optimal action as a function of the state.</p>
+<p><b>Tape example</b> (goal 9, no tunnel): the optimal policy is "left of the goal, go right; otherwise go left".</p>
+<p>This is a <b>deterministic</b> policy: for a fixed state it outputs a single action. <b>There is always a deterministic optimal policy</b> <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2154" target="_blank" rel="noopener">▶ 35:54</a>, for a simple reason: in each state take the best action, and if there's a tie pick any of them. There's no reason to randomise, because one option is always at least as good as all the others.</p>
+
+<h2>3 · Randomised policies, and why we still want them <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2186" target="_blank" rel="noopener">▶ 36:26</a></h2>
+<p>In practice people also use <b>randomised (stochastic) policies</b>, written</p>
+$$\pi(a\mid s):\ \text{given state } s,\ \text{a distribution over actions } a .$$
+<p>A randomised policy is in most cases not better than a deterministic one. Why bother? In training you need some <b>continuity</b>; you model the policy with a neural network plus a sampling procedure.</p>
+<p><b>Why hedging can't win</b> <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2239" target="_blank" rel="noopener">▶ 37:19</a>. Pick action 1 with probability 0.9 and action 2 with probability 0.1. Say action 1 gives payoff 1.0 and action 2 gives 2.0. Then</p>
+$$0.9\times1.0+0.1\times2.0=1.1\;\le\;\max(1.0,\,2.0)=2.0 .$$
+<p>A mixture's expected payoff is a weighted average, so it lies between the two payoffs, and at least one action is at least as good as the mixture. You should have just taken action 2.</p>
+<p><b>Why randomise in training</b> <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2315" target="_blank" rel="noopener">▶ 38:35</a>. There are several reasons depending on the setting, but the fundamental one is continuity. A deterministic policy makes a <b>hard switch</b>: for some parameters it picks action 1, and after an update it suddenly jumps to action 2. With a distribution you move along a continuous spectrum: 50/50 now, 40/60 after an update, 30/70 after the next. The dynamics are smoother. (Some policies must be stochastic for other reasons, which come later: policy gradient only works with stochastic policies.)</p>
+<table>
+<tr><th></th><th>Deterministic $a=\pi(s)$</th><th>Stochastic $a\sim\pi(\cdot\mid s)$</th></tr>
+<tr><td>Can be optimal?</td><td>Yes: one always is</td><td>Never strictly better than the best deterministic one</td></tr>
+<tr><td>As a function of parameters</td><td>Jumps between actions</td><td>Probabilities change smoothly</td></tr>
+<tr><td>Used in training?</td><td>Hard to optimise</td><td>Yes: neural net + sampling</td></tr>
+</table>
+
+<h2>4 · Try it: hedging and continuity</h2>
+<div class="card">
+<p class="small muted" style="margin-top:0">One state, two actions. A parameter $\theta$ controls the policy. <b>Stochastic:</b> take action 2 with probability $\sigma(\theta)=1/(1+e^{-\theta})$. <b>Deterministic:</b> take action 2 if $\theta\ge0$, else action 1. The curves are expected payoff against $\theta$. It starts at the lecture's 0.9 / 0.1 split. "Gradient step" nudges $\theta$ uphill using the slope at the current point.</p>
+<div class="row"><label>$\theta$ <input type="range" id="th" min="-6" max="6" step="0.01" value="-2.197"> <span id="thV"></span></label>
+<label>payoff of action 1 <input type="range" id="r1" min="0" max="3" step="0.1" value="1"> <span id="r1V">1.0</span></label>
+<label>payoff of action 2 <input type="range" id="r2" min="0" max="3" step="0.1" value="2"> <span id="r2V">2.0</span></label></div>
+<div class="row"><button id="gs">Gradient step (step size 4)</button><button id="g5">5 steps</button><button id="rs">Back to 0.9 / 0.1</button></div>
+<canvas id="hc" height="260" aria-label="Expected payoff against the policy parameter for a stochastic and a deterministic policy"></canvas>
+<div class="legend"><span><i style="background:var(--s1)"></i>stochastic policy</span><span><i style="background:var(--s2)"></i>deterministic policy</span><span><i style="background:var(--faint)"></i>best single action</span></div>
+<div class="row">
+<div class="stat"><div class="v" id="pv"></div><div class="l">$P(\text{action 1})\,/\,P(\text{action 2})$</div></div>
+<div class="stat"><div class="v" id="jv"></div><div class="l">expected payoff: stochastic</div></div>
+<div class="stat"><div class="v" id="dv"></div><div class="l">slope $dJ/d\theta$: stochastic vs deterministic</div></div>
+</div>
+<p class="small" id="hTxt"></p>
+</div>
+<p>The stochastic curve never rises above the best single action (hedging can't win), but it has a usable slope everywhere. The deterministic curve is flat with one cliff, so its slope is zero almost everywhere and gradient steps can't move it.</p>
+
+<h2>5 · The value function <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2403" target="_blank" rel="noopener">▶ 40:03</a></h2>
+<p>One more concept before algorithms. The <b>value function</b> of a policy $\pi$ is much like the return, but it fixes <i>where you start</i> and <i>which policy you follow</i>: the expected total payoff starting from state $s$ and applying $\pi$ forever.</p>
+<div class="callout">$$V^\pi(s)=\mathbb{E}\Big[\sum_{t\ge0}\gamma^tR(s_t)\;\Big|\;s_0=s\Big],\qquad a_t\sim\pi(\cdot\mid s_t),\quad s_{t+1}\sim P_{s_ta_t}.$$</div>
+<p>The superscript $\pi$ records that the actions inside the expectation come from $\pi$. It's just a definition.</p>
+<p><b>Optimal value and optimal policy</b> <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2511" target="_blank" rel="noopener">▶ 41:51</a>. Optimise over policies:</p>
+$$V^*(s)=\max_\pi V^\pi(s),\qquad \pi^*=\arg\max_\pi V^\pi(s).$$
+<p>$V^*$ doesn't depend on a policy. It answers "if all my future decisions are optimal, how much return can I get from $s$?", and it depends on $s$ because some starting states are better than others. $\pi^*$, the <b>optimal policy</b>, is the maximiser, almost a tautology: the optimal policy is the one that maximises future return from $s$.</p>
+<div class="beyond"><b>Going beyond the lecture: one $\pi^*$ for all states.</b> Written this way, the argmax could in principle differ from state to state. A standard MDP result says it doesn't: a single (deterministic) policy achieves $V^*(s)$ at every $s$ at once, which is why it makes sense to speak of <i>the</i> optimal policy.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li><b>Markov property:</b> $s_{t+1}$ depends only on $(s_t,a_t)$, so the optimal action depends only on $s_t$.</li>
+<li>A <b>policy</b> maps states to actions; finding a good one is the whole problem.</li>
+<li>A <b>deterministic</b> optimal policy always exists: a mixture's payoff is an average, so hedging never beats the best action (e.g. $0.9\cdot1+0.1\cdot2=1.1\le2$).</li>
+<li><b>Stochastic</b> policies $\pi(a\mid s)$ are used in training for continuity: probabilities move smoothly instead of jumping between actions.</li>
+<li>$V^\pi(s)$ = expected discounted return from $s$ under $\pi$; $V^*=\max_\pi V^\pi$, and $\pi^*$ is the maximiser.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAW = [], redrawAll = () => DRAW.forEach(f => f());
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+let th = -2.197, r1 = 1, r2 = 2, trail = [];
+const sig = x => 1 / (1 + Math.exp(-x)), Js = t => r1 + (r2 - r1) * sig(t), Jd = t => t >= 0 ? r2 : r1, dJs = t => (r2 - r1) * sig(t) * (1 - sig(t));
+function draw(){
+  const [ctx, W, H] = setupCanvas($('hc')), L = 38, Rr = W - 10, top = 14, bot = H - 26, lo = Math.min(r1, r2) - 0.3, hi = Math.max(r1, r2) + 0.3;
+  const X = t => L + (Rr - L) * (t + 6) / 12, Y = v => bot - (bot - top) * (v - lo) / (hi - lo);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, top); ctx.lineTo(L, bot); ctx.lineTo(Rr, bot); ctx.moveTo(X(0), top); ctx.lineTo(X(0), bot); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; [-6, -3, 0, 3, 6].forEach(t => ctx.fillText(String(t), X(t) - 4, bot + 14)); ctx.fillText('θ', Rr - 8, bot - 6);
+  [r1, r2].forEach(v => ctx.fillText(v.toFixed(1), 4, Y(v) + 4));
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--faint'); ctx.beginPath(); ctx.moveTo(L, Y(Math.max(r1, r2))); ctx.lineTo(Rr, Y(Math.max(r1, r2))); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(-6), Y(r1)); ctx.lineTo(X(0), Y(r1)); ctx.moveTo(X(0), Y(r2)); ctx.lineTo(X(6), Y(r2)); ctx.stroke();
+  ctx.strokeStyle = cssv('--s1'); ctx.beginPath(); for (let i = 0; i <= 200; i++) { const t = -6 + 12 * i / 200; i ? ctx.lineTo(X(t), Y(Js(t))) : ctx.moveTo(X(t), Y(Js(t))); } ctx.stroke();
+  trail.forEach(t => { ctx.fillStyle = cssv('--faint'); ctx.beginPath(); ctx.arc(X(t), Y(Js(t)), 3, 0, 7); ctx.fill(); });
+  // tangent of the stochastic curve
+  const m = dJs(th), dx = 1.2; ctx.strokeStyle = cssv('--ink'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(X(th - dx), Y(Js(th) - m * dx)); ctx.lineTo(X(th + dx), Y(Js(th) + m * dx)); ctx.stroke();
+  ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(X(th), Y(Js(th)), 6, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(X(th), Y(Jd(th)), 5, 0, 7); ctx.fill();
+  const p2 = sig(th);
+  $('thV').textContent = th.toFixed(2); $('pv').textContent = `${(1 - p2).toFixed(2)} / ${p2.toFixed(2)}`;
+  $('jv').textContent = Js(th).toFixed(3); $('dv').textContent = `${fmt(m, 3)} vs 0`;
+  $('hTxt').innerHTML = `Stochastic payoff ${(1 - p2).toFixed(2)}×${r1.toFixed(1)} + ${p2.toFixed(2)}×${r2.toFixed(1)} = <b>${Js(th).toFixed(3)}</b> ≤ best single action ${Math.max(r1, r2).toFixed(1)}. `
+    + (r1 === r2 ? 'With equal payoffs every policy is optimal and the slope is zero.' : `The deterministic policy currently picks action ${th >= 0 ? 2 : 1}; its slope is 0 here, so a gradient step would not move it.`)
+    + (trail.length ? ` P(action 2) along your steps: ${trail.concat([th]).slice(-6).map(t => sig(t).toFixed(2)).join(' → ')}.` : '');
+}
+DRAW.push(draw);
+const step = () => { trail.push(th); if (trail.length > 30) trail.shift(); th = Math.max(-6, Math.min(6, th + 4 * dJs(th))); $('th').value = th; };
+$('gs').onclick = () => { step(); draw(); }; $('g5').onclick = () => { for (let k = 0; k < 5; k++) step(); draw(); };
+$('rs').onclick = () => { th = -2.197; trail = []; $('th').value = th; draw(); };
+$('th').oninput = e => { th = +e.target.value; trail = []; draw(); };
+$('r1').oninput = e => { r1 = +e.target.value; $('r1V').textContent = r1.toFixed(1); draw(); };
+$('r2').oninput = e => { r2 = +e.target.value; $('r2V').textContent = r2.toFixed(1); draw(); };
+draw();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

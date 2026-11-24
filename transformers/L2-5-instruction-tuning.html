@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Supervised Fine-Tuning and Instruction Tuning</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 2 · part 5 of 5 · Stanford CS229, Spring 2026</div>
+<h1>Supervised Fine-Tuning and Instruction Tuning</h1>
+<p class="lede">Zero-shot and in-context abilities first appeared by accident. To strengthen them, collect pairs of (instruction, answer) and keep training the pretrained model to maximise the likelihood of the answer given the instruction. That is supervised fine-tuning; with instruction data it is called instruction tuning.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3858" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 64:18 to 73:19 of a 73-min video; published as “Lecture 16: Basic Concept in RL, Policy Gradient”). Previous: <a href="L2-4-in-context-learning.html">in-context learning</a> · Next: <a href="L3-1-sequential-decisions-mdp.html">Lecture 3, part 1</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Strengthening what arose by accident <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3858" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 64:18</a></h2>
+<p>At first, zero-shot and in-context learning arose naturally. Nobody trained for them, yet they worked, which was a surprise. Then people tried to <b>reinforce</b> these capabilities, and the way to do it is relatively easy: a kind of <b>SFT</b> that people call <b>instruction tuning</b>.</p>
+
+<h2>2 · The data and the loss <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3895" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 64:55</a></h2>
+<p>Collect a dataset of pairs $(x_i,y_i)$, $i=1,\dots,n$:</p>
+<ul>
+<li>$x_i$ is the <b>instruction</b> (task description; the two words mean the same here), with $L_i$ tokens $x_{i,1},\dots,x_{i,L_i}$;</li>
+<li>$y_i$ is the <b>answer</b>, with $T_i$ tokens $y_{i,1},\dots,y_{i,T_i}$.</li>
+</ul>
+<p>Take an existing checkpoint (the pretrained model) and <b>continue training</b> it to have this behaviour. The instruction $x$ is treated as given: you don't need to predict it. Only $y$ is predicted.</p>
+<ol class="steps">
+<li>Minimise the negative log-likelihood of each answer given its instruction, averaged over the dataset:
+$$\mathcal L(\theta)=\frac1n\sum_{i=1}^n -\log p_\theta\big(y_{i,1},\dots,y_{i,T_i}\,\big|\,x_i\big).$$</li>
+<li>Because $y_i$ is a sequence, the chain rule splits its probability into next-token terms, as in pretraining:
+$$\log p_\theta(y_{i}\mid x_i)=\sum_{t=1}^{T_i}\log p_\theta\big(y_{i,t}\,\big|\,x_i,\ y_{i,&lt;t}\big).$$</li>
+<li>So each term says: given the instruction and the first $t-1$ answer tokens, predict the $t$-th answer token. Sum these losses, and that's it.</li>
+</ol>
+<p>There is also a normalisation detail (how the per-token terms are averaged), which the lecturer calls minor and leaves to the lecture notes.</p>
+<div class="beyond"><b>Going beyond the lecture: the normalisation detail.</b> Two common choices: average over examples (as above), so a long answer contributes more terms than a short one; or divide by the total number of answer tokens, so each <i>token</i> counts equally. The demo shows both. For the next-token loss itself, see cross-entropy in my notes on <a href="../deep-learning/L24-output-and-loss-functions.html">output and loss functions</a>.</div>
+
+<h2>3 · SFT versus instruction tuning <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=4063" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 67:43</a></h2>
+<table>
+<tr><th>Term</th><th>Meaning</th></tr>
+<tr><td><b>Supervised fine-tuning (SFT)</b></td><td>Anything of this form. <i>Supervised</i>: you supply the targets $y$. <i>Fine-tuning</i>: you start from an existing checkpoint.</td></tr>
+<tr><td><b>Instruction tuning</b></td><td>SFT where the dataset is specifically (instruction, answer) pairs. Other SFT uses the same loss with different data.</td></tr>
+</table>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">A toy model's probability for each token of two training pairs. Bars show each token's loss $-\log p$. “Train” nudges up the probability of every token that is <b>in the loss</b>.</p>
+<div class="row"><button id="stepB">train one step</button><button id="resetB">reset</button>
+<label><input type="checkbox" id="trainX"> also put the instruction $x$ in the loss (not standard SFT)</label></div>
+<canvas id="sft" height="250" aria-label="Per-token losses for instruction and answer tokens"></canvas>
+<div class="legend"><span><i class="dot" style="background:var(--faint)"></i>instruction token $x$ (given)</span><span><i class="dot" style="background:var(--s1)"></i>answer token $y$ (in the loss)</span><span><i class="dot" style="background:var(--s2)"></i>instruction token in the loss</span></div>
+<div class="row">
+<div class="stat"><div class="v" id="lEx"></div><div class="l">loss, averaged per example</div></div>
+<div class="stat"><div class="v" id="lTok"></div><div class="l">loss, averaged per answer token</div></div>
+<div class="stat"><div class="v" id="nSt"></div><div class="l">training steps</div></div>
+</div>
+<p class="small" id="sftTxt"></p>
+</div>
+
+<h2>4 · Does SFT force the human's way of solving? <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=4092" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 68:12</a></h2>
+<p>A student objects: this loss pushes the model to follow exactly what the human wrote. If the model could find a different method, wouldn't it be discouraged from trying?</p>
+<p>That's exactly right, in a sense, and it depends on what the "instruction" is. The dataset is designed to make the model follow the instructions humans specify. An instruction is mostly <b>what the task is</b>, plus <b>preferences</b> ("solve it in this fashion", "present the answer like this"). It is typically not <i>how</i> to solve the problem: "solve this maths problem for me" leaves the method to the model.</p>
+<p>But what if $y$ contains a <b>chain of thought</b>, the working-out? Then the concern is real. These days people typically say the chain of thought should ideally be <b>generated by the model itself</b>. If humans write it, they may be micromanaging a model that would rather solve the problem another way. Some micromanagement can still be better than nothing, but it probably won't be as good as the RL approach, coming later in the course.</p>
+
+<h2>5 · Where does this happen? <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=4269" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 71:09</a></h2>
+<ul>
+<li><b>Are weights changed?</b> Yes, definitely: unlike in-context learning, this is training.</li>
+<li><b>Is it what happens when I type into ChatGPT?</b> No. This is the training phase. The model you are served was already instruction-tuned on collected (instruction, answer) pairs. Your conversations are not used to train it, at least not immediately; learning from that kind of data is another phase, discussed a few weeks later once RL is set up.</li>
+<li><b>When, relative to pretraining?</b> Typically a second phase after it. But the lecturer can't be sure how frontier labs do it now: some of this data can be mixed into pretraining, and it has become more complicated.</li>
+</ul>
+
+<h2>6 · Little data: fine-tune only part of the model? <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=4358" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 72:38</a></h2>
+<p>The last question: with little fine-tuning data, should you fine-tune only some experts or some layers? The lecturer hasn't heard of fine-tuning a subset of experts (there may be papers) and thinks fine-tuning everything is probably still better. If you lack data, you can instead tune a smaller number of parameters with methods like LoRA.</p>
+<div class="beyond"><b>Going beyond the lecture.</b> The transcript is garbled at this point; "LoRA" is my best reading. LoRA (low-rank adaptation) freezes the pretrained weights $W$ and learns a low-rank correction $W+BA$ with $B\in\mathbb R^{d\times r}$, $A\in\mathbb R^{r\times d}$ and small $r$, so only $2dr$ numbers per matrix are trained instead of $d^2$.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Instruction tuning strengthens zero-shot and in-context abilities by training on (instruction $x_i$, answer $y_i$) pairs, starting from the pretrained checkpoint.</li>
+<li>The loss is $-\log p_\theta(y_i\mid x_i)$ averaged over examples, which splits into next-token terms $-\log p_\theta(y_{i,t}\mid x_i,y_{i,&lt;t})$: the instruction is given, only answer tokens are predicted.</li>
+<li>SFT is any supervised fine-tuning with this loss; instruction tuning is SFT on instruction data.</li>
+<li>Instructions say what the task is and how the answer should look. Human-written chains of thought risk micromanaging; model-generated reasoning and RL do better.</li>
+<li>SFT changes the weights during training, before deployment; with little data, parameter-efficient methods (e.g. LoRA) are an option.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAWS = [];
+function redrawAll(){ DRAWS.forEach(f => f()); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+const DATA = [
+  {x: ['Answer', ' in', ' one', ' word', ':', ' capital', ' of', ' France', '?'], y: [' Paris', '.']},
+  {x: ['Classify', ' as', ' billing', ' or', ' technical', ':', ' "', 'charged', ' twice', '"'], y: [' Category', ':', ' billing', ' (', 'payment', ' issue', ')', '.']}];
+const INIT = [[1.2, 0.5, -0.8, 0.3, 1.5, -1.2, 0.8, -0.3, 0.6, -2.0, 0.2], [0.4, -0.5, -1.4, 1.0, -0.9, 1.6, 0.9, -1.8, -0.7, 0.1, -2.4, 1.1, -1.5, 0.4, -1.0, -0.6, 0.8, 1.0]];
+let logit = [], steps = 0;
+const sig = z => 1 / (1 + Math.exp(-z));
+function reset(){ logit = INIT.map(a => a.slice()); steps = 0; }
+function step(){ const tx = $('trainX').checked;
+  DATA.forEach((d, i) => { const nx = d.x.length; logit[i].forEach((z, j) => { const inLoss = j >= nx || tx; if (inLoss) logit[i][j] = z + 0.8 * (1 - sig(z)); }); }); steps++; }
+function sftDraw(){
+  const tx = $('trainX').checked;
+  const [ctx, W, H] = setupCanvas($('sft')); ctx.font = '11px system-ui';
+  let exSum = 0, tokSum = 0, tokN = 0;
+  const rowH = H / 2, maxL = 3;
+  DATA.forEach((d, i) => { const toks = d.x.concat(d.y), nx = d.x.length, n = toks.length, bw = (W - 8) / n, base = i * rowH + rowH - 34, top = i * rowH + 18;
+    let li = 0;
+    ctx.fillStyle = cssv('--muted'); ctx.fillText(`pair ${i + 1}: ${nx} instruction tokens, ${d.y.length} answer tokens`, 4, i * rowH + 11);
+    toks.forEach((tk, j) => { const p = sig(logit[i][j]), L = -Math.log(p), isY = j >= nx, inLoss = isY || tx;
+      if (isY) { li += L; tokSum += L; tokN++; }
+      const hh = Math.min(L, maxL) / maxL * (base - top);
+      ctx.fillStyle = cssv(isY ? '--s1' : inLoss ? '--s2' : '--faint'); ctx.globalAlpha = isY || inLoss ? 1 : 0.5;
+      ctx.fillRect(4 + j * bw + 1, base - hh, bw - 2, hh); ctx.globalAlpha = 1;
+      ctx.save(); ctx.translate(4 + j * bw + bw / 2 + 3, base + 4); ctx.rotate(Math.PI / 3); ctx.fillStyle = cssv(isY ? '--ink' : '--muted'); ctx.font = '10px system-ui';
+      ctx.fillText(tk.trim().slice(0, 8), 0, 0); ctx.restore(); });
+    exSum += li; });
+  $('lEx').textContent = (exSum / DATA.length).toFixed(2); $('lTok').textContent = (tokSum / tokN).toFixed(2); $('nSt').textContent = steps;
+  $('sftTxt').innerHTML = (tx ? 'The instruction tokens are now in the loss too, so training also teaches the model to <i>produce</i> instructions, which is not the goal; standard SFT treats $x$ as given. '
+    : 'Only answer tokens (blue) are in the loss; the grey instruction bars never change however long you train. ')
+    + `Per-example averaging weights pair 2 (${DATA[1].y.length} answer tokens) more than pair 1 (${DATA[0].y.length}); per-token averaging counts every answer token equally.`;
+  if (window.renderMathInElement) renderMathInElement($('sftTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+$('stepB').onclick = () => { step(); sftDraw(); }; $('resetB').onclick = () => { reset(); sftDraw(); }; $('trainX').addEventListener('change', sftDraw);
+reset(); DRAWS.push(sftDraw); sftDraw();
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

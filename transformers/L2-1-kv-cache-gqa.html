@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The KV Cache and Grouped-Query Attention</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 2 · part 1 of 5 · Stanford CS229, Spring 2026</div>
+<h1>The KV Cache and Grouped-Query Attention</h1>
+<p class="lede">When a transformer generates text, it must keep every past key and value of every head in GPU memory. That KV cache limits how many sequences fit in a batch, and a small batch leaves the GPU's compute idle. Grouped-query attention cuts the cache by letting several query heads share one set of keys and values.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=0" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 0:00 to 18:10 of a 73-min video; published as “Lecture 16: Basic Concept in RL, Policy Gradient”, though it is about transformers). Previous: <a href="L1-5-masking-multihead-cost.html">Lecture 1, part 5</a> · Next: <a href="L2-2-mqa-sliding-window.html">multi-query and sliding-window attention</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · The plan for today <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=6" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 0:06</a></h2>
+<p>Last lecture built attention. This one starts with <b>variants of attention</b> that make it cheaper. The lecturer is upfront that this is a complicated field: architecture is co-designed with the properties of GPUs, so the aim is only a feel for what people optimise. Then come smaller topics about <i>using</i> language models: few-shot learning through in-context learning, zero-shot learning, and supervised fine-tuning (SFT). The lecturer calls these "almost trivial" next to the architecture, but worth stating clearly.</p>
+
+<h2>2 · Recap: queries, keys and values <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=83" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 1:23</a></h2>
+<p>For a <b>single head</b>, every time step $t=1,\dots,T$ has a query vector $q_t$, a key vector $k_t$ and a value vector $v_t$. Attention takes inner products of queries with keys, applies a softmax, and uses the result to average the values.</p>
+<p>The model is <b>autoregressive</b>: a position never attends to anything after it. So $q_1$ attends to $k_1$; $q_2$ attends to $k_1,k_2$; and $q_T$ attends to everything up to time $T$. Drawn as a $T\times T$ matrix of query–key pairs, only the triangle on and below the diagonal is used: roughly half the entries.</p>
+<p>Stack the vectors as rows: $Q$ has rows $q_1,\dots,q_T$, and likewise $K$ and $V$. Then one head computes</p>
+$$\operatorname{out}=\operatorname{softmax}\!\Big(\frac{QK^\top}{c}+M\Big)\,V ,$$
+<p>where entry $(t,s)$ of $QK^\top$ is $q_t k_s^\top$, the mask $M$ is $0$ where $s\le t$ and $-\infty$ where $s&gt;t$ (so those weights become $e^{-\infty}=0$), the softmax is taken <b>row by row</b>, and $c$ is a normalising constant (section 6).</p>
+<p><b>Multiple heads</b> are many copies of this: the same architecture with different weights. Head $j$ has its own $q_{1,j},\dots,q_{T,j}$, $k_{1,j},\dots,k_{T,j}$ and $v_{1,j},\dots,v_{T,j}$. (Full derivation: <a href="L1-4-attention.html">attention</a> and <a href="L1-5-masking-multihead-cost.html">masking, multi-head attention and cost</a> in Lecture 1.)</p>
+<div class="beyond"><b>Going beyond the lecture.</b> The same equation, with a picture of the mask, is in my notes on Prof. Khapra's lectures: <a href="../deep-learning/L65-self-attention.html">scaled dot-product attention</a>, <a href="../deep-learning/L66-multi-head-attention.html">multi-head attention</a> and <a href="../deep-learning/L67-decoder-block.html">the masked decoder</a>.</div>
+
+<h2>3 · What attention costs: $T^2$ compute and a KV cache <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=285" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 4:45</a></h2>
+<p><b>Compute</b> scales at least like $T^2$: every query meets every earlier key.</p>
+<p><b>Memory</b> scales like $T$, and the interesting point is <i>what</i> must be stored during generation:</p>
+<ol class="steps">
+<li>To produce the token after step $t$, you need the newest query $q_t$ only. Older queries $q_1,\dots,q_{t-1}$ have already been used against their keys, so they can be dropped.</li>
+<li>But $q_t$ must meet <b>all</b> keys $k_1,\dots,k_t$, and its weights then average <b>all</b> values $v_1,\dots,v_t$. So every past key and value must be kept.</li>
+<li>That is linear in $T$, and it is needed for every head (and every layer). This stored set is the <b>KV cache</b>.</li>
+</ol>
+
+<h2>4 · Why a big KV cache hurts <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=350" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 5:50</a></h2>
+<p>The details are a systems topic, but the chain of cause and effect is simple:</p>
+<ol class="steps">
+<li>The KV cache takes a lot of GPU memory. Sometimes the cache of <b>one</b> sequence uses most of it; maybe you can hold 10 or 100 sequences, but there is a limit.</li>
+<li>So at inference time you cannot have a <b>large batch</b>: there is no room for every sequence's cache.</li>
+<li>With a small batch there is too little parallelism across examples to keep the GPU's arithmetic units busy (low <b>arithmetic intensity</b>, covered earlier in the course).</li>
+<li>The GPU becomes <b>memory-bound</b>: it waits for data while compute sits idle, which shows up as low throughput or low MFU (model FLOPs utilisation).</li>
+</ol>
+<div class="callout">Hence the goal: <b>store less KV cache</b>. Grouped-query attention is one way, which the lecturer associates with models such as Qwen and DeepSeek.</div>
+
+<h2>5 · Grouped-query attention <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=451" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 7:31</a></h2>
+<p>We cannot save along the time dimension; every past position is genuinely needed. So save along the <b>head</b> dimension: keep all $n_h$ sets of queries, but have far fewer sets of keys and values.</p>
+<ul>
+<li>Queries: $n_h$ sequences, $q_{1,j},\dots,q_{T,j}$ for heads $j=1,\dots,n_h$.</li>
+<li>Keys and values: only $n_g$ sequences (groups), $k_{1,s},\dots,k_{T,s}$ and $v_{1,s},\dots,v_{T,s}$ for $s=1,\dots,n_g$, with $n_g&lt;n_h$.</li>
+<li>Usually $n_g$ divides $n_h$, so the sharing is even: $n_h=\tau\,n_g$, and each group of $\tau$ query heads uses the <b>same</b> keys in its softmax and the same values afterwards.</li>
+</ul>
+<p>From the Q&amp;A: with $n_g=2$ groups and $n_h=100$ heads, $\tau=50$, so every 50 heads share one set of keys and values.</p>
+<p>Each head still produces its own output, so there are as many outputs as before. The only change is that some heads look at the same keys.</p>
+
+<h2>6 · The same thing in equations <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=720" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 12:00</a></h2>
+<p>The lecturer says the picture is the easiest way to see it, but writes the maths for completeness.</p>
+<ol class="steps">
+<li>Query matrices, one per head: $Q_j$ has rows $q_{1,j},\dots,q_{T,j}$ (time down the rows), for $j=1,\dots,n_h$.</li>
+<li>Key and value matrices, one per group: $K_s$ with rows $k_{1,s},\dots,k_{T,s}$ and $V_s$ with rows $v_{1,s},\dots,v_{T,s}$, for $s=1,\dots,n_g$.</li>
+<li>Map each head to its group:
+$$g(j)=\Big\lfloor \frac{j-1}{\tau}\Big\rfloor+1\ \in\{1,\dots,n_g\}.$$
+With $\tau=2$: heads 1, 2 → group 1; heads 3, 4 → group 2; and so on.</li>
+<li>Head $j$ attends to its group's keys and values:
+$$\operatorname{out}_j=\operatorname{softmax}\!\Big(\frac{Q_j K_{g(j)}^\top}{c}+M\Big)\,V_{g(j)} .$$</li>
+</ol>
+<p>Set $n_g$ below and watch the heads share key/value sets, and how much cache that saves for a model shaped like a 7–8B-parameter LLM.</p>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Top row: query heads. Bottom row: key/value sets that must be cached. Each query head draws its keys and values from the set it is wired to.</p>
+<div class="row">
+<label>query heads $n_h$ <select id="nh"><option>8</option><option>16</option><option selected>32</option><option>64</option></select></label>
+<label>KV groups $n_g$: <b id="ngv"></b> <input type="range" id="ng" min="0" max="5" value="3"></label>
+</div>
+<canvas id="gq" height="130" aria-label="Query heads wired to shared key/value groups"></canvas>
+<div class="row">
+<label>layers <b id="Lv"></b> <input type="range" id="L" min="8" max="96" step="8" value="32"></label>
+<label>context $T$: <b id="Tv"></b> <input type="range" id="T" min="10" max="20" step="1" value="13"></label>
+<label>GPU memory left for cache <b id="Mv"></b> <input type="range" id="M" min="8" max="180" step="4" value="64"></label>
+</div>
+<div class="row">
+<div class="stat"><div class="v" id="sTau"></div><div class="l">τ = query heads per KV set</div></div>
+<div class="stat"><div class="v" id="sTok"></div><div class="l">KV cache per token</div></div>
+<div class="stat"><div class="v" id="sSeq"></div><div class="l">KV cache per sequence</div></div>
+<div class="stat"><div class="v" id="sB"></div><div class="l">sequences that fit (batch)</div></div>
+</div>
+<p class="small" id="gqTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture: the arithmetic in the demo.</b> Per token, each layer stores one key and one value vector of size $d_h$ per KV set, so the cache is $2\cdot L\cdot n_g\cdot d_h\cdot(\text{bytes per number})$ per token. The demo uses $d_h=128$ and 2-byte (16-bit) numbers. With $n_h=n_g=32$, 32 layers and $T=8192$, that is 0.5 MiB per token and 4 GiB per sequence; cutting to $n_g=8$ fits four times as many sequences. Real systems also store weights and activations, so treat the batch count as an upper bound.</div>
+
+<h2>7 · Why divide by $c=\sqrt{d_h}$? <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=918" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 15:18</a></h2>
+<p>Whether in GQA or standard multi-head attention, $Q_jK^\top$ is a $(T\times d_h)$ times $(d_h\times T)$ product: every entry is the inner product of two vectors of dimension $d_h$. The constant $c$ keeps the input to the softmax on a sensible scale.</p>
+<ol class="steps">
+<li>Take two vectors $a,b$ of dimension $d_h$ that are "somewhat random", with each entry $a_i,b_i$ on the order of $\pm1$.</li>
+<li>Then $a\cdot b=\sum_{i=1}^{d_h}a_ib_i$ is typically on the order of $\sqrt{d_h}$: the terms have random signs and partly cancel.</li>
+<li>Dividing by $c=\sqrt{d_h}$ brings it back to order 1, so the scale <b>does not depend on $d_h$</b>. You can change the head dimension without retuning the rest of the architecture.</li>
+</ol>
+<p>The lecturer stresses this is a <b>heuristic</b>. Other theories give other predictions: if $a$ and $b$ are already aligned in some direction rather than random, a different constant would be right. You can only justify the choice loosely, try it, and keep it if it works, and empirically $\sqrt{d_h}$ is one working choice.</p>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Draw 2,000 pairs of random ±1 vectors of dimension $d_h$, plus a query against 16 random keys. Compare raw and scaled scores.</p>
+<div class="row"><label>$d_h$ = <b id="dhv"></b> <input type="range" id="dh" min="2" max="12" value="6"></label><button id="dhRe">resample</button>
+<label><input type="checkbox" id="align"> make $a$ and $b$ aligned (correlated)</label></div>
+<div class="pair half">
+<canvas id="hist" height="170" aria-label="Histogram of raw and scaled inner products"></canvas>
+<canvas id="sm" height="170" aria-label="Softmax weights over 16 keys with and without scaling"></canvas>
+</div>
+<div class="legend"><span><i style="background:var(--s2)"></i>raw $a\cdot b$</span><span><i style="background:var(--s1)"></i>scaled $a\cdot b/\sqrt{d_h}$</span></div>
+<div class="row">
+<div class="stat"><div class="v" id="sdR"></div><div class="l">spread (std) of raw $a\cdot b$</div></div>
+<div class="stat"><div class="v" id="sdS"></div><div class="l">spread of scaled score</div></div>
+<div class="stat"><div class="v" id="pkR"></div><div class="l">largest softmax weight, raw</div></div>
+<div class="stat"><div class="v" id="pkS"></div><div class="l">largest softmax weight, scaled</div></div>
+</div>
+<p class="small" id="dhTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> For independent random signs, $\mathbb E[a_ib_i]=0$ and $\operatorname{Var}(a_ib_i)=1$, so $\operatorname{Var}(a\cdot b)=d_h$ and the standard deviation is exactly $\sqrt{d_h}$. Without the scaling, a large $d_h$ makes the softmax almost one-hot, and its gradients nearly vanish. Tick "aligned" to see the lecturer's caveat: when $a$ and $b$ point the same way, $a\cdot b$ grows like $d_h$, and dividing by $\sqrt{d_h}$ no longer tames it.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>One head computes $\operatorname{softmax}(QK^\top/c+M)V$, with a causal mask so $q_t$ only sees $k_1,\dots,k_t$; multi-head attention repeats this with different weights.</li>
+<li>Compute grows like $T^2$; during generation only the newest query is needed, but every past key and value of every head must be kept: the KV cache.</li>
+<li>A large KV cache limits the batch size, so the GPU is memory-bound and its compute is under-used.</li>
+<li>Grouped-query attention keeps $n_h$ query heads but only $n_g=n_h/\tau$ key/value sets; head $j$ uses set $g(j)=\lfloor (j-1)/\tau\rfloor+1$, shrinking the cache by a factor $\tau$.</li>
+<li>Dividing scores by $c=\sqrt{d_h}$ is a heuristic that keeps the softmax input at order 1 for random-like vectors, whatever $d_h$ is.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAWS = [];
+function redrawAll(){ DRAWS.forEach(f => f()); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+const NG = [1, 2, 4, 8, 16, 32, 64];
+const fmtB = b => b >= 2 ** 30 ? (b / 2 ** 30).toFixed(b >= 10 * 2 ** 30 ? 0 : 1) + ' GiB' : b >= 2 ** 20 ? (b / 2 ** 20).toFixed(b >= 10 * 2 ** 20 ? 0 : 1) + ' MiB' : (b / 1024).toFixed(0) + ' KiB';
+const fmtT = t => t >= 1048576 ? (t / 1048576) + 'M' : (t / 1024) + 'K';
+function ngOptions(){ const nh = +$('nh').value; const opts = NG.filter(g => g <= nh); const s = $('ng'); s.max = opts.length - 1; if (+s.value > opts.length - 1) s.value = opts.length - 1; return opts; }
+function drawGQ(){
+  const opts = ngOptions(), nh = +$('nh').value, ng = opts[+$('ng').value], tau = nh / ng;
+  const L = +$('L').value, T = 2 ** +$('T').value, Mem = +$('M').value * 2 ** 30, dh = 128;
+  $('ngv').textContent = ng; $('Lv').textContent = L; $('Tv').textContent = fmtT(T) + ' tokens'; $('Mv').textContent = $('M').value + ' GiB';
+  const tok = 2 * L * ng * dh * 2, seq = tok * T, mha = 2 * L * nh * dh * 2 * T, B = Math.floor(Mem / seq), Bm = Math.floor(Mem / mha);
+  $('sTau').textContent = tau; $('sTok').textContent = fmtB(tok); $('sSeq').textContent = fmtB(seq); $('sB').textContent = B;
+  const name = ng === nh ? 'This is ordinary multi-head attention (every head has its own keys and values).' : ng === 1 ? 'One shared set for all heads: the extreme case, called multi-query attention (next part).' : `Grouped-query attention: ${tau} heads share each key/value set.`;
+  $('gqTxt').innerHTML = name + ` Full multi-head attention would need ${fmtB(mha)} per sequence and fit ${Bm} sequence${Bm === 1 ? '' : 's'}; this setting fits <b>${B}</b>${B === 0 ? ' (not even one: the context is too long for this memory)' : ''}.`;
+  const [ctx, W, H] = setupCanvas($('gq')), pad = 10, qy = 22, ky = H - 34;
+  const qw = (W - 2 * pad) / nh, kw = (W - 2 * pad) / ng;
+  ctx.lineWidth = 1;
+  for (let j = 0; j < nh; j++) { const s = Math.floor(j / tau), x1 = pad + (j + 0.5) * qw, x2 = pad + (s + 0.5) * kw;
+    ctx.strokeStyle = cssv(s % 2 ? '--s2' : '--s1'); ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(x1, qy + 10); ctx.lineTo(x2, ky); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  for (let j = 0; j < nh; j++) { const s = Math.floor(j / tau); ctx.fillStyle = cssv(s % 2 ? '--s2' : '--s1'); ctx.fillRect(pad + j * qw + 1, qy, Math.max(1, qw - 2), 10); }
+  for (let s = 0; s < ng; s++) { ctx.fillStyle = cssv(s % 2 ? '--s2' : '--s1'); ctx.fillRect(pad + s * kw + 2, ky, Math.max(1, kw - 4), 14); }
+  ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui';
+  ctx.fillText(`${nh} query heads (not cached)`, pad, 14); ctx.fillText(`${ng} key/value set${ng > 1 ? 's' : ''} (cached)`, pad, H - 6);
+}
+['nh', 'ng', 'L', 'T', 'M'].forEach(id => $(id).addEventListener('input', drawGQ));
+DRAWS.push(drawGQ);
+
+let rnd = Math.random;
+const sgn = () => rnd() < 0.5 ? -1 : 1;
+let samples = [], qk = [];
+function sample(){ const dh = 2 ** +$('dh').value, al = $('align').checked; samples = [];
+  for (let n = 0; n < 2000; n++) { let s = 0; for (let i = 0; i < dh; i++) { const a = sgn(), b = al && rnd() < 0.8 ? a : sgn(); s += a * b; } samples.push(s); }
+  qk = []; const q = Array.from({length: dh}, sgn);
+  for (let n = 0; n < 16; n++) { let s = 0; for (let i = 0; i < dh; i++) s += q[i] * (al && rnd() < 0.8 ? q[i] : sgn()); qk.push(s); } }
+const sd = a => { const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / a.length); };
+const softmax = z => { const m = Math.max(...z), e = z.map(v => Math.exp(v - m)), s = e.reduce((x, y) => x + y, 0); return e.map(v => v / s); };
+function drawDh(){
+  const dh = 2 ** +$('dh').value, c = Math.sqrt(dh); $('dhv').textContent = dh;
+  const raw = samples, sc = samples.map(v => v / c), pR = softmax(qk), pS = softmax(qk.map(v => v / c));
+  $('sdR').textContent = sd(raw).toFixed(1); $('sdS').textContent = sd(sc).toFixed(2);
+  $('pkR').textContent = Math.max(...pR).toFixed(2); $('pkS').textContent = Math.max(...pS).toFixed(2);
+  $('dhTxt').innerHTML = $('align').checked ? `Aligned vectors: the raw score grows like $d_h$, so even the scaled score spreads out as $d_h$ grows (std ${sd(sc).toFixed(1)}). The heuristic assumed randomness.`
+    : `Random vectors: the raw spread is about $\\sqrt{${dh}}\\approx${c.toFixed(1)}$, while the scaled spread stays near 1 for every $d_h$. Unscaled, the softmax puts ${(Math.max(...pR) * 100).toFixed(0)}% on one key.`;
+  if (window.renderMathInElement) renderMathInElement($('dhTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+  { const [ctx, W, H] = setupCanvas($('hist')), lim = Math.max(4, ...raw.map(Math.abs)), nb = 41, pad = 18;
+    const bin = a => { const h = new Array(nb).fill(0); a.forEach(v => { const k = Math.round((v / lim + 1) / 2 * (nb - 1)); h[Math.max(0, Math.min(nb - 1, k))]++; }); return h; };
+    const hR = bin(raw), hS = bin(sc), mx = Math.max(...hR, ...hS), bw = (W - 2 * pad) / nb;
+    ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(pad, H - pad); ctx.lineTo(W - pad, H - pad); ctx.moveTo(W / 2, 4); ctx.lineTo(W / 2, H - pad); ctx.stroke();
+    [[hR, '--s2'], [hS, '--s1']].forEach(([h, col]) => { ctx.fillStyle = cssv(col); ctx.globalAlpha = 0.7; h.forEach((v, i) => { const bh = v / mx * (H - pad - 8); ctx.fillRect(pad + i * bw, H - pad - bh, Math.max(1, bw - 1), bh); }); });
+    ctx.globalAlpha = 1; ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('−' + lim.toFixed(0), pad, H - 4); ctx.fillText('0', W / 2 - 3, H - 4); ctx.fillText(lim.toFixed(0), W - pad - 14, H - 4); }
+  { const [ctx, W, H] = setupCanvas($('sm')), pad = 18, bw = (W - 2 * pad) / 16;
+    ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(pad, H - pad); ctx.lineTo(W - pad, H - pad); ctx.stroke();
+    for (let i = 0; i < 16; i++) { const hr = pR[i] * (H - pad - 14), hs = pS[i] * (H - pad - 14);
+      ctx.fillStyle = cssv('--s2'); ctx.fillRect(pad + i * bw + 1, H - pad - hr, bw / 2 - 1, hr);
+      ctx.fillStyle = cssv('--s1'); ctx.fillRect(pad + i * bw + bw / 2, H - pad - hs, bw / 2 - 1, hs); }
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('softmax weight on each of 16 keys (max = 1)', pad, 11); }
+}
+$('dh').addEventListener('input', () => { sample(); drawDh(); }); $('dhRe').onclick = () => { sample(); drawDh(); }; $('align').addEventListener('change', () => { sample(); drawDh(); });
+sample(); DRAWS.push(drawDh);
+drawGQ(); drawDh();
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sequential Decision Making and the MDP</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 3 · part 1 of 6 · Stanford CS229, Spring 2026</div>
+<h1>Sequential Decision Making and the MDP</h1>
+<p class="lede">Reinforcement learning is a technique for <b>sequential decision making</b>: choices that change the world, made step after step, and learned from a scalar reward instead of labels. Before any algorithm, we need a model of how decisions move the world. That model is the Markov decision process; this part builds its first three pieces (states, actions, transition dynamics) on a robot walking along a 1-D tape.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=5" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 0:05 to 18:12 of a 76-min video; published as “Lecture 18: GMM (EM), PCA”, though it is the RL-basics lecture). Previous: <a href="L2-5-instruction-tuning.html">Lecture 2, part 5</a> · Next: <a href="L3-2-rewards-and-returns.html">Rewards, returns and discounting</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Where this lecture sits <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=5" target="_blank" rel="noopener">▶ 0:05</a></h2>
+<p>This lecture is the basics of reinforcement learning (RL). The next one applies RL to large language models, especially to training models that produce <b>long chains of thought</b>.</p>
+<p>The running application today is <b>robotics</b>. The reason is pedagogical: with LLMs you would have to absorb two new things at once, the RL setting itself and how to map an LLM onto it. A small robot keeps the setting clean. The destination is one algorithm, <b>policy gradient</b>, which is a core algorithm for both robots and LLMs.</p>
+
+<h2>2 · Sequential decision making <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=68" target="_blank" rel="noopener">▶ 1:08</a></h2>
+<p>RL is an algorithmic technique. The problem it attacks is <b>sequential decision making</b>. Unpack the two words:</p>
+<table>
+<tr><th>Word</th><th>Meaning</th><th>Example</th></tr>
+<tr><td><b>Decision</b></td><td>Your output is an action that <i>affects the world</i> and has ramifications later. It is not a prediction that is scored and forgotten.</td><td>Operating a robot; placing an Amazon order.</td></tr>
+<tr><td><b>Sequential</b></td><td>Not one round. You decide at every time step, and each decision is followed by more.</td><td>Telling the robot "go left", "go right", "raise the arm", … at each step.</td></tr>
+</table>
+<div class="callout">Put together, <b>greedy fails</b>: what is optimal for the moment may not be optimal for the future. You have to think about downstream consequences.</div>
+
+<h2>3 · Exploration versus exploitation <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=167" target="_blank" rel="noopener">▶ 2:47</a></h2>
+<p>A second complication: decisions trade <b>return against risk</b>. Some decisions aren't the best for now but <i>collect information</i>. You arrive in a new city: some restaurant visits are pure exploration. They're not the best choice given what you know, but afterwards you can decide to go there often, or never again.</p>
+<table>
+<tr><th></th><th>Exploration</th><th>Exploitation</th></tr>
+<tr><td>Goal</td><td>Understand the world better</td><td>Do the best thing given current information</td></tr>
+<tr><td>Pay-off</td><td>Later: you can exploit much better afterwards</td><td>Now: more myopic</td></tr>
+</table>
+<p>The lecture flags this early only to set it aside. In today's applications the trade-off is very subtle, and in many cases you simply don't do much explicit exploration: the algorithm explores a little by itself and that's enough. The trade-off is well understood only in some classic settings. So the focus is the <b>sequential</b> part: long-term ramifications.</p>
+
+<h2>4 · Learning from reward, not labels <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=278" target="_blank" rel="noopener">▶ 4:38</a></h2>
+<p>The second hallmark: in the classic RL setup there is <b>no or little human supervision</b>, at least not the kind supervised learning has. Often you don't know the optimal actions, not even on your training data. Instead you learn from a <b>reward</b>: usually a scalar that says whether a sequence of actions was good or bad. It evaluates what you did; it doesn't tell you what you should have done.</p>
+<p>A consequence: you must <b>collect data yourself, actively</b>. To teach a robot, you generate some actions, let it try them in the real world, and look at the reward. Bad outcome: penalise those actions. If it happens to do well: reinforce them, "keep doing this". It is <b>trial and error</b>, organised as a loop:</p>
+<div class="card mono" style="text-align:center">collect data (try actions) → score it with the reward → train on it: reinforce the good, penalise the bad → collect again with the updated model</div>
+<table>
+<tr><th></th><th>Supervised learning</th><th>Reinforcement learning</th></tr>
+<tr><td>Signal</td><td>Label: the right answer</td><td>Reward: a score of what you did</td></tr>
+<tr><td>Data</td><td>Fixed dataset, given</td><td>Collected by the learner's own actions</td></tr>
+<tr><td>Output</td><td>Prediction</td><td>Actions that change future inputs</td></tr>
+</table>
+
+<h2>5 · The Markov decision process <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=438" target="_blank" rel="noopener">▶ 7:18</a></h2>
+<p>To talk about algorithms we need a way to describe the world and how decisions affect it, now and later. The standard, and very powerful, framework is the <b>Markov decision process (MDP)</b>.</p>
+<p><b>Running example.</b> A 1-D tape of cells 1 to 10 with a robot on one cell. You move it left or right, and there's a goal cell to reach. Trivial, but it maps every abstract symbol to something concrete. A bigger mental example: <b>Go</b>, with a 2-D board where each action places a stone.</p>
+
+<h3>States $S$ <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=545" target="_blank" rel="noopener">▶ 9:05</a></h3>
+<p>$S$ is the <b>set of states</b>; a state is everything you need to describe the world.</p>
+<ul>
+<li><b>Tape:</b> where the robot is, so $S=\{1,\dots,10\}$.</li>
+<li><b>Real robot:</b> positions or angles of the arms, joint locations, and often a <b>visual state</b>, e.g. the camera image.</li>
+<li><b>Go:</b> the configuration of the whole board. With 361 points, each empty, black or white, there are up to $3^{361}$ configurations.</li>
+</ul>
+<p>A student asked whether the state should include information about the robot's surroundings. That's a <b>modelling choice</b>. In theory the state includes everything, but you can't model every detail, so you abstract. People generally don't put, say, a 3-D map of the world in the state; camera images capture some of it.</p>
+
+<h3>Actions $A$ <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=675" target="_blank" rel="noopener">▶ 11:15</a></h3>
+<p>$A$ is the <b>set of actions</b>. Tape: $A=\{L,R\}$, try to move left or right. Real robot: how much force to apply at each joint. Go: where to place the stone.</p>
+
+<h3>Transition dynamics $P_{sa}$ <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=718" target="_blank" rel="noopener">▶ 11:58</a></h3>
+<p>What happens if you take action $a\in A$ in state $s\in S$? In general the next state is random, so for every pair $(s,a)$ there's a probability distribution over next states:</p>
+$$P_{sa}(s') = \Pr\big[\text{arrive at } s' \;\big|\; \text{take action } a \text{ in state } s\big],\qquad \sum_{s'\in S}P_{sa}(s')=1 .$$
+<p>So $P_{sa}$ is a vector of dimension $|S|$. If the dynamics are deterministic, $P_{sa}$ puts all its mass on one next state.</p>
+<p><b>Tape example with an inaccurate controller.</b> You say "left" and usually it goes left, but sometimes the robot doesn't move. From cell 7:</p>
+<table>
+<tr><th>$s'$</th><th>5</th><th>6</th><th>7</th><th>8</th><th>anything else</th></tr>
+<tr><td>$P_{7L}(s')$</td><td>0 (can't jump two cells)</td><td><b>0.9</b></td><td><b>0.1</b> (stays)</td><td>0 (told left, shouldn't go right)</td><td>0</td></tr>
+</table>
+<p>The two non-zero entries sum to 1. You must specify such a distribution for <i>every</i> $s$ and $a$. (On the board the lecturer started with $z$ for the next state and switched to $s'$ for consistency; these notes use $s'$ throughout.)</p>
+
+<h3>The interaction loop <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=980" target="_blank" rel="noopener">▶ 16:20</a></h3>
+<p>With $S$, $A$ and $P$ you can describe the "game". The subscript on $s$ now indexes <b>time</b>.</p>
+<ol class="steps">
+<li>Start in an initial state $s_0$.</li>
+<li>The algorithm (the <b>agent</b>) chooses an action $a_0\in A$.</li>
+<li><b>Environment step:</b> the action takes effect. Sample the next state from that distribution: $s_1\sim P_{s_0a_0}$. This step is stochastic.</li>
+<li>The agent chooses $a_1$, most likely based on $s_1$ (how, is the rest of the lecture).</li>
+<li>Environment step again, $s_2\sim P_{s_1a_1}$, and so on: decide, transition, decide, transition.</li>
+</ol>
+<p class="small muted">(On the board, $a_0$ is drawn "from the set of states". That's a slip: actions come from $A$.)</p>
+
+<h2>6 · Try it: drive the robot with a sloppy controller</h2>
+<div class="card">
+<p class="small muted" style="margin-top:0">You are the agent. Each button is an action; the environment then samples the next cell from $P_{sa}$. "Slip" is the chance the robot stays put (the lecture's example is 0.1). At the ends of the tape, moving into the wall leaves you where you are. The bars show $P_{sL}$ and $P_{sR}$ for the <i>current</i> cell: the two distributions you are choosing between.</p>
+<div class="row"><button id="bL">← go left (L)</button><button id="bR">go right (R) →</button><button id="bRand">10 random actions</button><button id="bReset">reset to cell 7</button>
+<label>slip $\varepsilon$ <input type="range" id="eps" min="0" max="0.5" step="0.05" value="0.1"> <span id="epsV">0.10</span></label></div>
+<canvas id="tc" height="250" aria-label="Robot on a 1-D tape with the transition distributions for each action"></canvas>
+<div class="legend"><span><i class="dot" style="background:var(--s1)"></i>robot ($s_t$)</span><span><i style="background:var(--s2)"></i>$P_{sL}(s')$</span><span><i style="background:var(--s3)"></i>$P_{sR}(s')$</span></div>
+<div class="row">
+<div class="stat"><div class="v" id="tS">0</div><div class="l">time step $t$</div></div>
+<div class="stat"><div class="v" id="slips">0</div><div class="l">slips so far</div></div>
+<div class="stat"><div class="v" id="lastP">–</div><div class="l">probability of the last transition</div></div>
+</div>
+<p class="small mono" id="log" style="word-break:break-word"></p>
+</div>
+<p>Press "go left" from 7 a few dozen times and you'll see roughly one stay per ten presses. Notice that what you know <i>now</i>, the current cell, is all that matters for what can happen next. That's the "Markov" in MDP, which part 3 will put to use.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>RL solves <b>sequential decision making</b>: actions change the world, decisions repeat over time, so greedy choices can be wrong.</li>
+<li>The exploration–exploitation trade-off is real but subtle; the lecture (and current practice) mostly focuses on the sequential, long-horizon part.</li>
+<li>RL learns from a <b>scalar reward</b>, not labels, and collects its own data by trial and error: collect, score, reinforce, repeat.</li>
+<li>An MDP starts with states $S$, actions $A$ and transition distributions $P_{sa}$ over next states, with $\sum_{s'}P_{sa}(s')=1$.</li>
+<li>Interaction: $s_0$, the agent picks $a_0$, the environment samples $s_1\sim P_{s_0a_0}$, and so on.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAW = [], redrawAll = () => DRAW.forEach(f => f());
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+// 1-D tape, cells 1..N. drawTape(ctx, W, y, h, opts) draws cells; cellX(W, i) is the centre of cell i.
+const NC = 10, cellW = W => (W - 16) / NC, cellX = (W, i) => 8 + (i - 0.5) * cellW(W);
+function drawTape(ctx, W, y, h, o = {}){
+  const cw = cellW(W);
+  for (let i = 1; i <= NC; i++) { const x = 8 + (i - 1) * cw;
+    ctx.fillStyle = (o.fill && o.fill(i)) || cssv('--card'); ctx.fillRect(x, y, cw, h);
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, h - 1);
+    ctx.fillStyle = cssv(i === (o.goal || 9) ? '--s3' : '--muted'); ctx.font = (i === (o.goal || 9) ? '700 ' : '') + '12px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(i === (o.goal || 9) && o.flag !== false ? i + ' ⚑' : String(i), x + cw / 2, y + h + 14); }
+  ctx.textAlign = 'left'; }
+function drawRobot(ctx, x, y, r){ ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--card'); ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.15, r * 0.18, 0, 7); ctx.arc(x + r * 0.35, y - r * 0.15, r * 0.18, 0, 7); ctx.fill(); }
+let eps = 0.1, s = 7, t = 0, slips = 0, lastP = null, hist = ['s₀=7'];
+const sub = n => String(n).split('').map(c => '₀₁₂₃₄₅₆₇₈₉'[+c]).join('');
+function Pvec(s, a){ const p = new Array(NC + 1).fill(0), tgt = a === 'L' ? Math.max(1, s - 1) : Math.min(NC, s + 1); p[tgt] += 1 - eps; p[s] += eps; return p; }
+function act(a){ const p = Pvec(s, a); let u = Math.random(), nxt = 1; for (let i = 1; i <= NC; i++) { u -= p[i]; if (u < 0) { nxt = i; break; } if (i === NC) nxt = NC; }
+  const intended = a === 'L' ? Math.max(1, s - 1) : Math.min(NC, s + 1); if (nxt !== intended) slips++;
+  lastP = p[nxt]; hist.push(`a${sub(t)}=${a} → s${sub(t + 1)}=${nxt}`); s = nxt; t++; draw(); }
+function draw(){
+  const [ctx, W, H] = setupCanvas($('tc')), cw = cellW(W);
+  drawTape(ctx, W, 14, 44, {fill: i => i === s ? cssv('--tint') : null});
+  drawRobot(ctx, cellX(W, s), 36, Math.min(15, cw * 0.32));
+  const bars = (a, top, col, label) => { const p = Pvec(s, a), hgt = 58;
+    ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.fillText(label, 8, top - 6);
+    ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(8, top + hgt + 0.5); ctx.lineTo(W - 8, top + hgt + 0.5); ctx.stroke();
+    for (let i = 1; i <= NC; i++) { const v = p[i], x = cellX(W, i); if (v > 0) { ctx.fillStyle = cssv(col); ctx.fillRect(x - cw * 0.3, top + hgt * (1 - v), cw * 0.6, hgt * v);
+      ctx.fillStyle = cssv('--ink'); ctx.textAlign = 'center'; ctx.fillText(v.toFixed(2), x, top + hgt * (1 - v) - 3); ctx.textAlign = 'left'; } } };
+  bars('L', 98, '--s2', `P_{${s}L}(s′): if you press left now`);
+  bars('R', 182, '--s3', `P_{${s}R}(s′): if you press right now`);
+  $('tS').textContent = t; $('slips').textContent = slips; $('lastP').textContent = lastP === null ? '–' : lastP.toFixed(2);
+  $('log').textContent = (hist.length > 13 ? '… ' : '') + hist.slice(-13).join(' → ');
+}
+DRAW.push(draw);
+$('bL').onclick = () => act('L'); $('bR').onclick = () => act('R');
+$('bRand').onclick = () => { for (let k = 0; k < 10; k++) act(Math.random() < 0.5 ? 'L' : 'R'); };
+$('bReset').onclick = () => { s = 7; t = 0; slips = 0; lastP = null; hist = ['s₀=7']; draw(); };
+$('eps').oninput = e => { eps = +e.target.value; $('epsV').textContent = eps.toFixed(2); draw(); };
+draw();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

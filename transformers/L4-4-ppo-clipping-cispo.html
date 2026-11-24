@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The PPO Clipped Objective, Asymmetric Clipping, and CISPO</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 4 · part 4 of 6 · Stanford CS229, Spring 2026</div>
+<h1>The PPO Clipped Objective, Asymmetric Clipping, and CISPO</h1>
+<p class="lede">PPO packs its four cases into one line: the smaller of $r_t\hat A_t$ and the same term with $r_t$ clipped to $[1-\epsilon_\text{low},\,1+\epsilon_\text{high}]$. Where the clipped branch wins, the term is a constant and gives no gradient. The two clip widths control different things: learning speed on one side, diversity on the other. CISPO takes a different view: what's dangerous is a big ratio, not a big step in the right direction.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2646" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 44:06 to 56:21 of a 79-min video; published as “Lecture 20: GMM (EM), PCA”, though it is about reinforcement learning). Previous: <a href="L4-3-importance-sampling-ratio.html">part 3</a> · Next: <a href="L4-5-chain-of-thought-rlvr.html">part 5</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · The formula you'll see in papers <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2649" target="_blank" rel="noopener">▶ 44:09</a></h2>
+<p>People often get confused by it, but it does exactly the four-case analysis from the previous page:</p>
+<div class="callout">
+$$J_\text{PPO}(\theta)=\mathbb{E}_{s_t,a_t\sim\pi_{\theta_\text{old}}}\Big[\min\Big(r_t(\theta)\,\hat A_t,\;\operatorname{clip}\big(r_t(\theta),\,1-\epsilon_\text{low},\,1+\epsilon_\text{high}\big)\,\hat A_t\Big)\Big]$$
+</div>
+<p>$\operatorname{clip}(r,lo,hi)$ cuts $r$ off at $lo$ and $hi$. Unpacking it <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2700" target="_blank" rel="noopener">▶ 45:00</a>:</p>
+<ol class="steps">
+<li><b>$\hat A&gt;0$, $r_t&gt;1+\epsilon_\text{high}$.</b> Say $r_t=10$. The first branch is $10\hat A$; the second is only $(1+\epsilon_\text{high})\hat A$. The min takes the clipped branch. That value is a <b>constant</b>: once clipped, it's no longer a function of $\theta$, so <b>no gradient</b>.</li>
+<li><b>$\hat A&gt;0$, $r_t\le1+\epsilon_\text{high}$.</b> Now $r_t\hat A$ is the smaller (or equal) branch, so you get the normal gradient, pushing $\pi_\theta(a_t\mid s_t)$ up. Check with $r_t=0.5$ and $\epsilon_\text{low}=0.2$: the clipped branch is $0.8\hat A$, the plain one is $0.5\hat A$, and the min is the plain one (<a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2854" target="_blank" rel="noopener">▶ 47:34</a>). Between the two thresholds the branches are equal.</li>
+<li><b>$\hat A&lt;0$</b>: the same with signs reversed. Multiplying by a negative number flips which branch is smaller. For $r_t&lt;1-\epsilon_\text{low}$ the min picks the clipped constant $(1-\epsilon_\text{low})\hat A$, so no gradient. For $r_t\ge1-\epsilon_\text{low}$ it's $r_t\hat A$, the normal push down.</li>
+</ol>
+<table>
+<tr><th>sign of $\hat A$</th><th>ratio region</th><th>min picks</th><th>gradient?</th></tr>
+<tr><td>$+$</td><td>$r_t&gt;1+\epsilon_\text{high}$</td><td>$(1+\epsilon_\text{high})\hat A$</td><td>0: already favoured</td></tr>
+<tr><td>$+$</td><td>$r_t\le1+\epsilon_\text{high}$</td><td>$r_t\hat A$</td><td>yes: increase prob.</td></tr>
+<tr><td>$-$</td><td>$r_t&lt;1-\epsilon_\text{low}$</td><td>$(1-\epsilon_\text{low})\hat A$</td><td>0: already suppressed</td></tr>
+<tr><td>$-$</td><td>$r_t\ge1-\epsilon_\text{low}$</td><td>$r_t\hat A$</td><td>yes: decrease prob.</td></tr>
+</table>
+<p class="small muted">Note that for $\hat A&lt;0$ the ratio is never capped from above: a bad action whose probability went <i>up</i> a lot keeps the full term $r_t\hat A$. That matters for CISPO below.</p>
+
+<p>Explore every region. The <b>gradient weight</b> view shows the factor that multiplies $\hat A_t\,\nabla_\theta\log\pi_\theta(a_t\mid s_t)$ in each method's gradient. (Since $\nabla_\theta r_t=r_t\nabla_\theta\log\pi_\theta$, plain importance sampling has weight $r_t$.)</p>
+<div class="card">
+  <div class="row"><button id="apos" class="on">Â = +1 (good action)</button><button id="aneg">Â = −1 (bad action)</button>
+    <button id="vw" class="on">view: gradient weight</button><button id="vo">view: objective value</button></div>
+  <div class="row"><label>$\epsilon_\text{low}$ = <b id="elv">0.20</b> <input type="range" id="el" min="0.05" max="0.6" step="0.01" value="0.2"></label>
+    <label>$\epsilon_\text{high}$ = <b id="ehv">0.28</b> <input type="range" id="eh" min="0.05" max="1" step="0.01" value="0.28"></label>
+    <label>ratio $r_t$ = <b id="rv">1.60</b> <input type="range" id="rr" min="0" max="3" step="0.01" value="1.6"></label></div>
+  <canvas id="c4" height="260" aria-label="PPO, CISPO and unclipped objective or gradient weight as a function of the ratio"></canvas>
+  <div class="legend"><span><i style="background:var(--faint)"></i>no clipping</span><span><i style="background:var(--s1)"></i>PPO</span><span><i style="background:var(--s3)"></i>CISPO (gradient-weight view only)</span><span><i style="background:var(--s2)"></i>your $r_t$</span></div>
+  <p class="small" id="t4"></p>
+</div>
+
+<h2>2 · Why clip at all? <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2886" target="_blank" rel="noopener">▶ 48:06</a></h2>
+<p>The original motivation: <b>don't move too far from $\pi_{\theta_\text{old}}$</b>. Stay in its neighbourhood, so that the big approximation from the previous page (sampling states from the old policy) still roughly makes sense. If the new policy is already doing great on a sample (much better than the old one), don't update on it. Only if it isn't yet much better do you update. The lecturer isn't sure that's exactly the reason, "but that's the story". There's a buffer: the threshold isn't $1$, it's $1\pm\epsilon$.</p>
+<p><b>Doesn't that slow learning?</b> <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2941" target="_blank" rel="noopener">▶ 49:01</a> Yes, exactly: clipping slows learning down.</p>
+
+<h2>3 · Should ε<sub>low</sub> and ε<sub>high</sub> be equal? <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2953" target="_blank" rel="noopener">▶ 49:13</a></h2>
+<p>Papers set them differently; the magic numbers are around 0.2 and 0.28. The lecturer offers an argument, while saying he doesn't fundamentally understand it either:</p>
+<ul>
+<li><b>$\epsilon_\text{high}$ (good actions):</b> clipping here only slows learning, shrinking updates on samples where you're already doing OK. Being less strict is probably no big deal: "even if I'm 2× better than the old policy, I'm still learning" is fine. So people are more willing to <b>raise</b> $\epsilon_\text{high}$.</li>
+<li><b>$\epsilon_\text{low}$ (bad actions):</b> this side is about <b>diversity</b>. Making a bad action's probability ever smaller can backfire. Penalise it too hard and the policy becomes too deterministic and converges to a local minimum. Give the action some benefit of the doubt: maybe it's bad now, but combined with other actions it becomes useful later. So there's more reason <b>not</b> to over-learn on this side.</li>
+</ul>
+<div class="beyond"><b>Going beyond the lecture.</b> The asymmetric setting $\epsilon_\text{low}=0.2$, $\epsilon_\text{high}=0.28$ is the "clip-higher" trick from DAPO (ByteDance Seed, 2025). Its stated motivation is the same: keep exploration (entropy) from collapsing by letting low-probability good tokens grow faster.</div>
+
+<h2>4 · CISPO: clip the weight, don't drop the gradient <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3080" target="_blank" rel="noopener">▶ 51:20</a></h2>
+<p>CISPO is a newer, popular algorithm. In the lecturer's own group's training runs it's what they mostly use instead of PPO. (He doesn't claim it's fundamentally right; it's popular and probably the best option for now.) Picture it against PPO <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3117" target="_blank" rel="noopener">▶ 51:57</a>:</p>
+<ul>
+<li><b>$\hat A&gt;0$.</b> Business as usual is the straight line $r_t$. PPO (and GRPO, a more advanced version of PPO that behaves the same here) goes to <b>zero learning</b> above $1+\epsilon_\text{high}$. CISPO doesn't disable learning there: it <b>clips the value to a constant</b> but keeps the gradient. You still learn, just less aggressively than the linear line would.</li>
+<li><b>$\hat A&lt;0$</b> <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3205" target="_blank" rel="noopener">▶ 53:25</a>. PPO zeroes everything below $1-\epsilon_\text{low}$ and is linear above it, with no cap. CISPO does the same as on the positive side: above $1+\epsilon_\text{high}$ it takes the constant, and below it keeps the ordinary weight.</li>
+</ul>
+<p><b>The reasoning</b> <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3291" target="_blank" rel="noopener">▶ 54:51</a>. CISPO's view is that <b>any case where $r_t$ is big is a bad case</b>, because $r_t$ multiplies the gradient. A big ratio gives that term too much weight and makes training unstable. That's true whether or not the policy has "already learned" this sample; the problem is simply that the update is too big. And ratios can get very big because they're ratios of probabilities: $0.6/0.2=3$, or $0.6/0.01=60$. So CISPO just caps anything big.</p>
+<p><b>The cost.</b> On the bad-action side, CISPO keeps pushing a bad action's probability down even after it's already below the old policy's. That's exactly where you lose diversity, and the lecturer has seen CISPO sometimes lose diversity in his own projects.</p>
+<div class="beyond"><b>Going beyond the lecture: the formula.</b> In the MiniMax-M1 paper (2025) that introduced it, CISPO's objective is a REINFORCE term with the clipped ratio as a <i>constant</i> weight (stop-gradient, "sg"):
+$$J_\text{CISPO}(\theta)=\mathbb{E}\Big[\operatorname{sg}\big(\operatorname{clip}(r_t,1-\epsilon_\text{low},1+\epsilon_\text{high})\big)\,\hat A_t\,\log\pi_\theta(a_t\mid s_t)\Big]$$
+so every token keeps a nonzero gradient with weight at most $1+\epsilon_\text{high}$. As far as I recall the paper, only the upper bound is tuned and the lower bound is effectively switched off, which is what the demo draws.</div>
+
+<h2>5 · Still an open question <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3353" target="_blank" rel="noopener">▶ 55:53</a></h2>
+<p>Every few months there's a different clipping scheme. Another paper, for example, combines CISPO and PPO by clipping in yet another way. This is still an open research area; nobody really knows the true answer.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>$J_\text{PPO}$, the expected minimum of $r_t\hat A_t$ and its clipped version, is just the four cases in one line. A clipped branch is a constant, so it gives zero gradient.</li>
+<li>The story: stay close to $\pi_{\theta_\text{old}}$ so the state-distribution approximation holds. The price is slower learning.</li>
+<li>$\epsilon_\text{high}$ mostly controls speed and can be loosened (e.g. 0.28); $\epsilon_\text{low}$ protects diversity, so be reluctant to over-penalise bad actions.</li>
+<li>CISPO caps the ratio's <i>weight</i> instead of dropping the gradient, because large ratios mean large, unstable updates. It can lose diversity on the bad-action side.</li>
+<li>Stabilising RL post-training is unsettled; the clipping recipe keeps changing.</li>
+</ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+const redraws = [];
+
+let sgn = 1, view = 'w';
+const clip = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+function vals(r){ const el = +$('el').value, eh = +$('eh').value, A = sgn;
+  const ppoObj = Math.min(r * A, clip(r, 1 - el, 1 + eh) * A), plainObj = r * A;
+  const ppoActive = (A > 0 && r <= 1 + eh) || (A < 0 && r >= 1 - el);
+  return {el, eh, ppoObj, plainObj, ppoW: ppoActive ? r : 0, plainW: r, cisW: Math.min(r, 1 + eh), ppoActive}; }
+function draw4(){
+  const [ctx, W, H] = setupCanvas($('c4')), L = 36, B = 24, T = 10, rmax = 3;
+  const v0 = vals(0), ys = view === 'w' ? [0, 3.1] : (sgn > 0 ? [0, 3.1] : [-3.1, 0]);
+  const X = r => L + (W - L - 10) * r / rmax, Y = y => T + (H - B - T) * (ys[1] - y) / (ys[1] - ys[0]);
+  ctx.font = '11px system-ui'; ctx.lineWidth = 1; ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted');
+  for (let r = 0; r <= 3; r += 0.5) { ctx.beginPath(); ctx.moveTo(X(r), T); ctx.lineTo(X(r), H - B); ctx.stroke(); ctx.textAlign = 'center'; ctx.fillText(r.toFixed(1), X(r), H - 8); }
+  for (let y = Math.ceil(ys[0]); y <= ys[1]; y++) { ctx.beginPath(); ctx.moveTo(L, Y(y)); ctx.lineTo(W - 10, Y(y)); ctx.stroke(); ctx.textAlign = 'right'; ctx.fillText(String(y), L - 4, Y(y) + 4); }
+  ctx.fillStyle = cssv('--tint'); ctx.fillRect(X(1 - v0.el), T, X(1 + v0.eh) - X(1 - v0.el), H - B - T);
+  const line = (f, col, w, dash) => { ctx.strokeStyle = cssv(col); ctx.lineWidth = w; ctx.setLineDash(dash || []); ctx.beginPath(); let prev = null;
+    for (let i = 0; i <= 600; i++) { const r = rmax * i / 600, y = f(r); if (prev !== null && Math.abs(y - prev) > 0.2) ctx.moveTo(X(r), Y(y)); else if (i) ctx.lineTo(X(r), Y(y)); else ctx.moveTo(X(r), Y(y)); prev = y; } ctx.stroke(); ctx.setLineDash([]); };
+  if (view === 'w') { line(r => vals(r).plainW, '--faint', 2, [5, 4]); line(r => vals(r).cisW, '--s3', 3.5); line(r => vals(r).ppoW, '--s1', 2.2); }
+  else { line(r => vals(r).plainObj, '--faint', 2, [5, 4]); line(r => vals(r).ppoObj, '--s1', 2.5); }
+  const r = +$('rr').value, v = vals(r); ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(r), T); ctx.lineTo(X(r), H - B); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.textAlign = 'left'; ctx.fillText(view === 'w' ? 'weight on Â∇log π' : 'objective term', L + 4, T + 10);
+  const good = sgn > 0; let msg;
+  if (good) msg = r > 1 + v.eh ? `Good action, ratio ${r.toFixed(2)} &gt; 1+ε<sub>high</sub> = ${(1 + v.eh).toFixed(2)}: PPO's term is the constant ${(1 + v.eh).toFixed(2)}·Â, so <b>no gradient</b>. CISPO still pushes, with weight capped at ${(1 + v.eh).toFixed(2)} instead of ${r.toFixed(2)}.`
+    : `Good action, ratio ${r.toFixed(2)} ≤ 1+ε<sub>high</sub>: PPO uses r·Â, the normal gradient with weight ${r.toFixed(2)}, raising the probability. CISPO's weight is the same here.`;
+  else msg = r < 1 - v.el ? `Bad action, ratio ${r.toFixed(2)} &lt; 1−ε<sub>low</sub> = ${(1 - v.el).toFixed(2)}: already suppressed, PPO gives <b>no gradient</b>. CISPO keeps pushing it down (weight ${r.toFixed(2)}): the diversity risk.`
+    : r > 1 + v.eh ? `Bad action, ratio ${r.toFixed(2)}: PPO is unclipped here and uses the full weight ${r.toFixed(2)}, a big update. CISPO caps the weight at ${(1 + v.eh).toFixed(2)}.`
+    : `Bad action, ratio ${r.toFixed(2)} ≥ 1−ε<sub>low</sub>: both push the probability down with weight ${r.toFixed(2)}.`;
+  $('t4').innerHTML = msg + (view === 'o' ? ` Objective: unclipped ${fmt(v.plainObj, 2)}, PPO ${fmt(v.ppoObj, 2)}.` : ''); }
+const setOn = (on, off) => { $(on).classList.add('on'); $(off).classList.remove('on'); };
+$('apos').onclick = () => { sgn = 1; setOn('apos', 'aneg'); draw4(); };
+$('aneg').onclick = () => { sgn = -1; setOn('aneg', 'apos'); draw4(); };
+$('vw').onclick = () => { view = 'w'; setOn('vw', 'vo'); draw4(); };
+$('vo').onclick = () => { view = 'o'; setOn('vo', 'vw'); draw4(); };
+$('el').addEventListener('input', e => { $('elv').textContent = (+e.target.value).toFixed(2); draw4(); });
+$('eh').addEventListener('input', e => { $('ehv').textContent = (+e.target.value).toFixed(2); draw4(); });
+$('rr').addEventListener('input', e => { $('rv').textContent = (+e.target.value).toFixed(2); draw4(); });
+redraws.push(draw4); draw4();
+const redrawAll = () => redraws.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

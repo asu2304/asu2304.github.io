@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mixture of Experts</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 2 · part 3 of 5 · Stanford CS229, Spring 2026</div>
+<h1>Mixture of Experts</h1>
+<p class="lede">Replace the one big MLP in each transformer layer with many smaller MLPs, the experts, and let a small router send each token to only a few of them. The model gets the parameters (memory) of all experts but pays the compute of only the active ones: that is what “30B-A3B” means.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=1964" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 32:44 to 51:16 of a 73-min video; published as “Lecture 16: Basic Concept in RL, Policy Gradient”). Previous: <a href="L2-2-mqa-sliding-window.html">multi-query and sliding-window attention</a> · Next: <a href="L2-4-in-context-learning.html">in-context learning</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · The other half of the transformer: the MLP <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=1964" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 32:44</a></h2>
+<p>A transformer alternates <b>attention</b> with an <b>MLP</b> (multi-layer perceptron, i.e. a fully connected network; "MLP" and "FFN" are used interchangeably). The MLP is applied independently at each position. So far everything was about attention; now the MLP.</p>
+<p>The obvious way to scale the MLP is to make it wider, but that raises compute and memory together. With a $d\times d$ matrix, doubling $d$ makes the matrix–vector product cost 4× as much. People found a more parallel way to scale.</p>
+
+<h2>2 · Many experts, few active <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=2052" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 34:12</a></h2>
+<div class="pair half">
+<div class="card" style="margin:0"><b>Dense MLP</b><br>input vector $v$ → one big $d\times d$ network → output $o$.</div>
+<div class="card" style="margin:0"><b>Mixture of experts</b><br>input $v$ → router picks a few of experts $E_1,\dots,E_m$ (each an MLP) → weighted average of their outputs.</div>
+</div>
+<p>The other experts exist, sitting in memory, but are not used for this input. Different tokens choose different experts.</p>
+<p>This <b>disentangles memory from compute</b>. Memory, i.e. the parameter count, is large because there are many experts. Compute is small because only a few are active per token: for example 8 active out of 128 in total. You can have a trillion-parameter model whose per-token computation is far smaller.</p>
+
+<h2>3 · Reading “30B-A3B” <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=2178" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 36:18</a></h2>
+<p>That is why large open models are no longer described by one number like "7B". Instead you see names like <b>30B-A3B</b>:</p>
+<ul>
+<li><b>30B</b>: total parameters, counting every expert.</li>
+<li><b>A3B</b>: <b>active</b> 3B. When the model processes a token, only 3B parameters are used in the computation. The rest may be used for other tokens or positions, but not this one.</li>
+</ul>
+<div class="card">
+<p class="small muted" style="margin-top:0">An illustrative parameter count: shared parts (attention, embeddings) are always active; of the expert MLPs, only $k$ routed ones (plus any shared experts) run per token.</p>
+<div class="row">
+<label>experts $m$ = <b id="mv"></b> <input type="range" id="m" min="8" max="256" step="8" value="128"></label>
+<label>active $k$ = <b id="kv"></b> <input type="range" id="k" min="1" max="16" value="8"></label>
+<label>shared experts <b id="shv"></b> <input type="range" id="sh" min="0" max="2" value="0"></label>
+</div>
+<div class="row">
+<label>params per expert (all layers) <b id="pev"></b> <input type="range" id="pe" min="0.05" max="1" step="0.01" value="0.22"></label>
+<label>non-expert params <b id="pav"></b> <input type="range" id="pa" min="0.5" max="20" step="0.5" value="1.5"></label>
+</div>
+<div class="row">
+<div class="stat"><div class="v" id="tot"></div><div class="l">total parameters (memory)</div></div>
+<div class="stat"><div class="v" id="act"></div><div class="l">active per token (compute)</div></div>
+<div class="stat"><div class="v" id="nm"></div><div class="l">name in the “xB-AyB” style</div></div>
+</div>
+</div>
+
+<h2>4 · Do the experts specialise? <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=2242" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 37:22</a></h2>
+<p>The original motivation, apart from systems, was <b>specialisation</b>: expert 1 for maths, expert 2 for physics, expert 3 for everyday English, expert 4 for code, and so on. Each token would run the relevant specialists, and specialised networks can be smaller for the same performance.</p>
+<p>Nobody trains them to specialise explicitly. They may become specialised naturally, because that is an efficient way to reduce the loss: if all were general-purpose, that probably wouldn't minimise the loss best. Some papers report strong specialisation, though it depends on how you define and interpret it.</p>
+<div class="callout"><b>Experts are chosen per token and per layer</b>, not per sequence. Each layer has an MLP at every position $1,\dots,T$, and at each one the router decides again.</div>
+<p>So it's unclear how much specialisation is really possible. Even a sequence that is all maths does not run the same "maths experts" everywhere. Empirically the number of distinct experts a sequence uses is smaller than the total, but the effect is not sharp.</p>
+<p>Could you train each expert separately on its own domain? Some people have tried; it doesn't seem to work as well as end-to-end training. It is also cumbersome: you need enough data for each domain (you may have plenty of maths, not of everything). With 8 experts and one chosen at a time, training them separately sounds at least plausible, though the lecturer knows of no public paper doing it well. With 256 experts and 8 chosen, deciding the roles of 256 experts a priori is much harder.</p>
+
+<h2>5 · The router <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=2497" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 41:37</a></h2>
+<p>How is the choice made? By a relatively small <b>routing module</b>, itself learned. Design choices vary; here is one. The input is $h$, the hidden vector at this position (the $v$ above).</p>
+<ol class="steps">
+<li><b>Score every expert.</b> Project with a routing matrix $W_r$ to an $m$-dimensional vector, $m$ = total number of experts, and squash:
+$$r=\sigma(h\,W_r)\in\mathbb R^m ,$$
+with $\sigma$ a softmax or sigmoid. $r$ holds the relative importance of the $m$ experts.</li>
+<li><b>Keep the top $k$.</b> $S$ = the indices of the $k$ largest entries of $r$; $|S|=k$ is the number of active experts (e.g. $k=8$, $m=128$).</li>
+<li><b>Run only those experts</b>: compute $E_s(h)$ for each $s\in S$.</li>
+<li><b>Mix with renormalised weights.</b>
+$$\operatorname{out}=\sum_{s\in S}\alpha_s\,E_s(h),\qquad \alpha_s=\frac{r_s}{\sum_{s'\in S} r_{s'}} .$$
+The $\alpha_s$ sum to 1 over the chosen set, so the output is a convex combination and its scale doesn't change much.</li>
+</ol>
+
+<h2>6 · Shared experts <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=2768" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 46:08</a></h2>
+<p>Sometimes some of the $m$ experts are <b>shared</b>: always used, at every position and every layer, while the rest are routed as above. DeepSeek-V3 does this. The rationale in that paper is that a shared expert holds common knowledge, say of the English language, that every token needs, and the routed experts specialise. Other models don't use shared experts.</p>
+
+<h2>7 · Keeping the load balanced <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=2829" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 47:09</a></h2>
+<p>Training MoE models is subtle, and the lecturer skips most of it. One key ingredient: <b>regularisation that pushes the routing to be as uniform as possible</b>. Two reasons:</p>
+<ol class="steps">
+<li><b>Wasted parameters.</b> If the router always picks the same two experts, the others are stored for nothing. The effective model is smaller than its parameter count, which is inefficient.</li>
+<li><b>Infrastructure.</b> Experts live on different GPU cards. If usage is very uneven, some cards sit idle while others are overloaded, and inference efficiency drops.</li>
+</ol>
+<p>There are other remedies, such as giving popular experts more GPUs. A DeepSeek paper even describes changing the number of GPUs per expert dynamically: during US daytime some experts are used more, and during China's daytime others are, probably because languages and use cases shift. (The lecturer isn't sure all models do this.)</p>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">A toy router with $m=16$ experts, random fixed $W_r$ and a sigmoid. “Router bias” tilts the scores towards low-numbered experts, mimicking a router that has collapsed onto a few favourites (what load-balancing regularisation prevents).</p>
+<div class="row">
+<label>top-$k$ = <b id="rkv"></b> <input type="range" id="rk" min="1" max="8" value="2"></label>
+<label>router bias <b id="bsv"></b> <input type="range" id="bs" min="0" max="3" step="0.1" value="0"></label>
+<label><input type="checkbox" id="rsh"> 1 shared expert</label>
+</div>
+<div class="row"><button id="tokB">route a new token</button><button id="manyB">route 2,000 tokens</button></div>
+<div class="pair half">
+<canvas id="rbar" height="190" aria-label="Router scores for one token with the top-k highlighted"></canvas>
+<canvas id="load" height="190" aria-label="How many tokens each expert received"></canvas>
+</div>
+<div class="legend"><span><i class="dot" style="background:var(--s1)"></i>selected (label = mixing weight α)</span><span><i class="dot" style="background:var(--grid)"></i>not selected</span><span><i class="dot" style="background:var(--s3)"></i>shared, always on</span></div>
+<div class="row">
+<div class="stat"><div class="v" id="unused"></div><div class="l">experts never used (of 16)</div></div>
+<div class="stat"><div class="v" id="imb"></div><div class="l">busiest expert ÷ average load</div></div>
+<div class="stat"><div class="v" id="asum"></div><div class="l">sum of α over chosen experts</div></div>
+</div>
+<p class="small" id="rTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> A common form of the balancing regulariser (from the Switch Transformer) adds $\lambda\, m\sum_s f_s P_s$ to the loss, where $f_s$ is the fraction of tokens routed to expert $s$ and $P_s$ the average router probability for $s$; it is smallest when both are uniform. DeepSeek-V3 instead adjusts a per-expert bias on the router scores up or down during training, which is the reverse of the "router bias" slider here.</div>
+
+<h2>8 · Why bother: parameters without the compute <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=2959" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 49:19</a></h2>
+<p>Asked whether MoE is only about GPU efficiency, the lecturer says that in the end it largely is about efficiency. A 30B-A3B model has 30B parameters but each token costs only about 3B parameters of compute. The other parameters only need to sit in memory, they aren't computed with; if you are compute-bound at test time, that is a real benefit.</p>
+<p>Compare a <b>dense</b> model with 1 trillion parameters, literally. There is almost no chance to serve it: the latency would be far too long, serving would cost too much, and the price on the website would be so high that nobody would use it. A non-MoE trillion-parameter model is almost impossible. A trillion-parameter MoE with maybe 30B active costs about as much as a 30B model while keeping the benefit of many more parameters.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>MoE replaces a layer's MLP with $m$ expert MLPs; a router sends each token to $k$ of them and averages their outputs.</li>
+<li>Total parameters (memory) and active parameters (compute) come apart: “30B-A3B” = 30B total, 3B active per token.</li>
+<li>Routing is per token and per layer. Specialisation may emerge but is not trained explicitly and is not sharp.</li>
+<li>Router: $r=\sigma(hW_r)$, keep the top-$k$ indices $S$, output $\sum_{s\in S}\alpha_sE_s(h)$ with $\alpha_s=r_s/\sum_{s'\in S}r_{s'}$. Some models add always-on shared experts.</li>
+<li>Training regularises the routing towards uniform use, so no parameters are wasted and GPUs stay evenly loaded.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAWS = [];
+function redrawAll(){ DRAWS.forEach(f => f()); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+function pc(){ const m = +$('m').value, k = Math.min(+$('k').value, m), sh = +$('sh').value, pe = +$('pe').value, pa = +$('pa').value;
+  $('mv').textContent = m; $('kv').textContent = k; $('shv').textContent = sh; $('pev').textContent = pe.toFixed(2) + 'B'; $('pav').textContent = pa.toFixed(1) + 'B';
+  const tot = pa + (m + sh) * pe, act = pa + (k + sh) * pe, f = x => x >= 100 ? x.toFixed(0) : x >= 10 ? x.toFixed(0) : x.toFixed(1);
+  $('tot').textContent = f(tot) + 'B'; $('act').textContent = f(act) + 'B'; $('nm').textContent = f(tot) + 'B-A' + f(act) + 'B'; }
+['m', 'k', 'sh', 'pe', 'pa'].forEach(id => $(id).addEventListener('input', pc)); pc();
+
+let seed = 7; const rng = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+const randn = () => { let u = 0, v = 0; while (!u) u = rng(); while (!v) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+const M = 16, DIM = 8, Wr = Array.from({length: DIM}, () => Array.from({length: M}, () => randn() * 0.6));
+let h = null, load = new Array(M).fill(0), routed = 0;
+function score(hv){ const b = +$('bs').value; const r = [];
+  for (let s = 0; s < M; s++) { let z = 0; for (let i = 0; i < DIM; i++) z += hv[i] * Wr[i][s]; z += b * (1 - s / (M - 1)) * 2 - b; r.push(1 / (1 + Math.exp(-z))); } return r; }
+function route(hv){ const r = score(hv), k = +$('rk').value, sh = $('rsh').checked;
+  const cand = r.map((v, s) => [v, s]).filter(([, s]) => !(sh && s === M - 1)).sort((a, b) => b[0] - a[0]).slice(0, k), S = cand.map(c => c[1]);
+  const Z = S.reduce((a, s) => a + r[s], 0), alpha = {}; S.forEach(s => alpha[s] = r[s] / Z); return {r, S, alpha}; }
+function newTok(){ h = Array.from({length: DIM}, randn); }
+function many(){ load = new Array(M).fill(0); routed = 2000; for (let n = 0; n < 2000; n++) route(Array.from({length: DIM}, randn)).S.forEach(s => load[s]++); }
+function rDraw(){
+  $('rkv').textContent = $('rk').value; $('bsv').textContent = (+$('bs').value).toFixed(1);
+  const {r, S, alpha} = route(h), sh = $('rsh').checked;
+  { const [ctx, W, H] = setupCanvas($('rbar')), pad = 16, bw = (W - 2 * pad) / M, top = 24, base = H - 22;
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('router scores r for this token', pad, 11);
+    for (let s = 0; s < M; s++) { const hh = r[s] * (base - top), isSh = sh && s === M - 1, on = S.includes(s);
+      ctx.fillStyle = cssv(isSh ? '--s3' : on ? '--s1' : '--grid'); ctx.fillRect(pad + s * bw + 1, base - hh, bw - 2, hh);
+      ctx.fillStyle = cssv('--muted'); ctx.fillText(String(s + 1), pad + s * bw + bw / 2 - 4, H - 8);
+      if (on && bw > 14) { ctx.fillStyle = cssv('--ink'); ctx.font = '10px system-ui'; ctx.fillText(alpha[s].toFixed(2), pad + s * bw, base - hh - 3); ctx.font = '11px system-ui'; } } }
+  { const [ctx, W, H] = setupCanvas($('load')), pad = 16, bw = (W - 2 * pad) / M, top = 24, base = H - 22, mx = Math.max(1, ...load);
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText(routed ? 'tokens routed to each expert (of 2,000)' : 'press “route 2,000 tokens”', pad, 11);
+    for (let s = 0; s < M; s++) { const hh = load[s] / mx * (base - top), isSh = sh && s === M - 1;
+      ctx.fillStyle = cssv(isSh ? '--s3' : '--s2'); if (isSh && routed) { ctx.fillRect(pad + s * bw + 1, top, bw - 2, base - top); } else ctx.fillRect(pad + s * bw + 1, base - hh, bw - 2, hh);
+      ctx.fillStyle = cssv('--muted'); ctx.fillText(String(s + 1), pad + s * bw + bw / 2 - 4, H - 8); } }
+  const routable = sh ? M - 1 : M, ls = load.slice(0, routable), avg = ls.reduce((a, b) => a + b, 0) / routable;
+  $('unused').textContent = routed ? ls.filter(v => v === 0).length : '–';
+  $('imb').textContent = routed && avg > 0 ? (Math.max(...ls) / avg).toFixed(1) + '×' : '–';
+  $('asum').textContent = S.reduce((a, s) => a + alpha[s], 0).toFixed(2);
+  $('rTxt').innerHTML = `This token runs ${S.length} routed expert${S.length > 1 ? 's' : ''} (${S.map(s => s + 1).join(', ')})${sh ? ' plus shared expert 16' : ''}: ${S.length + (sh ? 1 : 0)} of 16 MLPs, so about ${Math.round((S.length + (sh ? 1 : 0)) / 16 * 100)}% of the expert compute.` + (routed ? (+$('bs').value > 1 ? ' With a strong bias the load piles onto a few experts: the rest are stored but barely used.' : ' With no bias the load is fairly even.') : '');
+}
+$('tokB').onclick = () => { newTok(); rDraw(); }; $('manyB').onclick = () => { many(); rDraw(); };
+['rk', 'bs'].forEach(id => $(id).addEventListener('input', () => { if (routed) many(); rDraw(); })); $('rsh').addEventListener('change', () => { if (routed) many(); rDraw(); });
+newTok(); DRAWS.push(rDraw); rDraw();
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

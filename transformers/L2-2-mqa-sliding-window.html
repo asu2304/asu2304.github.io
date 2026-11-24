@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multi-Query Attention, Sliding Windows and QK-Norm</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 2 · part 2 of 5 · Stanford CS229, Spring 2026</div>
+<h1>Multi-Query Attention, Sliding Windows and QK-Norm</h1>
+<p class="lede">Grouped-query attention has one knob, how many heads share a key/value set; turned all the way it becomes multi-query attention. Sliding-window attention attacks the other cost, the $T^2$ compute, by letting each query see only the last $w$ keys, which still reaches $l\cdot w$ tokens back through $l$ layers. Normalising queries and keys keeps the attention scores on scale.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=1092" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 18:12 to 32:44 of a 73-min video; published as “Lecture 16: Basic Concept in RL, Policy Gradient”). Previous: <a href="L2-1-kv-cache-gqa.html">the KV cache and grouped-query attention</a> · Next: <a href="L2-3-mixture-of-experts.html">mixture of experts</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Why share keys and values, not queries? <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=1092" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 18:12</a></h2>
+<p>A student asks why grouped-query attention reduces the number of keys rather than the number of queries. The reason is the generation-time memory picture from part 1:</p>
+<ul>
+<li>At time $T$ you only need the query at time $T$. The queries of earlier steps have already been compared with their keys and can be thrown away. (During prefilling or training all queries are needed, but the concern here is generation.)</li>
+<li>Keys and values must be kept for the <b>whole</b> sequence.</li>
+</ul>
+<p>So query memory is small and KV memory is large, and the incentive is to cut keys and values. You <i>could</i> cut queries too, but cutting everything uniformly is just using fewer heads.</p>
+
+<h2>2 · Choosing $\tau$: from GQA to multi-query attention <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=1254" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 20:54</a></h2>
+<p>There are three numbers, $n_h$, $n_g$ and $\tau$, tied by $n_h=\tau\,n_g$. Beyond respecting that equation, you pick what works empirically. The trade-off at the extreme:</p>
+<ul>
+<li>With $\tau=n_h$ you get $n_g=1$: one set of keys and values for all heads. That is the smallest possible memory cost.</li>
+<li>But you may then <b>store too little</b>. The cache exists to remember what happened in the history, and how much needs remembering is something to tune.</li>
+</ul>
+<p>The case $n_g=1$ is called <b>multi-query attention</b>. It came first: one paper made that choice and was the first along this line. Later work judged it too aggressive and moved to larger $n_g$. (Asked for typical values, the lecturer isn't sure off-hand and says you'd need to check the code.)</p>
+<table>
+<tr><th>Variant</th><th>KV sets $n_g$</th><th>Heads per KV set $\tau$</th><th>KV cache</th></tr>
+<tr><td>Multi-head attention</td><td>$n_h$</td><td>1</td><td>largest</td></tr>
+<tr><td>Grouped-query attention</td><td>$1&lt;n_g&lt;n_h$</td><td>$n_h/n_g$</td><td>$\tfrac1\tau$ of MHA</td></tr>
+<tr><td>Multi-query attention</td><td>1</td><td>$n_h$</td><td>smallest, may forget</td></tr>
+</table>
+<div class="beyond"><b>Going beyond the lecture.</b> Multi-query attention is from Shazeer (2019), "Fast Transformer Decoding: One Write-Head is All You Need"; grouped-query attention is from Ainslie et al. (2023). A common modern setting is a handful of KV sets, for example 8 KV sets for 32 query heads ($\tau=4$) in Llama-3-8B.</div>
+
+<h2>3 · Does it matter which heads share? <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=1367" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 22:47</a></h2>
+<p>Another student asks whether the order of the grouping, which heads go to which key set, means anything. It doesn't: everything is learned. Keys are not designed by hand, so if you permute the wiring, training simply adapts to it. Any two wirings with the same shape are equivalent.</p>
+<p>Could you use richer structures, say a tree, or a query that attends to two key sets? The lecturer doesn't think people have tried. And the structure can't be very dynamic anyway: to run fast it is essentially hard-coded and compiled for the GPU, so you must know exactly what is computed. In practice people do literally the simple grouping above, with attention to <b>locality</b>: for example, put a key set and its queries on one GPU card and the next key set with its queries on another, to cut communication.</p>
+<p>A last question returns to the meaning of queries and keys: if they measure how related the current word is to another word, does each depend only on its own word? Roughly, the intuition is right, but word level is too fine: each query and key also depends on nearby words (through the layers below).</p>
+
+<h2>4 · Sliding-window attention <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=1571" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 26:11</a></h2>
+<p>GQA is about memory. <b>Compute</b> is also a problem: pairwise inner products between $T$ queries and $T$ keys cost $T^2$. If $T$ is a million, a million squared is a really big number, so we want to escape the quadratic dependence.</p>
+<p>How frontier labs do it isn't public. One approach used in the open-source community is simply <b>not computing</b> most of the attention:</p>
+<div class="callout">Each query attends only to the last $w$ positions. $q_T$ sees $k_{T-w+1},\dots,k_T$; $q_{T-1}$ sees the $w$ keys ending at $T-1$; and so on. The window slides with the query. $w$ is the <b>window size</b>, a new hyperparameter.</div>
+<p>The saving: each query meets only $w$ keys, so the cost is $T\times w$ instead of $T\times T$, <b>linear in $T$</b>. $w$ is usually much smaller than $T$, something like a constant: with $w=1{,}000$ tokens the cost is $T\times1{,}000$ however large $T$ gets.</p>
+
+<h2>5 · Seeing further through depth <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=1680" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 28:00</a></h2>
+<p>It looks as if attention only covers the last $w$ tokens, but that isn't quite true:</p>
+<ol class="steps">
+<li>In the top layer, $q_T$ attends to the last $w$ positions, keys $k_{T-w+1},\dots,k_T$.</li>
+<li>Each of those keys is a projection of a hidden vector, and that hidden vector came from the layer below, which itself attended to $w$ earlier positions.</li>
+<li>The layer below that reaches back $w$ more, and so on. With $l$ layers, information can travel back about $l\times w$ tokens.</li>
+<li>That is the limit: tokens further back have <b>no</b> influence. For large enough $T$ the model forgets the distant past.</li>
+</ol>
+<p>So you can't use only sliding windows. Many papers propose other forms of <b>sparse attention</b> that don't forget the past; which is best isn't known yet (the course's lecture notes cite some).</p>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Left: which keys (columns) each query (row) computes in one layer. Right: which input tokens can influence the chosen query after each layer. Tap a row on the left, or use the slider, to choose the query.</p>
+<div class="row">
+<label>window $w$ = <b id="wv"></b> <input type="range" id="w" min="1" max="24" value="4"></label>
+<label>layers $l$ = <b id="lv"></b> <input type="range" id="l" min="1" max="6" value="3"></label>
+<label>query $t$ = <b id="tv"></b> <input type="range" id="t" min="1" max="24" value="24"></label>
+</div>
+<div class="pair half">
+<canvas id="mask" height="300" aria-label="Sliding-window causal attention mask"></canvas>
+<canvas id="reach" height="300" aria-label="Receptive field growing with depth"></canvas>
+</div>
+<div class="legend"><span><i class="dot" style="background:var(--s1)"></i>computed</span><span><i class="dot" style="background:var(--grid)"></i>causal but skipped</span><span><i class="dot" style="background:var(--s2)"></i>chosen query / reachable tokens</span></div>
+<div class="row">
+<div class="stat"><div class="v" id="cFull"></div><div class="l">score entries, full causal ($T=24$)</div></div>
+<div class="stat"><div class="v" id="cWin"></div><div class="l">score entries, windowed</div></div>
+<div class="stat"><div class="v" id="cReach"></div><div class="l">tokens query $t$ can see after $l$ layers</div></div>
+</div>
+<p class="small" id="swTxt"></p>
+<div class="row"><label>Scale it up: $T$ = <b id="Tbv"></b> <input type="range" id="Tb" min="3" max="7" step="0.5" value="6"></label><span class="small muted">with $w=1{,}000$</span></div>
+<p class="small" id="bigTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> Counted exactly, one layer lets position $t$ see $w$ positions ($t-w+1$ to $t$), each extra layer adds $w-1$ more, so $l$ layers reach $l(w-1)+1$ tokens, which the lecture rounds to $l\cdot w$. Mistral 7B is a well-known open model that used sliding-window attention (with $w=4096$).</div>
+
+<h2>6 · Normalising queries and keys <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=1833" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 30:33</a></h2>
+<p>One more small detail, about the constant $c$ from part 1. Dividing by $c=\sqrt{d_h}$ assumed each entry of the vectors is on the order of 1. Nothing guarantees that: as training goes on, $q$ and $k$ may grow or shrink.</p>
+<p>So some open-source models also <b>normalise</b> the query and key before the inner product. Instead of $q_j k_t^\top/c$ they use</p>
+$$\frac{\operatorname{RMSNorm}(q_j)\,\operatorname{RMSNorm}(k_t)^\top}{c},$$
+<p>so the inputs to the inner product stay on the same scale in most cases. Again a heuristic, but one people use.</p>
+<div class="beyond"><b>Going beyond the lecture.</b> $\operatorname{RMSNorm}(x)=\gamma\odot x\big/\sqrt{\tfrac1d\sum_i x_i^2+\epsilon}$, with a learned scale $\gamma$. After it, each entry has root-mean-square about 1, which is exactly the "entries on the order of $\pm1$" assumption behind $c=\sqrt{d_h}$. The trick is usually called <b>QK-norm</b>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Only the newest query is needed at generation time, but all past keys and values are, so it pays to share keys and values, not queries.</li>
+<li>$n_h=\tau n_g$; $\tau$ is tuned. $n_g=1$ is multi-query attention: smallest cache, but it may store too little history, so later models use more KV sets.</li>
+<li>Which heads share is irrelevant (it is learned); the grouping is kept simple and static so it compiles well and keeps related work on one GPU.</li>
+<li>Sliding-window attention lets each query see the last $w$ keys: cost $T\cdot w$, linear in $T$. Through $l$ layers it reaches about $l\cdot w$ tokens, and forgets everything earlier.</li>
+<li>Normalising $q$ and $k$ (e.g. RMSNorm) before the inner product keeps scores on scale when the vectors drift during training.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAWS = [];
+function redrawAll(){ DRAWS.forEach(f => f()); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+const N = 24;
+function swDraw(){
+  const w = +$('w').value, l = +$('l').value, t = +$('t').value;
+  $('wv').textContent = w; $('lv').textContent = l; $('tv').textContent = t;
+  let full = 0, win = 0; for (let i = 1; i <= N; i++) { full += i; win += Math.min(i, w); }
+  const lo = Math.max(1, t - l * (w - 1)), reach = t - lo + 1;
+  $('cFull').textContent = full; $('cWin').textContent = win; $('cReach').textContent = reach;
+  $('swTxt').innerHTML = `With $w=${w}$, each row computes at most ${w} scores, ${win} in total instead of ${full}. After ${l} layer${l > 1 ? 's' : ''}, query ${t} is influenced by tokens ${lo}–${t}` + (lo > 1 ? `; tokens 1–${lo - 1} are invisible to it.` : ', i.e. the whole prefix.');
+  { const [ctx, W, H] = setupCanvas($('mask')), s = Math.min(W, H) / (N + 1.5), ox = (W - s * N) / 2, oy = s;
+    for (let i = 1; i <= N; i++) for (let j = 1; j <= N; j++) {
+      let col = j > i ? null : (i - j < w ? '--s1' : '--grid'); if (!col) continue;
+      ctx.fillStyle = cssv(col); ctx.globalAlpha = (i === t && col === '--s1') ? 1 : col === '--s1' ? 0.55 : 1;
+      ctx.fillRect(ox + (j - 1) * s + 0.5, oy + (i - 1) * s + 0.5, s - 1, s - 1); }
+    ctx.globalAlpha = 1; ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.strokeRect(ox, oy + (t - 1) * s, s * N, s);
+    ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('keys →', ox, oy - 4); }
+  { const [ctx, W, H] = setupCanvas($('reach')), padL = 26, s = (W - padL - 4) / N, rows = l + 1, rh = Math.min(30, (H - 30) / rows);
+    ctx.font = '11px system-ui';
+    for (let r = 0; r <= l; r++) { const y = 18 + (l - r) * rh, lowR = Math.max(1, t - r * (w - 1));
+      ctx.fillStyle = cssv('--muted'); ctx.fillText(r === 0 ? 'out' : r === l ? 'input' : 'L' + (l - r), 0, y + rh * 0.6);
+      for (let j = 1; j <= N; j++) { const on = r === 0 ? j === t : (j >= lowR && j <= t);
+        ctx.fillStyle = cssv(on ? '--s2' : '--grid'); ctx.globalAlpha = on ? 1 : 0.8; ctx.fillRect(padL + (j - 1) * s + 0.5, y, s - 1, rh - 6); } }
+    ctx.globalAlpha = 1; ctx.fillStyle = cssv('--muted'); ctx.fillText('tokens visible to query ' + t + ', going down the layers', padL, 11); }
+  const Tb = Math.round(10 ** +$('Tb').value), wb = 1000, f = Tb * (Tb + 1) / 2, sw = Tb * wb - wb * (wb - 1) / 2;
+  const sci = x => { const e = Math.floor(Math.log10(x)); return (x / 10 ** e).toFixed(1) + '×10^' + e; };
+  $('Tbv').textContent = Tb.toLocaleString('en-US');
+  $('bigTxt').innerHTML = Tb <= wb ? `With $T\\le w$ the window covers everything: no saving (${sci(f)} entries either way).` : `Full causal attention: about ${sci(f).replace(/\^(\d+)/, '<sup>$1</sup>')} score entries per head per layer; sliding window: about ${sci(sw).replace(/\^(\d+)/, '<sup>$1</sup>')}, i.e. <b>${(f / sw).toFixed(0)}×</b> fewer.`;
+  if (window.renderMathInElement) renderMathInElement($('bigTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+  if (window.renderMathInElement) renderMathInElement($('swTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+['w', 'l', 't', 'Tb'].forEach(id => $(id).addEventListener('input', swDraw));
+$('mask').addEventListener('click', e => { const r = $('mask').getBoundingClientRect(), W = r.width, H = +$('mask').dataset.h, s = Math.min(W, H) / (N + 1.5);
+  const i = Math.floor((e.clientY - r.top - s) / s) + 1; if (i >= 1 && i <= N) { $('t').value = i; swDraw(); } });
+DRAWS.push(swDraw); swDraw();
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inside the Transformer: Single-Head Attention</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 1 · part 4 of 5 · Stanford CS229, Spring 2026</div>
+<h1>Inside the Transformer: Single-Head Attention</h1>
+<p class="lede">A transformer alternates two kinds of layer: an MLP that processes each position on its own, and attention, the only place where positions talk to each other. In single-head attention each position forms a query, compares it with every position's key by an inner product, turns the scores into probabilities with a softmax, and outputs the probability-weighted average of the values.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2340" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 39:00 to 58:05 of a 77-min video; published as “Lecture 14: Transformers, In-Context Learning”). Previous: <a href="L1-3-generation-and-training.html">generation and training</a> · Next: <a href="L1-5-masking-multihead-cost.html">masking, multi-head attention and cost</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · The big picture: attention and MLP, alternating <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2367" target="_blank" rel="noopener">▶ 39:27</a></h2>
+<p>Start from the embeddings $e(x_1),\dots,e(x_T)$. The transformer has multiple layers:</p>
+<p style="text-align:center" class="mono">embeddings → <b>attention</b> → <b>MLP</b> → <b>attention</b> → <b>MLP</b> → … → MLP → $u_1,\dots,u_T$</p>
+<ul>
+<li><b>Attention</b> always takes in a <b>sequence of vectors</b> and outputs a sequence of vectors, one per position.</li>
+<li>Each output vector then goes through an <b>MLP</b> (multi-layer perceptron: a two- or three-layer network, with some special gating or activation function).</li>
+<li>Alternate enough times; the last layer outputs the logit vectors $u_1,\dots,u_T$.</li>
+</ul>
+
+<h2>2 · The MLP is per-position; only attention mixes positions <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2472" target="_blank" rel="noopener">▶ 41:12</a></h2>
+<p>The lecture focuses on attention, the new ingredient. One more fact about the MLP: it <b>shares its parameters</b> across positions and is applied to each position <b>independently</b>. There are no dependencies between positions inside an MLP, so it is very parallelisable.</p>
+<div class="callout">The <b>only</b> way information from different positions (time steps) is fused is <b>attention</b>: it looks at all the vectors, processes them, and outputs a new sequence.</div>
+<p><b>Is the whole thing trained as one system?</b> <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2514" target="_blank" rel="noopener">▶ 41:54</a> Yes: define the architecture, then train it end to end as one gigantic network with <b>auto-differentiation</b>. Autodiff only needs the forward pass to be a composition of basic operations; attention and the MLP are many small matrix multiplications, so the backward pass comes for free.</p>
+
+<h2>3 · Single-head attention: queries, keys, values <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2581" target="_blank" rel="noopener">▶ 43:01</a></h2>
+<p>Type signature: input $h^{\text{in}}_1,\dots,h^{\text{in}}_T$, output $h^{\text{out}}_1,\dots,h^{\text{out}}_T$. Everything is a row vector, multiplied on the right. With $h^{\text{in}}_t\in\mathbb R^{1\times d}$ and three trained weight matrices in $\mathbb R^{d\times d_h}$ ($d_h$ is a dimension you choose):</p>
+$$q_t = h^{\text{in}}_t W_Q,\qquad k_t = h^{\text{in}}_t W_K,\qquad v_t = h^{\text{in}}_t W_V,\qquad q_t,k_t,v_t\in\mathbb R^{1\times d_h}.$$
+<p>Do this at every position to get <b>queries</b> $q_1,\dots,q_T$, <b>keys</b> $k_1,\dots,k_T$ and <b>values</b> $v_1,\dots,v_T$ ("values" as in vectors, not value functions).</p>
+
+<h2>4 · The intuition: whom should I pay attention to? <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2772" target="_blank" rel="noopener">▶ 46:12</a></h2>
+<p>The intuition isn't obvious ("eventually, it just works; nobody really knows exactly how"), but roughly: positions must interact, or each time step is processed independently. Interaction is about <b>retrieving</b>, or <b>paying attention to</b>, each other. When processing one vector, you should attend to the other vectors that carry relevant information, and compute your output mostly from those. Queries and keys decide <b>which</b> positions to attend to; values carry <b>what</b> you retrieve.</p>
+
+<h2>5 · Scores, softmax, weighted sum <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2865" target="_blank" rel="noopener">▶ 47:45</a></h2>
+<ol class="steps">
+<li><b>Scores.</b> For position $t$, take the inner product of its query with <b>every</b> key: $q_tk_1^\top,\ q_tk_2^\top,\ \dots,\ q_tk_T^\top$. Since $q_t$ is a row and $k_i^\top$ a column, each is a scalar, so you get $T$ real numbers. There is often a <b>scaling factor</b> $c$ dividing them to keep things well-behaved; the lecture says not to worry about it for now.</li>
+<li><b>Softmax over positions.</b>
+$$(P_{t1},\dots,P_{tT}) = \operatorname{softmax}\!\Big(\tfrac{q_tk_1^\top}{c},\dots,\tfrac{q_tk_T^\top}{c}\Big),\qquad P_{ti}\ge0,\ \ \sum_{i=1}^T P_{ti}=1 .$$
+A probability vector over the $T$ positions. A large $P_{ti}$ means $q_t$ and $k_i$ have a high inner product: position $t$ should pay more attention to position $i$.</li>
+<li><b>Output</b> <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3089" target="_blank" rel="noopener">▶ 51:29</a>: use those probabilities to weight the values,
+$$h^{\text{out}}_t = P_{t1}v_1 + P_{t2}v_2 + \cdots + P_{tT}v_T .$$
+If $P_{t2}$ is very big, the output at time $t$ uses $v_2$ a lot.</li>
+</ol>
+<div class="beyond"><b>Going beyond the lecture.</b> The usual choice is $c=\sqrt{d_h}$: if query and key entries are roughly independent with unit variance, $q_tk_i^\top$ has variance $d_h$, so dividing by $\sqrt{d_h}$ keeps the scores around unit scale and the softmax from saturating. It's the same effect as temperature on page 3: a larger $c$ means a softer attention pattern.</div>
+<p>Try it with $d_h=2$ so the vectors can be drawn. Five positions have fixed keys (dots); <b>drag or tap to move the query</b> $q_t$. To make the weighted sum visible, each value $v_i$ is a 3-vector read as a colour, and the output $h^{\text{out}}_t$ is the mixed colour.</p>
+<div class="card">
+  <div class="pair half">
+    <div><canvas id="att" height="300" aria-label="Keys as dots in the plane and a draggable query arrow" style="touch-action:none;cursor:crosshair"></canvas></div>
+    <div><canvas id="pbar" height="200" aria-label="Attention probabilities over the five positions"></canvas>
+      <div class="row"><label>scaling $c$ <input type="range" id="cS" min="-1" max="1" step="0.01" value="0"></label> <b class="mono" id="cT"></b></div>
+      <div class="row"><span class="small">output $h^{\text{out}}_t$ =</span><span id="sw" style="display:inline-block;width:70px;height:34px;border-radius:8px;border:1px solid var(--grid)"></span><span class="mono small" id="outT"></span></div>
+    </div>
+  </div>
+  <p class="small" id="attTxt"></p>
+</div>
+<p>Point the query at one key and that position takes most of the weight; point it between two keys and the output is a blend; shrink $c$ and the choice becomes nearly one-hot.</p>
+
+<h2>6 · Where do the weights come from? <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3148" target="_blank" rel="noopener">▶ 52:28</a></h2>
+<p>$W_Q,W_K,W_V$ are <b>trained</b>, so how positions attend to each other is learned too. The architecture is only a template. If all the weights were 0 it would still be a valid network, just one with a bad loss; training chooses $W$ so that the mechanism does the right thing.</p>
+
+<h2>7 · Why not just MLPs? <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3207" target="_blank" rel="noopener">▶ 53:27</a></h2>
+<table>
+<tr><th>Alternative</th><th>Problem</th></tr>
+<tr><td>Remove attention, keep per-position MLPs</td><td>No interaction between positions at all: separate networks for each token. Like reading individual words with no sentence; no chance of understanding dependencies or meaning.</td></tr>
+<tr><td>One gigantic MLP on all $T$ vectors concatenated</td><td>(1) Far too many parameters: $T$ can be a million, and a million-by-million weight matrix is far too big. (2) The parameter count <b>changes with $T$</b>: train at length 1,000, test at 1,001, and the network no longer fits.</td></tr>
+<tr><td>Just average the vectors</td><td>No parameters: prescribes too much structure, no flexibility.</td></tr>
+<tr><td><b>Attention</b></td><td>$W_Q,W_K,W_V$ act on one position's vector, so the parameter count does <b>not depend on $T$</b>; the learned scores still let any position use any other.</td></tr>
+</table>
+<p>A student put it well: with enough compute and data (so you don't overfit) some gigantic MLP could solve the problem, but that's too expensive. You <b>prescribe structure</b> to cut the complexity while leaving enough <b>flexibility</b> for the model to figure the rest out. Attention strikes that balance.</p>
+<div class="card">
+  <p class="small muted" style="margin-top:0">Parameter counts for one layer (weights only). The concatenated MLP is taken as a single $(Td)\times(Td)$ matrix, the most generous version.</p>
+  <div class="row"><label>model width $d$ <input type="range" id="pd" min="6" max="13" step="1" value="10"></label> <b class="mono" id="pdT"></b>
+    <label>sequence length $T$ <input type="range" id="pT" min="2" max="20" step="1" value="10"></label> <b class="mono" id="pTT"></b></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="pA"></div><div class="l">single-head attention, $3\,d\,d_h$ ($d_h=d$)</div></div>
+    <div class="stat"><div class="v" id="pM"></div><div class="l">concatenated MLP, $(Td)^2$</div></div>
+  </div>
+  <p class="small" id="pNote"></p>
+</div>
+
+<h2>8 · A note from history: convolutions <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=3429" target="_blank" rel="noopener">▶ 57:09</a></h2>
+<p>Sequences have been handled in other ways, e.g. a <b>convolutional network</b>: an MLP with a limited <b>receptive field</b>, so each step sees only a window. Some papers say it isn't a terrible idea and works to some degree, just not as well as attention. There are also attention variants that do similar things with better efficiency; they come later. And single-head attention is not the whole story yet.</p>
+<div class="beyond"><b>Going beyond the lecture.</b> Prof. Khapra's version of the same mechanism, with column vectors and a worked example, is in <a href="../deep-learning/L65-self-attention.html">Self-attention with Q, K, V</a>; the position-wise feed-forward network is in <a href="../deep-learning/L66-multi-head-attention.html">Multi-head attention</a> §4; CNNs are in <a href="../deep-learning/L62-cnn-intro.html">the CNN overview</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>A transformer alternates attention and position-wise MLPs; the MLP shares weights across positions and never mixes them.</li>
+<li>$q_t=h_tW_Q$, $k_t=h_tW_K$, $v_t=h_tW_V$ (row vectors, $W\in\mathbb R^{d\times d_h}$, all trained).</li>
+<li>$P_{t\cdot}=\operatorname{softmax}_i(q_tk_i^\top/c)$; high inner product ⇒ more attention.</li>
+<li>$h^{\text{out}}_t=\sum_iP_{ti}v_i$, a convex combination of the values.</li>
+<li>Attention's parameter count is independent of $T$, unlike a concatenated MLP: structure balanced against flexibility.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const fmt = (x, k = 3) => Number.isFinite(x) ? (Math.abs(x) >= 1e4 || (Math.abs(x) < 1e-3 && x !== 0) ? x.toExponential(2) : x.toFixed(k)) : '–';
+function softmax(z){ const m = Math.max(...z); if (!Number.isFinite(m)) return z.map(() => 1 / z.length); const e = z.map(v => Math.exp(v - m)), s = e.reduce((a, b) => a + b, 0); return e.map(v => v / s); }
+
+const K = [[1.6, 0.4], [-1.1, 1.3], [0.3, -1.5], [-1.5, -0.7], [1.0, 1.5]];
+const VAL = [[42, 120, 214], [235, 104, 52], [27, 175, 122], [140, 80, 200], [230, 190, 40]];
+const NAMES = ['1', '2', '3', '4', '5'];
+let q = [1.4, 0.9];
+const cVal = () => 10 ** +$('cS').value;
+function attn(){ const s = K.map(k => (q[0] * k[0] + q[1] * k[1]) / cVal()), P = softmax(s);
+  const out = [0, 1, 2].map(j => P.reduce((a, p, i) => a + p * VAL[i][j], 0)); return {s, P, out}; }
+function drawAtt(){ const [ctx, W, H] = setupCanvas($('att')), R = 2.4, S = Math.min(W, H) / (2 * R), ox = W / 2, oy = H / 2, X = v => ox + v * S, Y = v => oy - v * S;
+  const {s, P, out} = attn();
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, oy); ctx.lineTo(W, oy); ctx.moveTo(ox, 0); ctx.lineTo(ox, H); ctx.stroke();
+  K.forEach((k, i) => { const r = 5 + 14 * Math.sqrt(P[i]); ctx.fillStyle = `rgb(${VAL[i].join(',')})`; ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.arc(X(k[0]), Y(k[1]), r + 4, 0, 7); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(X(k[0]), Y(k[1]), 6, 0, 7); ctx.fill(); ctx.fillStyle = cssv('--ink'); ctx.font = '12px system-ui'; ctx.fillText('k' + NAMES[i], X(k[0]) + 9, Y(k[1]) - 8); });
+  const tx = X(q[0]), ty = Y(q[1]), a = Math.atan2(ty - oy, tx - ox);
+  ctx.strokeStyle = cssv('--ink'); ctx.fillStyle = cssv('--ink'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(tx, ty); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - 11 * Math.cos(a - 0.4), ty - 11 * Math.sin(a - 0.4)); ctx.lineTo(tx - 11 * Math.cos(a + 0.4), ty - 11 * Math.sin(a + 0.4)); ctx.fill();
+  ctx.font = '600 13px system-ui'; ctx.fillText('q_t', tx + 6, ty + 14);
+  const [c2, W2, H2] = setupCanvas($('pbar')), bw = (W2 - 20) / K.length, h0 = H2 - 34;
+  c2.font = '11px system-ui'; c2.textAlign = 'center';
+  P.forEach((p, i) => { c2.fillStyle = `rgb(${VAL[i].join(',')})`; c2.fillRect(10 + i * bw + bw * 0.15, h0 - p * (h0 - 18), bw * 0.7, p * (h0 - 18));
+    c2.fillStyle = cssv('--ink'); c2.fillText(p.toFixed(2), 10 + i * bw + bw / 2, h0 - p * (h0 - 18) - 4);
+    c2.fillStyle = cssv('--muted'); c2.fillText('P_t' + NAMES[i], 10 + i * bw + bw / 2, h0 + 14); c2.fillText('s=' + s[i].toFixed(1), 10 + i * bw + bw / 2, h0 + 28); });
+  $('sw').style.background = `rgb(${out.map(Math.round).join(',')})`; $('outT').textContent = '(' + out.map(v => v.toFixed(0)).join(', ') + ')';
+  $('cT').textContent = cVal().toFixed(2);
+  const top = P.indexOf(Math.max(...P));
+  $('attTxt').innerHTML = `Query q<sub>t</sub> = (${q[0].toFixed(2)}, ${q[1].toFixed(2)}). Scores s<sub>i</sub> = q<sub>t</sub>k<sub>i</sub><sup>⊤</sup>/c. Position ${top + 1} gets the most attention (${(P[top] * 100).toFixed(0)}%), so the output colour is closest to its value.`; }
+function setQ(e){ const cv = $('att'), r = cv.getBoundingClientRect(), W = r.width, H = +cv.dataset.h, S = Math.min(W, H) / 4.8;
+  q = [Math.max(-2.4, Math.min(2.4, (e.clientX - r.left - W / 2) / S)), Math.max(-2.4, Math.min(2.4, -(e.clientY - r.top - H / 2) / S))]; drawAtt(); }
+let dragging = false;
+$('att').addEventListener('pointerdown', e => { dragging = true; setQ(e); });
+window.addEventListener('pointermove', e => { if (dragging) setQ(e); });
+window.addEventListener('pointerup', () => { dragging = false; });
+$('cS').addEventListener('input', drawAtt);
+
+function params(){ const d = 2 ** +$('pd').value, T = 2 ** +$('pT').value, A = 3 * d * d, M = (T * d) ** 2;
+  $('pdT').textContent = d.toLocaleString(); $('pTT').textContent = T.toLocaleString();
+  const f = x => x >= 1e6 ? x.toExponential(1).replace('e+', '×10^') : x.toLocaleString();
+  $('pA').textContent = f(A); $('pM').textContent = f(M);
+  $('pNote').textContent = `The MLP is ${f(Math.round(M / A))} times bigger. Change T: attention's count doesn't move, the MLP's grows like T² (and a model trained at one T can't even accept T + 1 tokens).`; }
+['pd', 'pT'].forEach(i => $(i).addEventListener('input', params)); params();
+drawAtt();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAtt, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAtt);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAtt(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

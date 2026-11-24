@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Bellman Equation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 3 · part 4 of 6 · Stanford CS229, Spring 2026</div>
+<h1>The Bellman Equation</h1>
+<p class="lede">An infinite sum can be pinned down by a recursion: peel off the first term and recognise the rest as a scaled copy of the whole. Doing that to $V^\pi$ gives the Bellman equation: the value of a state is its reward plus $\gamma$ times the average value of the next state. One such equation per state gives a linear system you can just solve.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2592" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 43:12 to 55:39 of a 76-min video; published as “Lecture 18: GMM (EM), PCA”). Previous: <a href="L3-3-policies-and-values.html">Policies and value functions</a> · Next: <a href="L3-5-log-derivative-trick.html">Policy gradient and the log-derivative trick</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Why a recursion <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2592" target="_blank" rel="noopener">▶ 43:12</a></h2>
+<p>The <b>Bellman equation</b> is one of the most important ideas of classical RL. It isn't that important for using RL on large language models, and the rest of this lecture won't need it, but you should know it exists and its general idea.</p>
+<p>The problem: everything is sequential, unfolding over time, which is complex to reason about. The trick is to write a <b>recursion</b>, and solving the recursion gets rid of the sequential aspect.</p>
+
+<h2>2 · Warm-up: a geometric series <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2662" target="_blank" rel="noopener">▶ 44:22</a></h2>
+<p>How do you compute $V=1+\gamma+\gamma^2+\gamma^3+\cdots$ without looking up the formula? (The lecturer names it $V$ on purpose: it's the same concept.)</p>
+<ol class="steps">
+<li>Take out the first term; every remaining term is a multiple of $\gamma$, so factor one $\gamma$ out:
+$$V=1+\gamma\,\big(1+\gamma+\gamma^2+\cdots\big).$$</li>
+<li>The bracket has exactly the form of $V$, so it <i>is</i> $V$:
+$$V=1+\gamma V .$$
+That's a recursion: $V$ on the left, and also on the right. It doesn't hand you $V$ directly, but you can solve it.</li>
+<li>Move the $V$ term left: $V(1-\gamma)=1$, so
+$$V=\frac{1}{1-\gamma}.$$</li>
+</ol>
+<p class="small muted">(On the board the last line came out as "$V=1-\gamma$"; it should be $1/(1-\gamma)$, as the previous line shows.)</p>
+<p>The Bellman equation is exactly this idea in a more complex setting.</p>
+
+<h2>3 · Deriving the Bellman equation for $V^\pi$ <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=2769" target="_blank" rel="noopener">▶ 46:09</a></h2>
+<p>Take a deterministic policy $\pi$, to keep it simple, so $a_0=\pi(s)$, and infinitely many steps, which keeps things tidy.</p>
+<ol class="steps">
+<li><b>Write the definition.</b>
+$$V^\pi(s)=\mathbb{E}\big[R(s_0)+\gamma R(s_1)+\gamma^2R(s_2)+\cdots\;\big|\;s_0=s\big].$$</li>
+<li><b>Take out the first term.</b> Given $s_0=s$, $R(s_0)=R(s)$ is a constant, not random:
+$$V^\pi(s)=R(s)+\mathbb{E}\big[\gamma R(s_1)+\gamma^2R(s_2)+\cdots\;\big|\;s_0=s\big].$$
+(A student checked this. Yes: $s$ is a fixed number; $s_0$ is the random variable, conditioned to take the value $s$.)</li>
+<li><b>Factor out one $\gamma$</b>, exactly as in the warm-up:
+$$V^\pi(s)=R(s)+\gamma\,\mathbb{E}\big[R(s_1)+\gamma R(s_2)+\cdots+\gamma^{t-1}R(s_t)+\cdots\;\big|\;s_0=s\big].$$</li>
+<li><b>Recognise the bracket.</b> It's the total expected payoff if you start from $s_1$. The only snag is that $s_1$ is random. So <b>enumerate</b> every possible $s_1$: it occurs with probability $P_{sa_0}(s_1)$, where $a_0=\pi(s)$:
+$$V^\pi(s)=R(s)+\gamma\sum_{s_1\in S}P_{s\pi(s)}(s_1)\;\mathbb{E}\big[R(s_1)+\gamma R(s_2)+\cdots\;\big|\;s_1\big].$$
+(By the Markov property, once you condition on $s_1$ the earlier history doesn't matter.)</li>
+<li><b>The conditional expectation is the value function again</b>, just from a different initial state: it equals $V^\pi(s_1)$.</li>
+</ol>
+<div class="callout"><b>Bellman equation for a policy $\pi$:</b>
+$$V^\pi(s)=R(s)+\gamma\sum_{s'\in S}P_{s\pi(s)}(s')\,V^\pi(s')\qquad\text{for every } s\in S .$$
+Value now = reward now + $\gamma$ × expected value of where you land.</div>
+<p>It's a recursion: $V^\pi$ on the left, $V^\pi$ on the right. And not just at one state: every $s'$ appears on the right, each weighted by its probability of being next.</p>
+<div class="beyond"><b>Going beyond the lecture: a stochastic policy.</b> If actions are drawn from $\pi(a\mid s)$, step 4 also averages over $a_0$: $$V^\pi(s)=R(s)+\gamma\sum_a\pi(a\mid s)\sum_{s'}P_{sa}(s')V^\pi(s').$$ Replacing the average over actions by a max gives the Bellman <i>optimality</i> equation for $V^*$, which the course's lecture notes use for value iteration.</div>
+
+<h2>4 · It's a linear system <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=3090" target="_blank" rel="noopener">▶ 51:30</a></h2>
+<p>Look at what we got. For every state there's one equation, and each equation is <b>linear</b> in the unknowns $V^\pi(\cdot)$. Index the states $0,1,\dots,n-1$:</p>
+$$\begin{aligned}
+V^\pi(0)&=R(0)+\text{a linear combination of }V^\pi(0),\dots,V^\pi(n-1)\\
+V^\pi(1)&=R(1)+\text{another linear combination of the same unknowns}\\
+&\;\;\vdots\\
+V^\pi(n-1)&=R(n-1)+\text{another linear combination.}
+\end{aligned}$$
+<p>The coefficients differ from equation to equation (they are $\gamma P_{s\pi(s)}(s')$), but it's $n$ linear equations in $n$ unknowns. Hand it to a <b>linear solver</b> and you get every $V^\pi(s)$ at once. (A student's question about the board led to the indexing fix: with $n$ states numbered from 0, the last one is $n-1$.)</p>
+<p>Does it need $S$ finite? For a solver, yes. But the equation itself holds for infinitely many or continuous states too; you just have infinitely many equations, and it becomes a linear <i>functional</i> equation.</p>
+<div class="beyond"><b>Going beyond the lecture: matrix form.</b> Stack the values into a vector $V$, the rewards into $R$, and let $P_\pi$ be the $n\times n$ matrix with entries $P_{s\pi(s)}(s')$. Then $V=R+\gamma P_\pi V$, i.e. $(I-\gamma P_\pi)V=R$. Since $P_\pi$'s rows are probability distributions and $\gamma&lt;1$, $I-\gamma P_\pi$ is always invertible, so the solution exists and is unique. The demo solves exactly this system.</div>
+
+<h2>5 · Try it: solve the Bellman system on the tape</h2>
+<div class="card">
+<p class="small muted" style="margin-top:0">Tape of 10 cells, lecture reward ($+1$ at cell 9, $-0.1$ elsewhere), sloppy controller: the robot moves as told with probability $1-\varepsilon$ and stays put with probability $\varepsilon$. <b>Click a cell's arrow to flip its action</b> under the policy. The bars are $V^\pi$ from solving the 10 linear equations. "Check by simulation" runs 2,000 rollouts from the highlighted cell and compares their average discounted return with the solver's answer.</p>
+<div class="row"><button id="pT">policy: toward 9</button><button id="pR">all right</button><button id="pL">all left</button>
+<label>slip $\varepsilon$ <input type="range" id="be" min="0" max="0.6" step="0.05" value="0.1"> <span id="beV">0.10</span></label>
+<label>$\gamma$ <input type="range" id="bg" min="0.5" max="0.99" step="0.01" value="0.9"> <span id="bgV">0.90</span></label></div>
+<canvas id="bc" height="270" aria-label="Value function bars for a policy on the tape; click a cell to flip its action"></canvas>
+<div class="legend"><span><i style="background:var(--s1)"></i>$V^\pi(s)$, solver</span><span><i class="dot" style="background:var(--s2)"></i>simulation estimate</span><span><i style="background:var(--s3)"></i>action $\pi(s)$</span></div>
+<div class="row"><label>highlighted cell <input type="range" id="bs" min="1" max="10" step="1" value="7"> <span id="bsV">7</span></label><button id="mc">Check by simulation</button></div>
+<div class="row">
+<div class="stat"><div class="v" id="vS"></div><div class="l">$V^\pi$ at highlighted cell (solver)</div></div>
+<div class="stat"><div class="v" id="vM">–</div><div class="l">simulation: mean ± 2 s.e.</div></div>
+<div class="stat"><div class="v" id="vR"></div><div class="l">largest Bellman residual</div></div>
+</div>
+<p class="small" id="bTxt"></p>
+</div>
+<p>Things to try: "all left" makes every value negative, because the robot never reaches 9 and pays $-0.1$ forever, so the value approaches $-0.1/(1-\gamma)$. Raise $\varepsilon$ and values fall, because slipping wastes steps. Flip one arrow next to 9 and watch only the cells "upstream" of it change.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Recursion trick: $V=1+\gamma V$ gives $V=1/(1-\gamma)$, with no formula lookup needed.</li>
+<li>Peel off $R(s)$, factor out $\gamma$, average over the next state: $$V^\pi(s)=R(s)+\gamma\sum_{s'}P_{s\pi(s)}(s')V^\pi(s').$$</li>
+<li>The Markov property is what lets the tail be "the value from $s_1$".</li>
+<li>One equation per state, linear in the unknowns: a linear solver gives $V^\pi$ exactly (for finite $S$).</li>
+<li>Bellman equations matter most for classical RL; policy gradient, next, doesn't need them.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAW = [], redrawAll = () => DRAW.forEach(f => f());
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+// 1-D tape, cells 1..N. drawTape(ctx, W, y, h, opts) draws cells; cellX(W, i) is the centre of cell i.
+const NC = 10, cellW = W => (W - 16) / NC, cellX = (W, i) => 8 + (i - 0.5) * cellW(W);
+function drawTape(ctx, W, y, h, o = {}){
+  const cw = cellW(W);
+  for (let i = 1; i <= NC; i++) { const x = 8 + (i - 1) * cw;
+    ctx.fillStyle = (o.fill && o.fill(i)) || cssv('--card'); ctx.fillRect(x, y, cw, h);
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, h - 1);
+    ctx.fillStyle = cssv(i === (o.goal || 9) ? '--s3' : '--muted'); ctx.font = (i === (o.goal || 9) ? '700 ' : '') + '12px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(i === (o.goal || 9) && o.flag !== false ? i + ' ⚑' : String(i), x + cw / 2, y + h + 14); }
+  ctx.textAlign = 'left'; }
+function drawRobot(ctx, x, y, r){ ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--card'); ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.15, r * 0.18, 0, 7); ctx.arc(x + r * 0.35, y - r * 0.15, r * 0.18, 0, 7); ctx.fill(); }
+let pol = [], eps = 0.1, g = 0.9, hi = 7, V = [], mcRes = null;
+const Rw = s => s === 9 ? 1 : -0.1;
+const setToward = () => { pol = [null]; for (let s = 1; s <= NC; s++) pol.push(s < 9 ? 'R' : 'L'); };
+const nextOf = (s, a) => a === 'L' ? Math.max(1, s - 1) : Math.min(NC, s + 1);
+function solve(){ // (I - g P_pi) V = R by Gaussian elimination with partial pivoting
+  const n = NC, A = [], b = [];
+  for (let i = 0; i < n; i++) { const s = i + 1, row = new Array(n).fill(0); row[i] += 1; const t = nextOf(s, pol[s]);
+    row[t - 1] -= g * (1 - eps); row[i] -= g * eps; A.push(row); b.push(Rw(s)); }
+  for (let c = 0; c < n; c++) { let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+    [A[c], A[p]] = [A[p], A[c]]; [b[c], b[p]] = [b[p], b[c]];
+    for (let r = 0; r < n; r++) if (r !== c) { const f = A[r][c] / A[c][c]; if (f) { for (let k = c; k < n; k++) A[r][k] -= f * A[c][k]; b[r] -= f * b[c]; } } }
+  V = [null]; for (let i = 0; i < n; i++) V.push(b[i] / A[i][i]); }
+const residual = () => { let m = 0; for (let s = 1; s <= NC; s++) { const t = nextOf(s, pol[s]); m = Math.max(m, Math.abs(V[s] - (Rw(s) + g * ((1 - eps) * V[t] + eps * V[s])))); } return m; };
+function simulate(s0, N){ const H = Math.min(3000, Math.ceil(Math.log(1e-4) / Math.log(g))); let sum = 0, sq = 0;
+  for (let k = 0; k < N; k++) { let s = s0, G = 0, d = 1; for (let t = 0; t < H; t++) { G += d * Rw(s); d *= g; if (Math.random() >= eps) s = nextOf(s, pol[s]); } sum += G; sq += G * G; }
+  const m = sum / N, sd = Math.sqrt(Math.max(0, sq / N - m * m)); return {m, se: sd / Math.sqrt(N), s0}; }
+function draw(){
+  solve(); const [ctx, W, H] = setupCanvas($('bc')), cw = cellW(W);
+  drawTape(ctx, W, 14, 34, {fill: i => i === hi ? cssv('--tint') : null});
+  for (let s = 1; s <= NC; s++) { const x = cellX(W, s), dir = pol[s] === 'R' ? 1 : -1, len = Math.min(14, cw * 0.32);
+    ctx.strokeStyle = cssv('--s3'); ctx.fillStyle = cssv('--s3'); ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(x - dir * len, 31); ctx.lineTo(x + dir * len, 31); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + dir * (len + 3), 31); ctx.lineTo(x + dir * (len - 5), 26); ctx.lineTo(x + dir * (len - 5), 36); ctx.fill(); }
+  const top = 84, bot = H - 14, vals = V.slice(1).concat([0, mcRes ? mcRes.m : 0]), lo = Math.min(...vals), hiV = Math.max(...vals), span = (hiV - lo) || 1, Y = v => bot - (bot - top) * (v - lo) / span;
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(8, Y(0) + 0.5); ctx.lineTo(W - 8, Y(0) + 0.5); ctx.stroke();
+  ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  for (let s = 1; s <= NC; s++) { const x = cellX(W, s), y0 = Y(0), y1 = Y(V[s]); ctx.fillStyle = cssv('--s1'); ctx.globalAlpha = s === hi ? 1 : 0.7;
+    ctx.fillRect(x - cw * 0.3, Math.min(y0, y1), cw * 0.6, Math.max(1, Math.abs(y1 - y0))); ctx.globalAlpha = 1;
+    ctx.fillStyle = cssv('--ink'); ctx.fillText(V[s].toFixed(2), x, V[s] >= 0 ? y1 - 4 : y1 + 12); }
+  if (mcRes) { const x = cellX(W, mcRes.s0); ctx.strokeStyle = cssv('--s2'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x, Y(mcRes.m - 2 * mcRes.se)); ctx.lineTo(x, Y(mcRes.m + 2 * mcRes.se)); ctx.stroke();
+    ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(x, Y(mcRes.m), 5, 0, 7); ctx.fill(); }
+  ctx.textAlign = 'left'; ctx.fillStyle = cssv('--muted'); ctx.fillText('V^π(s)', 10, top - 8);
+  const t = nextOf(hi, pol[hi]);
+  $('vS').textContent = V[hi].toFixed(4); $('vR').textContent = residual().toExponential(1);
+  $('vM').textContent = mcRes && mcRes.s0 === hi ? `${mcRes.m.toFixed(3)} ± ${(2 * mcRes.se).toFixed(3)}` : '–';
+  const sym = t === hi ? `γ·V(${hi})` : `γ[${(1 - eps).toFixed(2)}·V(${t}) + ${eps.toFixed(2)}·V(${hi})]`,
+    num = t === hi ? `${g.toFixed(2)}×${V[hi].toFixed(3)}` : `${g.toFixed(2)}×[${(1 - eps).toFixed(2)}×${V[t].toFixed(3)} + ${eps.toFixed(2)}×${V[hi].toFixed(3)}]`;
+  $('bTxt').innerHTML = `Bellman equation at cell ${hi}${t === hi ? ' (pushing into the wall, so the robot stays)' : ''}: V(${hi}) = R(${hi}) + ${sym} = ${Rw(hi)} + ${num} = <b>${(Rw(hi) + g * ((1 - eps) * V[t] + eps * V[hi])).toFixed(4)}</b>, matching the solver.`;
+}
+DRAW.push(draw);
+const reset = () => { mcRes = null; draw(); };
+$('pT').onclick = () => { setToward(); reset(); };
+$('pR').onclick = () => { pol = [null]; for (let s = 1; s <= NC; s++) pol.push('R'); reset(); };
+$('pL').onclick = () => { pol = [null]; for (let s = 1; s <= NC; s++) pol.push('L'); reset(); };
+$('be').oninput = e => { eps = +e.target.value; $('beV').textContent = eps.toFixed(2); reset(); };
+$('bg').oninput = e => { g = +e.target.value; $('bgV').textContent = g.toFixed(2); reset(); };
+$('bs').oninput = e => { hi = +e.target.value; $('bsV').textContent = hi; draw(); };
+$('bc').onclick = e => { const r = $('bc').getBoundingClientRect(), x = e.clientX - r.left, s = Math.floor((x - 8) / cellW(r.width)) + 1;
+  if (s >= 1 && s <= NC) { pol[s] = pol[s] === 'L' ? 'R' : 'L'; hi = s; $('bs').value = s; $('bsV').textContent = s; reset(); } };
+$('mc').onclick = () => { mcRes = simulate(hi, 2000); draw(); };
+setToward(); draw();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

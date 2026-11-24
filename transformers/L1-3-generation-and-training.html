@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Generation, Temperature and the Training Loss</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 1 · part 3 of 5 · Stanford CS229, Spring 2026</div>
+<h1>Generation, Temperature and the Training Loss</h1>
+<p class="lede">To generate, sample a token from the softmax, append it, and feed the longer sequence back in. Dividing the logits by a temperature keeps their order but changes how peaked the distribution is: $\tau\to0$ is greedy decoding, $\tau&gt;1$ explores the tail. Training is simply minimising the negative log-likelihood, a sum over positions of $-\log$ the probability given to the token that actually came next.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=1584" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 26:24 to 39:00 of a 77-min video; published as “Lecture 14: Transformers, In-Context Learning”). Previous: <a href="L1-2-autoregressive-model.html">the autoregressive model</a> · Next: <a href="L1-4-attention.html">inside the transformer: attention</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Autoregressive generation <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=1584" target="_blank" rel="noopener">▶ 26:24</a></h2>
+<p>Suppose the model $\theta$ is trained. Generation (also called <b>decoding</b>) produces $x_1,x_2,x_3,\dots$ in order:</p>
+$$x_t \sim \operatorname{softmax}\big(f_\theta(x_0,\dots,x_{t-1})\big).$$
+<ol class="steps">
+<li>Start from the BOS token $x_0$; run the transformer; sample $x_1$ from the softmax.</li>
+<li>Feed $x_1$ back in; run again; sample $x_2$.</li>
+<li>Keep going: each sampled token becomes part of the next input.</li>
+</ol>
+<div class="callout">That feedback loop is why it's called <b>autoregressive</b>. When computing a likelihood you already have the whole sequence and only ask how probable it is. When generating you start with nothing and must produce the sequence yourself.</div>
+
+<h2>2 · Starting from a prompt <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=1690" target="_blank" rel="noopener">▶ 28:10</a></h2>
+<p>Usually you don't generate from nothing. The model is given a <b>prompt</b> $x_1,\dots,x_k$ (a question, an instruction, …) and completes it: sample $x_{k+1}$ from $\operatorname{softmax}(f_\theta(x_0,\dots,x_k))$, then $x_{k+2}$ the same way, and so on.</p>
+
+<h2>3 · Temperature <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=1742" target="_blank" rel="noopener">▶ 29:02</a></h2>
+<p>When generating you needn't follow the model exactly. Divide the logits by a <b>temperature</b> $\tau$ (sometimes written $T$) before the softmax:</p>
+$$x_t \sim \operatorname{softmax}\!\Big(\tfrac{1}{\tau}\,f_\theta(x_0,\dots,x_{t-1})\Big).$$
+<p>$f_\theta$ is a $|V|$-dimensional vector of logits. Dividing by $\tau&gt;0$ does <b>not change their order</b> (bigger ones stay bigger) but changes their <b>scale</b>.</p>
+<h3>The lecture's worked example <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=1849" target="_blank" rel="noopener">▶ 30:49</a></h3>
+<p>Three tokens with logits $(2,\,1,\,-1)$.</p>
+<ol class="steps">
+<li><b>$\tau=1$.</b> $$\operatorname{softmax}(2,1,-1)=\frac{(e^{2},\,e^{1},\,e^{-1})}{e^2+e^1+e^{-1}}=\frac{(7.389,\,2.718,\,0.368)}{10.475}\approx(0.705,\,0.259,\,0.035).$$ The lecturer guessed "maybe 0.7 and 0.3": ordered, but the mass is not all on token 1.</li>
+<li><b>$\tau=0.01$</b> (almost 0). The logits become $(200,\,100,\,-100)$, and $$\operatorname{softmax}=\frac{(e^{200},\,e^{100},\,e^{-100})}{e^{200}+e^{100}+e^{-100}}.$$ $e^{200}$ is astronomically bigger than $e^{100}$, so the other terms are negligible: the result is $\approx(1,\,0,\,0)$.</li>
+<li><b>Conclusion.</b> Small $\tau$ amplifies the logits and <b>sharpens</b> the distribution towards a deterministic one: you are effectively taking the max instead of sampling.</li>
+</ol>
+<table>
+<tr><th>Temperature</th><th>Effect</th><th>Use</th></tr>
+<tr><td>$\tau=0$</td><td>always the single most likely token (greedy, deterministic)</td><td>reproducible answers; available in API calls</td></tr>
+<tr><td>small $\tau$</td><td>sharper, more deterministic</td><td>focused output</td></tr>
+<tr><td>$\tau&gt;1$</td><td>softer, more mass on the long tail</td><td>diversity; sometimes needed in RL</td></tr>
+</table>
+
+<h2>4 · Top-k sampling <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2118" target="_blank" rel="noopener">▶ 35:18</a></h2>
+<p>There are other sampling schemes (more in the course's lecture notes). One: the real vector has $|V|$ (≈250k) entries, not 3. Keep only the <b>top $k$</b> tokens, drop all the others, <b>renormalise</b>, and sample from those $k$. The top $k$ may not cover all the probability mass, but you avoid generating junk tokens from the far tail.</p>
+<div class="beyond"><b>Going beyond the lecture: top-p (nucleus) sampling</b> keeps the smallest set of top tokens whose probabilities add up to at least $p$, so the number kept adapts: few when the model is confident, many when it isn't. It's included in the demo below.</div>
+<p>Edit the logits, move $\tau$ and $k$, and draw samples. Check the lecture's numbers at $\tau=1$ and $\tau=0.01$.</p>
+<div class="card">
+  <div class="row"><label for="lg">Logits:</label><input id="lg" value="2, 1, -1" style="font:14px ui-monospace,Menlo,monospace;flex:1;min-width:160px;padding:5px 8px;background:var(--surface);color:var(--ink);border:1px solid var(--grid);border-radius:8px">
+    <button id="lgMany">Try 10 tokens</button></div>
+  <div class="pair half">
+    <div>
+      <div class="row"><label>temperature τ <input type="range" id="tau" min="-2" max="0.7" step="0.01" value="0"></label> <b class="mono" id="tauT"></b></div>
+      <div class="row"><label>top-k <input type="range" id="topk" min="1" max="3" step="1" value="3"></label> <b class="mono" id="kT"></b></div>
+      <div class="row"><label>top-p <input type="range" id="topp" min="0.05" max="1" step="0.01" value="1"></label> <b class="mono" id="pT"></b></div>
+      <div class="row"><button id="g0">τ = 0 (greedy)</button><button id="smp">Draw 1,000 samples</button></div>
+    </div>
+    <div><canvas id="bars" height="230" aria-label="Bar chart of the sampling distribution"></canvas>
+      <div class="legend"><span><i class="dot" style="background:var(--faint)"></i>softmax at τ = 1</span><span><i class="dot" style="background:var(--s1)"></i>after τ, top-k, top-p</span><span><i class="dot" style="background:var(--s2)"></i>sample frequency</span></div></div>
+  </div>
+  <p class="small mono" id="probTxt"></p>
+</div>
+
+<h2>5 · Training: minimise the negative log-likelihood <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2172" target="_blank" rel="noopener">▶ 36:12</a></h2>
+<p>For one example $x_1,\dots,x_T$ the loss is the negative log-likelihood:</p>
+<ol class="steps">
+<li>$$-\log p_\theta(x_1,\dots,x_T) = -\log\big[p_\theta(x_1)\,p_\theta(x_2\mid x_1)\cdots p_\theta(x_T\mid x_1,\dots,x_{T-1})\big]$$</li>
+<li>$= -\sum_{t=1}^{T}\log p_\theta(x_t\mid x_1,\dots,x_{t-1})$ (log of a product is a sum)</li>
+<li>$$= -\sum_{t=1}^{T}\log\big[\operatorname{softmax}(f_\theta(x_0,\dots,x_{t-1}))\big]_{x_t}$$</li>
+</ol>
+<p>Here $x_t$ is the particular token <b>seen in the data</b>: the softmax gives a probability for every token, and we pick out the entry indexed by $x_t$, a single scalar. Take its log and sum over $t$.</p>
+<div class="callout">$$\mathcal L(\theta) = -\sum_{t=1}^{T}\log\big[\operatorname{softmax}(f_\theta(x_0,\dots,x_{t-1}))\big]_{x_t}$$ Minimise it with an optimiser such as <b>SGD</b> or <b>Adam</b> (an extension of SGD), called as a black box.</div>
+<p>A student asked whether this only trains the probability of the <b>last</b> token. No: the sum runs over every $t$ from 1 to $T$, so every position contributes its own next-token prediction.</p>
+<p>Below, a sentence with the probability a model gave each true next token. Drag one probability and watch the loss: confidently-wrong positions dominate.</p>
+<div class="card">
+  <div id="nll"></div>
+  <div class="row"><div class="stat"><div class="v" id="nllV"></div><div class="l">loss $-\sum_t \log p_t$ (nats)</div></div><div class="stat"><div class="v" id="nllA"></div><div class="l">average per token</div></div></div>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> Adam itself is covered in <a href="../deep-learning/L40-adam.html">Adam and bias correction</a>; mini-batch SGD in <a href="../deep-learning/L34-stochastic-vs-batch.html">Stochastic vs batch gradient descent</a>.</div>
+
+<h2>6 · What comes next <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=2337" target="_blank" rel="noopener">▶ 38:57</a></h2>
+<p>Everything so far treats $f_\theta$ as a black box. The rest of the lecture (the lecturer warns it's complicated and may take more than 30 minutes) opens it: which operations turn the embeddings into the logits.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Generation samples $x_t\sim\operatorname{softmax}(f_\theta(x_0,\dots,x_{t-1}))$ and feeds it back; with a prompt you start after $x_k$.</li>
+<li>Temperature divides the logits: order unchanged, sharpness changed. $(2,1,-1)$ gives $\approx(0.70,0.26,0.04)$ at $\tau=1$ and $\approx(1,0,0)$ at $\tau=0.01$.</li>
+<li>$\tau=0$ is greedy and deterministic; $\tau&gt;1$ adds diversity.</li>
+<li>Top-k keeps the $k$ likeliest tokens and renormalises.</li>
+<li>Training minimises $-\sum_t\log[\operatorname{softmax}(f_\theta(x_{&lt;t}))]_{x_t}$ over <b>every</b> position, with SGD or Adam.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const fmt = (x, k = 3) => Number.isFinite(x) ? (Math.abs(x) >= 1e4 || (Math.abs(x) < 1e-3 && x !== 0) ? x.toExponential(2) : x.toFixed(k)) : '–';
+function softmax(z){ const m = Math.max(...z); if (!Number.isFinite(m)) return z.map(() => 1 / z.length); const e = z.map(v => Math.exp(v - m)), s = e.reduce((a, b) => a + b, 0); return e.map(v => v / s); }
+
+let logits = [2, 1, -1], freq = null;
+const tauVal = () => 10 ** +$('tau').value;
+function parseLogits(){ const v = $('lg').value.split(/[\s,]+/).filter(Boolean).map(Number).filter(Number.isFinite).slice(0, 20);
+  logits = v.length ? v : [0]; $('topk').max = logits.length; if (+$('topk').value > logits.length) $('topk').value = logits.length; freq = null; }
+function dist(greedy){ const n = logits.length, order = logits.map((v, i) => i).sort((a, b) => logits[b] - logits[a]);
+  if (greedy) { const p = Array(n).fill(0); p[order[0]] = 1; return p; }
+  let p = softmax(logits.map(v => v / tauVal())); const k = +$('topk').value, keep = new Set(order.slice(0, k));
+  const pp = +$('topp').value; let acc = 0; const keepP = new Set();
+  for (const i of order) { if (!keep.has(i)) continue; keepP.add(i); acc += p[i]; if (acc >= pp - 1e-12) break; }
+  p = p.map((v, i) => keepP.has(i) ? v : 0); const s = p.reduce((a, b) => a + b, 0); return p.map(v => v / s); }
+let greedy = false;
+function drawBars(){ const p = dist(greedy), p1 = softmax(logits), n = p.length, [ctx, W, H] = setupCanvas($('bars'));
+  const padL = 30, padB = 22, bw = (W - padL - 6) / n, h0 = H - padB;
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.textAlign = 'right';
+  [0, 0.5, 1].forEach(v => { const y = h0 - v * (h0 - 8); ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W, y); ctx.stroke(); ctx.fillText(v.toFixed(1), padL - 4, y + 4); });
+  ctx.textAlign = 'center';
+  for (let i = 0; i < n; i++) { const x = padL + i * bw, w3 = Math.max(2, bw / 3.4);
+    ctx.fillStyle = cssv('--faint'); ctx.fillRect(x + bw * 0.08, h0 - p1[i] * (h0 - 8), w3, p1[i] * (h0 - 8));
+    ctx.fillStyle = cssv('--s1'); ctx.fillRect(x + bw * 0.08 + w3, h0 - p[i] * (h0 - 8), w3, p[i] * (h0 - 8));
+    if (freq) { ctx.fillStyle = cssv('--s2'); ctx.fillRect(x + bw * 0.08 + 2 * w3, h0 - freq[i] * (h0 - 8), w3, freq[i] * (h0 - 8)); }
+    ctx.fillStyle = cssv('--muted'); ctx.fillText(String(i + 1), x + bw / 2, H - 6); }
+  $('tauT').textContent = greedy ? '0' : tauVal().toFixed(tauVal() < 0.1 ? 3 : 2); $('kT').textContent = $('topk').value; $('pT').textContent = (+$('topp').value).toFixed(2);
+  $('probTxt').textContent = 'probabilities: (' + p.map(v => v.toFixed(3)).join(', ') + ')' + (freq ? '   sampled: (' + freq.map(v => v.toFixed(3)).join(', ') + ')' : ''); }
+function sample(){ const p = dist(greedy), c = Array(p.length).fill(0);
+  for (let s = 0; s < 1000; s++) { let r = Math.random(), i = 0; while (i < p.length - 1 && r >= p[i]) { r -= p[i]; i++; } c[i]++; }
+  freq = c.map(v => v / 1000); drawBars(); }
+$('lg').addEventListener('change', () => { parseLogits(); drawBars(); });
+$('lgMany').onclick = () => { $('lg').value = '3.1, 2.4, 2.2, 1.0, 0.5, 0.2, -0.4, -1, -1.5, -2.5'; $('topk').value = 10; parseLogits(); drawBars(); };
+['tau', 'topk', 'topp'].forEach(id => $(id).addEventListener('input', () => { greedy = false; freq = null; drawBars(); }));
+$('g0').onclick = () => { greedy = true; freq = null; drawBars(); };
+$('smp').onclick = sample;
+
+const sent = [['The', 0.05], [' cat', 0.02], [' sat', 0.30], [' on', 0.60], [' the', 0.80], [' mat', 0.25], ['.', 0.70]];
+function buildNLL(){ $('nll').innerHTML = sent.map(([w, p], i) => `<div class="row" style="margin:4px 0"><span class="mono" style="min-width:70px">x${i + 1} = “${w.trim()}”</span><input type="range" min="0.01" max="1" step="0.01" value="${p}" data-i="${i}"><span class="mono small" id="nt${i}"></span></div>`).join('');
+  $('nll').querySelectorAll('input').forEach(el => el.addEventListener('input', e => { sent[+e.target.dataset.i][1] = +e.target.value; renderNLL(); })); }
+function renderNLL(){ let L = 0;
+  sent.forEach(([w, p], i) => { L += -Math.log(p); $('nt' + i).textContent = `p = ${p.toFixed(2)} → −log p = ${(-Math.log(p)).toFixed(2)}`; });
+  $('nllV').textContent = L.toFixed(2); $('nllA').textContent = (L / sent.length).toFixed(2); }
+buildNLL(); renderNLL();
+parseLogits(); drawBars();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawBars, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawBars);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawBars(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

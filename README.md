@@ -13,7 +13,7 @@ Personal revision notes by Ashutosh Patidar, served with GitHub Pages. The notes
 | [SQL for Data Science](https://asu2304.github.io/sql/) | Nitish Singh, CampusX | 12 chapters and a practice session, with quizzes and an in-browser SQL lab. | Complete |
 | [Machine Learning](https://asu2304.github.io/machine-learning/) | Arun Rajkumar, DA5400 (IIT Madras) | All 74 lectures: PCA and kernels, clustering, estimation and EM, regression, classification, ensembles, loss functions and neural networks. Plus my own notes and a 5-page detour on gradient boosting (XGBoost, LightGBM, CatBoost). | Complete |
 | [Deep Learning](https://asu2304.github.io/deep-learning/) | Mitesh Khapra, IIT Madras ([lecture playlist](https://www.youtube.com/playlist?list=PLZ2ps__7DhBZVxMrSkTIcG6zZBDKUXCnM)) | All 67 lectures: a brief history of deep learning, perceptrons and sigmoid neurons, gradient descent, feedforward networks and backpropagation, optimisers from momentum to Adam, bias, variance and regularisation, pre-training and activations, and transformers. | Complete |
-| [Transformers](https://asu2304.github.io/transformers/) | — | — | Coming soon |
+| [Transformers](https://asu2304.github.io/transformers/) | Stanford CS229 (Spring 2026), Tengyu Ma and Chris Ré | 4 lectures in 22 pages: tokenisation and the transformer, efficient attention and mixture of experts, prompting and fine-tuning, RL basics and policy gradient, PPO and RL for reasoning LLMs. | Complete |
 | [Quantization](https://asu2304.github.io/quantization/) | — | — | Coming soon |
 | [LLMOps](https://asu2304.github.io/llmops/) | — | — | Coming soon |
 | [RAG](https://asu2304.github.io/rag/) | — | — | Coming soon |
@@ -37,7 +37,7 @@ probability-statistics/    coming soon
 sql/                       SQL notes and the SQL lab
 machine-learning/          DA5400 notes (L1–L74, N1–N3, D1–D5)
 deep-learning/             Deep learning notes (Mitesh Khapra; L1–L67)
-transformers/              coming soon
+transformers/              Transformers and LLMs notes (Stanford CS229; 4 lectures, 22 pages)
 quantization/              coming soon
 llmops/                    coming soon
 rag/                       coming soon

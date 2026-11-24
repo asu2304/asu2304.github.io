@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rewards, Returns and Discounting</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 3 · part 2 of 6 · Stanford CS229, Spring 2026</div>
+<h1>Rewards, Returns and Discounting</h1>
+<p class="lede">The reward says how good a state is; the return adds rewards up along a trajectory, discounted by $\gamma^t$ so that sooner is worth more and infinite sums stay finite. With the reward and $\gamma$ added, the MDP is complete, and the goal is simply to maximise the expected return.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=1092" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 18:12 to 32:22 of a 76-min video; published as “Lecture 18: GMM (EM), PCA”). Previous: <a href="L3-1-sequential-decisions-mdp.html">Sequential decision making and the MDP</a> · Next: <a href="L3-3-policies-and-values.html">Policies and value functions</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · The reward function <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=1092" target="_blank" rel="noopener">▶ 18:12</a></h2>
+<p>So far we only know how to interact with the world. We also need to say what <b>success</b> means, and the reward is also what we learn from. The reward is a function</p>
+$$R:\;S\to\mathbb{R},$$
+<p>often non-negative but negative values are allowed, and typically somewhere around $[-1,1]$. $R(s)$ says how good, how preferable, state $s$ is.</p>
+<table>
+<tr><th>Variant</th><th>Scores</th></tr>
+<tr><td>$R(s)$</td><td>a state (used in this lecture, for simplicity)</td></tr>
+<tr><td>$R(s,a)$</td><td>a state–action pair</td></tr>
+<tr><td>$R(s,a,s')$</td><td>a transition</td></tr>
+</table>
+<p>The theory barely changes between these.</p>
+<p><b>Encoding a goal.</b> On the tape (the lecturer redraws it a bit longer), say the goal is cell 9:</p>
+$$R(9)=1,\qquad R(s)=-0.1\ \text{ for every } s\neq 9 .$$
+<p>Reaching 9 earns reward; every step spent wandering elsewhere costs a little. So this reward encourages the robot to reach 9 <b>as fast as possible and stay there</b>.</p>
+
+<h2>2 · Reward shaping, and how it can backfire <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=1262" target="_blank" rel="noopener">▶ 21:02</a></h2>
+<p>A student asked: why not let the reward rise gradually as the robot gets closer to 9? You can, since the reward is your choice. But there are two different reasons to do it:</p>
+<ol>
+<li><b>Genuine preference.</b> You really believe that being at 8 is better than being at 7, useful to you even if it isn't 9.</li>
+<li><b>Algorithmic help.</b> You only care about 9, but a gradual slope may make learning easier: "you have more gradient". Changing a sparse, essentially discrete objective into a smoother one is called <b>reward shaping</b>.</li>
+</ol>
+<p><b>The unexpected downside.</b> Suppose there is a <b>teleporting tunnel</b> from cell 2 to cell 9 that you didn't know about when you designed the reward. "Closer to 9 is better" now points the wrong way: the best route might be to walk <i>away</i> to cell 2 and teleport. That sounds far-fetched on a tape, but it's common in robotics. Reaching for a cup, you might set rewards 0.7, 0.8, 0.9 as the hand gets closer. If something blocks the direct path and the hand must go around, that reward is misguiding the robot.</p>
+<div class="callout">If you understand the environment well, you can shape rewards effectively. If you don't, or it's too complex, it's often better to reward <b>only the final outcome</b>. The lecture's analogy: a manager who knows exactly what to do can give fine-grained feedback; a hands-off manager says "this is my final goal; how you achieve it, I don't care".</div>
+<p>Can the agent change the reward function? Not here. The reward is the overarching incentive mechanism for the agent; in most cases it can't be changed.</p>
+<p>Test the tunnel story in the demo in section 6.</p>
+
+<h2>3 · Trajectories and the return <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=1509" target="_blank" rel="noopener">▶ 25:09</a></h2>
+<p>A reward scores one state; we need a score for a whole run. The sequence</p>
+$$s_0,\;a_0,\;s_1,\;a_1,\;s_2,\;\dots$$
+<p>is called a <b>trajectory</b> (in older RL, an <b>episode</b>; "trajectory" is more common now). Its <b>return</b> (or payoff) sums the rewards:</p>
+$$R(s_0)+R(s_1)+R(s_2)+\cdots$$
+<p>Even if you fix every action, the states are random (they come from $P_{sa}$), so we talk about the <b>expected return</b>, the expectation over that randomness.</p>
+<p><b>Discounting.</b> Commonly the reward at time $t$ is multiplied by $\gamma^t$:</p>
+<div class="callout">$$\text{discounted return}=R(s_0)+\gamma R(s_1)+\gamma^2R(s_2)+\cdots=\sum_{t\ge0}\gamma^tR(s_t),\qquad 0&lt;\gamma&lt;1,$$
+typically very close to 1, e.g. $\gamma=0.99$.</div>
+<p>Think of an <b>interest rate</b>: one dollar today is worth a bit more than one dollar a hundred years from now. This does <i>not</i> make you myopic. It only says that <i>if</i> you can choose when to collect the same reward, collect it earlier. Sometimes the optimal plan still collects nothing at the beginning, because grabbing early reward would cost you more later.</p>
+
+<h2>4 · Why discounting keeps the return bounded <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=1662" target="_blank" rel="noopener">▶ 27:42</a></h2>
+<p>We never said how many steps there are; the process can run forever. A small bonus of discounting: if every reward is bounded, $|R(s)|\le M$, the return is bounded for any number of steps.</p>
+<ol class="steps">
+<li>Triangle inequality: $\left|\sum_t\gamma^tR(s_t)\right|\le\sum_t\gamma^t|R(s_t)|$.</li>
+<li>Each term is at most $\gamma^tM$: at most $M$ at the first step, $\gamma M$ at the second, $\gamma^2M$ at the third, …</li>
+<li>Geometric series: $M(1+\gamma+\gamma^2+\cdots)=\dfrac{M}{1-\gamma}$.</li>
+</ol>
+<div class="callout">$$\Big|\sum_{t=0}^{\infty}\gamma^tR(s_t)\Big|\;\le\;\frac{M}{1-\gamma}\quad\text{for every trajectory.}$$</div>
+<p>So you can reason about infinitely many steps, which is less common nowadays but matters in some settings where the number of steps is a variable that may be unbounded. Discounting also <b>rewards getting there earlier</b>: reaching for the cup, you want the robot to take the shortest path, not spend a year on it.</p>
+
+<h2>5 · The MDP, complete, and the goal <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=1779" target="_blank" rel="noopener">▶ 29:39</a></h2>
+<div class="callout">An MDP is the tuple $\big(S,\;A,\;\{P_{sa}\},\;\gamma,\;R\big)$: states, actions, transition dynamics, discount factor, reward.</div>
+<p>Questions from the room:</p>
+<ul>
+<li><b>Are the transition dynamics a set of rules for which actions apply in which states?</b> Roughly, but "rules" isn't the right word: they are probability distributions.</li>
+<li><b>In the real world, isn't the state space intractable (e.g. a drone)?</b> Not really. For a drone the state can be quite simple: height, some velocities, whether the motor is on.</li>
+<li><b>But height is continuous; how do you list every state?</b> You don't. States can be <b>continuous</b> (height is one scalar dimension of the state), and even a discrete state space needn't be finite.</li>
+</ul>
+<p><b>The goal</b> <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=1917" target="_blank" rel="noopener">▶ 31:57</a>: choose actions to maximise the expected payoff,</p>
+$$\max\;\mathbb{E}\Big[\sum_{t\ge0}\gamma^tR(s_t)\Big].$$
+<p>How to choose the actions is the subject of the next part.</p>
+
+<h2>6 · Try it: the tunnel, the shaped reward and $\gamma$</h2>
+<div class="card">
+<p class="small muted" style="margin-top:0">Two deterministic plans from a start cell. <b>Plan A</b> walks straight to 9 and stays. <b>Plan B</b> walks to cell 2, takes the tunnel to 9 on the next step, and stays. Compare them under the lecture's <b>sparse</b> reward ($+1$ at 9, $-0.1$ elsewhere) and a <b>shaped</b> one ("closer is better": $R(s)=1-0.1\,|s-9|$, i.e. 0.9, 0.8, 0.7 …). Returns are summed over 3,000 steps, which is effectively forever.</p>
+<div class="row"><label>start cell <input type="range" id="st" min="1" max="10" step="1" value="4"> <span id="stV">4</span></label>
+<label>$\gamma$ <input type="range" id="gm" min="0.5" max="0.99" step="0.01" value="0.9"> <span id="gmV">0.90</span></label>
+<label><input type="checkbox" id="tun" checked> the tunnel 2 → 9 exists</label></div>
+<div class="row"><span class="small muted">curve below uses:</span><button id="rS" class="on">sparse reward</button><button id="rH">shaped reward</button></div>
+<canvas id="rc" height="300" aria-label="Two plans on the tape and their cumulative discounted returns"></canvas>
+<div class="legend"><span><i style="background:var(--s1)"></i>Plan A: walk to 9</span><span><i style="background:var(--s2)"></i>Plan B: via the tunnel</span><span><i style="background:var(--faint)"></i>bound $M/(1-\gamma)$, here $M=1$</span></div>
+<div id="tbl" style="margin-top:8px"></div>
+<p class="small" id="rTxt"></p>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The reward $R(s)$ scores states (variants score $(s,a)$ or $(s,a,s')$); a goal is encoded as e.g. $+1$ at the goal and $-0.1$ elsewhere.</li>
+<li><b>Reward shaping</b> makes a sparse objective smoother, which can help learning, but it can misguide the agent when the environment holds surprises (tunnels, obstacles).</li>
+<li>A trajectory's return is $\sum_t\gamma^tR(s_t)$; we maximise its expectation because transitions are random.</li>
+<li>Discounting prefers earlier reward without forcing myopia, and bounds the return by $M/(1-\gamma)$.</li>
+<li>An MDP is $(S,A,\{P_{sa}\},\gamma,R)$; states may be continuous or infinite in number.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAW = [], redrawAll = () => DRAW.forEach(f => f());
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+// 1-D tape, cells 1..N. drawTape(ctx, W, y, h, opts) draws cells; cellX(W, i) is the centre of cell i.
+const NC = 10, cellW = W => (W - 16) / NC, cellX = (W, i) => 8 + (i - 0.5) * cellW(W);
+function drawTape(ctx, W, y, h, o = {}){
+  const cw = cellW(W);
+  for (let i = 1; i <= NC; i++) { const x = 8 + (i - 1) * cw;
+    ctx.fillStyle = (o.fill && o.fill(i)) || cssv('--card'); ctx.fillRect(x, y, cw, h);
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, h - 1);
+    ctx.fillStyle = cssv(i === (o.goal || 9) ? '--s3' : '--muted'); ctx.font = (i === (o.goal || 9) ? '700 ' : '') + '12px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(i === (o.goal || 9) && o.flag !== false ? i + ' ⚑' : String(i), x + cw / 2, y + h + 14); }
+  ctx.textAlign = 'left'; }
+function drawRobot(ctx, x, y, r){ ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--card'); ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.15, r * 0.18, 0, 7); ctx.arc(x + r * 0.35, y - r * 0.15, r * 0.18, 0, 7); ctx.fill(); }
+let start = 4, g = 0.9, tunnel = true, mode = 'sparse';
+const TMAX = 3000;
+const Rsp = s => s === 9 ? 1 : -0.1, Rsh = s => 1 - 0.1 * Math.abs(s - 9);
+function planA(s0){ const p = [s0]; let s = s0; for (let t = 1; t < TMAX; t++) { if (s < 9) s++; else if (s > 9) s--; p.push(s); } return p; }
+function planB(s0){ const p = [s0]; let s = s0; for (let t = 1; t < TMAX; t++) { if (s === 9) s = 9; else if (s === 2) s = 9; else if (s > 2) s--; else s++; p.push(s); } return p; }
+const ret = (p, R) => { let G = 0, d = 1; for (const s of p) { G += d * R(s); d *= g; } return G; };
+function draw(){
+  const [ctx, W, H] = setupCanvas($('rc')), A = planA(start), B = tunnel ? planB(start) : null, R = mode === 'sparse' ? Rsp : Rsh;
+  drawTape(ctx, W, 52, 34, {fill: i => i === start ? cssv('--tint') : null});
+  if (tunnel) { const x1 = cellX(W, 2), x2 = cellX(W, 9); ctx.strokeStyle = cssv('--s2'); ctx.setLineDash([5, 4]); ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x1, 52); ctx.bezierCurveTo(x1, 6, x2, 6, x2, 52); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = cssv('--s2'); ctx.font = '12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('tunnel', (x1 + x2) / 2, 18); ctx.textAlign = 'left'; }
+  const path = (p, col, yy) => { ctx.strokeStyle = cssv(col); ctx.lineWidth = 3; ctx.beginPath(); let k = 0;
+    for (let t = 0; t < 12 && !(t > 0 && p[t] === 9 && p[t - 1] === 9); t++) { const x = cellX(W, p[t]);
+      if (t > 0 && Math.abs(p[t] - p[t - 1]) > 1) ctx.moveTo(x, yy); else if (t === 0) ctx.moveTo(x, yy); else ctx.lineTo(x, yy); k++; }
+    ctx.stroke(); ctx.fillStyle = cssv(col); ctx.beginPath(); ctx.arc(cellX(W, 9), yy, 4, 0, 7); ctx.fill(); };
+  path(A, '--s1', 63); if (B) path(B, '--s2', 76);
+  drawRobot(ctx, cellX(W, start), 69, Math.min(11, cellW(W) * 0.25));
+  // cumulative discounted return over the first 30 steps
+  const T = 30, top = 126, bot = H - 24, L = 40, Rt = W - 12, cum = p => { const c = []; let G = 0, d = 1; for (let t = 0; t <= T; t++) { G += d * R(p[t]); d *= g; c.push(G); } return c; };
+  const cA = cum(A), cB = B ? cum(B) : [], bound = 1 / (1 - g), totals = [ret(A, R)].concat(B ? [ret(B, R)] : []);
+  const vals = cA.concat(cB, totals, [bound, -1]), lo = Math.min(...vals), hi = Math.max(...vals) * 1.05, X = t => L + (Rt - L) * t / T, Y = v => bot - (bot - top) * (v - lo) / (hi - lo);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, top); ctx.lineTo(L, bot); ctx.lineTo(Rt, bot); ctx.moveTo(L, Y(0)); ctx.lineTo(Rt, Y(0)); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('cumulative Σ γᵗR(sₜ), ' + mode + ' reward', L + 4, top - 8); ctx.fillText('t = 0', L, bot + 14); ctx.fillText('t = ' + T, Rt - 34, bot + 14);
+  [lo, 0, hi].forEach(v => ctx.fillText(v.toFixed(1), 2, Y(v) + 4));
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--faint'); ctx.beginPath(); ctx.moveTo(L, Y(bound)); ctx.lineTo(Rt, Y(bound)); ctx.stroke(); ctx.setLineDash([]);
+  const curve = (c, col, tot) => { ctx.strokeStyle = cssv(col); ctx.lineWidth = 2.5; ctx.beginPath(); c.forEach((v, t) => t ? ctx.lineTo(X(t), Y(v)) : ctx.moveTo(X(t), Y(v))); ctx.stroke();
+    ctx.setLineDash([2, 3]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X(T) - 30, Y(tot)); ctx.lineTo(X(T), Y(tot)); ctx.stroke(); ctx.setLineDash([]); };
+  curve(cA, '--s1', totals[0]); if (B) curve(cB, '--s2', totals[1]);
+  // table of all four returns
+  const row = (name, Rf) => { const a = ret(A, Rf), b = B ? ret(B, Rf) : null, best = b === null ? 'A' : (a > b + 1e-12 ? 'A' : b > a + 1e-12 ? 'B' : 'tie');
+    return `<tr><td>${name}</td><td${best === 'A' ? ' style="font-weight:700"' : ''}>${fmt(a, 3)}</td><td${best === 'B' ? ' style="font-weight:700"' : ''}>${b === null ? '– (no tunnel)' : fmt(b, 3)}</td><td>${best === 'tie' ? 'tie' : 'Plan ' + best}</td></tr>`; };
+  $('tbl').innerHTML = `<table><tr><th>reward</th><th>return, plan A</th><th>return, plan B</th><th>prefers</th></tr>${row('sparse (lecture)', Rsp)}${row('shaped', Rsh)}<tr><td class="muted">bound $M/(1-\\gamma)$</td><td colspan="3" class="muted">${fmt(bound, 3)}</td></tr></table>`;
+  if (window.renderMathInElement) renderMathInElement($('tbl'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+  const sA = ret(A, Rsp), sB = B ? ret(B, Rsp) : -Infinity, hA = ret(A, Rsh), hB = B ? ret(B, Rsh) : -Infinity;
+  $('rTxt').innerHTML = !B ? 'No tunnel: walking straight to 9 is the only sensible plan, and both rewards agree.'
+    : (sB > sA && hA > hB) ? '<b>The shaped reward misleads.</b> What you actually care about (the sparse reward) prefers the tunnel, but the "closer is better" reward ranks walking straight higher, because heading left to the tunnel entrance looks like moving away from the goal.'
+    : (sB > sA) ? 'Here both rewards prefer the tunnel. Try start cell 4 with γ = 0.9 to see them disagree.'
+    : 'From here the tunnel doesn\'t save time, so the sparse reward prefers walking. Try a start cell closer to 2.';
+}
+DRAW.push(draw);
+$('st').oninput = e => { start = +e.target.value; $('stV').textContent = start; draw(); };
+$('gm').oninput = e => { g = +e.target.value; $('gmV').textContent = g.toFixed(2); draw(); };
+$('tun').onchange = e => { tunnel = e.target.checked; draw(); };
+$('rS').onclick = () => { mode = 'sparse'; $('rS').classList.add('on'); $('rH').classList.remove('on'); draw(); };
+$('rH').onclick = () => { mode = 'shaped'; $('rH').classList.add('on'); $('rS').classList.remove('on'); draw(); };
+draw();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Towards PPO: Importance Sampling, the Advantage, and the Ratio</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 4 · part 3 of 6 · Stanford CS229, Spring 2026</div>
+<h1>Towards PPO: Importance Sampling, the Advantage, and the Ratio</h1>
+<p class="lede">To reuse trajectories from an old policy $\pi_{\theta_\text{old}}$, PPO reweights each action by the ratio $r_t=\pi_\theta(a_t\mid s_t)/\pi_{\theta_\text{old}}(a_t\mid s_t)$ and simply ignores the shift in the state distribution. That approximation is only reasonable while the ratio stays near 1, which is why PPO looks at four cases (good or bad action, ratio high or low) and stops pushing once the policy has already moved far enough the right way.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1765" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 29:25 to 44:06 of a 79-min video; published as “Lecture 20: GMM (EM), PCA”, though it is about reinforcement learning). Previous: <a href="L4-2-baselines-on-policy.html">part 2</a> · Next: <a href="L4-4-ppo-clipping-cispo.html">part 4</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · The goal: estimate the gradient at θ with samples from an old policy <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1765" target="_blank" rel="noopener">▶ 29:25</a></h2>
+<p>We want to reuse trajectories sampled from an old policy to estimate the gradient of the return <b>at the current policy</b>. The naive move is to replace $\tau\sim\pi_\theta$ by $\tau\sim\pi_{\theta_\text{old}}$ in</p>
+$$\eta(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\Big[\sum_{t}\gamma^tR(s_t,a_t)\Big].$$
+<p>That doesn't work: you'd be computing exactly $\eta(\theta_\text{old})$, not $\eta(\theta)$. You have to <b>correct</b> for the difference between the two distributions. The subtlety: the distributions differ over the <b>whole trajectory</b>, every action and, as a result, every state.</p>
+
+<h2>2 · Correct the action part, keep the state part <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1843" target="_blank" rel="noopener">▶ 30:43</a></h2>
+<p>The first thing people do is correct at least for the action, which is something we <i>can</i> do. Split the sampling at time $t$ into two parts: the state $s_t$ (from running $\pi_\theta$) and then the action $a_t\sim\pi_\theta(\cdot\mid s_t)$. Importance-sample only the action:</p>
+<div class="callout">
+$$\eta(\theta)=\sum_{t}\;\mathbb{E}_{s_t\sim\pi_\theta}\;\mathbb{E}_{a_t\sim\pi_{\theta_\text{old}}(\cdot\mid s_t)}\Big[\frac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_\text{old}}(a_t\mid s_t)}\,\gamma^tR(s_t,a_t)\Big]$$
+</div>
+<p>This is still an <b>equality</b>. "$s_t\sim\pi_\theta$" is the usual shorthand for <i>the distribution of states you reach at step $t$ when you follow $\pi_\theta$</i>: sample the whole trajectory from $\pi_\theta$ and keep the state part (<a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=1954" target="_blank" rel="noopener">▶ 32:34</a>). Some texts give that distribution its own symbol. The action is corrected locally; the state is not touched yet.</p>
+<p class="small muted">The $\gamma^t$ is still there. For language models $\gamma=1$, which is why it's easy to forget (<a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2042" target="_blank" rel="noopener">▶ 34:02</a>).</p>
+
+<h3>Importance sampling in one line <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2081" target="_blank" rel="noopener">▶ 34:41</a></h3>
+<p>For any distributions $p$ and $q$ (with $q&gt;0$ wherever $p&gt;0$):</p>
+<ol class="steps">
+<li>$\displaystyle \mathbb{E}_{x\sim p}[f(x)]=\int p(x)f(x)\,dx$</li>
+<li>Multiply and divide by $q(x)$: $\displaystyle =\int q(x)\,\frac{p(x)}{q(x)}\,f(x)\,dx$</li>
+<li>Read it as an expectation under $q$: $\displaystyle =\mathbb{E}_{x\sim q}\Big[\frac{p(x)}{q(x)}\,f(x)\Big]$</li>
+</ol>
+<p>Match it to the formula above: $p=\pi_\theta(\cdot\mid s_t)$, $q=\pi_{\theta_\text{old}}(\cdot\mid s_t)$, $f=\gamma^tR(s_t,\cdot)$. Inside the expectation, the $\pi_{\theta_\text{old}}$ in the denominator cancels the probability you sampled with.</p>
+
+<h2>3 · From reward to advantage <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2181" target="_blank" rel="noopener">▶ 36:21</a></h2>
+<p>Next, take gradients and subtract a baseline as on the previous pages. The lecturer hand-waves this step "in the interest of time". The reward is replaced by an <b>advantage</b>, which the course doesn't define formally; think of it as</p>
+$$\hat A(s_t,a_t)\;\approx\;\underbrace{R_{\ge t}}_{\text{reward-to-go}}-\underbrace{b(s_t)}_{\text{baseline}}$$
+<p>which gives the objective</p>
+$$\sum_t\;\mathbb{E}_{s_t\sim\pi_\theta}\;\mathbb{E}_{a_t\sim\pi_{\theta_\text{old}}(\cdot\mid s_t)}\Big[\frac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_\text{old}}(a_t\mid s_t)}\,\hat A(s_t,a_t)\Big].$$
+<ul>
+<li>$\hat A(s_t,a_t)&gt;0$: $a_t$ did better than the baseline, a <b>good action</b>.</li>
+<li>$\hat A(s_t,a_t)&lt;0$: worse than the baseline, a <b>bad action</b>.</li>
+</ul>
+
+<h2>4 · The big approximation: states from the old policy <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2301" target="_blank" rel="noopener">▶ 38:21</a></h2>
+<p>We still can't sample $s_t\sim\pi_\theta$ without running the new policy. There's no known way to correct this part, so PPO just doesn't care: it replaces $s_t\sim\pi_\theta$ by $s_t\sim\pi_{\theta_\text{old}}$. That's a <b>big approximation</b>, and after it, everything can be computed from old trajectories:</p>
+<div class="callout">
+$$\sum_t\;\mathbb{E}_{s_t,\,a_t\sim\pi_{\theta_\text{old}}}\big[\,r_t(\theta)\,\hat A_t\,\big],\qquad r_t(\theta)=\frac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_\text{old}}(a_t\mid s_t)}$$
+</div>
+<div class="beyond"><b>Going beyond the lecture: why the approximation is tolerable near θ<sub>old</sub>.</b> At $\theta=\theta_\text{old}$, $\nabla_\theta r_t=\nabla_\theta\log\pi_\theta(a_t\mid s_t)$, so the gradient of this surrogate is <i>exactly</i> the policy gradient with advantage weights from page 2 (I checked this numerically). The state-distribution error only grows as $\pi_\theta$ drifts away from $\pi_{\theta_\text{old}}$. That's the motivation for keeping $r_t$ close to 1, which is the next step.</div>
+
+<p>See how reweighting behaves as the policy drifts. Below, $\pi_{\theta_\text{old}}$ is a fixed distribution over 6 actions with fixed advantages $\hat A(a)$. Slide the new policy away from it, then estimate $\mathbb{E}_{a\sim\pi_\theta}[\hat A(a)]$ using only samples from $\pi_{\theta_\text{old}}$.</p>
+<div class="card">
+  <div class="row"><label>how far $\pi_\theta$ has moved: <b id="dv">0.5</b> <input type="range" id="dl" min="0" max="3" step="0.1" value="0.5"></label>
+    <label>samples per estimate: <b id="nsv">32</b> <input type="range" id="ns" min="4" max="256" step="4" value="32"></label></div>
+  <canvas id="c3" height="220" aria-label="Old and new policy probabilities and their ratio for six actions"></canvas>
+  <div class="legend"><span><i style="background:var(--faint)"></i>π<sub>old</sub>(a)</span><span><i style="background:var(--s1)"></i>π<sub>θ</sub>(a)</span><span><i style="background:var(--s2)"></i>ratio r(a) (right scale, dashed line = 1)</span><span>numbers under the bars: Â(a)</span></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="tru">–</div><div class="l">true E<sub>π<sub>θ</sub></sub>[Â]</div></div>
+    <div class="stat"><div class="v" id="nai">–</div><div class="l">naive: average Â over old samples</div></div>
+    <div class="stat"><div class="v" id="ism">–</div><div class="l">importance-weighted: mean ± std over 400 repeats</div></div>
+    <div class="stat"><div class="v" id="rmx">–</div><div class="l">largest ratio r(a)</div></div>
+  </div>
+  <p class="small" id="t3"></p>
+</div>
+
+<h2>5 · The ratio, and PPO's four cases <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2321" target="_blank" rel="noopener">▶ 38:41</a></h2>
+<p>The ratio $r_t$ is where trouble starts: sometimes it's too big, sometimes too small. What PPO should do depends on the <b>sign of the advantage</b> and on <b>which side of 1</b> the ratio is. There are two thresholds, $1+\epsilon_\text{high}$ and $1-\epsilon_\text{low}$, both hyperparameters, typically 0.2 (sometimes $\epsilon_\text{high}=0.28$).</p>
+<ol class="steps">
+<li><b>Good action, ratio already high</b> ($\hat A&gt;0$, $r_t&gt;1+\epsilon_\text{high}$) <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2362" target="_blank" rel="noopener">▶ 39:22</a>. The current policy already gives this good action <i>more</i> probability than the old one did. That's already the right direction, so should you keep reinforcing it? PPO says <b>no</b>: the term is dropped (zero gradient). With $\epsilon_\text{high}=0.28$: once $r_t&gt;1.28$, stop, rather than risk instability by continuing to update.</li>
+<li><b>Good action, ratio not high</b> ($\hat A&gt;0$, $r_t\le1+\epsilon_\text{high}$, e.g. $r_t=0.5$) <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2472" target="_blank" rel="noopener">▶ 41:12</a>. A good action that the current policy is producing less often than the old one did. There's work to do, so take the gradient of the surrogate (call it $J_\text{PPO}$). For this action, that means moving along $\nabla_\theta\pi_\theta(a_t\mid s_t)$ to <b>increase</b> its probability, as usual.</li>
+<li><b>Bad action, ratio already low</b> ($\hat A&lt;0$, $r_t&lt;1-\epsilon_\text{low}$) <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2578" target="_blank" rel="noopener">▶ 42:58</a>. A bad action that the policy already generates less often than the old policy did: already the right direction. <b>No update</b>; the term is zero.</li>
+<li><b>Bad action, ratio not low enough</b> ($\hat A&lt;0$, $r_t\ge1-\epsilon_\text{low}$) <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=2619" target="_blank" rel="noopener">▶ 43:39</a>. You want this ratio small for a bad action, and it isn't yet. Push the probability <b>down</b> as usual.</li>
+</ol>
+<table>
+<tr><th></th><th>ratio past its threshold</th><th>ratio not past it</th></tr>
+<tr><td>$\hat A&gt;0$ (good)</td><td>$r_t&gt;1+\epsilon_\text{high}$: already favoured, <b>gradient 0</b></td><td>increase $\pi_\theta(a_t\mid s_t)$</td></tr>
+<tr><td>$\hat A&lt;0$ (bad)</td><td>$r_t&lt;1-\epsilon_\text{low}$: already suppressed, <b>gradient 0</b></td><td>decrease $\pi_\theta(a_t\mid s_t)$</td></tr>
+</table>
+<p class="small muted">In the recording, the first case is introduced as "ratio much less than 1", but everything said about it (the new policy gives the action <i>higher</i> probability, $r_t&gt;1+\epsilon$) shows a ratio much <i>greater</i> than 1 was meant. The lecturer also briefly says "GRPO" for "PPO" in case 3 and corrects himself.</p>
+<p>The next page shows how one compact formula encodes these four cases, why the two $\epsilon$'s might differ, and an alternative, CISPO.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Plugging old samples into the policy-gradient formula estimates $\eta(\theta_\text{old})$, not $\eta(\theta)$; you must correct for the distribution shift.</li>
+<li>Importance sampling, $\mathbb{E}_p[f]=\mathbb{E}_q[(p/q)f]$, corrects the action distribution exactly via the ratio $r_t=\pi_\theta(a_t\mid s_t)/\pi_{\theta_\text{old}}(a_t\mid s_t)$.</li>
+<li>The state distribution is not corrected: PPO samples states from $\pi_{\theta_\text{old}}$ too. This is a big approximation that is only reasonable while $\pi_\theta$ stays close to $\pi_{\theta_\text{old}}$.</li>
+<li>The reward is replaced by an advantage $\hat A\approx R_{\ge t}-b(s_t)$: positive means a good action, negative a bad one.</li>
+<li>PPO stops pushing when the ratio has already moved past $1\pm\epsilon$ in the helpful direction, and pushes as usual otherwise.</li>
+</ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+const redraws = [];
+
+const LOLD = [0.8, 0.3, 0, -0.2, -0.6, -1.2], ADV = [-1, 0.5, 1.5, -0.5, 2, -2], DIR = [-0.4, 0.2, 0.5, -0.3, 0.8, 0.4];
+const smx = t => { const m = Math.max(...t), e = t.map(x => Math.exp(x - m)), z = e.reduce((a, b) => a + b, 0); return e.map(x => x / z); };
+const pOld = smx(LOLD);
+function update3(){
+  const d = +$('dl').value, N = +$('ns').value; $('dv').textContent = d.toFixed(1); $('nsv').textContent = N;
+  const pNew = smx(LOLD.map((l, i) => l + d * DIR[i])), ratio = pNew.map((p, i) => p / pOld[i]);
+  const tru = pNew.reduce((s, p, i) => s + p * ADV[i], 0), nai = pOld.reduce((s, p, i) => s + p * ADV[i], 0);
+  const r = rng(99 + Math.round(d * 10) * 1000 + N), R = 400, est = [];
+  const cum = []; pOld.reduce((c, p, i) => (cum[i] = c + p), 0);
+  for (let k = 0; k < R; k++) { let s = 0; for (let n = 0; n < N; n++) { const u = r(); let a = 0; while (a < 5 && u > cum[a]) a++; s += ratio[a] * ADV[a]; } est.push(s / N); }
+  const m = est.reduce((a, b) => a + b, 0) / R, sd = Math.sqrt(est.reduce((a, b) => a + (b - m) * (b - m), 0) / R);
+  $('tru').textContent = fmt(tru); $('nai').textContent = fmt(nai); $('ism').textContent = `${fmt(m)} ± ${fmt(sd)}`; $('rmx').textContent = Math.max(...ratio).toFixed(2);
+  $('t3').textContent = d === 0 ? 'The two policies coincide: every ratio is 1 and all three numbers agree.'
+    : `The naive average is off by ${fmt(Math.abs(tru - nai))}: it measures the old policy. The weighted estimate is unbiased (its mean tracks the truth), but its spread grows as the ratios move away from 1. The largest ratio is now ${Math.max(...ratio).toFixed(2)}.`;
+  draw3(pNew, ratio); }
+let last3 = null;
+function draw3(pNew, ratio){ if (pNew) last3 = [pNew, ratio]; if (!last3) return; [pNew, ratio] = last3;
+  const [ctx, W, H] = setupCanvas($('c3')), B = 34, top = 10, bw = W / 6, base = H - B, rmaxScale = Math.max(2, Math.ceil(Math.max(...ratio)));
+  const Yp = p => base - (base - top) * p / 0.6, Yr = q => base - (base - top) * q / rmaxScale;
+  ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(0, base); ctx.lineTo(W, base); ctx.stroke();
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--s2'); ctx.beginPath(); ctx.moveTo(0, Yr(1)); ctx.lineTo(W, Yr(1)); ctx.stroke(); ctx.setLineDash([]);
+  for (let i = 0; i < 6; i++) { const x = i * bw;
+    ctx.fillStyle = cssv('--faint'); ctx.fillRect(x + bw * 0.14, Yp(Math.min(0.6, pOld[i])), bw * 0.3, base - Yp(Math.min(0.6, pOld[i])));
+    ctx.fillStyle = cssv('--s1'); ctx.fillRect(x + bw * 0.46, Yp(Math.min(0.6, pNew[i])), bw * 0.3, base - Yp(Math.min(0.6, pNew[i])));
+    ctx.fillStyle = cssv('--s2'); ctx.beginPath(); ctx.arc(x + bw / 2, Yr(Math.min(rmaxScale, ratio[i])), 4.5, 0, 7); ctx.fill();
+    ctx.fillStyle = cssv('--muted'); ctx.fillText('a' + (i + 1), x + bw / 2, base + 13); ctx.fillStyle = cssv(ADV[i] > 0 ? '--s3' : '--s2'); ctx.fillText('Â=' + ADV[i], x + bw / 2, base + 27); }
+  ctx.textAlign = 'right'; ctx.fillStyle = cssv('--s2'); ctx.fillText('r=' + rmaxScale, W - 2, top + 9); ctx.fillText('r=1', W - 2, Yr(1) - 3); }
+$('dl').addEventListener('input', update3); $('ns').addEventListener('input', update3);
+update3(); redraws.push(() => draw3());
+const redrawAll = () => redraws.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

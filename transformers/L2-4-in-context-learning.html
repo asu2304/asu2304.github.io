@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>In-Context Learning: Few-Shot and Zero-Shot Prompting</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 2 · part 4 of 5 · Stanford CS229, Spring 2026</div>
+<h1>In-Context Learning: Few-Shot and Zero-Shot Prompting</h1>
+<p class="lede">A pretrained language model can pick up a new task from a handful of examples written into its prompt (few-shot), or from a plain description of the task (zero-shot), without a single parameter being updated. That discovery, made famous by GPT-3, replaced the old pipeline of collecting data and fine-tuning a separate model for every customer.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3076" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 51:16 to 64:18 of a 73-min video; published as “Lecture 16: Basic Concept in RL, Policy Gradient”). Previous: <a href="L2-3-mixture-of-experts.html">mixture of experts</a> · Next: <a href="L2-5-instruction-tuning.html">supervised fine-tuning and instruction tuning</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · From pretraining to a downstream task <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3084" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 51:24</a></h2>
+<p>With the architecture done, the rest of the lecture is about <b>adapting or using</b> a pretrained model for downstream tasks, such as sentiment analysis or one of your own tasks. Some of this may sound a little out of date, the lecturer warns, but it is still useful in many cases.</p>
+
+<h2>2 · In-context learning <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3121" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 52:01</a></h2>
+<p>Suppose the downstream task has examples $(x_1,y_1),\dots,(x_n,y_n)$ and you want the model to predict $y$ from $x$. With <b>in-context learning</b> you literally concatenate the examples into one string, in some format, and append the test input:</p>
+<div class="card"><p class="mono" style="margin:0;white-space:pre-wrap">Q: x₁   A: y₁
+Q: x₂   A: y₂
+ ⋮
+Q: x_test   A: ▁</p></div>
+<p>Everything above the last line is the "training" part (in-context training examples); the last line holds $x_\text{test}$, and you hope the model fills in the answer. The lecturer's example:</p>
+<div class="card"><p class="mono" style="margin:0;white-space:pre-wrap">Q: 2 ~ 3 = ?    A: 5
+Q: 6 ~ 7 = ?    A: 13
+Q: 15 ~ 2 = ?   A: ▁</p></div>
+<p>Most people answer <b>17</b>: from two examples you guess that "~" means plus. That is the learning part: you learned what the symbol means. Humans can guess it, not with certainty, and it turns out the models can too.</p>
+<p>Try it with a toy "learner" below. It knows a fixed list of candidate operations, keeps those consistent with the examples in the prompt, and predicts with whatever survives. Nothing in it changes except what it reads. (It also shows why the lecturer says "somewhat guess": two examples don't pin the rule down completely.)</p>
+
+<div class="card">
+<p class="small muted" style="margin-top:0">Write examples as <span class="mono">a ~ b = c</span>, one per line, and a test query. Delete lines to see how fewer examples leave more ambiguity.</p>
+<div class="pair half">
+<div><textarea id="ex" rows="5" style="width:100%;font:13px ui-monospace,Menlo,monospace;background:var(--surface);color:var(--ink);border:1px solid var(--grid);border-radius:8px;padding:8px">2 ~ 3 = 5
+6 ~ 7 = 13</textarea>
+<div class="row"><label>test: <input id="qa" type="number" value="15" style="width:64px"> ~ <input id="qb" type="number" value="2" style="width:64px"></label></div>
+<div class="row"><button id="p0">0 examples</button><button id="p1">1 example</button><button id="p2">lecture's 2</button><button id="p3">add 4 ~ 1 = 5</button></div></div>
+<div><p class="small muted" style="margin:0 0 4px">The prompt string the model would see:</p>
+<p class="mono" id="prompt" style="white-space:pre-wrap;background:var(--tint);border-radius:8px;padding:8px;margin:0;min-height:90px"></p></div>
+</div>
+<table id="hyp" style="margin-top:10px"></table>
+<div class="row">
+<div class="stat"><div class="v" id="nLeft"></div><div class="l">operations still consistent</div></div>
+<div class="stat"><div class="v" id="pred"></div><div class="l">prediction for the test</div></div>
+</div>
+<p class="small" id="iclTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture: why a toy like this is a fair cartoon.</b> One popular explanation (Xie et al., 2021) views in-context learning as implicit Bayesian inference: pretraining text is generated by many latent "tasks", and the model learns to infer which task a prompt comes from and continue it. The toy does the crisp version of that, keeping only the hypotheses the examples allow. A real model has a soft prior, so it prefers "plus" over exotic rules that also fit.</div>
+
+<h2>3 · Few-shot classification <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3294" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 54:54</a></h2>
+<p>Nobody needs a model to learn "plus" this way today. A more realistic use: classify incoming emails as billing, technical, accounting and so on. A few-shot prompt can even hide what the classes mean:</p>
+<div class="card"><p class="mono" style="margin:0;white-space:pre-wrap">Classify my messages into A, B, C.
+Message: ⟨message 1⟩   Output: A
+Message: ⟨message 2⟩   Output: B
+ ⋮
+Message: ⟨new message⟩   Output: ▁</p></div>
+<p>Everything up to the blank is prefilled; the model then generates the next token. From the examples it can work out that A seems to mean a billing email and B a technical or customer-service one, and label the new message.</p>
+<p>Usually you would not hide the labels: you name them ("billing", "technical"), which makes it easier still. Even then the examples matter, because definitions are subtle. What exactly counts as a billing email? Having seen a few, the model infers "emails with this format or of this type are billing". It is much like teaching a person by examples.</p>
+<p>A student remarks that this seems to let you do almost anything. In theory, yes, anything you can teach with examples, and the next part is easier still.</p>
+
+<h2>4 · Nothing is updated <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3494" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 58:14</a></h2>
+<div class="callout"><b>The parameters are not changed at all.</b> The examples are only given to the model as a string in its context. No training, just prompting.</div>
+<p>If you believe the intelligence lives in the parameters, then in-context learning shouldn't improve fundamental capability by much. It mostly teaches <b>style</b> and <b>simple definitions</b>, though some harder things too. But consider biomedical scans where you must classify cancer or not: the lecturer doesn't think a few examples in the prompt would work there. That still needs tuning.</p>
+
+<h2>5 · Zero-shot: just describe the task <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3566" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 59:26</a></h2>
+<p>The more extreme version drops the examples. Erase them, and just say "classify messages into billing, technical service, …", describing in text as fully as possible what each label means. That is <b>zero-shot</b>: a task description only (sometimes a long one), then let the model generate the answer.</p>
+<p>You can also specify the output format, for example JSON or other structured output: "please generate in this format". That is most people's experience with ChatGPT. Hardly anyone gives few-shot examples these days except in special cases.</p>
+<table>
+<tr><th></th><th>Prompt contains</th><th>Parameters updated?</th></tr>
+<tr><td><b>Few-shot</b> (in-context learning)</td><td>some $(x_i,y_i)$ examples, then $x_\text{test}$</td><td>no</td></tr>
+<tr><td><b>Zero-shot</b></td><td>a task description (± output format), then the input</td><td>no</td></tr>
+<tr><td><b>Fine-tuning</b> (next part)</td><td>—</td><td>yes</td></tr>
+</table>
+
+<h2>6 · Why GPT-3 was a shock <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3649" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 60:49</a></h2>
+<p>Few-shot and zero-shot ability was one of the biggest findings of the <b>GPT-3 paper</b>. It was shocking because the parameters are never updated: people had assumed you must train the model on a new task, at least a little. Instead you just prompt it, and that fundamentally changed how easily these models can be applied in industry.</p>
+<table>
+<tr><th>The old way (say, an insurance company)</th><th>The new way</th></tr>
+<tr><td>Collect lots of domain data and label it; build train and dev sets</td><td>One off-the-shelf model for everyone</td></tr>
+<tr><td>Start from a checkpoint and train on the domain data, updating parameters; tune hyperparameters</td><td>Each company writes its own prompt: a task description, sometimes a few examples</td></tr>
+<tr><td>Serve a specialised model in that company; repeat the whole process for the next company</td><td>Lightweight customisation; for agentic tasks some scaffolding, or a complicated workflow</td></tr>
+</table>
+<p>For a workflow, think of the onboarding document a new employee gets describing how to do things: you give that document to the model and it follows the instructions.</p>
+
+<h2>7 · How big must the model be? <a href="https://www.youtube.com/watch?v=hHC-SF3utxg&amp;t=3786" target="_blank" rel="noopener" style="font-size:13px;font-weight:400">▶ 63:06</a></h2>
+<p>This was once a hot topic: <b>emergent properties</b>. Three or four years ago people observed that these abilities appear only beyond a certain scale of model and data. That is still true, but small models now get them too, by <b>distillation</b> from large models: once a large model shows a capability, you can try to distil it into a small one.</p>
+<p>Also, training data is more complicated now. Pretraining used to be just text from the web; now, at some stage of training (maybe not pretraining exactly), there is data that looks like these prompts, so even smaller models get the ability. That leads to the next topic: training for it deliberately.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>In-context learning: put $(x_1,y_1),\dots,(x_n,y_n)$ into the prompt in a fixed format, end with $x_\text{test}$, and let the model complete the answer (e.g. 2 ~ 3 → 5, 6 ~ 7 → 13, so 15 ~ 2 → 17).</li>
+<li>Labels can even be hidden (A, B, C); the model infers their meaning, much as a person learns from examples.</li>
+<li>No parameter changes: prompting teaches style and simple definitions, but not hard new skills like reading medical scans.</li>
+<li>Zero-shot uses only a task description (and maybe an output format); it is how most people use chat models now.</li>
+<li>GPT-3 showed this works, replacing per-company data collection and fine-tuning with one model plus prompts; the ability emerged with scale and now reaches small models through distillation and prompt-like training data.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAWS = [];
+function redrawAll(){ DRAWS.forEach(f => f()); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+const OPS = [
+  ['a + b', (a, b) => a + b], ['a − b', (a, b) => a - b], ['a × b', (a, b) => a * b], ['a × b − 1', (a, b) => a * b - 1],
+  ['a + b + 1', (a, b) => a + b + 1], ['2a + 1', (a, b) => 2 * a + 1], ['2b − 1', (a, b) => 2 * b - 1], ['b + 2', (a, b) => b + 2],
+  ['a² + 1', (a, b) => a * a + 1], ['max(a, b)', (a, b) => Math.max(a, b)], ['min(a, b)', (a, b) => Math.min(a, b)]];
+function parse(){ const out = []; $('ex').value.split('\n').forEach(line => { const m = line.match(/^\s*(-?\d+)\s*~\s*(-?\d+)\s*=\s*(-?\d+)\s*$/); if (m) out.push([+m[1], +m[2], +m[3]]); }); return out; }
+function icl(){
+  const ex = parse(), qa = Number($('qa').value) || 0, qb = Number($('qb').value) || 0;
+  $('prompt').textContent = ex.map(([a, b, c]) => `Q: ${a} ~ ${b} = ?  A: ${c}`).concat([`Q: ${qa} ~ ${qb} = ?  A:`]).join('\n');
+  const rows = OPS.map(([name, f]) => { const ok = ex.every(([a, b, c]) => f(a, b) === c); return {name, ok, p: f(qa, qb)}; });
+  const left = rows.filter(r => r.ok), preds = [...new Set(left.map(r => r.p))];
+  $('hyp').innerHTML = '<tr><th>candidate meaning of ~</th><th>fits every example?</th><th>would answer</th></tr>' + rows.map(r =>
+    `<tr style="opacity:${r.ok ? 1 : 0.45}"><td class="mono">${r.name}</td><td>${r.ok ? '✓ yes' : '✗ no'}</td><td>${r.p}</td></tr>`).join('');
+  $('nLeft').textContent = left.length + ' / ' + OPS.length;
+  $('pred').textContent = left.length === 0 ? 'none' : preds.length === 1 ? preds[0] : preds.length + ' answers';
+  $('iclTxt').innerHTML = ex.length === 0 ? 'No examples and no description: every operation is possible, so the “model” has no basis to answer. That is why zero-shot needs a task description instead.'
+    : left.length === 0 ? 'No candidate fits all examples: this learner’s fixed hypothesis list cannot explain them. (A real model has a far richer space, but it is still fixed by the parameters.)'
+    : preds.length === 1 ? `All surviving candidates agree: the answer is <b>${preds[0]}</b>. ${ex.length} example${ex.length > 1 ? 's were' : ' was'} enough, and no parameter changed.`
+    : `Still ambiguous: the surviving rules give ${preds.join(', ')}.` + (ex.length === 2 && left.some(r => r.name === 'a + b') ? ' Even the lecture’s two examples allow “2a + 1” and “2b − 1”; people (and models) answer 17 because “plus” is by far the most natural rule. A third example removes the doubt.' : ' Add an example to disambiguate.');
+}
+const presets = {p0: '', p1: '2 ~ 3 = 5', p2: '2 ~ 3 = 5\n6 ~ 7 = 13', p3: '2 ~ 3 = 5\n6 ~ 7 = 13\n4 ~ 1 = 5'};
+Object.keys(presets).forEach(id => $(id).onclick = () => { $('ex').value = presets[id]; icl(); });
+['ex', 'qa', 'qb'].forEach(id => $(id).addEventListener('input', icl));
+icl();
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

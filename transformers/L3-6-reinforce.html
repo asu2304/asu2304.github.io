@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>REINFORCE on Trajectories</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 3 · part 6 of 6 · Stanford CS229, Spring 2026</div>
+<h1>REINFORCE on Trajectories</h1>
+<p class="lede">Apply the log-derivative trick with $x$ = a whole trajectory. The trajectory's log-probability splits into a sum, and every term that comes from the environment drops out of the gradient because it doesn't depend on $\theta$. What's left uses only the policy's own log-probabilities and the observed rewards: you never need to know the dynamics.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=4155" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 69:15 to 76:18 of a 76-min video; published as “Lecture 18: GMM (EM), PCA”). Previous: <a href="L3-5-log-derivative-trick.html">Policy gradient and the log-derivative trick</a> · Next: <a href="L4-1-policy-gradient-reward-to-go.html">Lecture 4, part 1</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Plug in a trajectory <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=4159" target="_blank" rel="noopener">▶ 69:19</a></h2>
+<p>From part 5, with $x$ the trajectory $\tau=(s_0,a_0,s_1,a_1,\dots)$ and $f(\tau)=\sum_t\gamma^tR(s_t)$:</p>
+$$\nabla_\theta\eta(\theta)=\nabla_\theta\,\mathbb{E}_{\tau\sim\pi_\theta}\Big[\sum_{t}\gamma^tR(s_t)\Big]=\mathbb{E}_{\tau\sim\pi_\theta}\Big[\nabla_\theta\log p_\theta(\tau)\cdot\sum_{t}\gamma^tR(s_t)\Big].$$
+<p>The $f$ part is kept as is. What is $p_\theta(\tau)$? Follow the generative story step by step: draw $s_0$, then $a_0$ given $s_0$, then $s_1$ given $(s_0,a_0)$, and so on:</p>
+$$p_\theta(\tau)=D_0(s_0)\;\pi_\theta(a_0\mid s_0)\;P_{s_0a_0}(s_1)\;\pi_\theta(a_1\mid s_1)\;P_{s_1a_1}(s_2)\cdots\pi_\theta(a_t\mid s_t)\;P_{s_ta_t}(s_{t+1})\cdots$$
+<p>At this point the problem is essentially solved: everything in the formula can be evaluated, sampled or differentiated. Almost. Simplify it first.</p>
+
+<h2>2 · The dynamics drop out <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=4298" target="_blank" rel="noopener">▶ 71:38</a></h2>
+<p>"Everything is computable" isn't quite right: $D_0$ and the transition probabilities $P_{sa}$ may be unknown. So far we never assumed we know them, and the algorithm doesn't need them.</p>
+<ol class="steps">
+<li><b>Log of a product is a sum of logs:</b>
+$$\log p_\theta(\tau)=\log D_0(s_0)+\sum_t\log P_{s_ta_t}(s_{t+1})+\sum_t\log\pi_\theta(a_t\mid s_t).$$</li>
+<li><b>Differentiate in $\theta$.</b> $D_0$ and $P_{s_ta_t}$ describe the environment; they don't depend on $\theta$, so their gradients are 0 and they're gone:
+$$\nabla_\theta\log p_\theta(\tau)=\sum_t\nabla_\theta\log\pi_\theta(a_t\mid s_t).$$</li>
+<li><b>Substitute back</b> into the expectation.</li>
+</ol>
+<div class="callout"><b>Policy gradient (REINFORCE)</b>
+$$\nabla_\theta\eta(\theta)=\mathbb{E}_{\tau\sim\pi_\theta}\Big[\Big(\sum_{t=0}^{T-1}\nabla_\theta\log\pi_\theta(a_t\mid s_t)\Big)\Big(\sum_{t=0}^{T-1}\gamma^tR(s_t)\Big)\Big]$$
+Needs: samples of trajectories from the current policy, the rewards you observed, and $\nabla_\theta\log\pi_\theta$ from your own network. Doesn't need: the transition dynamics or $D_0$.</div>
+<p>Read it as the "reinforce" story from part 1, made precise. Each sampled trajectory pushes up the log-probability of every action it took, scaled by how good the whole trajectory was. High-return trajectories get their actions made more likely.</p>
+<div class="card mono" style="white-space:pre-wrap;margin-top:10px">repeat:
+    run π_θ in the environment → n trajectories τ⁽¹⁾ … τ⁽ⁿ⁾
+    for each τ⁽ⁱ⁾:  ĝᵢ = ( Σₜ ∇_θ log π_θ(aₜ⁽ⁱ⁾ | sₜ⁽ⁱ⁾) ) · ( Σₜ γᵗ R(sₜ⁽ⁱ⁾) )
+    θ ← θ + α · (1/n) Σᵢ ĝᵢ          (gradient ascent)</div>
+<p><b>One more simplification</b> <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=4414" target="_blank" rel="noopener">▶ 73:34</a> is available, coming from the fact that the formula is a <b>product of two sums</b>, with many cross terms. The lecture ran out of time here and pointed to the lecture notes. As it stands, though, the estimator is already fully computable: compute each sum and multiply.</p>
+<div class="beyond"><b>Going beyond the lecture: what that simplification is (standard form).</b> Expand the product into cross terms $\nabla_\theta\log\pi_\theta(a_t\mid s_t)\cdot\gamma^{t'}R(s_{t'})$. For $t'\le t$, the reward was already decided before $a_t$ was drawn, and the score has mean zero given the past (part 5's $\mathbb{E}[\nabla\log p]=0$), so these terms average to 0. Dropping them gives the "reward-to-go" form $$\mathbb{E}\Big[\sum_t\nabla_\theta\log\pi_\theta(a_t\mid s_t)\sum_{t'&gt;t}\gamma^{t'}R(s_{t'})\Big]:$$ same expectation, less noise. (With rewards on states, $R(s_t)$ itself is fixed before $a_t$; I checked this numerically against the exact gradient on a small tape.)</div>
+
+<h2>3 · "Isn't this intractable for LLMs?" <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=4469" target="_blank" rel="noopener">▶ 74:29</a></h2>
+<ul>
+<li><b>Q:</b> If you enumerate all possible generations of length $T$, isn't that exponentially many? <b>A:</b> You never enumerate. You <b>sample</b>: one trajectory, sometimes five or ten.</li>
+<li><b>Q:</b> So it's a Monte Carlo estimate? <b>A:</b> It's just sampling: to compute the expectation of a random variable, sample it and take the empirical mean.</li>
+<li><b>Q:</b> How large is the variance? <b>A:</b> Hard to say in general. Next time: ways to <b>reduce</b> it. In the lecturer's view it isn't crazily big, not "exponential in $T$" or astronomical, but in practice you always want to reduce variance, even when it isn't huge, and people have many ways to do so.</li>
+</ul>
+
+<h2>4 · Try it: train a policy with REINFORCE</h2>
+<div class="card">
+<p class="small muted" style="margin-top:0">The lecture's tape: cells 1–10, reward $+1$ at cell 9 and $-0.1$ elsewhere, slip probability 0.1, $\gamma=0.9$, horizon $T=12$, start cell $s_0\sim D_0$ uniform on 1–10 (or fixed at 5, if you tick the box). The actions are only L and R, so at 9 the robot steps off and must come back. Policy: one parameter per cell, $\pi_\theta(R\mid s)=\sigma(\theta_s)$, so $\nabla_{\theta_s}\log\pi_\theta(a\mid s)=\mathbb{1}[a=R]-\sigma(\theta_s)$. Each update samples $n$ trajectories and applies the boxed estimator; nothing in the update looks at the transition probabilities. The curve is the <i>exact</i> $\eta(\theta)$ (computed by the demo for display only).</p>
+<div class="row"><label>trajectories per update $n$ <input type="range" id="nb" min="1" max="50" step="1" value="10"> <span id="nbV">10</span></label>
+<label>step size $\alpha$ <input type="range" id="al" min="0.05" max="1" step="0.05" value="0.3"> <span id="alV">0.30</span></label></div>
+<div class="row"><button id="u1">1 update</button><button id="play">▶ train live</button><button id="rz">reset θ = 0</button>
+<label><input type="checkbox" id="fx"> always start at cell 5</label>
+<label title="Going beyond the lecture: see the orange box below"><input type="checkbox" id="bl"> subtract a baseline (beyond the lecture)</label></div>
+<canvas id="pc" height="300" aria-label="Policy probabilities on the tape and the learning curve of eta"></canvas>
+<div class="legend"><span><i style="background:var(--s1)"></i>$\pi_\theta(R\mid s)$ per cell</span><span><i style="background:var(--s3)"></i>exact $\eta(\theta)$ over updates</span><span><i style="background:var(--faint)"></i>best of all 1,024 deterministic policies</span></div>
+<div class="row">
+<div class="stat"><div class="v" id="pU">0</div><div class="l">updates</div></div>
+<div class="stat"><div class="v" id="pE"></div><div class="l">exact $\eta(\theta)$ now</div></div>
+<div class="stat"><div class="v" id="pS">–</div><div class="l">mean sampled return, last batch</div></div>
+</div>
+<div class="row"><button id="cmp">Measure gradient noise at the current θ, with vs without baseline</button></div>
+<p class="small" id="pTxt"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture: the baseline toggle.</b> Variance reduction is next lecture's topic; this toggle previews the most common trick. Replace $\sum_t\gamma^tR(s_t)$ for trajectory $i$ by that return minus $b_i$, the mean return of the <i>other</i> trajectories in the batch. Because $b_i$ doesn't depend on trajectory $i$'s own actions, and the score has mean zero, the expected gradient is unchanged. Trajectories now count as "good" only if they beat their batch-mates. That removes whatever part of the return all trajectories <i>share</i>, and only that. Use the "measure gradient noise" button: with a fixed start cell (and especially early on, when nearly every return is the same string of $-0.1$s) the baseline cuts the variance sharply. With a random start cell, most of the spread in returns comes from <i>where</i> each trajectory started, which a batch average can't remove, and the baseline helps little or even adds noise. Variance reduction is about matching the baseline to what is actually shared.</div>
+<p>See <a href="../deep-learning/L34-stochastic-vs-batch.html">my notes on stochastic vs batch gradient descent</a> for the same "noisy but unbiased gradient" idea in supervised learning; $n$ plays the role of the mini-batch size.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>The log turns the trajectory probability's product into a sum: $$p_\theta(\tau)=D_0(s_0)\prod_t\pi_\theta(a_t\mid s_t)\,P_{s_ta_t}(s_{t+1}).$$</li>
+<li>Environment terms don't depend on $\theta$, so they vanish from the gradient: REINFORCE is <b>model-free</b>, with no knowledge of $P_{sa}$ needed.</li>
+<li>Raise the log-probability of the actions taken, in proportion to the trajectory's return: $$\nabla\eta=\mathbb{E}\Big[\Big(\sum_t\nabla\log\pi_\theta(a_t\mid s_t)\Big)\Big(\sum_t\gamma^tR(s_t)\Big)\Big].$$</li>
+<li>Estimate it by <b>sampling</b> a few trajectories and averaging; you never enumerate.</li>
+<li>The estimate is unbiased but noisy; reducing its variance comes next.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAW = [], redrawAll = () => DRAW.forEach(f => f());
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+// 1-D tape, cells 1..N. drawTape(ctx, W, y, h, opts) draws cells; cellX(W, i) is the centre of cell i.
+const NC = 10, cellW = W => (W - 16) / NC, cellX = (W, i) => 8 + (i - 0.5) * cellW(W);
+function drawTape(ctx, W, y, h, o = {}){
+  const cw = cellW(W);
+  for (let i = 1; i <= NC; i++) { const x = 8 + (i - 1) * cw;
+    ctx.fillStyle = (o.fill && o.fill(i)) || cssv('--card'); ctx.fillRect(x, y, cw, h);
+    ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.strokeRect(x + 0.5, y + 0.5, cw - 1, h - 1);
+    ctx.fillStyle = cssv(i === (o.goal || 9) ? '--s3' : '--muted'); ctx.font = (i === (o.goal || 9) ? '700 ' : '') + '12px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(i === (o.goal || 9) && o.flag !== false ? i + ' ⚑' : String(i), x + cw / 2, y + h + 14); }
+  ctx.textAlign = 'left'; }
+function drawRobot(ctx, x, y, r){ ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--card'); ctx.beginPath(); ctx.arc(x - r * 0.35, y - r * 0.15, r * 0.18, 0, 7); ctx.arc(x + r * 0.35, y - r * 0.15, r * 0.18, 0, 7); ctx.fill(); }
+const EPS = 0.1, G = 0.9, T = 12, Rw = s => s === 9 ? 1 : -0.1, sig = x => 1 / (1 + Math.exp(-x));
+let fixed = false, th = new Array(NC + 1).fill(0), nB = 10, alpha = 0.3, useB = false, hist = [], upd = 0, lastMean = null, timer = null, best = null;
+const mv = (s, a) => a === 'R' ? Math.min(NC, s + 1) : Math.max(1, s - 1);
+function etaExact(th){ let d = new Array(NC + 1).fill(fixed ? 0 : 1 / NC); d[0] = 0; if (fixed) d[5] = 1; let eta = 0, disc = 1;
+  for (let t = 0; t < T; t++) { let e = 0; for (let s = 1; s <= NC; s++) e += d[s] * Rw(s); eta += disc * e; disc *= G;
+    const nd = new Array(NC + 1).fill(0); for (let s = 1; s <= NC; s++) { if (!d[s]) continue; const pr = sig(th[s]);
+      nd[s] += d[s] * EPS; nd[mv(s, 'R')] += d[s] * (1 - EPS) * pr; nd[mv(s, 'L')] += d[s] * (1 - EPS) * (1 - pr); } d = nd; }
+  return eta; }
+function bestDet(){ let b = -Infinity; for (let m = 0; m < 1024; m++) { const t = [0]; for (let s = 1; s <= NC; s++) t.push((m >> (s - 1)) & 1 ? 50 : -50); b = Math.max(b, etaExact(t)); } return b; }
+function rollout(th){ let s = fixed ? 5 : 1 + Math.floor(Math.random() * NC), Gr = 0, disc = 1; const score = new Array(NC + 1).fill(0);
+  for (let t = 0; t < T; t++) { Gr += disc * Rw(s); disc *= G; const pr = sig(th[s]), a = Math.random() < pr ? 'R' : 'L';
+    score[s] += (a === 'R' ? 1 : 0) - pr; if (Math.random() >= EPS) s = mv(s, a); }
+  return {Gr, score}; }
+function gradEst(th, n, base){ const tr = []; for (let i = 0; i < n; i++) tr.push(rollout(th)); const tot = tr.reduce((x, r) => x + r.Gr, 0), g = new Array(NC + 1).fill(0);
+  tr.forEach(r => { const b = base && n > 1 ? (tot - r.Gr) / (n - 1) : 0; for (let s = 1; s <= NC; s++) g[s] += r.score[s] * (r.Gr - b) / n; }); return [g, tot / n]; }
+function update(th, n, a, base){ const [g, m] = gradEst(th, n, base); for (let s = 1; s <= NC; s++) th[s] = Math.max(-20, Math.min(20, th[s] + a * g[s])); return m; }
+function step(k){ for (let i = 0; i < k; i++) { lastMean = update(th, nB, alpha, useB); upd++; hist.push(etaExact(th)); } if (hist.length > 2000) hist = hist.slice(-2000); }
+function draw(){
+  if (best === null) best = bestDet();
+  const [ctx, W, H] = setupCanvas($('pc')), cw = cellW(W);
+  drawTape(ctx, W, 14, 34);
+  for (let s = 1; s <= NC; s++) { const x = cellX(W, s), p = sig(th[s]), bw = cw * 0.8, y = 52 + 22;
+    ctx.fillStyle = cssv('--grid'); ctx.fillRect(x - bw / 2, y, bw, 8); ctx.fillStyle = cssv('--s1'); ctx.fillRect(x - bw / 2, y, bw * p, 8);
+    ctx.fillStyle = cssv('--ink'); ctx.font = '11px system-ui'; ctx.textAlign = 'center'; ctx.fillText(p > 0.5 ? '→' : p < 0.5 ? '←' : '·', x, 38);
+    ctx.fillStyle = cssv('--muted'); ctx.fillText(p.toFixed(2), x, y + 20); }
+  ctx.textAlign = 'left';
+  const L = 40, top = 118, bot = H - 22, Rr = W - 10, e0 = etaExact(new Array(NC + 1).fill(0)), vals = hist.concat([best, e0]), lo = Math.min(...vals) - 0.1, hi = Math.max(...vals) + 0.1;
+  const N = Math.max(50, hist.length), X = i => L + (Rr - L) * i / N, Y = v => bot - (bot - top) * (v - lo) / (hi - lo);
+  ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, top); ctx.lineTo(L, bot); ctx.lineTo(Rr, bot); ctx.stroke();
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = cssv('--faint'); ctx.beginPath(); ctx.moveTo(L, Y(best)); ctx.lineTo(Rr, Y(best)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(0), Y(e0)); hist.forEach((v, i) => ctx.lineTo(X(i + 1), Y(v))); ctx.stroke();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('η(θ) vs updates', L + 4, top - 6); [lo, hi].forEach(v => ctx.fillText(v.toFixed(2), 2, Y(v) + 4));
+  ctx.fillText('0', L - 3, bot + 14); ctx.fillText(String(N), Rr - 7 * String(N).length, bot + 14);
+  const e = hist.length ? hist[hist.length - 1] : e0;
+  $('pU').textContent = upd; $('pE').textContent = e.toFixed(3); $('pS').textContent = lastMean === null ? '–' : lastMean.toFixed(3);
+  if (!$('pTxt').dataset.cmp) $('pTxt').textContent = upd === 0 ? `At θ = 0 every cell is a coin flip: η = ${e0.toFixed(3)}. The best deterministic policy reaches ${best.toFixed(3)}.`
+    : `After ${upd} updates (${upd * nB} sampled trajectories), η = ${e.toFixed(3)}, ${(100 * (e - e0) / (best - e0)).toFixed(0)}% of the way from the coin-flip policy to the best deterministic one.`;
+}
+DRAW.push(draw);
+const stop = () => { if (timer) { clearInterval(timer); timer = null; } $('play').textContent = '▶ train live'; };
+$('u1').onclick = () => { delete $('pTxt').dataset.cmp; step(1); draw(); };
+$('play').onclick = () => { delete $('pTxt').dataset.cmp; if (timer) { stop(); return; } $('play').textContent = '❚❚ pause'; timer = setInterval(() => { step(2); draw(); if (upd >= 3000) stop(); }, 40); };
+$('rz').onclick = () => { stop(); th = new Array(NC + 1).fill(0); hist = []; upd = 0; lastMean = null; delete $('pTxt').dataset.cmp; draw(); };
+$('nb').oninput = e => { nB = +e.target.value; $('nbV').textContent = nB; };
+$('al').oninput = e => { alpha = +e.target.value; $('alV').textContent = alpha.toFixed(2); };
+$('bl').onchange = e => { useB = e.target.checked; };
+$('cmp').onclick = () => { stop(); const K = Math.max(100, Math.round(4000 / nB)), res = [false, true].map(b => { const m = new Array(NC + 1).fill(0), sq = new Array(NC + 1).fill(0);
+    for (let k = 0; k < K; k++) { const g = gradEst(th, nB, b)[0]; for (let s = 1; s <= NC; s++) { m[s] += g[s] / K; sq[s] += g[s] * g[s] / K; } }
+    let v = 0, nm = 0; for (let s = 1; s <= NC; s++) { v += sq[s] - m[s] * m[s]; nm += m[s] * m[s]; } return {v, nm: Math.sqrt(nm)}; });
+  $('pTxt').dataset.cmp = '1';
+  $('pTxt').innerHTML = `${K} batches of n = ${nB} at the current θ (${fixed ? 'fixed start' : 'random start'}). Total variance of the gradient estimate: <b>${res[0].v.toFixed(4)}</b> without a baseline, <b>${res[1].v.toFixed(4)}</b> with one (${(100 * (res[1].v / res[0].v - 1)).toFixed(0)}%). Length of the average gradient: ${res[0].nm.toFixed(3)} vs ${res[1].nm.toFixed(3)}: the same target, up to sampling error.`; draw(); };
+$('fx').onchange = e => { fixed = e.target.checked; best = null; $('rz').onclick(); };
+draw();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

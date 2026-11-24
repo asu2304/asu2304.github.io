@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RL for LLMs in Practice: Token Ratios, Group Baselines, and Cold Starts</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 4 · part 6 of 6 · Stanford CS229, Spring 2026</div>
+<h1>RL for LLMs in Practice: Token Ratios, Group Baselines, and Cold Starts</h1>
+<p class="lede">Plugging language models into PPO-style training changes little: the ratio becomes a per-token ratio of next-token probabilities. The baseline is no longer a learned value function; you sample several answers to the same question and subtract their average reward. All of this only works if the starting model sometimes gets a reward at all.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=4130" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 68:50 to 78:56 of a 79-min video; published as “Lecture 20: GMM (EM), PCA”, though it is about reinforcement learning). Previous: <a href="L4-5-chain-of-thought-rlvr.html">part 5</a> · Next: this is the last page (back to <a href="index.html">the Transformers index</a>)</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · The same algorithm, token by token <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=4130" target="_blank" rel="noopener">▶ 68:50</a></h2>
+<p>With the MDP from the previous page (state = prompt plus tokens so far, action = next token), PPO or CISPO carries over directly. The ratio $r_t$ was a ratio of action probabilities; now the action is the next token and the state is the history:</p>
+<div class="callout">
+$$r_t(\theta)=\frac{\pi_\theta(y_t\mid x,\,y_{&lt;t})}{\pi_{\theta_\text{old}}(y_t\mid x,\,y_{&lt;t})}$$
+</div>
+<p>Combine this with the advantages and plug it into the same clipped objective. There are many more details (some are in the course lecture notes), and some of them aren't well understood.</p>
+
+<h2>2 · Staying near a reference policy <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=4232" target="_blank" rel="noopener">▶ 70:32</a></h2>
+<p>One such detail: add a <b>regularisation</b> term so the policy doesn't drift too far from some <b>reference policy</b>. It was very useful early on; whether it's still useful now, the lecturer doesn't really know.</p>
+<div class="beyond"><b>Going beyond the lecture.</b> The usual form is a penalty $-\beta\,\mathrm{KL}\big(\pi_\theta\,\|\,\pi_\text{ref}\big)$ added to the objective, where $\pi_\text{ref}$ is the model before RL (e.g. after SFT) and $\beta$ is a small coefficient. Several recent reasoning-RL recipes set $\beta=0$.</div>
+
+<h2>3 · The baseline: average over a group of answers <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=4244" target="_blank" rel="noopener">▶ 70:44</a></h2>
+<p>An important choice is the baseline $b(s_t)$, which the course hasn't discussed much. In the old days you <b>learned a value function</b>, a network trained to estimate the baseline. The new way is simpler:</p>
+<ol class="steps">
+<li>Take one question $x$ and sample, say, <b>8 trajectories</b> $y^{(1)},\dots,y^{(8)}$ (superscripts index the trajectories).</li>
+<li>Score each: rewards $r_1,\dots,r_8$ (each 0 or 1).</li>
+<li>Average them: $\bar r=\frac18\sum_{i=1}^8 r_i$. This is a function of the question $x$ only, not of any particular answer. It's a statistic of <b>how hard this question is for the model right now</b>.</li>
+<li>Use $\bar r$ as the baseline: trajectory $i$ gets adjusted reward $r_i-\bar r$.</li>
+</ol>
+<p><b>The lecture's two examples</b> <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=4322" target="_blank" rel="noopener">▶ 72:02</a>:</p>
+<table>
+<tr><th>rewards of the 8 samples</th><th>$\bar r$</th><th>adjusted rewards $r_i-\bar r$</th></tr>
+<tr><td>1, 0, 0, 0, 0, 0, 0, 0</td><td>1/8</td><td>7/8, −1/8, −1/8, …, −1/8</td></tr>
+<tr><td>1, 1, 1, 1, 0, 0, 0, 0</td><td>1/2</td><td>0.5, 0.5, 0.5, 0.5, −0.5, −0.5, −0.5, −0.5</td></tr>
+</table>
+<p>A lone success on a hard question is reinforced strongly (7/8), and the seven failures are pushed down a little. You can go further and also <b>divide by the standard deviation</b> of the group, to scale things up <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=4385" target="_blank" rel="noopener">▶ 73:05</a>; that's left for reading.</p>
+
+<div class="card">
+  <p class="small muted" style="margin-top:0">Click an attempt to flip it between correct (1) and wrong (0). Every token of attempt $i$ gets the same advantage $\hat A_i$.</p>
+  <div class="row" id="att"></div>
+  <div class="row"><label>group size <select id="gs"><option>4</option><option selected>8</option><option>16</option></select></label>
+    <label><input type="checkbox" id="sd"> also divide by the standard deviation</label>
+    <button id="g1">1 of 8 right</button><button id="g4">4 of 8 right</button><button id="g0">all wrong</button></div>
+  <canvas id="c6a" height="170" aria-label="Group-relative advantages for each sampled attempt"></canvas>
+  <div class="row">
+    <div class="stat"><div class="v" id="rb">–</div><div class="l">baseline r̄</div></div>
+    <div class="stat"><div class="v" id="sdv">–</div><div class="l">group std</div></div>
+    <div class="stat"><div class="v" id="ap">–</div><div class="l">advantage: right / wrong</div></div>
+  </div>
+  <p class="small" id="t6a"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> This group-mean baseline, optionally divided by the group's standard deviation, is the advantage used in <b>GRPO</b> (from DeepSeek's DeepSeekMath paper, 2024), the algorithm the lecturer briefly named as an advanced version of PPO. Two consequences are worth seeing in the demo. If every attempt gets the same reward (all right or all wrong), every advantage is 0, so that question contributes nothing. And dividing by the std makes a rare success on a hard question count even more (with 1 of 8 right and the population std $\sqrt7/8\approx0.33$, the $7/8$ becomes about $2.65$).</div>
+
+<h2>4 · How does the model ever find good reasoning? <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=4402" target="_blank" rel="noopener">▶ 73:22</a></h2>
+<p>A student asked how the model finds the right thinking at all when the space of possible thoughts is so huge. The key: <b>start from a policy that sometimes gets a nonzero reward</b>.</p>
+<ul>
+<li>The lecturer's example is Llama 4. In his account (and he admits he may be exaggerating a little), those models had almost no thinking capability. So RL got 0 reward at the beginning and kept getting 0: no signal.</li>
+<li>Models like Qwen or DeepSeek start with a <i>little</i> thinking capability. Once you get one success, like the $1,0,0,\dots$ group, you reinforce it with $7/8$ and penalise the others, and the behaviour gradually appears. Then it <b>bootstraps</b>.</li>
+<li>How do you get that first nonzero reward? Sometimes with <b>SFT</b> first: create data with a thinking process, maybe even inject reflection ("I checked my answer… I'll correct myself"), so the model picks up a bit of the behaviour, then let RL bootstrap. Some <b>pre-training data</b> also contains lengthy thinking like this. What else frontier labs do, the lecturer doesn't know, but getting a nonzero reward is important.</li>
+</ul>
+
+<p>A toy version of the cold-start problem: compress the whole "can it reason?" question into one probability $p=\sigma(\theta)$ that an attempt succeeds. Each step samples a group of 8 attempts, computes $r_i-\bar r$, and takes a policy-gradient step on $\theta$. Each curve averages 20 runs.</p>
+<div class="card">
+  <div class="row"><label>learning rate $\alpha$ = <b id="lav">2.0</b> <input type="range" id="la" min="0.5" max="5" step="0.5" value="2"></label><button id="run6">Run again (new seeds)</button></div>
+  <canvas id="c6b" height="240" aria-label="Success probability over RL steps for different starting success rates"></canvas>
+  <div class="legend" id="leg6"></div>
+  <p class="small" id="t6b"></p>
+</div>
+
+<h2>5 · Who assigns the reward? <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=4537" target="_blank" rel="noopener">▶ 75:37</a></h2>
+<p>With a ground-truth answer, the reward is assigned in a very mechanical way: a very simple program checks for a match. When there's <b>no ground truth</b>, people also try a <b>large language model as the reward function</b>: extract the answer and have the LLM judge whether it's correct.</p>
+<p>The risk: an LLM judge can be <b>hackable</b>. It may not really check correctness, just the format and style of the answer, and the model being trained (the solver) can learn to exploit that. With a small judge (say a 4B-parameter model) you certainly can hack it. With a gigantic judge, whether that's possible isn't entirely clear yet.</p>
+
+<h2>6 · Where the compute goes <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=4615" target="_blank" rel="noopener">▶ 76:55</a></h2>
+<p>One RL step has three phases:</p>
+<table>
+<tr><th>phase</th><th>what happens</th><th>cost</th></tr>
+<tr><td><b>generation</b> (rollouts)</td><td>sample trajectories from the current policy</td><td>usually the <b>slowest</b>: tokens come out one by one, so it can't be parallelised along the sequence. Longer generations are slower still, since all the KV cache must stay in memory.</td></tr>
+<tr><td><b>reward</b> (evaluation)</td><td>score each trajectory</td><td>a parser plus a match, or an LLM judge</td></tr>
+<tr><td><b>training</b></td><td>compute the gradient and update</td><td>the trajectories already exist, so it's one forward/backward pass over the whole sequence at once</td></tr>
+</table>
+<p>That's the big difference from pre-training. In pre-training there's <b>no generation phase</b>: all the data was downloaded from the internet or pre-processed, so you only train.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>For LLMs the PPO ratio is per token: $\pi_\theta(y_t\mid x,y_{&lt;t})/\pi_{\theta_\text{old}}(y_t\mid x,y_{&lt;t})$; the clipped objective is unchanged.</li>
+<li>A regulariser towards a reference policy helped early on; whether it's still needed is unclear.</li>
+<li>Modern baseline: sample a group (e.g. 8) of answers per question and subtract their mean reward (optionally divide by the std). $1,0,\dots,0$ becomes $7/8,-1/8,\dots$</li>
+<li>RL needs a starting policy with nonzero reward. SFT with reflective traces, or pre-training data, provides it; then RL bootstraps.</li>
+<li>Rewards come from simple programs when there's ground truth. LLM judges fill the gap otherwise but risk reward hacking.</li>
+<li>Rollout generation, token by token with a growing KV cache, usually dominates the cost; pre-training has no such phase.</li>
+</ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+const redraws = [];
+
+// ---- group advantages ----
+let G = 8, R6 = [1, 0, 0, 0, 0, 0, 0, 0];
+function adv(){ const m = R6.reduce((a, b) => a + b, 0) / G, sd = Math.sqrt(R6.reduce((a, b) => a + (b - m) * (b - m), 0) / G), div = $('sd').checked;
+  return [R6.map(r => (r - m) / (div ? (sd > 0 ? sd : 1) : 1)), m, sd]; }
+function renderAtt(){ $('att').innerHTML = R6.map((r, i) => `<button id="at${i}" class="${r ? 'on' : ''}" style="min-width:44px">${i + 1}: ${r}</button>`).join('');
+  R6.forEach((_, i) => { $('at' + i).onclick = () => { R6[i] = 1 - R6[i]; renderAtt(); }; }); upd6a(); }
+function upd6a(){ const [A, m, sd] = adv(); $('rb').textContent = fmt(m); $('sdv').textContent = fmt(sd);
+  const k = R6.filter(r => r).length, aR = A[R6.indexOf(1)], aW = A[R6.indexOf(0)];
+  $('ap').textContent = k === 0 || k === G ? '0 / 0' : `${fmt(aR)} / ${fmt(aW)}`;
+  $('t6a').textContent = k === 0 ? `All ${G} attempts wrong: every advantage is 0, so this question gives no gradient at all. This is the cold-start problem.`
+    : k === G ? `All ${G} attempts right: again every advantage is 0. The question is too easy to teach anything now.`
+    : `${k} of ${G} right. The advantages sum to zero: successes are pushed up and failures down, by amounts that depend on how rare success was.`;
+  draw6a(A); }
+let lastA = null;
+function draw6a(A){ if (A) lastA = A; if (!lastA) return; A = lastA;
+  const [ctx, W, H] = setupCanvas($('c6a')), mid = H / 2, sc = Math.max(1, ...A.map(Math.abs)), bw = W / G;
+  ctx.strokeStyle = cssv('--grid'); ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(W, mid); ctx.stroke(); ctx.font = '11px system-ui'; ctx.textAlign = 'center';
+  A.forEach((a, i) => { const h = a / sc * (mid - 18); ctx.fillStyle = cssv(a >= 0 ? '--s3' : '--s2');
+    if (h >= 0) ctx.fillRect(i * bw + bw * 0.2, mid - h, bw * 0.6, h); else ctx.fillRect(i * bw + bw * 0.2, mid, bw * 0.6, -h);
+    ctx.fillStyle = cssv('--muted'); ctx.fillText(fmt(a, 2), i * bw + bw / 2, a >= 0 ? Math.min(mid - h - 4, H - 4) : Math.min(mid - h + 12, H - 2)); }); }
+$('gs').addEventListener('change', e => { G = +e.target.value || 8; R6 = Array.from({length: G}, (_, i) => (i === 0 ? 1 : 0)); renderAtt(); });
+$('sd').addEventListener('change', () => upd6a());
+const setG8 = k => { G = 8; $('gs').value = '8'; R6 = Array.from({length: 8}, (_, i) => (i < k ? 1 : 0)); renderAtt(); };
+$('g1').onclick = () => setG8(1); $('g4').onclick = () => setG8(4); $('g0').onclick = () => setG8(0);
+renderAtt();
+
+// ---- cold start ----
+const P0 = [0, 0.001, 0.01, 0.05, 0.2], COLS = ['--faint', '--s2', '--lv1', '--s1', '--s3'], STEPS = 200, RUNS = 20, GG = 8;
+let seed6 = 3, curves6 = null, firsts = null;
+const sig = z => 1 / (1 + Math.exp(-z));
+function run6(){ const al = +$('la').value; $('lav').textContent = al.toFixed(1);
+  curves6 = P0.map(() => new Float64Array(STEPS + 1)); firsts = P0.map(() => []);
+  P0.forEach((p0, j) => { for (let m = 0; m < RUNS; m++) { const r = rng(seed6 * 7919 + m * 31 + j); let th = p0 > 0 ? Math.log(p0 / (1 - p0)) : -Infinity, first = null;
+    curves6[j][0] += p0 / RUNS;
+    for (let k = 1; k <= STEPS; k++) { const p = th === -Infinity ? 0 : sig(th);
+      if (th !== -Infinity) { const rs = []; for (let i = 0; i < GG; i++) rs.push(r() < p ? 1 : 0);
+        const mean = rs.reduce((a, b) => a + b, 0) / GG; if (mean > 0 && first === null) first = k;
+        let g = 0; rs.forEach(ri => { g += (ri - mean) * (ri ? 1 - p : -p) / GG; }); th += al * g; }
+      curves6[j][k] += (th === -Infinity ? 0 : sig(th)) / RUNS; }
+    firsts[j].push(first); } });
+  $('leg6').innerHTML = P0.map((p, j) => `<span><i style="background:${cssv(COLS[j])}"></i>start p = ${p}</span>`).join('');
+  $('t6b').innerHTML = P0.map((p, j) => { const f = firsts[j].filter(x => x !== null); return `p₀ = ${p}: ${f.length}/${RUNS} runs ever saw a success` + (f.length ? ` (median first success at step ${f.sort((a, b) => a - b)[Math.floor(f.length / 2)]})` : ''); }).join(' · ') +
+    '. With p₀ = 0 there is never a reward, so there is never a gradient: the Llama-4 story. A small nonzero start is enough for RL to bootstrap.';
+  draw6b(); }
+function draw6b(){ if (!curves6) return;
+  const [ctx, W, H] = setupCanvas($('c6b')), L = 34, B = 20, T = 8, X = k => L + (W - L - 8) * k / STEPS, Y = p => T + (H - B - T) * (1 - p);
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(p => { ctx.beginPath(); ctx.moveTo(L, Y(p)); ctx.lineTo(W - 8, Y(p)); ctx.stroke(); ctx.fillText(p.toFixed(1), 4, Y(p) + 4); });
+  ctx.fillText('step 0', L, H - 5); ctx.textAlign = 'right'; ctx.fillText('step ' + STEPS, W - 8, H - 5); ctx.textAlign = 'left';
+  curves6.forEach((c, j) => { ctx.strokeStyle = cssv(COLS[j]); ctx.lineWidth = 2.2; ctx.beginPath(); for (let k = 0; k <= STEPS; k++) { k ? ctx.lineTo(X(k), Y(c[k])) : ctx.moveTo(X(k), Y(c[k])); } ctx.stroke(); }); }
+$('la').addEventListener('input', run6); $('run6').onclick = () => { seed6++; run6(); };
+run6(); redraws.push(() => draw6a()); redraws.push(draw6b);
+const redrawAll = () => redraws.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

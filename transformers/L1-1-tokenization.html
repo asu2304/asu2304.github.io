@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Autoregressive LLMs and Tokenisation</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 1 · part 1 of 5 · Stanford CS229, Spring 2026</div>
+<h1>Autoregressive LLMs and Tokenisation</h1>
+<p class="lede">A transformer only understands numbers, so text must first be chopped into units from a fixed vocabulary and each unit replaced by an ID. The units are neither characters nor words but <b>subwords</b>, found greedily by byte-pair encoding, so that rare and brand-new words are built from pieces the model already knows.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=0" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 0:00 to 10:16 of a 77-min video; published as “Lecture 14: Transformers, In-Context Learning”). Previous: <a href="index.html">the Transformers index</a> · Next: <a href="L1-2-autoregressive-model.html">the autoregressive model</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Where this sequence of lectures goes <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=5" target="_blank" rel="noopener">▶ 0:05</a></h2>
+<p>This lecture opens a short run of three or four lectures on <b>large language models</b>. Reinforcement learning is slotted in between, because modern <b>reasoning models</b> can't be explained without a little RL. A guest lecture on systems ML follows: how to make transformers run efficiently on GPUs.</p>
+<p>The paradigm, in the lecturer's telling, starts with OpenAI's <b>GPT-3</b>: <b>autoregressive</b> large language models. Earlier transformer variants that are not autoregressive are skipped.</p>
+<div class="callout"><b>Autoregressive</b> = generate tokens <b>one by one</b>, each new token depending on all the previous ones. The probability of a whole piece of text is modelled the same way, sequentially, one token at a time.</div>
+<p>Before the "real meat" (the probability model and the transformer), one piece of setup: <b>tokenisation</b>.</p>
+
+<h2>2 · Why tokenise, and why not characters or words <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=108" target="_blank" rel="noopener">▶ 1:48</a></h2>
+<p>Transformers are numerical models: they take in numbers. Text has to be turned into something they can read, and the first step is to decide <b>the smallest unit of input</b> handed to the model. The two obvious choices both have problems.</p>
+<table>
+<tr><th>Unit</th><th>What goes wrong</th></tr>
+<tr><td>Character</td><td>Far too many units: a text needs very many tokens, so very many steps.</td></tr>
+<tr><td>Word</td><td>Long, rare words. <i>internationalization</i> as a single unit is rare, and unrelated (as far as the model knows) to <i>internationalized</i> or <i>nation</i>. Nothing learned about one transfers to the others.</td></tr>
+<tr><td><b>Subword</b></td><td>The compromise used in practice: common words are single tokens, rare words split into reusable pieces.</td></tr>
+</table>
+<p>If you understand <i>internationalized</i>, you should understand <i>internationalization</i> to some degree <b>without seeing more data</b>. Word-level units throw that away.</p>
+
+<h2>3 · Subwords let you understand new words <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=210" target="_blank" rel="noopener">▶ 3:30</a></h2>
+<p>The lecturer's example is a word from his own notes, <b>LLMefication</b>: a brand-new word nobody used before about 2020, and still uncommon. As one unit, the model would have to see it many times to learn what it means. As subwords:</p>
+<p style="text-align:center"><span class="mono" style="padding:3px 8px;border:1px solid var(--s1);border-radius:6px">LLM</span> + <span class="mono" style="padding:3px 8px;border:1px solid var(--s2);border-radius:6px">efication</span></p>
+<p>The model has seen <i>LLM</i> many times and already understands it; <i>-efication</i> has its own meaning in English. Combine the two understandings and you understand the word: far more efficient than learning the whole string as an atom.</p>
+<p>This matters even more in <b>biology</b> (very long technical words) and in <b>German</b>: long words that are really combinations of many subwords. Subword tokenisation lets the model understand each piece and then the combination.</p>
+
+<h2>4 · Vocabulary and token IDs <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=296" target="_blank" rel="noopener">▶ 4:56</a></h2>
+<p>Tokenisation means having a <b>predefined vocabulary</b>: a list of subwords. "a" is a token; "dog" is a token; pretty much every common word is a token these days. The lecturer suggests playing with OpenAI's online tokenizer playground, where you find that even <b>"black dog"</b> is a single token: "black" merged with "dog".</p>
+<ul>
+<li><b>Size.</b> For open-source models, where we know the numbers, vocabularies are on the order of $10^5$ (100k) or more. The recent Qwen 3.5 open models have about <b>250k</b> tokens (the lecturer guesses the exact size has to do with how many bits are used to store a token ID).</li>
+<li><b>Tokenising</b> a string: cover it with subwords that are in the vocabulary, turning it into a sequence of segments.</li>
+<li><b>IDs.</b> Every token has an ID. In his example sentence <i>A black dog runs,</i> maybe "A" is ID 1, "dog" is 356, "run" is 250 (numbers made up). Every text becomes a <b>sequence of IDs</b>, one per token; here most words are one token each, and the comma is its own token.</li>
+</ul>
+<p>Splits are not always along meaningful lines. Checking a word like <i>(un)happiness</i>, the lecturer found an odd split, something like a prefix, then "h", then "appiness". In contrast a long biomedical term (one ending in <i>-blastoma</i>) split into three pieces, each with its own meaning, which is exactly what you'd want.</p>
+
+<h2>5 · Every model has its own tokenizer <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=482" target="_blank" rel="noopener">▶ 8:02</a></h2>
+<p>The algorithm that turns text into tokens is the <b>tokenizer</b>. The exact vocabulary depends on the model: some models share a tokenizer, but generally it is model-specific, and companies have proprietary approaches.</p>
+<p>A recent example: news (which the lecturer had not verified) that Anthropic updated Claude's tokenizer to be <b>more granular</b>, so the same text becomes roughly 1.5× as many tokens. Since you pay per token, the same amount of text then costs more.</p>
+
+<h2>6 · Byte-pair encoding: greedy merging of frequent pairs <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=550" target="_blank" rel="noopener">▶ 9:10</a></h2>
+<p>The keyword for how vocabularies are built is the <b>BPE tokenizer</b>, <b>byte-pair encoding</b>. The lecture deliberately skips the precise algorithm (it is "a very small quick setup") but gives the idea:</p>
+<ol class="steps">
+<li>Start from the smallest units: all the characters.</li>
+<li>Find the most frequent <b>combination of two</b> adjacent units in the training text.</li>
+<li>Add it to the vocabulary as a new unit and merge it everywhere.</li>
+<li>Repeat. It is a <b>greedy</b> algorithm: frequent subwords end up in the vocabulary.</li>
+</ol>
+<div class="beyond"><b>Going beyond the lecture: the exact algorithm.</b> Training BPE records the <b>ordered list of merges</b>. To tokenise new text, split it into characters (real tokenizers start from the 256 byte values, hence "byte"-pair, so every string is representable) and replay the merges in the order they were learned. The vocabulary size is the number of base symbols plus the number of merges, which is how designers pick 100k or 250k.</div>
+<p>Try it. The box holds a small training corpus; each <b>merge step</b> joins the currently most frequent adjacent pair. Then type any word to see how the learned merges tokenise it.</p>
+
+<div class="card">
+  <label for="corp" class="small muted">Training corpus (edit freely; words are split on spaces, case ignored)</label>
+  <textarea id="corp" rows="3" style="width:100%;font:13px ui-monospace,Menlo,monospace;background:var(--surface);color:var(--ink);border:1px solid var(--grid);border-radius:8px;padding:8px">nation nations national international internationalized internationalization nationalization rational rationalized realization organization organized organize globalization localization localized local global</textarea>
+  <div class="row"><button id="b1">Merge step</button><button id="b10">10 merges</button><button id="ball">Merge until no pair repeats</button><button id="brst">Reset</button></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="sM">0</div><div class="l">merges learned</div></div>
+    <div class="stat"><div class="v" id="sV">0</div><div class="l">vocabulary size</div></div>
+    <div class="stat"><div class="v" id="sT">0</div><div class="l">tokens in corpus (was <span id="sC">0</span> chars)</div></div>
+  </div>
+  <p class="small" id="bMsg"></p>
+  <div id="bWords" class="mono" style="line-height:2.1"></div>
+  <p class="small muted" style="margin-bottom:4px">Merges so far, in order:</p>
+  <div id="bMerges" class="mono small" style="max-height:90px;overflow:auto"></div>
+  <div class="row" style="margin-top:12px"><label for="tw">Tokenise a new word:</label><input id="tw" value="LLMefication internationalize" style="font:14px ui-monospace,Menlo,monospace;flex:1;min-width:180px;padding:5px 8px;background:var(--surface);color:var(--ink);border:1px solid var(--grid);border-radius:8px"></div>
+  <div id="tOut" class="mono" style="line-height:2.1"></div>
+</div>
+<p>Things to notice: within ten merges <i>ation</i>, <i>al</i>, <i>aliz</i> and <i>nation</i> are units, and merging to the end turns the unseen word <i>internationalize</i> into just <span class="mono">internation · aliz · e</span>, pieces learned from other words. <i>LLMefication</i> shares only <i>ation</i> with this corpus, so the rest stays as characters: what a tokenizer can reuse depends entirely on its training text. Few merges means near-character tokens (many per word); many merges means frequent words become single tokens while rare words stay in pieces.</p>
+
+<h2>7 · From here on, text is a sequence of IDs <a class="small" href="https://www.youtube.com/watch?v=pwQ0l4hFCVI&amp;t=616" target="_blank" rel="noopener">▶ 10:16</a></h2>
+<p>From now on we assume a tokenizer is given, so "a text" simply means a sequence of tokens</p>
+$$x_1, x_2, \dots, x_T,\qquad x_i \in V,$$
+<p>where $V$ is the vocabulary (size $|V|$ maybe 250,000) and each $x_i$ is an index into it: "the 5th token", "the 105th token", and so on. The next part asks how to put a probability distribution on such sequences.</p>
+<div class="beyond"><b>Going beyond the lecture.</b> My notes on Prof. Khapra's lectures start the transformer story from the RNN bottleneck instead: <a href="../deep-learning/L63-transformer-intro.html">Why transformers</a>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Modern LLMs (from GPT-3 on) are <b>autoregressive</b>: tokens are generated one at a time, each depending on all earlier ones.</li>
+<li>Characters give too many steps; words make rare and new words unlearnable. <b>Subwords</b> let the model reuse what it knows (<i>LLM</i> + <i>efication</i>).</li>
+<li>A tokenizer maps text to a sequence of IDs from a fixed vocabulary of ~$10^5$ tokens (about 250k for Qwen 3.5); each model family has its own.</li>
+<li>BPE builds the vocabulary greedily by repeatedly merging the most frequent adjacent pair.</li>
+<li>After tokenisation, a text is just $x_1,\dots,x_T$ with each $x_i\in V$.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+const fmt = (x, k = 3) => Number.isFinite(x) ? (Math.abs(x) >= 1e4 || (Math.abs(x) < 1e-3 && x !== 0) ? x.toExponential(2) : x.toFixed(k)) : '–';
+function softmax(z){ const m = Math.max(...z); if (!Number.isFinite(m)) return z.map(() => 1 / z.length); const e = z.map(v => Math.exp(v - m)), s = e.reduce((a, b) => a + b, 0); return e.map(v => v / s); }
+
+let words = [], merges = [], baseChars = new Set(), msgB = '';
+function initBPE(){ const freq = new Map();
+  $('corp').value.toLowerCase().split(/\s+/).filter(Boolean).forEach(w => freq.set(w, (freq.get(w) || 0) + 1));
+  words = [...freq].map(([w, f]) => ({w, f, s: [...w]})); merges = []; baseChars = new Set();
+  words.forEach(o => o.s.forEach(c => baseChars.add(c))); msgB = 'Every word starts as single characters. Press “Merge step”.'; renderB(); }
+function pairCounts(){ const m = new Map();
+  words.forEach(o => { for (let i = 0; i + 1 < o.s.length; i++) { const k = o.s[i] + '\u0001' + o.s[i + 1]; m.set(k, (m.get(k) || 0) + o.f); } }); return m; }
+function applyMerge(seq, a, b){ const out = []; for (let i = 0; i < seq.length; i++) { if (i + 1 < seq.length && seq[i] === a && seq[i + 1] === b) { out.push(a + b); i++; } else out.push(seq[i]); } return out; }
+function step(){ const pc = pairCounts(); let best = null, bc = 0;
+  pc.forEach((c, k) => { if (c > bc) { bc = c; best = k; } });
+  if (!best || bc < 2) { msgB = 'No adjacent pair occurs more than once: nothing left worth merging.'; return false; }
+  const [a, b] = best.split('\u0001'); merges.push([a, b, bc]); words.forEach(o => o.s = applyMerge(o.s, a, b));
+  msgB = `Most frequent pair: <b>“${a}” + “${b}”</b> (${bc} times) → new token <b>“${a + b}”</b>.`; return true; }
+function chip(t, i){ const col = ['--s1', '--s2', '--s3'][i % 3]; return `<span style="padding:2px 5px;margin:0 1px;border:1px solid var(${col});border-radius:5px;white-space:nowrap">${t.replace(/</g, '&lt;')}</span>`; }
+function encode(w){ let s = [...w]; merges.forEach(([a, b]) => { s = applyMerge(s, a, b); }); return s; }
+function renderB(){ let nt = 0, nc = 0; words.forEach(o => { nt += o.s.length * o.f; nc += o.w.length * o.f; });
+  $('sM').textContent = merges.length; $('sV').textContent = baseChars.size + merges.length; $('sT').textContent = nt; $('sC').textContent = nc;
+  $('bMsg').innerHTML = msgB;
+  $('bWords').innerHTML = words.map(o => '<span style="display:inline-flex;flex-wrap:wrap;max-width:100%;row-gap:6px;margin-right:12px">' + o.s.map(chip).join('') + '</span>').join('');
+  $('bMerges').innerHTML = merges.length ? merges.map(([a, b, c], i) => `${i + 1}. ${a}+${b}→${a + b} <span class="muted">(${c})</span>`).join(' · ') : '<span class="muted">none yet</span>';
+  renderT(); }
+function renderT(){ const ws = $('tw').value.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 8);
+  $('tOut').innerHTML = ws.map(w => { const s = encode(w); return '<span style="display:inline-block;margin-right:14px">' + s.map(chip).join('') + ` <span class="muted small">${s.length} tok</span></span>`; }).join(''); }
+$('b1').onclick = () => { step(); renderB(); };
+$('b10').onclick = () => { for (let i = 0; i < 10; i++) if (!step()) break; renderB(); };
+$('ball').onclick = () => { let k = 0; while (k < 2000 && step()) k++; renderB(); };
+$('brst').onclick = initBPE; $('corp').addEventListener('change', initBPE); $('tw').addEventListener('input', renderT);
+initBPE();
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

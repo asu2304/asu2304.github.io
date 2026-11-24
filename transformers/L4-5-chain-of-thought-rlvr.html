@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chain of Thought and RL with Verifiable Rewards</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 4 · part 5 of 6 · Stanford CS229, Spring 2026</div>
+<h1>Chain of Thought and RL with Verifiable Rewards</h1>
+<p class="lede">Letting a model "think" in extra tokens before answering helps on multi-step problems. Prompting can elicit it and supervised data can teach it, but the best way to train it is reinforcement learning. Treat generation as an MDP (state = prompt plus tokens so far, action = next token) and give a reward only at the end: 1 if the extracted answer matches the ground truth, 0 otherwise.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3381" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 56:21 to 68:50 of a 79-min video; published as “Lecture 20: GMM (EM), PCA”, though it is about reinforcement learning). Previous: <a href="L4-4-ppo-clipping-cispo.html">part 4</a> · Next: <a href="L4-6-rl-for-llms-in-practice.html">part 6</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Chain of thought <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3391" target="_blank" rel="noopener">▶ 56:31</a></h2>
+<p>With the remaining time, the lecture turns to applying all this to large language models. The first notion needed is <b>chain of thought</b> (CoT), and it's very simple.</p>
+<p>So far: a prompt $x_1,\dots,x_l$ (the question, say "what is 1 + 1?") and the model generates the answer $y_1,\dots,y_k$ <b>right away</b>. It turns out that answering immediately is not necessarily best. You should let the model <b>think for a while</b> first:</p>
+<div class="card">
+<p class="mono" style="margin:0;white-space:pre-wrap">prompt (given)          generated by the model
+x₁ … x_l   →   &lt;think&gt; z₁ … z_n &lt;/think&gt;   y₁ … y_k
+                   thinking tokens            answer</p>
+</div>
+<p>The thinking tokens often start and end with special tokens, but not always: some models don't produce any such separator and simply start thinking, then answer. (The lecturer mentions Qwen and DeepSeek models.)</p>
+
+<h2>2 · How it was discovered: few-shot CoT <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3482" target="_blank" rel="noopener">▶ 58:02</a></h2>
+<p>CoT was first found useful on math problems, or any question that needs several steps. No human can produce the answer to such a question immediately; it takes steps. The $z_1,\dots,z_n$ lay out that step-by-step calculation.</p>
+<p>In the first paper, people used <b>few-shot learning</b> (from earlier in the course) to encourage this behaviour. The prompt contains, say, three similar questions, each with a handcrafted step-by-step solution followed by the answer. All of these are concatenated, then comes: now solve <i>my</i> question the same way. That's <b>few-shot CoT</b>.</p>
+
+<h2>3 · Zero-shot CoT <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3570" target="_blank" rel="noopener">▶ 59:30</a></h2>
+<p>Later people found something much simpler: no examples at all. Add to the question</p>
+<div class="callout" style="text-align:center"><i>Let's think step by step.</i></div>
+<p>and the model naturally starts reasoning step by step before answering. These few magic words improve accuracy by 5%, 10%, sometimes 20% or more.</p>
+
+<h2>4 · Training for it with supervised data, and why that's limited <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3627" target="_blank" rel="noopener">▶ 60:27</a></h2>
+<p>If this is so useful, why not <b>train</b> the model so the capability becomes more prominent? The first idea was instruction tuning: manually create a dataset of step-by-step solutions and do <b>supervised fine-tuning</b> on it. That's limited, because we don't really know the <b>best way</b> to think step by step:</p>
+<ul>
+<li>Look at the thinking tokens of open-source models (closed models only show a summary of their thinking). They are <b>not very logical</b>: lots of back and forth, sometimes very terse shorthand, sometimes skepticism about the question itself. It isn't a coherent, shortest path. It's lengthy back and forth, probably much like how people really solve problems: try ideas, reflect on what you've done.</li>
+<li>So if you handcraft thinking processes, you can't even produce that kind of messy, useful process.</li>
+<li>There was a study where people generated very <b>succinct</b> thinking processes. Those turned out not very useful for the model; it's too hard to think that way. The model needs to spend more tokens and think in a less "logical" way.</li>
+</ul>
+<p>Supervised CoT works to some degree, but it's hard to scale.</p>
+
+<h2>5 · Reinforcement learning: reward the answer only <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3759" target="_blank" rel="noopener">▶ 62:39</a></h2>
+<p>The benefit of RL: <b>you don't need labels showing how to answer</b>. You only need to <b>judge whether the answer is correct</b>. Treat the whole generation as a trajectory and reward it based on the final answer alone. You don't care how the thinking was done: think however you like, as long as the final answer is right and can be verified.</p>
+
+<h2>6 · Language-model generation as an MDP <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3835" target="_blank" rel="noopener">▶ 63:55</a></h2>
+<p>Formally, view generation as an MDP and apply the RL tools. For this you don't even need to distinguish thinking from answer: there's an input $x=(x_1,\dots,x_l)$ and a generation $y_1,\dots,y_n$, part of which is thinking and part answer.</p>
+<table>
+<tr><th>MDP</th><th>language model</th></tr>
+<tr><td>state $s_t$</td><td>the prompt and everything generated so far: $(x,\,y_1,\dots,y_{t-1})$</td></tr>
+<tr><td>action $a_t$</td><td>the next token, $y_t$</td></tr>
+<tr><td>policy $\pi_\theta(a_t\mid s_t)$</td><td>the model's next-token distribution $\pi_\theta(y_t\mid x,y_{&lt;t})$</td></tr>
+<tr><td>transition $s_{t+1}$ given $(s_t,a_t)$</td><td>concatenation: $(x,y_1,\dots,y_{t-1})$ followed by $y_t$. Completely <b>deterministic and trivial</b>.</td></tr>
+<tr><td>reward $R(s_t,a_t)$</td><td>zero at every step except the very <b>end</b>, where the whole trajectory $(x,y_1,\dots,y_n)$ is scored</td></tr>
+</table>
+<p>The dynamics are trivial, but that doesn't make the problem easy. You take an action at every step, over a long sequence, and you have to produce the right tokens all along to reach the answer. (Generating $y_t$ conditioned on $x$ and $y_{&lt;t}$ is exactly what a masked decoder does; see <a href="../deep-learning/L67-decoder-block.html">the transformer decoder</a>.)</p>
+
+<h2>7 · The verifiable reward <a class="small" href="https://www.youtube.com/watch?v=J7CossjMvEg&amp;t=3976" target="_blank" rel="noopener">▶ 66:16</a></h2>
+<p>The reward of the trajectory is literally whether the <b>answer part matches the ground-truth answer</b>. This requires a dataset where you know the ground truth: for a math calculation you know the final result and check whether the model's result matches. The reward is usually <b>binary</b>:</p>
+$$R(x,y_1,\dots,y_n)=\begin{cases}1 &amp; \text{if the extracted answer matches the ground truth}\\ 0 &amp; \text{otherwise}\end{cases}$$
+<p>In reality there are many variations. Formatting matters: you must be able to <b>extract</b> the answer quickly and in a mechanical way, not by calling another AI model. So the model is asked to wrap its answer in a tag, XML style, <span class="mono">&lt;answer&gt; … &lt;/answer&gt;</span>. A parser pulls out what's inside, compares it with the ground truth, and gives 1 or 0. Models are better now and can be asked for other formats, but early on it was this simple.</p>
+
+<p>Turn a response into an MDP trajectory and score it. Tokens here are just words and symbols, to keep it readable; real tokenizers split into sub-word pieces.</p>
+<div class="card">
+  <div class="row"><button id="pr1">correct</button><button id="pr2">wrong answer</button><button id="pr3">right number, no tags</button><button id="pr4">long, messy, right</button></div>
+  <p class="small muted" style="margin:4px 0">Prompt $x$: <span class="mono">Pens cost 2 dollars for 3. How much do 12 pens cost?</span> · ground truth: <input id="gt" value="8" size="6" aria-label="ground truth answer"></p>
+  <textarea id="resp" rows="4" style="width:100%;font:13px ui-monospace,Menlo,monospace;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:8px" aria-label="model response"></textarea>
+  <div class="row"><label>step $t$ = <b id="tv">1</b> <input type="range" id="ts" min="1" max="2" step="1" value="1"></label></div>
+  <div id="mdp" class="small" style="background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:8px;word-break:break-word"></div>
+  <div class="row">
+    <div class="stat"><div class="v" id="nT">–</div><div class="l">actions (tokens) in the trajectory</div></div>
+    <div class="stat"><div class="v" id="ext">–</div><div class="l">parser's extracted answer</div></div>
+    <div class="stat"><div class="v" id="rew">–</div><div class="l">final reward</div></div>
+  </div>
+  <p class="small" id="t5"></p>
+</div>
+
+<p>Then you can run PPO, or CISPO, on this formulation. That's the next page.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Chain of thought: let the model generate thinking tokens $z_1,\dots,z_n$ (often between special tokens) before the answer.</li>
+<li>It was first elicited with few-shot CoT (worked examples in the prompt), then zero-shot ("Let's think step by step"), worth 5–20% accuracy or more.</li>
+<li>Supervised CoT data is limited: useful thinking is messy and long, and humans can't easily write it; terse, tidy reasoning helps less.</li>
+<li>RL only needs a verdict on the final answer. Generation is an MDP with $s_t=(x,y_{&lt;t})$, $a_t=y_t$, deterministic concatenation dynamics, and a reward only at the end.</li>
+<li>Verifiable reward: parse the answer from a fixed format (e.g. <span class="mono">&lt;answer&gt;</span> tags) and give 1 if it matches the ground truth, else 0.</li>
+</ol>
+
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+function rng(seed){ let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+const redraws = [];
+
+const PRESETS = {
+  pr1: '<think> 12 pens is 4 groups of 3 . Each group costs 2 , so 4 × 2 = 8 . </think> <answer> 8 </answer>',
+  pr2: '<think> 12 / 2 = 6 groups , 6 × 3 = 18 . </think> <answer> 18 </answer>',
+  pr3: '<think> 12 / 3 = 4 , 4 × 2 = 8 . </think> The answer is 8 dollars .',
+  pr4: '<think> hmm , 3 pens for 2 dollars . So one pen is 2/3 ? 12 × 2/3 ... wait , easier : 12 pens = 4 sets of 3 . 4 × 2 = 8 . Let me check : 8 / 4 = 2 per set , yes . </think> <answer> 8 </answer>'};
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const tok = s => (s.match(/<\/?[a-z]+>|[A-Za-z]+|\d+(?:\.\d+)?|\S/g) || []);
+function extract(s){ const m = s.match(/<answer>([\s\S]*?)<\/answer>/); return m ? m[1].trim() : null; }
+const norm = s => s.replace(/\s+/g, '').replace(/dollars?$/i, '').toLowerCase();
+function update5(keepT){
+  const resp = $('resp').value, toks = tok(resp), n = toks.length;
+  const slider = $('ts'); slider.max = String(Math.max(1, n)); if (!keepT) slider.value = String(Math.max(1, n)); let t = Math.min(+slider.value, Math.max(1, n)); $('tv').textContent = t;
+  const ans = extract(resp), ok = ans !== null && norm(ans) === norm($('gt').value), R = ok ? 1 : 0;
+  $('nT').textContent = n; $('ext').textContent = ans === null ? 'none' : ans; $('rew').textContent = R;
+  if (!n) { $('mdp').innerHTML = '<span class="muted">Empty response.</span>'; $('t5').textContent = ''; return; }
+  const prev = toks.slice(0, t - 1).map(esc).join(' '), act = esc(toks[t - 1]);
+  $('mdp').innerHTML = `<b>state s<sub>${t}</sub></b> = <span class="muted">[x]</span> ${prev || '<span class="muted">(nothing generated yet)</span>'}<br><b>action a<sub>${t}</sub></b> = y<sub>${t}</sub> = <span class="mono" style="background:var(--tint);padding:1px 4px;border-radius:4px">${act}</span><br><b>next state</b> = s<sub>${t}</sub> followed by "${act}" (deterministic)<br><b>reward at this step</b> = ${t < n ? '0 (not the end yet)' : R + ' (end of trajectory: answer checked)'}`;
+  $('t5').innerHTML = ans === null ? 'The parser found no <span class="mono">&lt;answer&gt;</span> tag, so the reward is 0, even though the number in the text may be right. Format is part of the reward.'
+    : ok ? `Answer matches the ground truth: reward 1 for the whole trajectory, however messy the thinking was. With γ = 1, every one of the ${n} actions sees return 1.`
+    : `Answer "${esc(ans)}" doesn't match "${esc($('gt').value)}": reward 0.`; }
+Object.keys(PRESETS).forEach(k => $(k).onclick = () => { $('resp').value = PRESETS[k]; update5(false); });
+$('resp').addEventListener('input', () => update5(false)); $('gt').addEventListener('input', () => update5(true)); $('ts').addEventListener('input', () => update5(true));
+$('resp').value = PRESETS.pr1; update5(false);
+const redrawAll = () => redraws.forEach(f => f());
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+
+</script>
+
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

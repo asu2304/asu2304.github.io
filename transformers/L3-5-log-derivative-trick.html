@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Policy Gradient and the Log-Derivative Trick</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Transformers (Stanford CS229)</a></p>
+<div class="kicker">Lecture 3 · part 5 of 6 · Stanford CS229, Spring 2026</div>
+<h1>Policy Gradient and the Log-Derivative Trick</h1>
+<p class="lede">Policy gradient (REINFORCE) maximises the expected return $\eta(\theta)$ of a stochastic policy $\pi_\theta$ by gradient ascent. The catch: $\theta$ appears only in the <i>distribution</i> we sample from, not inside the expectation. The log-derivative trick turns $\nabla_\theta\,\mathbb{E}_{x\sim p_\theta}[f(x)]$ back into an expectation, $\mathbb{E}_{x\sim p_\theta}[\nabla_\theta\log p_\theta(x)\,f(x)]$, which you can estimate by sampling.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=3339" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (from 55:39 to 69:15 of a 76-min video; published as “Lecture 18: GMM (EM), PCA”). Previous: <a href="L3-4-bellman-equation.html">The Bellman equation</a> · Next: <a href="L3-6-reinforce.html">REINFORCE on trajectories</a></p>
+<div class="credit"><b>Credit.</b> These notes follow lectures from <b>Stanford CS229: Machine Learning (Spring 2026)</b>, taught by <b>Tengyu Ma</b> and <b>Chris Ré</b>, and published free by Stanford Online. The lecture content, structure and examples are theirs; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs229.stanford.edu/index.html-spr26" target="_blank" rel="noopener">cs229.stanford.edu</a>.</div>
+
+<h2>1 · Why jump straight to policy gradient <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=3339" target="_blank" rel="noopener">▶ 55:39</a></h2>
+<p>There are many algorithms for finding the optimal policy, and the course's lecture notes cover several. This quarter focuses on large language models, so the lecture skips the ones rarely used there and goes directly to the <b>precursor of the algorithms used to train LLMs</b>: <b>policy gradient</b>, also called <b>REINFORCE</b> (all capitals, for historical reasons: that's what its inventor named it).</p>
+<p>Two things stand out about it:</p>
+<ul>
+<li>It <b>doesn't need most of the background</b> above (no Bellman equation, no value functions). In some ways it's much simpler, which is probably why it transfers to LLMs, whose quirks only allow relatively simple algorithms.</li>
+<li>It works <b>only for stochastic policies</b>, not deterministic ones.</li>
+</ul>
+
+<h2>2 · A parameterised stochastic policy <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=3459" target="_blank" rel="noopener">▶ 57:39</a></h2>
+<p>Use a neural network with parameters $\theta$ to output a distribution over actions:</p>
+$$\pi_\theta(a\mid s).$$
+<p>The full distribution might not be listable: actions can be continuous, or there may be infinitely many. The algorithm needs only two things:</p>
+<ol class="steps">
+<li><b>Evaluate the density:</b> for any $a$ and $s$, the network gives $\pi_\theta(a\mid s)$.</li>
+<li><b>Sample:</b> you can draw $a\sim\pi_\theta(\cdot\mid s)$.</li>
+</ol>
+
+<h2>3 · The objective $\eta(\theta)$ <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=3529" target="_blank" rel="noopener">▶ 58:49</a></h2>
+<p>In this literature people usually work with <b>finitely many steps</b> $T$. The expected discounted return of the policy $\pi_\theta$ is</p>
+<div class="callout">$$\eta(\theta)=\mathbb{E}\Big[\sum_{t=0}^{T-1}\gamma^tR(s_t)\Big],\qquad s_0\sim D_0,\quad a_t\sim\pi_\theta(\cdot\mid s_t),\quad s_{t+1}\sim P_{s_ta_t}.$$</div>
+<p>($\eta$ rather than $V$ because that's the letter this literature uses.) The difference from the value function is small: $V^\pi(s)$ fixes $s_0=s$, while here the initial state is random, drawn from a known distribution $D_0$, and we only track the dependence on $\theta$. (A student caught an index slip on the board: the next state is $s_{t+1}$.)</p>
+<p>The goal is to find $\theta$ that <b>maximises</b> $\eta(\theta)$, and the approach is simple: take the gradient of $\eta$ and follow it. Because we maximise, that's gradient <i>ascent</i>, $\theta\leftarrow\theta+\alpha\nabla_\theta\eta(\theta)$. (The board said "descent"; on $-\eta$ it's the same thing.) See <a href="../deep-learning/L17-gradient-descent.html">my notes on gradient descent</a> for the update rule itself.</p>
+
+<h2>4 · Why the gradient isn't straightforward <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=3654" target="_blank" rel="noopener">▶ 60:54</a></h2>
+<p>Look inside the expectation in $\eta$: there's no $\theta$. $R$ is known, $\gamma$ is known, $s_t$ is just what you sampled. <b>All the dependence on $\theta$ comes from the distribution you sample from</b>, not from what you average.</p>
+<p>Compare a case you already know how to handle:</p>
+$$\nabla_\theta\,\mathbb{E}_{w\sim\mathcal N(0,I)}\big[f(\theta,w)\big]=\mathbb{E}_{w\sim\mathcal N(0,I)}\big[\nabla_\theta f(\theta,w)\big].$$
+<p>There the expectation is over a <b>fixed</b> random thing, so the gradient just moves inside. Try that with $\eta$ and you get the gradient of something with no $\theta$ in it: zero. That's wrong, because changing $\theta$ clearly changes which trajectories you see.</p>
+<table>
+<tr><th></th><th>$\mathbb{E}_{w\sim\mathcal N}[f(\theta,w)]$</th><th>$\mathbb{E}_{x\sim p_\theta}[f(x)]$</th></tr>
+<tr><td>Where $\theta$ lives</td><td>inside $f$</td><td>in the sampling distribution</td></tr>
+<tr><td>Move $\nabla$ inside?</td><td>Yes</td><td>No: that would give 0</td></tr>
+</table>
+
+<h2>5 · The abstract problem <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=3792" target="_blank" rel="noopener">▶ 63:12</a></h2>
+<p>Strip away the RL details. We want</p>
+$$\nabla_\theta\;\mathbb{E}_{x\sim p_\theta}\big[f(x)\big],\qquad f \text{ does not depend on }\theta .$$
+<table>
+<tr><th>Abstract</th><th>In RL</th></tr>
+<tr><td>$x$</td><td>the trajectory $\tau=(s_0,a_0,s_1,a_1,\dots)$</td></tr>
+<tr><td>$p_\theta(x)$</td><td>probability of the trajectory under $\pi_\theta$</td></tr>
+<tr><td>$f(x)$</td><td>its discounted sum of rewards $\sum_t\gamma^tR(s_t)$</td></tr>
+</table>
+
+<h2>6 · The log-derivative trick <a class="small" href="https://www.youtube.com/watch?v=xveNBYVTrqw&amp;t=3870" target="_blank" rel="noopener">▶ 64:30</a></h2>
+<ol class="steps">
+<li><b>Make the $\theta$-dependence explicit.</b> An expectation is probability × value, integrated:
+$$\nabla_\theta\,\mathbb{E}_{x\sim p_\theta}[f(x)]=\nabla_\theta\int p_\theta(x)\,f(x)\,dx .$$</li>
+<li><b>Swap gradient and integral.</b> The integration is ordinary integration over $x$ (Lebesgue measure); nothing about it depends on $\theta$:
+$$=\int\nabla_\theta\big(p_\theta(x)\,f(x)\big)\,dx .$$</li>
+<li><b>$f$ doesn't depend on $\theta$</b>, so only $p_\theta$ is differentiated:
+$$=\int\nabla_\theta p_\theta(x)\;f(x)\,dx .$$
+This is a correct formula, and each piece can be computed, but there's no practical way to <i>integrate over all $x$</i>. We want a form we can <b>sample</b>.</li>
+<li><b>Multiply and divide by $p_\theta(x)$.</b> By the chain rule, $\nabla_\theta\log p_\theta(x)=\dfrac{\nabla_\theta p_\theta(x)}{p_\theta(x)}$, so $\nabla_\theta p_\theta(x)=\big(\nabla_\theta\log p_\theta(x)\big)\,p_\theta(x)$:
+$$=\int\big(\nabla_\theta\log p_\theta(x)\big)\,f(x)\;p_\theta(x)\,dx .$$
+(Check: the $p_\theta$ in the denominator cancels the $p_\theta$ we multiplied in, giving back step 3.)</li>
+<li><b>Read it as an expectation again.</b> "Probability times value, integrated" is an expectation under $p_\theta$:
+$$=\mathbb{E}_{x\sim p_\theta}\big[\nabla_\theta\log p_\theta(x)\;f(x)\big].$$</li>
+</ol>
+<div class="callout"><b>Log-derivative (score-function) identity</b>
+$$\nabla_\theta\,\mathbb{E}_{x\sim p_\theta}[f(x)]=\mathbb{E}_{x\sim p_\theta}\big[\nabla_\theta\log p_\theta(x)\,f(x)\big].$$
+Every piece is available: sample $x\sim p_\theta$, evaluate $f(x)$, differentiate $\log p_\theta(x)$. Averaging over samples gives an <b>unbiased estimate of the gradient</b>. It estimates the gradient, not the function.</div>
+<p>The whole point of the log is to make the factor $p_\theta(x)$ reappear, so the expression is an expectation again and we can sample instead of integrating. (On the board the $f(x)$ briefly went missing from one line; a student pointed it out and it was restored.)</p>
+<p>A student's question here is partly inaudible; it seems to ask whether the log is there because the probability is a product (as a trajectory's will be). The lecturer's answer: not really. You could take the gradient of a product of probabilities directly; there may be some numerical-stability benefit, but that isn't the main reason. The main reason is getting back to an expectation.</p>
+<div class="beyond"><b>Going beyond the lecture: a two-line sanity check.</b> The identity implies $\mathbb{E}_{x\sim p_\theta}[\nabla_\theta\log p_\theta(x)]=0$ (take $f\equiv1$: the gradient of $\mathbb{E}[1]=1$ is 0). So the estimate is "the score, weighted by $f$": samples with large $f$ pull $\theta$ towards making them more likely, and adding a constant to $f$ changes no expectation, only the noise.</div>
+
+<h2>7 · Try it: is the estimator really unbiased?</h2>
+<div class="card">
+<p class="small muted" style="margin-top:0">A toy $p_\theta$ over three outcomes $x\in\{0,1,2\}$: $p_\theta(x)\propto e^{\theta x}$ (a softmax with logits $0,\theta,2\theta$). For this family $\nabla_\theta\log p_\theta(x)=x-\mathbb{E}_{p_\theta}[x]$. Set $f(x)$ and $\theta$. <b>Left:</b> $\mathbb{E}_{p_\theta}[f]$ against $\theta$, with the true tangent at your $\theta$. <b>Right:</b> the running average of the single-sample estimate $\nabla_\theta\log p_\theta(x)\,f(x)$ as samples accumulate, against the exact slope. The naive "move $\nabla$ inside" answer is always 0.</p>
+<div class="row"><label>$\theta$ <input type="range" id="lt" min="-2" max="2" step="0.05" value="0"> <span id="ltV">0.00</span></label>
+<label>$f(0)$ <input type="range" id="f0" min="-3" max="3" step="0.5" value="1"> <span id="f0V">1.0</span></label>
+<label>$f(1)$ <input type="range" id="f1" min="-3" max="3" step="0.5" value="3"> <span id="f1V">3.0</span></label>
+<label>$f(2)$ <input type="range" id="f2" min="-3" max="3" step="0.5" value="-1"> <span id="f2V">-1.0</span></label></div>
+<div class="row"><button id="s1">+1 sample</button><button id="s100">+100</button><button id="s10k">+10,000</button><button id="sR">clear samples</button></div>
+<div class="pair half"><canvas id="ec" height="230" aria-label="Expected f against theta with tangent"></canvas><canvas id="gc" height="230" aria-label="Running Monte Carlo gradient estimate"></canvas></div>
+<div class="legend"><span><i style="background:var(--s1)"></i>$\mathbb{E}_{p_\theta}[f]$ / running estimate</span><span><i style="background:var(--s3)"></i>exact gradient (tangent slope)</span><span><i style="background:var(--s2)"></i>naive "∇ inside" = 0</span></div>
+<div class="row">
+<div class="stat"><div class="v" id="gEx"></div><div class="l">exact $\nabla_\theta\mathbb{E}[f]$</div></div>
+<div class="stat"><div class="v" id="gMc">–</div><div class="l">sample estimate ± 2 s.e.</div></div>
+<div class="stat"><div class="v" id="gN">0</div><div class="l">samples</div></div>
+</div>
+<p class="small" id="gTxt"></p>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Policy gradient (REINFORCE) needs a stochastic policy $\pi_\theta(a\mid s)$ that you can <b>evaluate</b> and <b>sample</b>; nothing else from the MDP machinery.</li>
+<li>Objective: $\eta(\theta)=\mathbb{E}[\sum_{t}\gamma^tR(s_t)]$ with $s_0\sim D_0$; maximise it by gradient ascent.</li>
+<li>$\theta$ sits in the <b>sampling distribution</b>, so you can't push $\nabla$ inside the expectation as you would for $\mathbb{E}_{w}[f(\theta,w)]$.</li>
+<li>Log-derivative trick (write as an integral, swap, multiply and divide by $p_\theta$): $$\nabla_\theta\mathbb{E}_{p_\theta}[f]=\mathbb{E}_{p_\theta}[\nabla_\theta\log p_\theta(x)\,f(x)].$$</li>
+<li>The result is an expectation, so a sample average gives an unbiased gradient estimate.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, r.width, h]; }
+const DRAW = [], redrawAll = () => DRAW.forEach(f => f());
+const fmt = (x, d = 3) => (Math.abs(x) < 0.5 * Math.pow(10, -d) ? 0 : x).toFixed(d);
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redrawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawAll);
+new MutationObserver(redrawAll).observe(document.documentElement, {attributes: true, attributeFilter: ['data-theme']});
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); redrawAll(); });
+let th = 0, f = [1, 3, -1], ests = [];
+const probs = t => { const e = [0, 1, 2].map(x => Math.exp(t * x)), z = e[0] + e[1] + e[2]; return e.map(v => v / z); };
+const Ef = t => probs(t).reduce((a, p, x) => a + p * f[x], 0);
+const Ex = t => probs(t).reduce((a, p, x) => a + p * x, 0);
+const gExact = t => { const p = probs(t), m = Ex(t); return p.reduce((a, q, x) => a + q * (x - m) * f[x], 0); };
+function sample(n){ const p = probs(th), m = Ex(th); for (let k = 0; k < n; k++) { const u = Math.random(), x = u < p[0] ? 0 : u < p[0] + p[1] ? 1 : 2; ests.push((x - m) * f[x]); } }
+function axes(ctx, W, H, L, top, bot){ ctx.strokeStyle = cssv('--grid'); ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, top); ctx.lineTo(L, bot); ctx.lineTo(W - 8, bot); ctx.stroke(); }
+function drawE(){
+  const [ctx, W, H] = setupCanvas($('ec')), L = 34, top = 12, bot = H - 22; axes(ctx, W, H, L, top, bot);
+  let lo = Infinity, hi = -Infinity; for (let i = 0; i <= 80; i++) { const v = Ef(-2 + 4 * i / 80); lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  const pad = (hi - lo) * 0.15 + 0.2; lo -= pad; hi += pad;
+  const X = t => L + (W - 8 - L) * (t + 2) / 4, Y = v => bot - (bot - top) * (v - lo) / (hi - lo);
+  ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2.5; ctx.beginPath(); for (let i = 0; i <= 80; i++) { const t = -2 + 4 * i / 80; i ? ctx.lineTo(X(t), Y(Ef(t))) : ctx.moveTo(X(t), Y(Ef(t))); } ctx.stroke();
+  const m = gExact(th), d = 0.7; ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(X(th - d), Y(Ef(th) - m * d)); ctx.lineTo(X(th + d), Y(Ef(th) + m * d)); ctx.stroke();
+  ctx.strokeStyle = cssv('--s2'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(X(th - d), Y(Ef(th))); ctx.lineTo(X(th + d), Y(Ef(th))); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = cssv('--ink'); ctx.beginPath(); ctx.arc(X(th), Y(Ef(th)), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('E[f] vs θ', L + 4, top + 10); [-2, 0, 2].forEach(t => ctx.fillText(String(t), X(t) - 4, bot + 14));
+  [lo, hi].forEach(v => ctx.fillText(v.toFixed(1), 2, Y(v) + 4));
+  const p = probs(th); ctx.fillText(`p = (${p.map(v => v.toFixed(2)).join(', ')})`, L + 4, bot - 6);
+}
+function drawG(){
+  const [ctx, W, H] = setupCanvas($('gc')), L = 40, top = 12, bot = H - 22; axes(ctx, W, H, L, top, bot);
+  const ex = gExact(th), n = ests.length, run = []; let s = 0; const step = Math.max(1, Math.floor(n / 400));
+  for (let i = 0; i < n; i++) { s += ests[i]; if (i % step === 0 || i === n - 1) run.push([i + 1, s / (i + 1)]); }
+  const amp = Math.max(1, Math.abs(ex) * 1.5, ...run.slice(Math.min(run.length, 3)).map(r => Math.abs(r[1]) * 1.1)), lo = -amp, hi = amp, nMax = Math.max(10, n);
+  const X = k => L + (W - 8 - L) * Math.log10(k) / Math.log10(nMax), Y = v => bot - (bot - top) * (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo);
+  ctx.strokeStyle = cssv('--s3'); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, Y(ex)); ctx.lineTo(W - 8, Y(ex)); ctx.stroke();
+  ctx.strokeStyle = cssv('--s2'); ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(L, Y(0)); ctx.lineTo(W - 8, Y(0)); ctx.stroke(); ctx.setLineDash([]);
+  if (run.length) { ctx.strokeStyle = cssv('--s1'); ctx.lineWidth = 2; ctx.beginPath(); run.forEach(([k, v], i) => i ? ctx.lineTo(X(k), Y(v)) : ctx.moveTo(X(k), Y(v))); ctx.stroke(); }
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('running mean vs #samples (log scale)', L + 4, top + 10);
+  ctx.fillText('1', L - 3, bot + 14); ctx.fillText(String(nMax), W - 8 - 7 * String(nMax).length, bot + 14); [lo, 0, hi].forEach(v => ctx.fillText(v.toFixed(1), 2, Y(v) + 4));
+  $('gEx').textContent = fmt(ex, 4); $('gN').textContent = n.toLocaleString('en-US');
+  if (n > 1) { const m = s / n, v = ests.reduce((a, e) => a + (e - m) * (e - m), 0) / (n - 1), se = Math.sqrt(v / n);
+    $('gMc').textContent = `${fmt(m, 4)} ± ${fmt(2 * se, 4)}`;
+    $('gTxt').innerHTML = Math.abs(m - ex) <= 2 * se + 1e-12 ? `The exact gradient lies inside the sampling error bar. Keep adding samples: the bar shrinks like $1/\\sqrt{n}$ and the estimate homes in on ${fmt(ex, 4)}, not on 0.` : `Outside ±2 s.e. this time. That happens about 1 time in 20 by chance; add more samples.`;
+  } else { $('gMc').textContent = n ? fmt(ests[0], 4) : '–'; $('gTxt').textContent = n ? 'One sample is a very noisy estimate. Add more.' : 'Draw some samples.'; }
+  if (window.renderMathInElement) renderMathInElement($('gTxt'), {delimiters: [{left: '$', right: '$', display: false}], throwOnError: false});
+}
+const draw = () => { drawE(); drawG(); }; DRAW.push(draw);
+const clear = () => { ests = []; draw(); };
+$('lt').oninput = e => { th = +e.target.value; $('ltV').textContent = th.toFixed(2); clear(); };
+[0, 1, 2].forEach(i => { $('f' + i).oninput = e => { f[i] = +e.target.value; $('f' + i + 'V').textContent = f[i].toFixed(1); clear(); }; });
+$('s1').onclick = () => { sample(1); draw(); }; $('s100').onclick = () => { sample(100); draw(); }; $('s10k').onclick = () => { if (ests.length < 500000) sample(10000); draw(); };
+$('sR').onclick = clear;
+draw();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

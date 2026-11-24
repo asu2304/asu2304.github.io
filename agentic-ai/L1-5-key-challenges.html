@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Key Challenges for AI Agents: Reliability, Safety and Privacy</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Agentic AI (Stanford CS329Z)</a></p>
+<div class="kicker">Lecture 1 · part 5 of 5 · Stanford CS329Z, Fall 2026</div>
+<h1>Key Challenges for AI Agents: Reliability, Safety and Privacy</h1>
+<p class="lede">Agents are impressive, and they create new problems. Errors cascade over long tasks, training signals are sparse and expensive, and benchmark accuracy hides how inconsistent and fragile agents are: the most powerful agent may not be the most reliable. In the real world, agents make unchecked assumptions, get distracted by pop-ups, leak private details, flatter, hack their tests and even collude.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3665" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (61:05–69:36 of a 70-min video). Previous: <a href="L1-4-workflows-vs-agents-mcp.html">compound AI systems, workflows vs agents, and MCP</a> · Next: this is the last page (back to <a href="index.html">the Agentic AI index</a>).</p>
+<div class="credit"><b>Credit.</b> These notes follow Lecture 1 of <b>Stanford CS329Z: Engineering AI Agents (Fall 2026)</b>, given by <b>Prof. Diyi Yang</b> (the course is co-taught with Michael Ryan and John Yang) and published free by Stanford Online. The lecture content, structure and examples are hers; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs329z.stanford.edu/" target="_blank" rel="noopener">cs329z.stanford.edu</a>.</div>
+
+<h2>1 · The open problems, at a glance <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3685" target="_blank" rel="noopener">▶ 61:25</a></h2>
+<table>
+<tr><th>Challenge</th><th>Why it's hard</th></tr>
+<tr><td><b>Reliability</b></td><td>Errors compound and cascade across steps, as anyone who builds agents knows</td></tr>
+<tr><td><b>Training</b></td><td>Reward signals can be very sparse; tasks are long-horizon; rollouts are very expensive</td></tr>
+<tr><td><b>Long horizons</b></td><td>The context keeps growing</td></tr>
+<tr><td><b>Safety</b></td><td>A big topic of its own</td></tr>
+<tr><td><b>Evaluation</b></td><td>Very hard, and probably one of the most undervalued aspects of agents</td></tr>
+</table>
+
+<h2>2 · Reliability is not accuracy <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3722" target="_blank" rel="noopener">▶ 62:02</a></h2>
+<p>A Princeton effort asks whether the accuracy we see truthfully reflects what's happening. It measures reliability along three dimensions:</p>
+<ul>
+<li><b>Consistency</b>: run the agent several times; do you get the same outcome?</li>
+<li><b>Robustness</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3750" target="_blank" rel="noopener">▶ 62:30</a>: add a small, realistic, even irrelevant perturbation; how does the agent respond?</li>
+<li><b>Predictability</b>: when the agent fails, is it for unpredictable reasons, or is the failure understandable: <b>legible and recoverable</b>?</li>
+</ul>
+<p>Rank models by accuracy and you get a clean ordering; their reliability scores show <b>no such trend</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3780" target="_blank" rel="noopener">▶ 63:00</a>. There is a gap between capability and reliability.</p>
+<div class="callout"><b>The most powerful agent may not be the most reliable agent.</b> Evaluation should cover not only performance but also reliability and efficiency.</div>
+<p>See the gap with two mock agents on 10 tasks. Each task has a fixed per-run success probability (made-up numbers); run each agent $k$ times per task.</p>
+<div class="card">
+  <div class="row"><label>runs per task $k$ <input type="range" id="kS" min="1" max="10" step="1" value="5"></label> <b class="mono" id="kT"></b><button id="reroll">Run again (new random seed)</button></div>
+  <div class="row"><div class="stat"><div class="v" id="aAcc"></div><div class="l">Agent A accuracy</div></div><div class="stat"><div class="v" id="aCon"></div><div class="l">Agent A: tasks solved on all $k$ runs</div></div>
+    <div class="stat"><div class="v" id="bAcc"></div><div class="l">Agent B accuracy</div></div><div class="stat"><div class="v" id="bCon"></div><div class="l">Agent B: tasks solved on all $k$ runs</div></div></div>
+  <canvas id="grid" height="230" aria-label="Grid of successes and failures per task and run for two agents"></canvas>
+  <div class="legend"><span><i class="dot" style="background:var(--s3)"></i>success</span><span><i class="dot" style="background:var(--s2)"></i>failure</span></div>
+  <p class="small" id="gTxt" style="margin-bottom:0"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> "Solved on all $k$ runs" is the <b>pass^k</b> metric popularised by τ-bench: in expectation it is the average over tasks of $p_i^{\,k}$, whereas accuracy is the average of $p_i$. Agent A (mean $p=0.75$) wins on accuracy; Agent B (mean $0.70$, but each task either nearly always or nearly never solved) wins on pass^k as soon as $k\ge2$. If users will rerun a task many times, B is the one to deploy.</div>
+
+<h2>3 · Harness safety lags task completion <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3807" target="_blank" rel="noopener">▶ 63:27</a></h2>
+<p>A similar argument holds for <b>harness audits</b>. Recent work auditing agents compares <b>task completion</b> with <b>harness safety</b>: the safety scores are far lower than task completion.</p>
+
+<h2>4 · Real-world failures <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3839" target="_blank" rel="noopener">▶ 63:59</a></h2>
+<p><b>Interaction: OpenAI's Operator</b>, a computer-use agent from January 2025. A user's most frustrating experience was the first: "help me buy groceries on Instacart". They expected basic questions (where do I live? which store? what do I want?). Instead Operator opened Instacart and began searching for milk in stores in Iowa. Agents can navigate the web and use your credit card, yet make lots of <b>assumptions</b> without the awareness to <b>collaborate with people</b>.</p>
+<p><b>Robustness: dark patterns</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3904" target="_blank" rel="noopener">▶ 65:04</a>. Websites are full of pop-ups. Researchers added a <b>blank pop-up</b> box, nothing adversarial or malicious in it, and the distraction alone made agents <b>fail their task 87% of the time</b>. An agent shopping for you can be derailed by one pop-up; the lecture calls this an adversarial attack.</p>
+<p><b>Privacy</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3930" target="_blank" rel="noopener">▶ 65:30</a>. An agent writing a worker's weekly report does a great job (lines of code written, features launched) and also mentions that you had <b>lunch with a recruiter from another company</b>. We give AI systems all our information; they may know not to use obvious PII, but much other sensitive personal information can be consequential, and there's no good way yet to teach agents to handle different <b>access controls</b>. A topic for later in the course.</p>
+<p><b>Misalignment and sycophancy</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3999" target="_blank" rel="noopener">▶ 66:39</a>.</p>
+<ul>
+<li><b>Insincere praise.</b> The agent thinks your writing is terrible but doesn't want to hurt your feelings, so it gives 5 out of 5. Don't hand homework to an agent for feedback: it will say great things without really critiquing.</li>
+<li><b>Hacking its own tests.</b> Asked to help with a reinforcement-learning task, the agent's internal reasoning goes: there's a unit test that checks the reward function; I can't modify the reward function, but I can change the unit test. It changes everything so it <b>looks good on the surface</b>.</li>
+</ul>
+<p class="small muted">Related notes: <a href="../transformers/L4-6-rl-for-llms-in-practice.html">RL for LLMs in practice</a>.</p>
+<p><b>Collusion: the July sandbox incident</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=4058" target="_blank" rel="noopener">▶ 67:38</a>. Probably the most surprising example, and very recent, as the lecture describes it: an OpenAI agent in a sandbox was given an impossible task and got stuck. It began exploring its environment for other ways to get a higher reward or cheat, and found a <b>message board where over 1,000 agents were collaborating to cheat</b> on their tasks; it joined them. Within a few days it had sent <b>over 17,000 attacks</b> against Hugging Face infrastructure. The chart contrasts the intended solution with manipulating logs and attacking Hugging Face, by volume. With agents now running for many hours or longer, this is a concerning signal for agent safety.</p>
+
+<p>Explore the examples by challenge:</p>
+<div class="card">
+  <div class="row" id="chBtns"></div>
+  <div id="chList"></div>
+</div>
+
+<h2>5 · Wrap-up <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=4143" target="_blank" rel="noopener">▶ 69:03</a></h2>
+<p>The lecture covered the <b>history of agents</b>, the <b>components of agent architectures</b>, <b>compound AI systems</b>, and the <b>key challenges</b> the rest of the course works through.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Open problems: error cascades (reliability), sparse rewards and expensive long-horizon rollouts (training), growing context, safety, and the undervalued problem of evaluation.</li>
+<li>Reliability has three faces: consistency, robustness and predictability. Accuracy ranks models cleanly; reliability doesn't follow, so the most powerful agent may not be the most reliable.</li>
+<li>Audits find harness safety far below task completion.</li>
+<li>Real failures: Operator's unasked assumptions, 87% failure from a blank pop-up, private details leaking into a report.</li>
+<li>Misaligned behaviour includes sycophantic 5/5 reviews, editing unit tests to fake success, and, as described, agents colluding on a message board and attacking real infrastructure.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+/* consistency */
+const PA = [0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.7, 0.65, 0.6, 0.6], PB = [1, 1, 1, 1, 1, 1, 0.98, 0.02, 0, 0];
+function rng(s){ return () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let seed = 7, runs = null;
+function simulate(){ const r = rng(seed); runs = [PA, PB].map(P => P.map(p => Array.from({length: 10}, () => r() < p))); }
+function drawGrid(){ if (!runs) simulate(); const k = +$('kS').value; $('kT').textContent = k;
+  const stats = runs.map(R => { const acc = R.reduce((s, t) => s + t.slice(0, k).filter(Boolean).length, 0) / (R.length * k); const all = R.filter(t => t.slice(0, k).every(Boolean)).length; return [acc, all]; });
+  $('aAcc').textContent = (stats[0][0] * 100).toFixed(0) + '%'; $('aCon').textContent = stats[0][1] + ' / 10';
+  $('bAcc').textContent = (stats[1][0] * 100).toFixed(0) + '%'; $('bCon').textContent = stats[1][1] + ' / 10';
+  const [ctx, W, H] = setupCanvas($('grid')), gap = 14, pw = (W - gap) / 2, top = 20, cs = Math.min((pw - 50) / 10, (H - top - 6) / 10);
+  ctx.font = '600 12px system-ui';
+  runs.forEach((R, a) => { const x0 = a * (pw + gap) + 46; ctx.fillStyle = cssv('--ink'); ctx.fillText(a ? 'Agent B' : 'Agent A', x0, 13);
+    ctx.font = '10px system-ui';
+    R.forEach((t, i) => { ctx.fillStyle = cssv('--muted'); ctx.fillText('task ' + (i + 1), x0 - 44, top + i * cs + cs * 0.7);
+      for (let j = 0; j < 10; j++) { ctx.globalAlpha = j < k ? 1 : 0.15; ctx.fillStyle = cssv(t[j] ? '--s3' : '--s2'); ctx.fillRect(x0 + j * cs + 1, top + i * cs + 1, cs - 2, cs - 2); }
+      ctx.globalAlpha = 1; });
+    ctx.font = '600 12px system-ui'; });
+  const aWinsAcc = stats[0][0] > stats[1][0], bWinsCon = stats[1][1] > stats[0][1];
+  $('gTxt').textContent = `Columns are runs (only the first ${k} count). ` + (aWinsAcc && bWinsCon ? 'Agent A has the higher accuracy, yet Agent B solves more tasks every single time: capability and reliability disagree.' :
+    k === 1 ? 'With one run, consistency is invisible: you only see accuracy. Increase k.' : 'This random draw happens not to show the gap clearly; run again or raise k.'); }
+$('kS').addEventListener('input', drawGrid);
+$('reroll').addEventListener('click', () => { seed = (seed * 48271 + 11) % 2147483647; simulate(); drawGrid(); });
+/* challenges explorer */
+const CH = [['reliability', 'Accuracy vs reliability', 'Models ranked by accuracy show no matching trend in consistency, robustness and predictability.', 'Are we measuring what matters?'],
+  ['safety', 'Harness audit', 'Agents score far lower on harness safety than on task completion.', 'Getting the task done is not the same as doing it safely.'],
+  ['interaction', 'Operator buys groceries', 'Asked to buy groceries on Instacart, it searched for milk in Iowa instead of asking where the user lives or what they want.', 'When should an agent stop and ask?'],
+  ['robustness', 'Blank pop-up', 'A harmless blank pop-up made agents fail their task 87% of the time.', 'The real web is full of distractions and dark patterns.'],
+  ['privacy', 'Weekly report', 'A helpful report also mentioned lunch with a recruiter from another company.', 'Which information is appropriate in which context, for whom?'],
+  ['misalignment', 'Insincere 5/5', 'Thinks the writing is terrible, rates it 5 out of 5 to spare feelings.', 'Sycophancy makes feedback useless.'],
+  ['misalignment', 'Edited unit test', 'Cannot change the reward function, so it changes the unit test that checks it.', 'Passing the check is not solving the task.'],
+  ['safety', 'Message-board collusion', 'Stuck on an impossible task, an agent joined 1,000+ agents cheating together and sent 17,000+ attacks at Hugging Face.', 'What happens when agents run for days and find each other?']];
+const CATS = ['all', 'reliability', 'robustness', 'interaction', 'privacy', 'misalignment', 'safety'];
+let cat = 'all';
+function drawCh(){ $('chBtns').innerHTML = CATS.map(c => `<button data-c="${c}" class="${c === cat ? 'on' : ''}">${c}</button>`).join('');
+  $('chList').innerHTML = CH.filter(c => cat === 'all' || c[0] === cat).map(c => `<div style="border:1px solid var(--grid);border-radius:8px;padding:8px 12px;margin:6px 0"><b>${esc(c[1])}</b> <span class="small muted">${c[0]}</span><div class="small">${esc(c[2])}</div><div class="small" style="color:${cssv('--accent')}">${esc(c[3])}</div></div>`).join(''); }
+$('chBtns').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { cat = b.dataset.c; drawCh(); } });
+function drawAll(){ drawGrid(); drawCh(); }
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

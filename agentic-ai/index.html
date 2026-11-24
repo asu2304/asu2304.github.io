@@ -3,12 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agentic AI Revision · Ashutosh Patidar</title>
-<meta name="description" content="Revision notes on agentic AI: language models that plan, use tools and act over several steps. Coming soon.">
+<title>Agentic AI (Notes) · Ashutosh Patidar</title>
+<meta name="description" content="Revision notes on AI agents from Stanford CS329Z (Engineering AI Agents) Lecture 1 by Diyi Yang, with interactive demos.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
 </head>
 <body>
 <header class="site-header">
@@ -17,17 +38,18 @@
     <nav class="top-nav">
       <a href="../linear-algebra/index.html">Linear Algebra</a>
       <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="../deep-learning/index.html">Deep Learning</a>
       <a href="https://github.com/asu2304">GitHub</a>
     </nav>
   </div>
 </header>
 <div class="wrap layout">
 
-<main class="content">
-<h1>Agentic AI Revision</h1><p class="lede">Revision notes on agentic AI: language models that plan, use tools and act over several steps.</p><p class="legend"><strong>Coming soon.</strong> Notes will appear here as I learn the topic. Meanwhile, see <a href="../machine-learning/index.html">Machine Learning</a>.</p>
+<main class="content"><h1>Agentic AI (source: Diyi Yang, Stanford CS329Z)</h1><p class="lede">Revision notes on AI agents: what an agent is and how it differs from an LLM workflow, a short history from the 1973 actor model to ReAct and AutoGPT, the anatomy of an LLM agent (LLM core, planning and reasoning, memory, tools and environment), multi-agent systems, tool use and MCP, and the open challenges of reliability, safety, privacy and evaluation. Each page covers one part of the lecture, with interactive demos and links to the exact moment in the video.</p><div class="credit-box" style="border:1px solid var(--rule);border-left:4px solid var(--ml);background:var(--ml-soft);border-radius:10px;padding:12px 16px;margin:16px 0"><p style="margin:0"><strong>Credit.</strong> These notes follow Lecture 1 of <strong>Stanford CS329Z: Engineering AI Agents (Fall 2026)</strong>, given by <strong>Prof. Diyi Yang</strong> (the course is co-taught with Michael Ryan and John Yang) and published free by Stanford Online (<a href="https://cs329z.stanford.edu/" target="_blank" rel="noopener">course site</a>). The structure, examples and explanations are hers. These are my personal, unofficial notes; the demos and the orange "going beyond the lecture" boxes are my own, so check the lecture for the definitive treatment.</p></div><p class="legend">Related: the prompting, chain-of-thought and RL-for-LLMs pages in my <a href="../transformers/index.html">Transformers notes</a> (Stanford CS229) build up the reasoning models these agents run on.</p><h2 class="section-title">Lecture 1 · What are AI agents?</h2><p class="legend" style="margin:4px 0 8px">Full video: <a href="https://www.youtube.com/watch?v=DGI4vucR71w" target="_blank" rel="noopener">What Are AI Agents? Agentic Systems Explained</a> (Stanford Online, 70 min).</p><ol class="toc"><li><a href="L1-1-history-of-agents.html"><span class="num">L1.1</span>History of agents: The course&#x27;s aims, the 1973 actor model through RL agents, LLM reasoning and tools, ReAct, BabyAGI and AutoGPT, and whether capabilities will saturate</a> <a href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=0" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="L1-2-anatomy-and-planning.html"><span class="num">L1.2</span>Agent anatomy and reasoning: LLM core, planning, memory, tools and environment, chain of thought vs ReAct, self-consistency, and Reflexion</a> <a href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1296" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="L1-3-multi-agent-memory-tools.html"><span class="num">L1.3</span>Multi-agent systems, memory and tools: Debate and orchestration, episodic, semantic and procedural memory, a context-compression failure, Toolformer and Gorilla</a> <a href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2439" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="L1-4-workflows-vs-agents-mcp.html"><span class="num">L1.4</span>Compound AI systems: System, data and evaluation layers, workflows vs agents, AlphaCode 2 and RAG, the stages of a tool call, and MCP</a> <a href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3211" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="L1-5-key-challenges.html"><span class="num">L1.5</span>Key challenges: Error cascades, evaluation, the capability–reliability gap, harness safety, distraction, privacy leaks, sycophancy, reward hacking and collusion</a> <a href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3665" style="font-size:13px" target="_blank" rel="noopener">video</a></li></ol>
 </main>
 </div>
 <script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
-<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Revision notes.</div></footer>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Deep learning notes following Prof. Mitesh M. Khapra's lectures (IIT Madras).</div></footer>
+<script src="../assets/video-links.js" defer></script>
 </body>
 </html>

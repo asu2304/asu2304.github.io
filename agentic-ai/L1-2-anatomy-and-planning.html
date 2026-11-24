@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Anatomy of an LLM Agent; Planning and Reasoning</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Agentic AI (Stanford CS329Z)</a></p>
+<div class="kicker">Lecture 1 · part 2 of 5 · Stanford CS329Z, Fall 2026</div>
+<h1>Anatomy of an LLM Agent; Planning and Reasoning</h1>
+<p class="lede">An agent is an LLM that reasons, remembers and uses tools, acting in a loop within an environment. Of those parts, planning and reasoning came first: chain-of-thought makes a model think before it answers, ReAct interleaves that thinking with actions and observations so reasoning stays grounded, and Reflexion has the agent write lessons from its own failures into memory for the next attempt.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1296" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (21:36–40:39 of a 70-min video). Previous: <a href="L1-1-history-of-agents.html">the history of agents</a> · Next: <a href="L1-3-multi-agent-memory-tools.html">multi-agent systems, memory and tools</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow Lecture 1 of <b>Stanford CS329Z: Engineering AI Agents (Fall 2026)</b>, given by <b>Prof. Diyi Yang</b> (the course is co-taught with Michael Ryan and John Yang) and published free by Stanford Online. The lecture content, structure and examples are hers; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs329z.stanford.edu/" target="_blank" rel="noopener">cs329z.stanford.edu</a>.</div>
+
+<h2>1 · Five components, read off one ReAct trace <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1320" target="_blank" rel="noopener">▶ 22:00</a></h2>
+<p>Go back to a ReAct example: a household task where the agent must find a pepper shaker and put it away. Read the trace top to bottom and at least five components appear:</p>
+<table>
+<tr><th>In the trace</th><th>Component</th></tr>
+<tr><td>Whatever writes every line</td><td><b>LLM core</b>, the foundation model underneath</td></tr>
+<tr><td>"I need to find a pepper shaker… more likely in cabinets"</td><td><b>Planning and reasoning</b></td></tr>
+<tr><td>Everything above the current step</td><td><b>Memory</b></td></tr>
+<tr><td>"go to cabinet 1", "take pepper shaker"</td><td><b>Tool calls</b> (actions)</td></tr>
+<tr><td>What the agent sees after each action</td><td><b>Observations</b> from the <b>environment</b></td></tr>
+</table>
+<p>Step through the trace below and click a component to see which lines it is responsible for. Memory grows as you step: it is everything before the current line.</p>
+<div class="card">
+  <div class="row" id="compBtns"></div>
+  <div class="row"><button id="tPrev">◀ Back</button><button id="tNext">Step ▶</button><span class="small muted" id="tPos"></span></div>
+  <div id="trace" class="mono" style="line-height:1.5"></div>
+  <p class="small" id="compTxt" style="margin-bottom:0"></p>
+</div>
+<p class="small muted">The trace is my shortened paraphrase of the ALFWorld example in the ReAct paper (which reads "put some pepper shaker on a drawer").</p>
+
+<h2>2 · The skeleton of an agent <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1415" target="_blank" rel="noopener">▶ 23:35</a></h2>
+<p>A conceptual framework, not a precise one: the arrows in the diagram "don't carry a lot of weight".</p>
+<ul>
+<li><b>LLM core.</b> Agents are built on LLMs, and stronger models generally mean better agents. Hence a live debate: should you <b>train</b> for agents, or improve the <b>harness</b> around the model?</li>
+<li><b>Planning and reasoning.</b> A big task must be <b>decomposed</b> into smaller pieces, perhaps each handled by a <b>sub-agent</b>; you may also add explicit mechanisms to improve reasoning.</li>
+<li><b>Memory.</b> When an agent works on a task for more than two hours, it must know what has happened so far and use that as context for reasoning.</li>
+<li><b>Tools</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1474" target="_blank" rel="noopener">▶ 24:34</a>. Even a model that solves hard maths can't tell you where CS329Z meets today; give it retrieval and it can search the Stanford website (or an official weather database for today's weather). There was a time when GPT-4 was amazing yet couldn't multiply two 3-digit numbers. Tools let agents take <b>factual and more consistent</b> actions.</li>
+<li><b>Actions.</b> Tool calls, interactions, responses to users: all of these are agent actions.</li>
+<li><b>Environment</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1558" target="_blank" rel="noopener">▶ 25:58</a>. The agent observes what happens in the environment and acts on it.</li>
+</ul>
+<p>On top of one agent you can have several; and even within one agent, each box can be configured and optimised separately. That is why <b>harness design and optimisation</b> matter so much later in the course: everyone wants the best configuration of this diagram.</p>
+<p><b>Same architecture, different labels</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1617" target="_blank" rel="noopener">▶ 26:57</a>. There has been lots of debate about what is or isn't an agent (no debates in this class). A 2023 diagram by an OpenAI researcher has tools, memory, planning and action; the <b>cognitive architectures for language agents</b> framework has memory with retrieval (to read) and learning (to write), reasoning, and so on. Different vocabulary, same picture:</p>
+<div class="callout">An agent is an <b>LLM that reasons, remembers and uses tools, and acts in a loop within its environment</b>.</div>
+<div class="beyond"><b>Going beyond the lecture.</b> The two diagrams are very likely Lilian Weng's blog post "LLM Powered Autonomous Agents" (2023) and CoALA, "Cognitive Architectures for Language Agents" (Sumers, Yao, Narasimhan and Griffiths, 2023).</div>
+
+<h2>3 · What does "reasoning" mean? <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1681" target="_blank" rel="noopener">▶ 28:01</a></h2>
+<p>The analogy with human reasoning is controversial (again, no debate here), but it helps to set three meanings side by side:</p>
+<table>
+<tr><th>For…</th><th>Reasoning means</th></tr>
+<tr><td>Humans</td><td>Mental processes such as deduction, analogy and planning</td></tr>
+<tr><td>LLMs</td><td>Usually the <b>chain of thought</b>, which may <b>not be faithful</b> to what actually happens inside the model</td></tr>
+<tr><td>Agents</td><td><b>Internal actions that update the agent's own state</b> (as opposed to external actions on the environment)</td></tr>
+</table>
+<p><b>Why reasoning helps an agent</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1773" target="_blank" rel="noopener">▶ 29:33</a>. At step $t$ the agent observes "you are cooking a dish and the salt is out"; its next action is "turn right". Why? The mapping from observations to actions is huge, which makes agents hard to audit and hard to improve. Add explicit reasoning: <i>"the dish should be savoury; since salt is out I should find something equivalent; it is in the cabinet to my right"</i>, and the turn makes sense. Reasoning helps in two ways:</p>
+<ul>
+<li><b>Generalisation</b>: the same reasoning works in new, similar situations.</li>
+<li><b>Alignment</b>: you can see <i>why</i> the agent did what it did.</li>
+</ul>
+
+<h2>4 · ReAct vs plain prompting <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1873" target="_blank" rel="noopener">▶ 31:13</a></h2>
+<p>A HotpotQA question about the Apple Remote. <b>Standard prompting</b> fails. <b>Chain-of-thought</b> fails too, and that is <b>more dangerous</b>: a convincing reasoning trace with a wrong answer. <b>ReAct</b> loops thought → action → observation:</p>
+<ol class="steps">
+<li>The question mentions the Apple Remote, so search for it to find what it was originally designed to interact with. That thought <b>induces a search action</b>, which returns the Wikipedia description.</li>
+<li>Reasoning extracts the key fact: it was designed for <b>Front Row</b>. Next thought: search Front Row to find what else controls it. But that page doesn't have the information.</li>
+<li>Reasoning <b>recovers</b>: search "Front Row (software)" instead. When the agent believes it has the answer, it finishes and returns it.</li>
+</ol>
+<p>The reasoning traces <b>induce and adjust actions</b>; the actions bring in <b>new knowledge that supports the reasoning</b>. The trajectory is intuitive, interpretable and fairly factual. Step through both methods side by side:</p>
+<div class="card">
+  <p class="small" style="margin-top:0"><b>Q:</b> Aside from the Apple Remote, what other device can control the program the Apple Remote was originally designed to interact with?</p>
+  <div class="row"><button id="rNext">Next step ▶</button><button id="rReset">Reset</button><span class="small muted" id="rPos"></span></div>
+  <div class="pair half">
+    <div><b class="small">Chain-of-thought (one pass)</b><div id="cotCol"></div></div>
+    <div><b class="small">ReAct (loop with a mock search tool)</b><div id="reCol"></div></div>
+  </div>
+  <div class="legend"><span><i class="dot" style="background:var(--s2)"></i>from the model's parameters, unchecked</span><span><i class="dot" style="background:var(--s3)"></i>grounded in an observation</span><span><i class="dot" style="background:var(--s1)"></i>action</span></div>
+  <p class="small" id="rTxt" style="margin-bottom:0"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> The full question and the two answers (CoT's "iPhone, iPad and iPod Touch" vs ReAct's "keyboard function keys") are from Figure 1 of the ReAct paper (Yao et al., 2022). The search results here are short paraphrases I scripted; no real tool is called.</div>
+<p><b>Results</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=1996" target="_blank" rel="noopener">▶ 33:16</a>. With CoT as the straightforward prompting baseline, ReAct consistently beats acting without reasoning ("Act"). The failure breakdown is telling:</p>
+<table>
+<tr><th>Failure type</th><th>CoT</th><th>ReAct</th><th>Why</th></tr>
+<tr><td>Reasoning error</td><td>lower</td><td>high</td><td>Making sense of a long context of observations is hard</td></tr>
+<tr><td>Search-result error</td><td>n/a</td><td>high</td><td>CoT has no search at all</td></tr>
+<tr><td><b>Hallucination</b> (of reasoning or facts)</td><td><b>56%</b></td><td><b>0%</b></td><td>Acting and observing grounds the reasoning</td></tr>
+</table>
+<p>Hallucination is a serious problem for CoT and many prompting techniques; ReAct's loop of reasoning plus actions mitigates it a lot.</p>
+<p><b>Self-consistency (SC)</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2041" target="_blank" rel="noopener">▶ 34:01</a>, the "SC" on the results chart, is a simple trick on top of CoT: sample a <b>diverse set of reasoning paths</b> instead of one, then pick the <b>most consistent final answer</b>, a kind of majority vote.</p>
+
+<h2>5 · Reflexion: learning from verbal feedback <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2105" target="_blank" rel="noopener">▶ 35:05</a></h2>
+<p>After self-consistency, many methods tried to make agents reason better; a notable one is <b>Reflexion</b>, where the agent reflects through natural-language feedback.</p>
+<ol class="steps">
+<li>The <b>actor</b> generates a trajectory (held in <b>short-term memory</b>).</li>
+<li>An <b>evaluator</b> judges it: correct or incorrect?</li>
+<li>Given that feedback, the agent writes a <b>self-reflection</b>: why it thinks the error occurred or why it got this outcome.</li>
+<li>The reflection, stored with past <b>experience</b> (long-term memory), changes what the actor does next time.</li>
+</ol>
+<p>It works well: self-reflection <b>distils long failed trajectories</b> into relevant experience, rubrics or reward-like signals that serve as <b>self-hints</b> in the future. ReAct + Reflexion clearly beats ReAct alone and reduces hallucination a lot. Try it on a toy version of the household task:</p>
+<div class="card">
+  <p class="small" style="margin-top:0">Task: find the pepper shaker in at most <b>4 moves</b>. The actor's default plan checks cabinets first (where shakers are "more likely"). The evaluator is a fixed check; actor, evaluator and reflection are scripted, not a real LLM.</p>
+  <div class="row"><button id="xRun">Run trial ▶</button><button id="xReset">Reset</button><label><input type="checkbox" id="xOn" checked> self-reflection on</label></div>
+  <div id="xOut"></div>
+  <p class="small" id="xMem" style="margin-bottom:0"></p>
+</div>
+<p>Turn reflection off and the actor repeats the same failure forever: nothing in the weights changed, only the text in memory.</p>
+
+<table>
+<tr><th></th><th>Chain-of-thought</th><th>Self-consistency</th><th>ReAct</th><th>Reflexion</th></tr>
+<tr><td>Shape</td><td>One prompt, one pass</td><td>Many CoT samples, vote</td><td>Loop: think → act → observe</td><td>Loop over <i>attempts</i>: try → evaluate → reflect → retry</td></tr>
+<tr><td>Fixes</td><td>Answering without thinking</td><td>One unlucky reasoning path</td><td>Hallucination; no access to new facts</td><td>Repeating the same mistake</td></tr>
+<tr><td>Breaks when</td><td>Facts are missing: confident wrong traces</td><td>The majority is wrong too</td><td>Search returns junk; long contexts are hard to reason over</td><td>The evaluator is wrong, or no retry is possible</td></tr>
+<tr><td>Training?</td><td colspan="4">None: all four are prompting methods, no gradient updates</td></tr>
+</table>
+
+<h2>6 · Q&amp;A <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2214" target="_blank" rel="noopener">▶ 36:54</a></h2>
+<p><b>Is reflection trained into the weights?</b> No. Reflexion and similar self-reflection techniques involve <b>no fine-tuning or gradient updates</b>; they are implemented with prompts. The paper uses the word "reinforce", but that isn't reinforcement learning, just the self-reflection prompt.</p>
+<p><b>ReAct's hallucination is 0 but its reasoning error is high: how?</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2260" target="_blank" rel="noopener">▶ 37:40</a> They are different failures. You can fail without hallucinating: the label may be ambiguous, or you must make sense of the current context. That is not about getting the right tool or information but about <b>interpreting what has happened so far</b>, and errors there count as reasoning errors.</p>
+<p><b>So ReAct is CoT plus acting and observing?</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2309" target="_blank" rel="noopener">▶ 38:29</a> CoT is literally one prompt, one pass. ReAct is a multi-step <b>loop</b>, so the model can <b>revise its own errors</b> and <b>pull in new information</b>, a richness CoT lacks; the model decides inside the loop when it's done. (Reasoning modules get a deep dive in two weeks.)</p>
+<p><b>Is reflection a kind of distillation, and does it risk overfitting?</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2370" target="_blank" rel="noopener">▶ 39:30</a> "Distil" here isn't classic distillation (training on another model's outputs). It means the model takes a long record of what happened and <b>compresses</b> it into something shorter; "abstract" or "synthesise" would do as well.</p>
+<p class="small muted">Related notes: <a href="../transformers/L4-5-chain-of-thought-rlvr.html">chain of thought and RL with verifiable rewards</a>.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Agent = LLM core + planning/reasoning + memory + tools/actions, acting in an environment. Different papers use different labels for the same loop.</li>
+<li>For an agent, reasoning is an internal action that updates its own state; it makes the observation→action jump explainable and generalisable.</li>
+<li>CoT can produce convincing wrong traces; ReAct grounds each thought in observations, cutting hallucination (56% → 0% of failures) at the cost of more reasoning and search errors.</li>
+<li>Self-consistency samples many CoT paths and takes the most consistent answer.</li>
+<li>Reflexion turns failed trajectories into short written lessons stored in memory, with no gradient update; ReAct + Reflexion beats ReAct.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+/* anatomy explorer */
+const TR = [['task', 'Task: put some pepper shaker on a drawer.'],
+  ['think', 'Think: I need to find a pepper shaker, take it, then put it on a drawer.'],
+  ['think', 'Think: A pepper shaker is more likely in cabinets (1-6) or on countertops (1-3).'],
+  ['act', '> go to cabinet 1'], ['obs', 'On cabinet 1, you see a vase 2.'],
+  ['act', '> go to countertop 3'], ['obs', 'On countertop 3, you see an apple 1, a bread 1, and a pepper shaker 1.'],
+  ['act', '> take pepper shaker 1 from countertop 3'], ['obs', 'You pick up the pepper shaker 1.'],
+  ['think', 'Think: Now I have the pepper shaker. Next, put it on drawer 1.'],
+  ['act', '> go to drawer 1'], ['obs', 'The drawer 1 is closed.'], ['act', '> open drawer 1'], ['obs', 'You open the drawer 1.'],
+  ['act', '> put pepper shaker 1 in/on drawer 1'], ['obs', 'You put the pepper shaker 1 in/on the drawer 1. Task done.']];
+const COMP = {core: ['LLM core', 'The foundation model writes every Think and every action line. A stronger core means better plans and fewer slips.'],
+  plan: ['Planning & reasoning', 'Internal actions: decompose the task and guess where to look. They change the agent’s own state, not the world.'],
+  mem: ['Memory', 'Everything above the current step. Here it is just the context window; long tasks need more (next page).'],
+  tool: ['Tools / actions', 'External actions, executed by the environment: go to, take, open, put.'],
+  env: ['Environment', 'Returns an observation after each action; this is the only way the agent learns the shaker is on countertop 3.']};
+let cur = 4, comp = 'plan';
+function isOn(i){ const k = TR[i][0];
+  return comp === 'core' ? (k === 'think' || k === 'act') : comp === 'plan' ? k === 'think' : comp === 'mem' ? i < cur : comp === 'tool' ? k === 'act' : k === 'obs'; }
+function drawTrace(){
+  $('compBtns').innerHTML = Object.entries(COMP).map(([k, v]) => `<button data-c="${k}" class="${k === comp ? 'on' : ''}">${v[0]}</button>`).join('');
+  $('trace').innerHTML = TR.slice(0, cur + 1).map((t, i) => `<div style="padding:2px 6px;border-radius:6px;margin:1px 0;${isOn(i) ? 'background:var(--tint);border-left:3px solid var(--s1)' : 'border-left:3px solid transparent'}${i === cur ? ';font-weight:700' : ''}">${esc(t[1])}</div>`).join('');
+  $('tPos').textContent = `line ${cur + 1} of ${TR.length}`;
+  const n = TR.slice(0, cur + 1).filter((_, i) => isOn(i)).length;
+  $('compTxt').innerHTML = `<b>${COMP[comp][0]}.</b> ${COMP[comp][1]} <span class="muted">(${n} highlighted line${n === 1 ? '' : 's'} so far.)</span>`; }
+$('compBtns').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { comp = b.dataset.c; drawTrace(); } });
+$('tNext').addEventListener('click', () => { cur = Math.min(TR.length - 1, cur + 1); drawTrace(); });
+$('tPrev').addEventListener('click', () => { cur = Math.max(0, cur - 1); drawTrace(); });
+drawTrace();
+/* CoT vs ReAct */
+const COT = [['p', 'Thought: The Apple Remote was originally designed to interact with the Apple TV.'], ['p', 'Thought: The Apple TV can be controlled by an iPhone, iPad and iPod Touch.'], ['p', 'Answer: iPhone, iPad and iPod Touch.  ✗ wrong, but it sounds convincing']];
+const RE = [['p', 'Thought 1: Search Apple Remote and find the program it was originally designed to interact with.'], ['a', 'Search[Apple Remote]'], ['g', 'Obs 1 (mock): The Apple Remote is a remote control … originally designed to control the Front Row media center program …'],
+  ['g', 'Thought 2: It was designed for Front Row. Search Front Row to see what else controls it.'], ['a', 'Search[Front Row]'], ['g', 'Obs 2 (mock): Could not find [Front Row]. Similar: Front Row Seat to Earth, Front Row (software), …'],
+  ['g', 'Thought 3: Front Row is not found; search Front Row (software) instead.'], ['a', 'Search[Front Row (software)]'], ['g', 'Obs 3 (mock): Front Row is discontinued media center software … controlled by an Apple Remote or the keyboard function keys.'],
+  ['g', 'Thought 4: Besides the Apple Remote, the keyboard function keys control Front Row.'], ['a', 'Finish[keyboard function keys]  ✓']];
+let rs = 0;
+function line(t){ const c = {p: '--s2', g: '--s3', a: '--s1'}[t[0]]; return `<div class="small" style="border-left:4px solid ${cssv(c)};padding:3px 8px;margin:4px 0;background:var(--surface);border-radius:4px">${esc(t[1])}</div>`; }
+function drawRe(){
+  $('cotCol').innerHTML = COT.slice(0, Math.min(rs, COT.length)).map(line).join('') || '<p class="small muted">…</p>';
+  $('reCol').innerHTML = RE.slice(0, rs).map(line).join('') || '<p class="small muted">…</p>';
+  $('rPos').textContent = `step ${rs} of ${RE.length}`;
+  $('rTxt').textContent = rs === 0 ? 'Press Next step.' : rs <= COT.length ? (rs === COT.length ? 'CoT is already done: one pass from memory, with the wrong program (Apple TV, not Front Row) and nothing to check it against.' : 'CoT reasons purely from what the model remembers.') :
+    rs === 6 ? 'A failed search: the observation tells ReAct to adjust its plan, which CoT can never do.' : rs >= RE.length ? 'ReAct finishes with an answer whose key fact came from an observation.' : 'ReAct keeps going: each thought decides the next search, each result feeds the next thought.'; }
+$('rNext').addEventListener('click', () => { rs = Math.min(RE.length, rs + 1); drawRe(); });
+$('rReset').addEventListener('click', () => { rs = 0; drawRe(); });
+drawRe();
+/* Reflexion */
+const PLACES = ['cabinet 1', 'cabinet 2', 'cabinet 3', 'drawer 1', 'countertop 1', 'countertop 2', 'countertop 3'], GOAL = 'countertop 2', BUDGET = 4;
+let refl = [], trials = [];
+function plan(){ let o = PLACES.slice(); if (refl.some(r => r.prefer === 'countertop')) o = o.filter(p => p.startsWith('countertop')).concat(o.filter(p => !p.startsWith('countertop')));
+  const avoid = new Set(refl.flatMap(r => r.avoid)); return o.filter(p => !avoid.has(p)).concat(o.filter(p => avoid.has(p))); }
+function runTrial(){
+  const o = plan(), steps = []; let ok = false;
+  for (let i = 0; i < BUDGET; i++) { const p = o[i]; if (p === GOAL) { steps.push(`go to ${p}: pepper shaker 1 is here`); if (i + 1 < BUDGET) { steps.push('take pepper shaker 1'); ok = true; } break; } steps.push(`go to ${p}: nothing useful`); }
+  const t = {steps, ok, note: ''};
+  if (!ok && $('xOn').checked) { const visited = o.slice(0, BUDGET); const r = {avoid: visited, prefer: visited.every(p => !p.startsWith('countertop')) ? 'countertop' : ''};
+    refl.push(r); t.note = `Reflection: "I used all ${BUDGET} moves on ${visited.join(', ')} and found nothing. Next time, skip those and check the countertops first."`; }
+  else if (!ok) t.note = 'No reflection written; memory unchanged.';
+  trials.push(t); drawX(); }
+function drawX(){
+  $('xOut').innerHTML = trials.map((t, i) => `<div style="border:1px solid var(--grid);border-radius:8px;padding:6px 10px;margin:6px 0"><b class="small">Trial ${i + 1}</b> <span class="small" style="color:${cssv(t.ok ? '--s3' : '--s2')}">${t.ok ? '✓ evaluator: success' : '✗ evaluator: failed (out of moves)'}</span><div class="mono">${t.steps.map(esc).join('<br>')}</div>${t.note ? `<div class="small muted">${esc(t.note)}</div>` : ''}</div>`).join('') || '<p class="small muted">No trials yet.</p>';
+  $('xMem').innerHTML = `<b>Long-term memory:</b> ${refl.length ? refl.length + ' reflection' + (refl.length > 1 ? 's' : '') + ' stored. Next plan: ' + esc(plan().slice(0, BUDGET).join(' → ')) : 'empty. Next plan: ' + esc(plan().slice(0, BUDGET).join(' → '))}`; }
+$('xRun').addEventListener('click', runTrial);
+$('xReset').addEventListener('click', () => { refl = []; trials = []; drawX(); });
+drawX();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { drawRe(); drawX(); });
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

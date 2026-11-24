@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Compound AI Systems: Workflows, Agents, Tool Calls and MCP</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Agentic AI (Stanford CS329Z)</a></p>
+<div class="kicker">Lecture 1 · part 4 of 5 · Stanford CS329Z, Fall 2026</div>
+<h1>Compound AI Systems: Workflows, Agents, Tool Calls and MCP</h1>
+<p class="lede">Real products wrap an LLM in other components: a compound AI system. Think of it in three layers (system, data, evaluation), and at the system layer ask one question first: who decides the next step? In a workflow the script does; in an agent the model does. Underneath both sits the humble tool call, and the Model Context Protocol standardises how tools plug in.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3211" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (53:31–61:05 of a 70-min video). Previous: <a href="L1-3-multi-agent-memory-tools.html">multi-agent systems, memory and tools</a> · Next: <a href="L1-5-key-challenges.html">key challenges</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow Lecture 1 of <b>Stanford CS329Z: Engineering AI Agents (Fall 2026)</b>, given by <b>Prof. Diyi Yang</b> (the course is co-taught with Michael Ryan and John Yang) and published free by Stanford Online. The lecture content, structure and examples are hers; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs329z.stanford.edu/" target="_blank" rel="noopener">cs329z.stanford.edu</a>.</div>
+
+<h2>1 · Three layers of a compound AI system <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3221" target="_blank" rel="noopener">▶ 53:41</a></h2>
+<p>How real products combine an LLM with other components is what we call a <b>compound AI system</b>. With an LLM core, planning, memory, environment and more, it's easy to feel overwhelmed; a more principled engineering view helps. The course is organised in the same three layers:</p>
+<table>
+<tr><th>Layer <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3272" target="_blank" rel="noopener">▶ 54:32</a></th><th>What it covers</th></tr>
+<tr><td><b>System</b></td><td>The architecture: which components the agent has and how they connect (everything on the previous pages)</td></tr>
+<tr><td><b>Data</b></td><td>What the agent learns from or is prompted with: training examples (e.g. SWE-smith, later in the course), task demonstrations, or simply the context you give it</td></tr>
+<tr><td><b>Evaluation</b></td><td>How you judge whether the agent works, including the metric itself. <b>The wrong metric can make a weak agent look good</b>, so metrics deserve a lot of care</td></tr>
+</table>
+<div class="callout">When an agent isn't working as expected, a good first question is <b>which layer the problem is in</b>: system, data or evaluation? <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3340" target="_blank" rel="noopener">▶ 55:40</a></div>
+
+<h2>2 · Workflow vs agent: who decides the steps? <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3362" target="_blank" rel="noopener">▶ 56:02</a></h2>
+<p>A key system-layer design choice is <b>who decides the steps</b> (and what to remember, and so on): the agent, or something else? Both answers are compound AI systems (a large model plus other components), and you'll meet both terms:</p>
+<table>
+<tr><th></th><th>Workflow</th><th>Agent</th></tr>
+<tr><td>Who picks the next step</td><td>A fixed script</td><td>The LLM itself</td></tr>
+<tr><td>Role of the LLM</td><td>Works <i>inside</i> each stage, never picks the next one</td><td>Sets its own course: what to open, what to run, when it's done</td></tr>
+<tr><td>Example (fixing a GitHub issue)</td><td><b>Agentless</b>: find the file → write a patch → run tests, always in that order</td><td><b>SWE-agent</b>: chooses which files to open, what to run, and when to stop</td></tr>
+<tr><td>Trade-off</td><td>Predictable</td><td>More flexible, and more responsibility on the model</td></tr>
+</table>
+<p><b>So why have workflows at all?</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3450" target="_blank" rel="noopener">▶ 57:30</a> Because they can be very strong. <b>AlphaCode 2</b> generates up to millions of candidate programs, then tests and ranks them, reaching roughly the level of 87% of human competitors (as said in the lecture), a huge jump over AlphaCode 1.</p>
+<p><b>RAG</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3480" target="_blank" rel="noopener">▶ 58:00</a>, another workflow widely used in industry, grew out of open-domain question answering. <b>Retrieval-augmented generation</b> connects an LLM to external knowledge stores in real time: for a query that needs, say, a weather website, fetch the relevant content, add it to the query as context, then generate, giving more factual and consistent answers.</p>
+<p>Below, the same toy bug fix is run both ways, with a knob for how reliable each single step is.</p>
+<div class="card">
+  <div class="row"><label>per-step success $p$ <input type="range" id="pS" min="0.7" max="0.99" step="0.01" value="0.95"></label> <b class="mono" id="pT"></b>
+    <label>agent's steps $n$ <input type="range" id="nS" min="3" max="20" step="1" value="8"></label> <b class="mono" id="nT"></b>
+    <label>agent recovers a failed step <input type="range" id="rS" min="0" max="0.9" step="0.05" value="0.5"></label> <b class="mono" id="rT"></b></div>
+  <div class="pair half">
+    <div><b class="small">Workflow: 3 fixed stages</b><div class="mono small" style="margin:6px 0">localise file → write patch → run tests</div><div class="stat"><div class="v" id="wV"></div><div class="l">P(all stages succeed) = $p^3$</div></div></div>
+    <div><b class="small">Agent: picks its own $n$ steps</b><div class="mono small" id="aSteps" style="margin:6px 0"></div><div class="stat"><div class="v" id="aV"></div><div class="l">$(p+(1-p)\,r)^n$</div></div></div>
+  </div>
+  <canvas id="relC" height="210" aria-label="Success probability against number of steps"></canvas>
+  <div class="legend"><span><i style="background:var(--s2)"></i>no recovery, $p^n$</span><span><i style="background:var(--s1)"></i>with recovery</span><span><i class="dot" style="background:var(--s3)"></i>workflow (n = 3)</span></div>
+  <p class="small" id="relTxt" style="margin-bottom:0"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> This model is mine, and crude: steps fail independently, and an agent that notices a failure fixes it with probability $r$. It shows why both designs survive. Errors <b>compound</b> along a chain (0.95 per step is only $0.95^{20}\approx0.36$ after 20 steps), so a short fixed pipeline is hard to beat when the task fits it; an agent spends more steps but can observe and repair its mistakes, which a fixed script can't. Page 5 returns to error cascades.</div>
+
+<h2>3 · What happens in a single tool call <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3524" target="_blank" rel="noopener">▶ 58:44</a></h2>
+<p>From a system perspective, one tool call has several stages:</p>
+<ol class="steps">
+<li><b>Select</b> a tool from the schemas available in context.</li>
+<li><b>Fill arguments</b>: fill each field from the task.</li>
+<li><b>Validate</b>: check the arguments against the schema. Sometimes <b>constrained decoding</b> enforces it, so the model can't even produce an ill-formed call.</li>
+<li><b>Execute</b>, usually in a <b>sandbox</b>.</li>
+<li><b>Return</b>: the result goes back into the context.</li>
+</ol>
+<p>The lecture's example: "What does test.py contain?" → the model calls <span class="mono">read_file</span>, fills <span class="mono">path</span>, the path is checked to be a string, and the file contents come back for the user. Build calls yourself, including broken ones:</p>
+<div class="card">
+  <div class="row"><span class="small">User asks:</span><span id="qBtns"></span></div>
+  <div class="row"><span class="small">Argument the model fills:</span><span id="argBtns"></span></div>
+  <div class="row"><button id="cStep">Next stage ▶</button><button id="cReset">Restart</button></div>
+  <ol class="steps" id="stages" style="margin-bottom:0"></ol>
+</div>
+<p class="small muted">Schemas, the sandbox and results are mock data in the page; nothing is executed.</p>
+
+<h2>4 · The Model Context Protocol <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3600" target="_blank" rel="noopener">▶ 60:00</a></h2>
+<p>If every AI application had to write a custom integration for every tool, nothing would scale. <b>MCP</b> is a standard protocol for that connection. On one side, AI applications: Claude Desktop, IDEs, code editors such as Claude Code. On the other, data sources and tools: databases (SQL), Google Drive, deployment tools, productivity tools such as Slack, Google Maps. MCP sits in the middle, with data flowing <b>both ways</b>. Build a tool once as an <b>MCP server</b>, and any <b>MCP client</b> can set it up and use it. (Next class goes deeper.)</p>
+<div class="card">
+  <div class="row"><label>AI applications <input type="range" id="aN" min="1" max="20" step="1" value="5"></label> <b class="mono" id="aNT"></b><label>tools / data sources <input type="range" id="tN" min="1" max="40" step="1" value="12"></label> <b class="mono" id="tNT"></b></div>
+  <div class="row"><div class="stat"><div class="v" id="cust"></div><div class="l">custom integrations ($N\times M$)</div></div><div class="stat"><div class="v" id="mcp"></div><div class="l">with MCP: one client per app + one server per tool ($N+M$)</div></div></div>
+  <canvas id="mcpC" height="200" aria-label="Apps connected to tools directly versus through MCP"></canvas>
+  <div class="row"><button id="mView" class="on">Without MCP</button><button id="mView2">With MCP</button></div>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> Under the hood, MCP messages are JSON-RPC 2.0. A client discovers tools with <span class="mono">{"method":"tools/list"}</span>, and the server replies with each tool's name, description and JSON Schema for its inputs; then the client calls one with <span class="mono">{"method":"tools/call","params":{"name":"read_file","arguments":{"path":"test.py"}}}</span>. Those schemas are exactly what the model selects from in stage 1 of the tool call above. Servers can also expose resources and prompts, not just tools.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>A compound AI system is an LLM plus other components. Analyse it in three layers (system, data, evaluation) and debug by asking which layer is at fault; a bad metric can make a weak agent look good.</li>
+<li>Workflow vs agent is about who decides the next step: a fixed script (Agentless) or the model (SWE-agent).</li>
+<li>Workflows can be very strong: AlphaCode 2's generate-test-rank pipeline and RAG's retrieve-then-generate.</li>
+<li>One tool call = select → fill arguments → validate against the schema (maybe constrained decoding) → execute in a sandbox → return the result to context.</li>
+<li>MCP turns N×M custom integrations into a standard: build a tool once as a server, use it from any client.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+/* reliability */
+const ASTEPS = ['open issue', 'search repo', 'open file', 'run tests', 'edit', 'run tests', 'edit', 'run tests', 'read log', 'edit', 'run tests', 'open file', 'edit', 'run tests', 'search repo', 'edit', 'run tests', 'review diff', 'run tests', 'submit'];
+function drawRel(){ const p = +$('pS').value, n = +$('nS').value, r = +$('rS').value, q = p + (1 - p) * r;
+  $('pT').textContent = p.toFixed(2); $('nT').textContent = n; $('rT').textContent = r.toFixed(2);
+  const w = p ** 3, a = q ** n; $('wV').textContent = (w * 100).toFixed(1) + '%'; $('aV').textContent = (a * 100).toFixed(1) + '%';
+  $('aSteps').textContent = ASTEPS.slice(0, n - 1).concat(['submit']).join(' → ');
+  const [ctx, W, H] = setupCanvas($('relC')), L = 36, B = 22, T = 8, R = 10, X = k => L + (k - 1) / 19 * (W - L - R), Y = v => T + (1 - v) * (H - T - B);
+  ctx.strokeStyle = cssv('--grid'); ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(v => { ctx.beginPath(); ctx.moveTo(L, Y(v)); ctx.lineTo(W - R, Y(v)); ctx.stroke(); ctx.fillText((v * 100) + '%', 2, Y(v) + 4); });
+  [1, 5, 10, 15, 20].forEach(k => ctx.fillText(k, X(k) - 4, H - 6));
+  [[p, '--s2'], [q, '--s1']].forEach(([b, c]) => { ctx.strokeStyle = cssv(c); ctx.lineWidth = 2.2; ctx.beginPath(); for (let k = 1; k <= 20; k++) { const y = Y(b ** k); k === 1 ? ctx.moveTo(X(k), y) : ctx.lineTo(X(k), y); } ctx.stroke(); });
+  ctx.fillStyle = cssv('--s3'); ctx.beginPath(); ctx.arc(X(3), Y(w), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--s1'); ctx.beginPath(); ctx.arc(X(n), Y(a), 5, 0, 7); ctx.fill();
+  ctx.fillStyle = cssv('--muted'); ctx.fillText('steps', W - R - 30, H - 6);
+  $('relTxt').textContent = a > w ? `The agent wins here: recovering ${Math.round(r * 100)}% of failed steps lifts its effective per-step success to ${q.toFixed(3)}, enough to beat three unrecoverable stages even over ${n} steps.` :
+    `The workflow wins here: ${n} steps at an effective ${q.toFixed(3)} each compound down to ${(a * 100).toFixed(1)}%, below the fixed pipeline's ${(w * 100).toFixed(1)}%.`; }
+['pS', 'nS', 'rS'].forEach(i => $(i).addEventListener('input', drawRel));
+/* tool call */
+const Q = [{q: 'What does test.py contain?', tool: 'read_file', schema: '{"name":"read_file","parameters":{"path":{"type":"string"}},"required":["path"]}', key: 'path',
+  args: [['"test.py"', 'test.py', 'def test_add():\\n    assert add(2, 3) == 5'], ['42', 42, ''], ['(missing)', undefined, '']]},
+  {q: 'What is the weather at Stanford today?', tool: 'get_weather', schema: '{"name":"get_weather","parameters":{"city":{"type":"string"}},"required":["city"]}', key: 'city',
+  args: [['"Stanford, CA"', 'Stanford, CA', '{"temp_c": 18, "sky": "sunny"}'], ['42', 42, ''], ['(missing)', undefined, '']]}];
+let qi = 0, ai = 0, st = 0;
+function stagesHTML(){ const c = Q[qi], a = c.args[ai], v = a[1], call = v === undefined ? `{"tool":"${c.tool}","arguments":{}}` : `{"tool":"${c.tool}","arguments":{"${c.key}":${JSON.stringify(v)}}}`;
+  const ok = typeof v === 'string', why = v === undefined ? `required field "${c.key}" is missing` : `"${c.key}" must be a string, got a number`;
+  const S = [['Select', `From the schemas in context, the model picks <span class="mono">${c.tool}</span>.<div class="mono small" style="overflow-wrap:anywhere">${esc(c.schema)}</div>`],
+    ['Fill arguments', `<div class="mono small" style="overflow-wrap:anywhere">${esc(call)}</div>`],
+    ['Validate', ok ? `<b style="color:${cssv('--s3')}">✓ passes the schema.</b>` : `<b style="color:${cssv('--s2')}">✗ rejected: ${esc(why)}.</b> Nothing runs; the error goes back to the model to retry. With constrained decoding this call could not have been generated at all.`],
+    ['Execute (sandbox)', ok ? `Runs isolated from the host. Mock result: <span class="mono small">${esc(a[2])}</span>` : '<span class="muted">skipped</span>'],
+    ['Return to context', ok ? 'The result is appended to the conversation and the model writes its answer from it.' : 'Only the validation error is appended.']];
+  return S.slice(0, st).map(s => `<li><b>${s[0]}.</b> ${s[1]}</li>`).join(''); }
+function drawCall(){
+  $('qBtns').innerHTML = Q.map((c, i) => `<button data-q="${i}" class="${i === qi ? 'on' : ''}">${esc(c.q)}</button>`).join(' ');
+  $('argBtns').innerHTML = Q[qi].args.map((a, i) => `<button data-a="${i}" class="${i === ai ? 'on' : ''}">${esc(a[0])}</button>`).join(' ');
+  $('stages').innerHTML = stagesHTML() || '<li class="small muted">Press Next stage.</li>';
+  $('cStep').disabled = st >= 5; }
+$('qBtns').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { qi = +b.dataset.q; st = 0; drawCall(); } });
+$('argBtns').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { ai = +b.dataset.a; st = 0; drawCall(); } });
+$('cStep').addEventListener('click', () => { st = Math.min(5, st + 1); drawCall(); });
+$('cReset').addEventListener('click', () => { st = 0; drawCall(); });
+/* MCP */
+let viaMCP = false;
+function drawMCP(){ const N = +$('aN').value, M = +$('tN').value; $('aNT').textContent = N; $('tNT').textContent = M; $('cust').textContent = N * M; $('mcp').textContent = N + M;
+  $('mView').className = viaMCP ? '' : 'on'; $('mView2').className = viaMCP ? 'on' : '';
+  const [ctx, W, H] = setupCanvas($('mcpC')), ay = i => 14 + i * (H - 28) / Math.max(1, N - 1), ty = j => 10 + j * (H - 20) / Math.max(1, M - 1), ax = 22, tx = W - 22, mx = W / 2;
+  const yA = i => N === 1 ? H / 2 : ay(i), yT = j => M === 1 ? H / 2 : ty(j);
+  ctx.lineWidth = 1; ctx.globalAlpha = viaMCP ? 0.8 : Math.max(0.15, Math.min(0.7, 12 / (N * M) + 0.12));
+  ctx.strokeStyle = cssv(viaMCP ? '--s1' : '--s2'); ctx.beginPath();
+  for (let i = 0; i < N; i++) { if (viaMCP) { ctx.moveTo(ax, yA(i)); ctx.lineTo(mx, H / 2); } else for (let j = 0; j < M; j++) { ctx.moveTo(ax, yA(i)); ctx.lineTo(tx, yT(j)); } }
+  if (viaMCP) for (let j = 0; j < M; j++) { ctx.moveTo(mx, H / 2); ctx.lineTo(tx, yT(j)); }
+  ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.fillStyle = cssv('--s1'); for (let i = 0; i < N; i++) { ctx.beginPath(); ctx.arc(ax, yA(i), 5, 0, 7); ctx.fill(); }
+  ctx.fillStyle = cssv('--s3'); for (let j = 0; j < M; j++) { ctx.beginPath(); ctx.arc(tx, yT(j), 4, 0, 7); ctx.fill(); }
+  if (viaMCP) { ctx.fillStyle = cssv('--card'); ctx.strokeStyle = cssv('--ink'); ctx.fillRect(mx - 26, H / 2 - 13, 52, 26); ctx.strokeRect(mx - 26, H / 2 - 13, 52, 26); ctx.fillStyle = cssv('--ink'); ctx.font = '600 12px system-ui'; ctx.textAlign = 'center'; ctx.fillText('MCP', mx, H / 2 + 4); ctx.textAlign = 'left'; }
+  ctx.fillStyle = cssv('--muted'); ctx.font = '11px system-ui'; ctx.fillText('apps', 2, H - 2); ctx.textAlign = 'right'; ctx.fillText('tools', W - 2, H - 2); ctx.textAlign = 'left'; }
+['aN', 'tN'].forEach(i => $(i).addEventListener('input', drawMCP));
+$('mView').addEventListener('click', () => { viaMCP = false; drawMCP(); });
+$('mView2').addEventListener('click', () => { viaMCP = true; drawMCP(); });
+function drawAll(){ drawRel(); drawCall(); drawMCP(); }
+drawAll();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); drawAll(); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

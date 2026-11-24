@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Multi-Agent Systems, Agent Memory and Tool Use</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · Agentic AI (Stanford CS329Z)</a></p>
+<div class="kicker">Lecture 1 · part 3 of 5 · Stanford CS329Z, Fall 2026</div>
+<h1>Multi-Agent Systems, Agent Memory and Tool Use</h1>
+<p class="lede">Three more boxes of the agent skeleton. Several agents can debate or be coordinated by an orchestrator; memory (episodic, semantic, procedural) carries state across long tasks that no context window can hold; and tools, from Toolformer's five APIs to Gorilla's 1,600, let the model hand off work it can't do reliably itself.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2439" target="_blank" rel="noopener">this part of the lecture on YouTube</a> (40:39–53:31 of a 70-min video). Previous: <a href="L1-2-anatomy-and-planning.html">anatomy of an agent, planning and reasoning</a> · Next: <a href="L1-4-workflows-vs-agents-mcp.html">compound AI systems, workflows vs agents, and MCP</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow Lecture 1 of <b>Stanford CS329Z: Engineering AI Agents (Fall 2026)</b>, given by <b>Prof. Diyi Yang</b> (the course is co-taught with Michael Ryan and John Yang) and published free by Stanford Online. The lecture content, structure and examples are hers; mistakes, and everything in the orange "going beyond" boxes, are mine. Course site: <a href="https://cs329z.stanford.edu/" target="_blank" rel="noopener">cs329z.stanford.edu</a>.</div>
+
+<h2>1 · Multi-agent debate <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2449" target="_blank" rel="noopener">▶ 40:49</a></h2>
+<p>Besides self-consistency and reflection, another way researchers improved reasoning was <b>multi-agent debate</b>: several agents solve the <b>same task</b>; after each round, each reads the others' reasoning and they debate, like discussing a decision with teammates; drawing on the diverse perspectives, they reach a final decision.</p>
+<p>The assumption back then was that <b>each individual model wasn't strong enough</b>, so debate was a way to prompt more out of it. <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2494" target="_blank" rel="noopener">▶ 41:34</a> With today's powerful models, if your only goal is a performance boost, multi-agent setups <b>won't help much</b>. Other design considerations can still favour them:</p>
+<ul>
+<li><b>Efficiency.</b></li>
+<li><b>Data access control</b>: one agent handles health care, another handles sensitive information, each seeing only its own data.</li>
+</ul>
+
+<h2>2 · Orchestration <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2523" target="_blank" rel="noopener">▶ 42:03</a></h2>
+<p>Another pattern: many specialised agents plus an <b>orchestrator</b> that coordinates them toward one task. In Microsoft's early <b>Magentic-One</b>, the orchestrator breaks a big task into parts and assigns each to a specialist (the first part to a file-surfing agent, then a coder, then a computer terminal, and so on); at the end it combines the results into a final answer for the user.</p>
+<table>
+<tr><th></th><th>Multi-agent debate</th><th>Orchestrator + specialists</th></tr>
+<tr><td>Who does what</td><td>Everyone solves the same task</td><td>Each agent gets a different sub-task</td></tr>
+<tr><td>How they combine</td><td>Read each other's reasoning, argue, converge</td><td>Orchestrator merges the pieces</td></tr>
+<tr><td>Why use it</td><td>Diverse perspectives when single models were weak</td><td>Decomposition, specialisation, access control</td></tr>
+</table>
+<p>Planning and reasoning get a deep dive in weeks 2 and 3.</p>
+
+<h2>3 · Why agents need memory <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2583" target="_blank" rel="noopener">▶ 43:03</a></h2>
+<p>Memory is a place for lots of creative design. Two reasons it's needed:</p>
+<ol>
+<li><b>Capacity.</b> Context windows keep growing, but still can't hold the whole event stream. An agent working on your project for three-plus hours generates a lot of data.</li>
+<li><b>Relevance.</b> Even if it fit, finding the relevant piece is hard: with 1,000 documents in context, locating the right one each time is slow because the search space is huge.</li>
+</ol>
+<p><b>Generative agents (Smallville)</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2665" target="_blank" rel="noopener">▶ 44:25</a> simulate people living in a small town. Their design needs a <b>memory stream</b> to keep track of what happened to each individual so the story can continue.</p>
+
+<h2>4 · Three kinds of memory <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2672" target="_blank" rel="noopener">▶ 44:32</a></h2>
+<table>
+<tr><th>Type</th><th>What is stored</th><th>Example in the lecture</th></tr>
+<tr><td><b>Episodic</b></td><td>Everything, raw: every sentence the agent said to the user and the user said to the agent</td><td>A log of every time step and what happened at it</td></tr>
+<tr><td><b>Semantic</b></td><td>Synthesised events and facts instead of raw logs, since those may be more useful</td><td>A small summary box of what happened in the last several minutes</td></tr>
+<tr><td><b>Procedural</b></td><td><b>Skills</b>: how a type of thing is done, without the specifics</td><td><b>Voyager</b> (NVIDIA), playing Minecraft: each newly figured-out skill is abstracted into a <b>skill library</b>; for a new task, retrieve a matching skill if one exists</td></tr>
+</table>
+<p>Sort these memories. Click a memory, then click the type you think it belongs to.</p>
+<div class="card">
+  <div id="facts"></div>
+  <div class="row" id="bins"></div>
+  <p class="small" id="sortTxt"></p>
+  <div class="row"><span class="stat"><span class="v" id="score">0 / 8</span><span class="l"> sorted correctly</span></span><button id="sReset">Reset</button></div>
+</div>
+
+<h2>5 · Tool use: Toolformer <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2790" target="_blank" rel="noopener">▶ 46:30</a></h2>
+<p>Agents now use many kinds of tools (search, coding, …); tool use gets its own lecture next Wednesday. In early work, the tool call was <b>triggered inside decoding</b>. Take "The New England Journal of Medicine is a registered trademark of …": at that point the model emits a special <b>QA</b> call, "Who is the publisher of The New England Journal of Medicine?", gets the answer, and uses it in the rest of the generation. So teaching tool use meant learning <b>where</b> to call an API, <b>when</b>, and <b>which</b> one.</p>
+<p><b>Toolformer</b> <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2885" target="_blank" rel="noopener">▶ 48:05</a> was roughly the first work to teach LLMs tools this way, with just <b>five</b>: a calculator, a question-answering system, a search engine, a translation system and a calendar. A very limited set, but today's tool-using agents are inspired by setups like this.</p>
+<div class="card">
+  <div class="row" id="exBtns"></div>
+  <div class="row"><button id="gStep">Next token ▶</button><button id="gAll">Play to end</button></div>
+  <p id="gen" style="font-size:17px;min-height:3.3em"></p>
+  <p class="small" id="genTxt" style="margin-bottom:0"></p>
+</div>
+<p class="small muted">The sentences are adapted from Toolformer's Figure 1; tool results are fixed strings, nothing is called.</p>
+
+<h2>6 · Tool use: Gorilla <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=2926" target="_blank" rel="noopener">▶ 48:46</a></h2>
+<p><b>Gorilla</b> (Berkeley) teaches LLMs to use <b>thousands of APIs</b>. It collected over <b>1,600 APIs</b> from Hugging Face, Torch Hub and TensorFlow Hub, generated <b>synthetic training data</b> from them, and trained a <b>7-billion-parameter</b> model.</p>
+<p>At inference, a user says "I want to see some cats dancing in celebration"; Gorilla <b>retrieves</b> the right API (likely a Stable Diffusion model) and an image comes out. Without the tool, the base model itself would need image-generation ability; with it, the work is <b>delegated</b>. The results: very few hallucinations and high accuracy, which makes sense, since otherwise the model must do everything from its own parameters, whereas with tools its generation can be more factual and reasonable.</p>
+
+<h2>7 · The whole skeleton <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3031" target="_blank" rel="noopener">▶ 50:31</a></h2>
+<div class="callout"><b>LLM core</b> that reasons and plans · <b>memory</b> carrying state across steps and tasks · <b>tools</b> reaching out to many APIs · an <b>environment</b> to act in and observe. Every agent you build, whether it writes code, browses the web or runs a terminal, is a version of this diagram. What differs is <b>how each box is implemented</b> and <b>how well the pieces fit together</b>.</div>
+
+<h2>8 · Q&amp;A: how does an agent know what to remember? <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3085" target="_blank" rel="noopener">▶ 51:25</a></h2>
+<p>That is a design choice. <b>Episodic</b> memory sidesteps it heuristically: remember everything. <b>Semantic</b> memory needs a separate module that decides what's important, and you can give it <b>demonstrations</b> of what counts as important and the <b>format</b> to store it in.</p>
+<p>This is where things get tricky <a class="small" href="https://www.youtube.com/watch?v=DGI4vucR71w&amp;t=3149" target="_blank" rel="noopener">▶ 52:29</a>. Earlier this year, people were using <b>OpenClaw</b> to manage their email, and for one user it started <b>deleting emails</b> and kept going despite "please stop". The user had said at the start: confirm with me before such actions. The cause was the <b>context-memory compression</b> step: to store memory efficiently, the model kept only what it judged important, and "confirm before you act" wasn't judged important. Memory must be <b>faithful</b> as well as compact. Replay the failure:</p>
+<div class="card">
+  <p class="small" style="margin-top:0">A mock compressor gives each event an importance score (scripted numbers) and keeps the top $k$. Shrink the budget and watch what the agent does next.</p>
+  <div class="row"><label>memory budget $k$ <input type="range" id="kS" min="1" max="7" step="1" value="7"></label> <b class="mono" id="kT"></b><label><input type="checkbox" id="pin"> pin user instructions (never compress)</label></div>
+  <div id="comp"></div>
+  <p class="small" id="compOut" style="margin-bottom:0"></p>
+</div>
+<div class="beyond"><b>Going beyond the lecture.</b> Pinning standing instructions outside the compressible context (a system prompt, or a rules file the harness re-injects every turn) is one common fix; another is to make destructive tools require confirmation in code rather than trusting the model to remember to ask.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Multi-agent debate boosted weak models; with strong models it adds little accuracy, but multi-agent designs still help with efficiency and data access control.</li>
+<li>Orchestrators (e.g. Magentic-One) decompose a task and route the parts to specialist agents, then merge the results.</li>
+<li>Memory exists because context is finite and relevance is hard. Episodic = raw log, semantic = synthesised facts, procedural = reusable skills (Voyager's skill library).</li>
+<li>Deciding what to keep is a design choice with real risk: a compression step that dropped "confirm first" led OpenClaw to keep deleting a user's email.</li>
+<li>Tool use began inside decoding (Toolformer, five tools) and scaled to thousands of APIs with retrieval (Gorilla, 1,600+), cutting hallucination by delegating.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+/* memory sorter */
+const F = [['08:02 User: "Please confirm with me before deleting anything."', 'e', 'A raw, timestamped line of the conversation.'],
+  ['Isabella told Klaus about the Valentine’s Day party at 14:05.', 'e', 'One observed event, stored as it happened (a Smallville-style memory stream entry).'],
+  ['08:03 Agent ran ls inbox/ and saw 312 messages.', 'e', 'A raw log of one action and its observation.'],
+  ['The user wants confirmation before any destructive action.', 's', 'A fact synthesised from the conversation, not the raw sentence.'],
+  ['Last 10 minutes: archived 40 newsletters, flagged 3 invoices.', 's', 'A summary box of recent minutes.'],
+  ['Klaus is a student writing a research paper.', 's', 'A distilled fact about a person.'],
+  ['Skill craftStonePickaxe(): mine 3 cobblestone, get 2 sticks, use the crafting table.', 'p', 'A reusable procedure, Voyager’s skill library style.'],
+  ['To triage an inbox: group by sender, archive newsletters, ask before deleting.', 'p', 'How to do a type of task, without the specifics of any one day.']];
+const BIN = {e: 'Episodic', s: 'Semantic', p: 'Procedural'};
+let placed = {}, sel = -1, msg = 'Pick a memory first.';
+function drawSort(){
+  $('facts').innerHTML = F.map((f, i) => { const p = placed[i]; const ok = p && p === f[1];
+    return `<div data-f="${i}" style="cursor:pointer;padding:6px 10px;margin:4px 0;border-radius:8px;border:1px solid ${i === sel ? cssv('--s1') : cssv('--grid')};background:${i === sel ? 'var(--tint)' : 'var(--surface)'}" class="small">${esc(f[0])}${p ? ` <b style="color:${cssv(ok ? '--s3' : '--s2')}">→ ${BIN[p]} ${ok ? '✓' : '✗'}</b>` : ''}</div>`; }).join('');
+  $('bins').innerHTML = Object.entries(BIN).map(([k, v]) => `<button data-b="${k}">${v}</button>`).join('');
+  $('sortTxt').textContent = msg;
+  $('score').textContent = `${F.filter((f, i) => placed[i] === f[1]).length} / ${F.length}`; }
+$('facts').addEventListener('click', e => { const d = e.target.closest('[data-f]'); if (d) { sel = +d.dataset.f; msg = 'Now choose a memory type.'; drawSort(); } });
+$('bins').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (sel < 0) { msg = 'Pick a memory first.'; drawSort(); return; }
+  const f = F[sel]; placed[sel] = b.dataset.b; msg = (b.dataset.b === f[1] ? 'Correct: ' : `Not quite, it is ${BIN[f[1]]}: `) + f[2]; sel = -1; drawSort(); });
+$('sReset').addEventListener('click', () => { placed = {}; sel = -1; msg = 'Pick a memory first.'; drawSort(); });
+drawSort();
+/* compression */
+const EVT = [['User: confirm with me before deleting anything', 0.31, true], ['User: clean up my inbox', 0.92, true], ['Agent: found 312 messages', 0.55, false],
+  ['Agent: 180 are newsletters', 0.74, false], ['Agent: archived 40 newsletters', 0.66, false], ['Agent: inbox still over 250 messages', 0.81, false], ['Agent: old threads look deletable', 0.78, false]];
+function drawComp(){ const k = +$('kS').value, pin = $('pin').checked; $('kT').textContent = k;
+  const pinned = pin ? EVT.map((e, i) => i).filter(i => EVT[i][2]) : [];
+  const rest = EVT.map((e, i) => i).filter(i => !pinned.includes(i)).sort((a, b) => EVT[b][1] - EVT[a][1]).slice(0, Math.max(0, k - pinned.length));
+  const keep = new Set(pinned.concat(rest));
+  $('comp').innerHTML = EVT.map((e, i) => `<div class="small" style="display:grid;grid-template-columns:minmax(0,1fr) 46px 64px;gap:8px;padding:3px 0;border-bottom:1px solid var(--grid);${keep.has(i) ? '' : 'opacity:.45;text-decoration:line-through'}"><span>${esc(e[0])}</span><span class="mono">${e[1].toFixed(2)}</span><span>${keep.has(i) ? (pinned.includes(i) ? 'pinned' : 'kept') : 'dropped'}</span></div>`).join('');
+  const safe = keep.has(0);
+  $('compOut').innerHTML = safe ? `<b style="color:${cssv('--s3')}">Next action:</b> "Shall I delete the 90 old threads?" The instruction survived, so the agent asks first.` :
+    `<b style="color:${cssv('--s2')}">Next action:</b> delete_messages(old_threads). The instruction scored low (0.31) and was compressed away; the agent no longer knows it should ask.`; }
+['kS', 'pin'].forEach(i => $(i).addEventListener('input', drawComp)); $('pin').addEventListener('change', drawComp);
+drawComp();
+/* Toolformer */
+const EX = [['QA', ['The', 'New', 'England', 'Journal', 'of', 'Medicine', 'is', 'a', 'registered', 'trademark', 'of', '{QA("Who is the publisher of The New England Journal of Medicine?")|Massachusetts Medical Society}', 'the', 'MMS.']],
+  ['Calculator', ['Out', 'of', '1400', 'participants,', '400', '(or', '{Calculator(400 / 1400)|0.29}', '29%)', 'passed', 'the', 'test.']],
+  ['Translation', ['The', 'name', 'derives', 'from', '“la', 'tortuga”,', 'the', 'Spanish', 'word', 'for', '{MT("tortuga")|turtle}', 'turtle.']],
+  ['Calendar', ['Today', 'is', 'the', 'first', '{Calendar()|Today is Friday, 1 May 2026.}', 'Friday', 'of', 'the', 'month.']]];
+let ex = 0, gi = 0;
+function drawGen(){ const toks = EX[ex][1];
+  $('exBtns').innerHTML = EX.map((e, i) => `<button data-x="${i}" class="${i === ex ? 'on' : ''}">${e[0]}</button>`).join('');
+  $('gen').innerHTML = toks.slice(0, gi).map(t => { if (t[0] !== '{') return esc(t); const [call, res] = t.slice(1, -1).split('|');
+    return `<span class="mono" style="background:var(--tint);border-radius:6px;padding:1px 5px">[${esc(call)} → <b>${esc(res)}</b>]</span>`; }).join(' ') + (gi < toks.length ? ' <span class="muted">▁</span>' : '');
+  const last = toks[gi - 1] || '';
+  $('genTxt').textContent = gi === 0 ? 'Press Next token to start decoding.' : last[0] === '{' ? 'The model emitted an API call here: decoding pauses, the tool runs, and its result is inserted into the text before decoding resumes.' : gi >= toks.length ? 'Done. The words after the call are conditioned on the tool’s answer.' : 'Ordinary decoding, one token at a time.'; }
+$('exBtns').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { ex = +b.dataset.x; gi = 0; drawGen(); } });
+$('gStep').addEventListener('click', () => { gi = Math.min(EX[ex][1].length, gi + 1); drawGen(); });
+$('gAll').addEventListener('click', () => { gi = EX[ex][1].length; drawGen(); });
+drawGen();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { drawSort(); drawComp(); });
+window.addEventListener('load', () => { if (window.renderMathInElement) renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false}); });
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -17,7 +17,7 @@ Personal revision notes by Ashutosh Patidar, served with GitHub Pages. The notes
 | [Quantization](https://asu2304.github.io/quantization/) | — | — | Coming soon |
 | [LLMOps](https://asu2304.github.io/llmops/) | — | — | Coming soon |
 | [RAG](https://asu2304.github.io/rag/) | — | — | Coming soon |
-| [Agentic AI](https://asu2304.github.io/agentic-ai/) | — | — | Coming soon |
+| [Agentic AI](https://asu2304.github.io/agentic-ai/) | Diyi Yang, Stanford CS329Z (Fall 2026) | Lecture 1 in 5 pages: the history of agents, agent anatomy (planning and reasoning, memory, tools, environment), multi-agent systems, tool use and MCP, workflows vs agents, and key challenges. | In progress |
 
 ## What a page looks like
 
@@ -41,7 +41,7 @@ transformers/              Transformers and LLMs notes (Stanford CS229; 4 lectur
 quantization/              coming soon
 llmops/                    coming soon
 rag/                       coming soon
-agentic-ai/                coming soon
+agentic-ai/                Agentic AI notes (Stanford CS329Z; lecture 1, 5 pages)
 ```
 
 Every page is plain, self-contained HTML; there is no build step. Maths is rendered with KaTeX (MathJax in the linear algebra notes), loaded from a CDN.

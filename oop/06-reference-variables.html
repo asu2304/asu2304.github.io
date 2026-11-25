@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reference Variables and Pass by Reference</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 6 of 10 · OOP in Python · CampusX</div>
+<h1>Reference Variables and Pass by Reference</h1>
+<p class="lede">The variable you store an object in is not the object: it's a reference, holding the object's address. Pass it to a function and the function gets the same address, so a mutable object (a list, a dict, or any object of your own class) edited inside the function stays edited outside it.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=6560" target="_blank" rel="noopener">this part of the video on YouTube</a> (1:49:20–2:11:40 of a 4-hour video). Previous: <a href="05-encapsulation.html">encapsulation</a> · Next: <a href="07-collections-static.html">collections of objects and static members</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The variable is not the object <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=6574" target="_blank" rel="noopener">▶ 1:49:34</a></h2>
+<p>Import the <code class="i">Atm</code> class and just write <code class="i">Atm()</code>. An object really is created, at some location in memory. But can you use it? <b>No</b>: you didn't store it anywhere, so it's lost and you can never find it again.</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        self.pin = <span class="st">''</span>
+        self.balance = 0
+
+Atm()            <span class="cm"># created... and immediately lost</span>
+sbi = Atm()      <span class="cm"># sbi stores a reference to the new object</span>
+print(sbi)</pre>
+<pre class="out">&lt;__main__.Atm object at 0x1058db4c0&gt;</pre>
+<p>When you write <code class="i">sbi = Atm()</code>, two things exist: the <b>object</b>, sitting at some address in memory, and the variable <code class="i">sbi</code>, which stores that <b>address</b> (a reference to the object). We casually say "the object <code class="i">sbi</code>", but <code class="i">sbi</code> is not the object.</p>
+<div class="callout">The variable in which you store an object when you create it is called a <b>reference variable</b>: it points to the object; it doesn't contain it.</div>
+
+<h2>2 · Passing your own objects to functions <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=6683" target="_blank" rel="noopener">▶ 1:51:23</a></h2>
+<p>A small <code class="i">Customer</code> class, and a <code class="i">greet</code> function written <b>outside</b> the class (so it's a function, not a method) that receives a customer:</p>
+<pre class="code"><span class="kw">class</span> Customer:
+    <span class="kw">def</span> __init__(self, name, gender):
+        self.name = name
+        self.gender = gender
+
+<span class="kw">def</span> greet(customer):
+    <span class="kw">if</span> customer.gender == <span class="st">'Male'</span>:
+        print(<span class="st">'Hello'</span>, customer.name, <span class="st">'sir'</span>)
+    <span class="kw">else</span>:
+        print(<span class="st">'Hello'</span>, customer.name, <span class="st">"ma'am"</span>)
+
+cust = Customer(<span class="st">'Nitish'</span>, <span class="st">'Male'</span>)
+greet(cust)
+cust2 = Customer(<span class="st">'Ankita'</span>, <span class="st">'Female'</span>)
+greet(cust2)</pre>
+<pre class="out">Hello Nitish sir
+Hello Ankita ma'am</pre>
+<p>Nothing new was really learned here, he says, and that's the point: if a function can take an integer, a string, a list or a dict, it can take an object of <b>your</b> class too, because <b>in Python everything is an object</b>. Inside the function, <code class="i">customer</code> is that object, so <code class="i">customer.name</code> and <code class="i">customer.gender</code> work.</p>
+
+<h2>3 · Functions can return objects too <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7063" target="_blank" rel="noopener">▶ 1:57:43</a></h2>
+<pre class="code"><span class="kw">class</span> Customer:
+    <span class="kw">def</span> __init__(self, name, gender):
+        self.name = name
+        self.gender = gender
+
+<span class="kw">def</span> greet(customer):
+    <span class="kw">if</span> customer.gender == <span class="st">'Male'</span>:
+        print(<span class="st">'Hello'</span>, customer.name, <span class="st">'sir'</span>)
+    <span class="kw">else</span>:
+        print(<span class="st">'Hello'</span>, customer.name, <span class="st">"ma'am"</span>)
+    cust2 = Customer(<span class="st">'Ankita'</span>, <span class="st">'Female'</span>)
+    <span class="kw">return</span> cust2
+
+cust = Customer(<span class="st">'Nitish'</span>, <span class="st">'Male'</span>)
+new_cust = greet(cust)
+print(new_cust.name)</pre>
+<pre class="out">Hello Nitish sir
+Ankita</pre>
+<p>The function built a new <code class="i">Customer</code> and returned it; outside, <code class="i">new_cust</code> receives it and, being an object, has a <code class="i">name</code> (and a <code class="i">gender</code>). Your own types behave like the built-in data types: they go into functions and come back out.</p>
+
+<h2>4 · Inside and outside: the same object? <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7163" target="_blank" rel="noopener">▶ 1:59:23</a></h2>
+<p>Now it gets interesting. Print the <code class="i">id</code> (the address) of the object outside, then inside the function. <b>Same or different?</b> Then change the name inside the function. <b>What does <code class="i">cust.name</code> print outside: Ankita or Nitish?</b> Guess first.</p>
+<pre class="code"><span class="kw">class</span> Customer:
+    <span class="kw">def</span> __init__(self, name):
+        self.name = name
+
+<span class="kw">def</span> greet(customer):
+    print(id(customer))
+    customer.name = <span class="st">'Nitish'</span>
+    print(customer.name)
+    print(id(customer))
+
+cust = Customer(<span class="st">'Ankita'</span>)
+print(id(cust))
+greet(cust)
+print(cust.name)</pre>
+<pre class="out">4305493776
+4305493776
+Nitish
+4305493776
+Nitish</pre>
+<p class="small muted">The exact numbers differ on every run; what matters is that they're equal.</p>
+<ol class="steps">
+<li><b>Same id</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7280" target="_blank" rel="noopener">▶ 2:01:20</a>. You didn't send the object; you sent the <b>reference</b>. <code class="i">customer = cust</code> happened, so both names point to one object. This is <b>pass by reference</b>.</li>
+<li><b>Nitish outside too</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7440" target="_blank" rel="noopener">▶ 2:04:00</a>. Both names point to the same object and you changed an attribute of that object, so the change is permanent and visible everywhere. If you pass an object to a function and the function edits it, <b>your original object changes</b>. Logical, once you picture the arrows.</li>
+<li><b>Same id after the edit</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7540" target="_blank" rel="noopener">▶ 2:05:40</a>. The object was edited in place; its address didn't change. That means <b>objects of your own classes are mutable</b>, just like lists, dictionaries and sets.</li>
+</ol>
+
+<h2>5 · The same story with a list <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7639" target="_blank" rel="noopener">▶ 2:07:19</a></h2>
+<p>Someone asked how a list can be changed inside a function. Same reason: a list is mutable and the function gets a reference to it.</p>
+<pre class="code"><span class="kw">def</span> change(L):
+    print(id(L))
+    L.append(5)
+    print(id(L))
+
+L1 = [1, 2, 3, 4]
+print(id(L1))
+print(L1)
+change(L1)
+print(L1)</pre>
+<pre class="out">4300240064
+[1, 2, 3, 4]
+4300240064
+4300240064
+[1, 2, 3, 4, 5]</pre>
+<p>The function's <code class="i">append</code> permanently changed the list outside. <b>Advice <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7776" target="_blank" rel="noopener">▶ 2:09:36</a>:</b> if you don't want a function to mess with your original list, don't send the original. Send a <b>clone</b>; the function works on a separate list and yours is untouched:</p>
+<pre class="code"><span class="kw">def</span> change(L):
+    L.append(5)
+
+L1 = [1, 2, 3, 4]
+change(L1[:])        <span class="cm"># send a copy (a clone)</span>
+print(L1)</pre>
+<pre class="out">[1, 2, 3, 4]</pre>
+
+<h2>6 · Immutable data: the tuple <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7823" target="_blank" rel="noopener">▶ 2:10:23</a></h2>
+<p>With a tuple there's no such worry, because tuples are <b>immutable</b>. <code class="i">append</code> doesn't even exist; you have to write <code class="i">L = L + (5, 6)</code>, which builds a <b>new</b> tuple and points the local <code class="i">L</code> at it:</p>
+<pre class="code"><span class="kw">def</span> change(L):
+    print(id(L))
+    L = L + (5, 6)
+    print(id(L))
+    print(L)
+
+L1 = (1, 2, 3, 4)
+print(id(L1))
+change(L1)
+print(L1)</pre>
+<pre class="out">4424644144
+4424644144
+4424639296
+(1, 2, 3, 4, 5, 6)
+(1, 2, 3, 4)</pre>
+<p>Inside, the id changes after the operation (a new object); outside, the original tuple is untouched.</p>
+<table>
+<tr><th>You pass…</th><th>Examples</th><th>Can the function change your original?</th></tr>
+<tr><td>Mutable data</td><td>list, dict, set, <b>objects of your classes</b></td><td>Yes, permanently. Be careful, or pass a copy.</td></tr>
+<tr><td>Immutable data</td><td>int, float, str, tuple</td><td>No: "changes" create a new object inside the function.</td></tr>
+</table>
+<div class="beyond"><b>Going beyond the video.</b> Strictly, Python is neither classic pass-by-reference nor pass-by-value; it's often called <b>pass by object reference</b> (or pass by assignment): the parameter is a new name bound to the same object. That's why <i>mutating</i> (<code class="i">L.append</code>, <code class="i">customer.name = …</code>) is visible outside, but <i>rebinding</i> (<code class="i">L = L + …</code>, or <code class="i">customer = Customer(…)</code>) never is, even for a list. Plain assignment does the same thing, which is called aliasing:
+<pre class="code">p = [1, 2]
+q = p
+q.append(3)
+print(p, p <span class="kw">is</span> q)</pre>
+<pre class="out">[1, 2, 3] True</pre>
+Also, <code class="i">L1[:]</code> is a <b>shallow</b> copy: a list of objects gets a new list holding the <i>same</i> objects (use <code class="i">copy.deepcopy</code> to copy those too).</div>
+
+<h2>7 · See it in memory</h2>
+<p>Step through each program. Names (in their frames) are on the left, objects on the right, and every arrow is a reference. Watch which arrows share an object when the function is called, and whether an operation edits the object or creates a new one.</p>
+<div class="card">
+  <div class="row" id="scen"></div>
+  <div class="pair">
+    <div><pre class="code" id="src" style="margin:0;font-size:12px"></pre></div>
+    <div><canvas id="mem" height="290" aria-label="Memory diagram: variables in frames on the left, objects on the right, arrows for references"></canvas></div>
+  </div>
+  <div class="row"><button id="prev">◀ back</button><button id="next">step ▶</button><span class="small muted" id="stepN"></span></div>
+  <p class="small" id="note"></p>
+  <div class="small muted">output so far</div>
+  <pre class="out" id="outp" style="margin:4px 0;min-height:2.2em;white-space:pre-wrap"></pre>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>An object lives at an address in memory; the variable you store it in (<code class="i">sbi</code>) is a <b>reference variable</b> that holds the address. <code class="i">Atm()</code> on its own creates an object you can never reach.</li>
+<li>Since everything in Python is an object, your objects can be passed to functions and returned from them like any built-in type.</li>
+<li>Passing an object passes the reference: same <code class="i">id</code> inside and outside, so edits inside the function change the original.</li>
+<li>Objects of your classes are mutable (id unchanged after an edit), like lists, dicts and sets; int, str and tuple are immutable.</li>
+<li>Pass mutable data carefully; send a clone (<code class="i">L1[:]</code>) if the function shouldn't touch your original.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function setupCanvas(cv){ if (!cv.dataset.h) cv.dataset.h = cv.getAttribute('height');
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1, h = +cv.dataset.h;
+  cv.width = Math.max(10, r.width) * dpr; cv.height = h * dpr; cv.style.height = h + 'px';
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); return [ctx, Math.max(10, r.width), h]; }
+
+// Each step: line (0-based, -1 none), frames [[frameName, [[var, objId], ...]], ...], objs {id: [type, addr, text]}, out (new lines), note, ch (changed obj id)
+const G = 'global';
+const SC = {
+  'reference variable': { code: ['class Atm:', '    ...', '', 'Atm()', 'sbi = Atm()', 'print(sbi)'], steps: [
+    {line: 3, frames: [[G, []]], objs: {a: ['Atm', '0x…4b0', "pin = ''  balance = 0"]}, ch: 'a', note: 'An Atm object is created at some address. Nothing stores that address, so no arrow points to it: it is lost.'},
+    {line: 4, frames: [[G, [['sbi', 'b']]]], objs: {a: ['Atm', '0x…4b0', "pin = ''  balance = 0"], b: ['Atm', '0x…5c8', "pin = ''  balance = 0"]}, ch: 'b', note: 'A second object is created, and this time its address is stored in sbi. sbi is a reference variable: it points to the object.'},
+    {line: 5, frames: [[G, [['sbi', 'b']]]], objs: {a: ['Atm', '0x…4b0', "pin = ''  balance = 0"], b: ['Atm', '0x…5c8', "pin = ''  balance = 0"]}, out: ['<__main__.Atm object at 0x…5c8>'], note: 'Printing sbi shows the object it refers to, and its memory address.'} ]},
+  'object to a function': { code: ['def greet(customer):', '    customer.name = \'Nitish\'', '', "cust = Customer('Ankita')", 'greet(cust)', 'print(cust.name)'], steps: [
+    {line: 3, frames: [[G, [['cust', 'c']]]], objs: {c: ['Customer', '0x…270', "name = 'Ankita'"]}, ch: 'c', note: 'cust refers to a new Customer object.'},
+    {line: 4, frames: [[G, [['cust', 'c']]], ['greet()', [['customer', 'c']]]], objs: {c: ['Customer', '0x…270', "name = 'Ankita'"]}, note: 'Calling greet(cust) does customer = cust: the reference is copied, not the object. Two arrows, one object, so id(customer) == id(cust).'},
+    {line: 1, frames: [[G, [['cust', 'c']]], ['greet()', [['customer', 'c']]]], objs: {c: ['Customer', '0x…270', "name = 'Nitish'"]}, ch: 'c', note: 'The attribute is changed on that one object. Same address afterwards: the object was edited in place (mutable).'},
+    {line: 5, frames: [[G, [['cust', 'c']]]], objs: {c: ['Customer', '0x…270', "name = 'Nitish'"]}, out: ['Nitish'], note: 'The function has returned and its frame is gone, but the edit stays: cust sees Nitish.'} ]},
+  'list to a function': { code: ['def change(L):', '    L.append(5)', '', 'L1 = [1, 2, 3, 4]', 'change(L1)', 'print(L1)'], steps: [
+    {line: 3, frames: [[G, [['L1', 'l']]]], objs: {l: ['list', '0x…a80', '[1, 2, 3, 4]']}, ch: 'l', note: 'L1 refers to a list.'},
+    {line: 4, frames: [[G, [['L1', 'l']]], ['change()', [['L', 'l']]]], objs: {l: ['list', '0x…a80', '[1, 2, 3, 4]']}, note: 'Inside change(), L refers to the very same list.'},
+    {line: 1, frames: [[G, [['L1', 'l']]], ['change()', [['L', 'l']]]], objs: {l: ['list', '0x…a80', '[1, 2, 3, 4, 5]']}, ch: 'l', note: 'append edits the list in place. Same address.'},
+    {line: 5, frames: [[G, [['L1', 'l']]]], objs: {l: ['list', '0x…a80', '[1, 2, 3, 4, 5]']}, out: ['[1, 2, 3, 4, 5]'], note: 'The change is permanent: the original list now has 5.'} ]},
+  'send a clone': { code: ['def change(L):', '    L.append(5)', '', 'L1 = [1, 2, 3, 4]', 'change(L1[:])', 'print(L1)'], steps: [
+    {line: 3, frames: [[G, [['L1', 'l']]]], objs: {l: ['list', '0x…a80', '[1, 2, 3, 4]']}, ch: 'l', note: 'L1 refers to a list.'},
+    {line: 4, frames: [[G, [['L1', 'l']]], ['change()', [['L', 'k']]]], objs: {l: ['list', '0x…a80', '[1, 2, 3, 4]'], k: ['list', '0x…c40', '[1, 2, 3, 4]']}, ch: 'k', note: 'L1[:] builds a copy at a new address; the function gets a reference to the copy.'},
+    {line: 1, frames: [[G, [['L1', 'l']]], ['change()', [['L', 'k']]]], objs: {l: ['list', '0x…a80', '[1, 2, 3, 4]'], k: ['list', '0x…c40', '[1, 2, 3, 4, 5]']}, ch: 'k', note: 'Only the copy is changed.'},
+    {line: 5, frames: [[G, [['L1', 'l']]]], objs: {l: ['list', '0x…a80', '[1, 2, 3, 4]'], k: ['list', '0x…c40', '[1, 2, 3, 4, 5]']}, out: ['[1, 2, 3, 4]'], note: 'The copy is now unreachable; your original is untouched.'} ]},
+  'tuple to a function': { code: ['def change(L):', '    L = L + (5, 6)', '', 'L1 = (1, 2, 3, 4)', 'change(L1)', 'print(L1)'], steps: [
+    {line: 3, frames: [[G, [['L1', 't']]]], objs: {t: ['tuple', '0x…380', '(1, 2, 3, 4)']}, ch: 't', note: 'L1 refers to a tuple, which is immutable.'},
+    {line: 4, frames: [[G, [['L1', 't']]], ['change()', [['L', 't']]]], objs: {t: ['tuple', '0x…380', '(1, 2, 3, 4)']}, note: 'As always, L starts out referring to the same object.'},
+    {line: 1, frames: [[G, [['L1', 't']]], ['change()', [['L', 'u']]]], objs: {t: ['tuple', '0x…380', '(1, 2, 3, 4)'], u: ['tuple', '0x…e40', '(1, 2, 3, 4, 5, 6)']}, ch: 'u', note: 'A tuple cannot be edited, so L + (5, 6) builds a NEW tuple and only the local L moves to it. New id inside.'},
+    {line: 5, frames: [[G, [['L1', 't']]]], objs: {t: ['tuple', '0x…380', '(1, 2, 3, 4)'], u: ['tuple', '0x…e40', '(1, 2, 3, 4, 5, 6)']}, out: ['(1, 2, 3, 4)'], note: 'Outside, L1 still refers to the original tuple.'} ]},
+};
+let cur = Object.keys(SC)[0], k = 0;
+Object.keys(SC).forEach(name => { const b = document.createElement('button'); b.textContent = name; b.dataset.s = name;
+  b.addEventListener('click', () => { cur = name; k = 0; draw(); }); $('scen').appendChild(b); });
+
+function wrapText(ctx, text, maxW){ const words = text.split(/(?<=,) |  /), lines = []; let line = '';
+  words.forEach(w => { const t = line ? line + (line.endsWith(',') ? ' ' : '  ') + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t; });
+  if (line) lines.push(line); return lines; }
+function draw(){
+  const S = SC[cur], st = S.steps[k];
+  document.querySelectorAll('#scen button').forEach(b => b.classList.toggle('on', b.dataset.s === cur));
+  $('src').innerHTML = S.code.map((l, i) => i === st.line ? `<span style="background:var(--tint);display:inline-block;width:100%;font-weight:600">${esc(l) || ' '}</span>` : esc(l)).join('\n');
+  $('stepN').textContent = `step ${k + 1} of ${S.steps.length}`;
+  $('prev').disabled = k === 0; $('next').disabled = k === S.steps.length - 1;
+  $('note').textContent = st.note;
+  $('outp').textContent = S.steps.slice(0, k + 1).flatMap(s => s.out || []).join('\n');
+  const [ctx, W, H] = setupCanvas($('mem'));
+  const ink = cssv('--ink'), muted = cssv('--muted'), grid = cssv('--grid'), card = cssv('--card'), s1 = cssv('--s1'), s2 = cssv('--s2'), tint = cssv('--tint');
+  const fs = W < 360 ? 11 : 12; ctx.font = fs + 'px ui-monospace,Menlo,monospace'; ctx.textBaseline = 'middle';
+  const lw = Math.min(170, W * 0.36), ox = W * 0.47, ow = W - ox - 4;
+  ctx.fillStyle = muted; ctx.fillText('names', 4, 10); ctx.fillText('objects', ox, 10);
+  // objects
+  const pos = {}, ids = Object.keys(st.objs); let y = 24;
+  const refd = new Set(st.frames.flatMap(f => f[1].map(v => v[1])));
+  ids.forEach(id => { const [type, addr, text] = st.objs[id]; const lines = wrapText(ctx, text, ow - 16), h = 30 + lines.length * (fs + 4);
+    ctx.setLineDash(refd.has(id) ? [] : [5, 4]); ctx.globalAlpha = refd.has(id) ? 1 : 0.55;
+    ctx.fillStyle = id === st.ch ? tint : card; ctx.fillRect(ox, y, ow, h);
+    ctx.strokeStyle = id === st.ch ? s2 : grid; ctx.lineWidth = id === st.ch ? 2 : 1; ctx.strokeRect(ox, y, ow, h); ctx.setLineDash([]);
+    ctx.fillStyle = muted; ctx.fillText(type + ' @ ' + addr, ox + 8, y + 12);
+    ctx.fillStyle = ink; lines.forEach((l, i) => ctx.fillText(l, ox + 8, y + 28 + i * (fs + 4)));
+    if (!refd.has(id)) { ctx.fillStyle = s2; ctx.fillText('no reference: lost', ox + 8, y + h + 10); }
+    ctx.globalAlpha = 1; pos[id] = [y, h]; y += h + (refd.has(id) ? 14 : 26); });
+  // frames
+  y = 24;
+  st.frames.forEach(([fname, vars]) => { const h = 24 + Math.max(1, vars.length) * 26;
+    ctx.fillStyle = card; ctx.fillRect(4, y, lw, h); ctx.strokeStyle = grid; ctx.lineWidth = 1; ctx.strokeRect(4, y, lw, h);
+    ctx.fillStyle = muted; ctx.fillText(fname === G ? 'global frame' : fname + ' frame', 10, y + 12);
+    vars.forEach(([v, id], i) => { const vy = y + 34 + i * 26; ctx.fillStyle = ink; ctx.fillText(v, 12, vy);
+      ctx.fillStyle = s1; ctx.beginPath(); ctx.arc(4 + lw - 12, vy, 4, 0, 7); ctx.fill();
+      const [oy, oh] = pos[id], tx = ox - 2, ty = oy + Math.min(oh / 2, 22), sx = 4 + lw - 12;
+      ctx.strokeStyle = s1; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx, vy); ctx.bezierCurveTo(sx + 40, vy, tx - 40, ty, tx, ty); ctx.stroke();
+      const a = Math.atan2(ty - vy, 40); ctx.fillStyle = s1; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - 9, ty - 5); ctx.lineTo(tx - 9, ty + 5); ctx.fill(); });
+    y += h + 12; });
+}
+$('next').addEventListener('click', () => { if (k < SC[cur].steps.length - 1) { k++; draw(); } });
+$('prev').addEventListener('click', () => { if (k > 0) { k--; draw(); } });
+draw();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

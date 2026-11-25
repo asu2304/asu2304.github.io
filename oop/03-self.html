@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>What self Really Is</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 3 of 10 · OOP in Python · CampusX</div>
+<h1>What self Really Is</h1>
+<p class="lede"><code class="i">self</code> is simply the object you are currently working with. When you write <code class="i">sbi.deposit()</code>, Python quietly passes <code class="i">sbi</code> into the method, and the method receives it as <code class="i">self</code>. It is needed because, inside a class, methods and data can only be reached through an object, so each method needs the object in hand.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3360" target="_blank" rel="noopener">this part of the video on YouTube</a> (0:56:00–1:06:18 of a 4-hour video). Previous: <a href="02-class-object-constructor.html">building an ATM: class, object and constructor</a> · Next: <a href="04-fraction-data-type.html">your own data type: Fraction</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The puzzle <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3361" target="_blank" rel="noopener">▶ 56:01</a></h2>
+<p>In the <a href="02-class-object-constructor.html">ATM class</a> the word <code class="i">self</code> is everywhere: <code class="i">self.pin</code>, <code class="i">self.balance</code>, <code class="i">self.menu()</code>, and every method takes <code class="i">self</code> as input. What is it? He admits it is a slightly confusing idea, best understood with a small experiment.</p>
+
+<h2>2 · The experiment: print the address of self <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3405" target="_blank" rel="noopener">▶ 56:45</a></h2>
+<p>The reasoning: <code class="i">self</code> is <i>something</i>. Everything in Python is an object, so <code class="i">self</code> is an object; every object lives somewhere in memory, so it has an address, which <code class="i">id()</code> gives us. Print it inside the constructor, then compare with the address of the object we created:</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        <span class="kw">print</span>(id(self))
+        self.pin = <span class="st">''</span>
+        self.balance = <span class="st">0</span>
+
+sbi = Atm()
+<span class="kw">print</span>(id(sbi))
+hdfc = Atm()
+<span class="kw">print</span>(id(hdfc))</pre>
+<pre class="out">4369642688
+4369642688
+4369853936
+4369853936</pre>
+<p>(Your numbers will differ; what matters is which ones are equal.) When <code class="i">sbi</code> was being built, <code class="i">self</code> had <b>the same address as <code class="i">sbi</code></b>. Make a second object <code class="i">hdfc</code> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3511" target="_blank" rel="noopener">▶ 58:31</a> and <code class="i">self</code> now has the address of <code class="i">hdfc</code>, while <code class="i">id(sbi)</code> is unchanged.</p>
+
+<h2>3 · The one-line answer <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3560" target="_blank" rel="noopener">▶ 59:20</a></h2>
+<div class="callout" style="font-size:18px"><b>self is the object you are currently working with.</b> While <code class="i">sbi</code> is working, <code class="i">self</code> <i>is</i> <code class="i">sbi</code>; while <code class="i">hdfc</code> is working, <code class="i">self</code> <i>is</i> <code class="i">hdfc</code>.</div>
+<p>(He compares it to <code class="i">this</code> in other languages.)</p>
+
+<h3>Try it: step through a method call</h3>
+<div class="card">
+<p class="small muted" style="margin-top:0">Pick who calls <code class="i">deposit(500)</code>, then step. The diagram shows names (left) pointing at objects in memory (right); <code class="i">self</code> appears only while the method runs, and points at the caller.</p>
+<div class="row"><span class="small muted">caller:</span><button id="s-sbi" class="mono">sbi</button><button id="s-hdfc" class="mono">hdfc</button>
+<span style="flex:1"></span><button id="s-prev">◀ Back</button><button id="s-next">Next ▶</button><button id="s-reset">Reset balances</button></div>
+<canvas id="s-cv" height="230"></canvas>
+<pre class="code" id="s-code" style="white-space:pre-wrap"></pre>
+<p class="small" id="s-msg"></p>
+</div>
+
+<h2>4 · Remove self and see what breaks <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3599" target="_blank" rel="noopener">▶ 59:59</a></h2>
+<p>Why must every method receive <code class="i">self</code>? Delete it from one method and call that method:</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        self.pin = <span class="st">''</span>
+        self.balance = <span class="st">0</span>
+
+    <span class="kw">def</span> create_pin():          <span class="cm"># self removed!</span>
+        <span class="kw">print</span>(<span class="st">'creating pin'</span>)
+
+sbi = Atm()
+sbi.create_pin()</pre>
+<pre class="out">TypeError: create_pin() takes 0 positional arguments but 1 was given</pre>
+<p class="small muted">(Python 3.10+ words it as <code class="i">Atm.create_pin() takes 0 positional arguments but 1 was given</code>.)</p>
+<p>"But 1 was given"? We passed nothing! <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3740" target="_blank" rel="noopener">▶ 1:02:20</a> That is the reveal: <b>whenever you call <code class="i">object.method()</code>, Python passes the object itself as the first input by default.</b> When <code class="i">sbi</code> called <code class="i">create_pin</code>, the method received <code class="i">sbi</code>, and that first parameter is what we name <code class="i">self</code>.</p>
+<div class="beyond"><b>Going beyond the video:</b> you can do Python's rewrite yourself. <code class="i">sbi.show()</code> is shorthand for <code class="i">Atm.show(sbi)</code>:
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        self.pin = <span class="st">'1234'</span>
+        self.balance = <span class="st">500</span>
+
+    <span class="kw">def</span> show(self):
+        <span class="kw">print</span>(self.balance)
+
+sbi = Atm()
+sbi.show()        <span class="cm"># what you write</span>
+Atm.show(sbi)     <span class="cm"># what Python does for you</span></pre>
+<pre class="out">500
+500</pre>
+And the name <code class="i">self</code> is only a convention (any name works for the first parameter), but always use <code class="i">self</code>.</div>
+
+<h2>5 · Why Python needs it: only objects can reach a class's members <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3784" target="_blank" rel="noopener">▶ 1:03:04</a></h2>
+<p>That explains <i>what</i> is passed, not <i>why</i> it has to be. The answer goes back to the most basic rule from part 1:</p>
+<ol class="steps">
+<li>A class contains only two things: <b>data</b> and <b>methods</b>.</li>
+<li>The data and methods of a class can be accessed <b>only by an object of that class</b>. Everything inside <code class="i">Atm</code> is reachable only through <code class="i">sbi</code> (or another Atm object).</li>
+<li>So, a very important consequence: <b>one method of a class cannot directly access another method, or the data, of the same class.</b></li>
+<li>But the constructor needed to call <code class="i">menu()</code>, and <code class="i">deposit()</code> needs <code class="i">balance</code>. Where do you get an object from, inside the class? <b>self</b>: the object that called the method arrives as an input, so <code class="i">self.menu()</code> and <code class="i">self.balance</code> are just <code class="i">object.member</code>, the only access route there is.</li>
+</ol>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        self.pin = <span class="st">''</span>
+        self.balance = <span class="st">0</span>
+        menu()                 <span class="cm"># no self. in front</span>
+
+    <span class="kw">def</span> menu(self):
+        <span class="kw">print</span>(<span class="st">'menu'</span>)
+
+sbi = Atm()</pre>
+<pre class="out">NameError: name 'menu' is not defined</pre>
+<table>
+<tr><th>Inside a method you write</th><th>It means</th></tr>
+<tr><td><code class="i">self.balance</code></td><td>the <code class="i">balance</code> of whichever object called this method</td></tr>
+<tr><td><code class="i">self.menu()</code></td><td>call <code class="i">menu</code> on that same object</td></tr>
+<tr><td><code class="i">balance</code> / <code class="i">menu()</code></td><td>a plain variable / function: <code class="i">NameError</code> unless one exists outside the class</td></tr>
+</table>
+
+<h2>6 · Revision <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3915" target="_blank" rel="noopener">▶ 1:05:15</a></h2>
+<p>His recap: a class has data and methods; only its objects can use them; therefore a method cannot reach its sibling methods or data on its own, yet in many scenarios it must (like the constructor calling <code class="i">menu</code>). It gets an object through <code class="i">self</code>, which is <b>whichever object called the method</b>. The concept is not difficult, yet many students never really grasp it; once you understand it, you will stop making mistakes with <code class="i">self</code>.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li><b>self is the current object</b>: <code class="i">id(self)</code> inside the method equals <code class="i">id(sbi)</code> when <code class="i">sbi</code> is the caller.</li>
+<li><code class="i">obj.method()</code> automatically passes <code class="i">obj</code> as the first argument; that parameter is named <code class="i">self</code>.</li>
+<li>Forget <code class="i">self</code> in a method definition and calling it gives <code class="i">TypeError: … takes 0 positional arguments but 1 was given</code>.</li>
+<li>Members of a class are reachable only through an object, so even methods of the same class must go through <code class="i">self.</code> to reach each other and the data.</li>
+<li>Different objects, different <code class="i">self</code>: that is how one <code class="i">deposit</code> method updates the right balance.</li>
+</ol>
+</main>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const OB = {sbi:{id:4369642688, bal:25000}, hdfc:{id:4369853936, bal:100000}};
+  let caller = 'sbi', step = 0, applied = false;
+  const STEPS = [
+    {code: c => c + '.deposit(500)', msg: c => 'You write the call on the object. Nothing special yet.'},
+    {code: c => 'Atm.deposit(' + c + ', 500)', msg: c => 'Python rewrites it: the method lives in the class, and the caller ' + c + ' is passed in as the first argument.'},
+    {code: c => 'def deposit(self, amount):     # self ← ' + c + ', amount ← 500', msg: c => 'Inside the method, the parameter self now refers to the very same object as ' + c + ' (same id). No copy is made.'},
+    {code: c => 'self.balance = self.balance + amount', msg: c => 'self.balance is ' + c + '.balance, the only balance this call can touch. The other object is untouched.'},
+    {code: c => '# method returns; self disappears', msg: c => 'The call is over: the name self is gone, but the change stays in ' + c + '.'}
+  ];
+  const cv = $('s-cv');
+  function draw(){
+    const W = cv.clientWidth || 600, H = 230, dpr = window.devicePixelRatio || 1;
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.height = H + 'px';
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    const ink = cssv('--ink'), mut = cssv('--muted'), grid = cssv('--grid'), s1 = cssv('--s1'), s2 = cssv('--s2'), card = cssv('--card'), tint = cssv('--tint');
+    const nameX = 12, nameW = Math.min(90, W * 0.2), objX = Math.max(nameW + 70, W * 0.42), objW = Math.min(240, W - objX - 10);
+    const rows = {sbi: 40, hdfc: 150};
+    g.font = '12px system-ui'; g.fillStyle = mut; g.fillText('names', nameX, 16); g.fillText('objects in memory', objX, 16);
+    function box(x, y, w, h, fill, stroke, lw){ g.fillStyle = fill; g.strokeStyle = stroke; g.lineWidth = lw; g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, 8); else g.rect(x, y, w, h); g.fill(); g.stroke(); }
+    function arrow(x1, y1, x2, y2, col, lw){ g.strokeStyle = col; g.fillStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); const a = Math.atan2(y2 - y1, x2 - x1); g.beginPath(); g.moveTo(x2, y2); g.lineTo(x2 - 9 * Math.cos(a - 0.4), y2 - 9 * Math.sin(a - 0.4)); g.lineTo(x2 - 9 * Math.cos(a + 0.4), y2 - 9 * Math.sin(a + 0.4)); g.closePath(); g.fill(); }
+    ['sbi', 'hdfc'].forEach(n => {
+      const y = rows[n], act = n === caller && step > 0 && step < 4;
+      box(nameX, y, nameW, 30, card, n === caller ? s1 : grid, n === caller ? 2 : 1);
+      g.fillStyle = ink; g.font = '600 13px ui-monospace,Menlo,monospace'; g.fillText(n, nameX + 10, y + 20);
+      box(objX, y - 10, objW, 58, act ? tint : card, act ? s1 : grid, act ? 2 : 1);
+      g.font = '12px ui-monospace,Menlo,monospace'; g.fillStyle = mut; g.fillText('Atm · id ' + OB[n].id, objX + 8, y + 7);
+      g.fillStyle = ink; g.fillText("pin = '1234'", objX + 8, y + 24);
+      g.fillStyle = (act && step === 3) ? s2 : ink; g.font = (act && step === 3 ? '700 ' : '') + '12px ui-monospace,Menlo,monospace';
+      g.fillText('balance = ' + OB[n].bal, objX + 8, y + 40);
+      arrow(nameX + nameW, y + 15, objX - 2, y + 15, mut, 1.5);
+    });
+    if (step >= 2 && step <= 3) {
+      const ty = rows[caller], sy = 107;
+      box(nameX, sy - 15, nameW, 30, tint, s2, 2);
+      g.fillStyle = s2; g.font = '700 13px ui-monospace,Menlo,monospace'; g.fillText('self', nameX + 10, sy + 5);
+      arrow(nameX + nameW, sy, objX - 2, ty + (caller === 'sbi' ? 30 : 0), s2, 2.5);
+    }
+  }
+  function render(){
+    $('s-sbi').classList.toggle('on', caller === 'sbi'); $('s-hdfc').classList.toggle('on', caller === 'hdfc');
+    const s = STEPS[step];
+    $('s-code').textContent = 'step ' + (step + 1) + '/' + STEPS.length + ':  ' + s.code(caller);
+    $('s-msg').textContent = s.msg(caller) + (step >= 2 && step <= 3 ? '  id(self) = ' + OB[caller].id + ' = id(' + caller + ')' : '');
+    draw();
+  }
+  $('s-next').addEventListener('click', () => { if (step < STEPS.length - 1) { step++; if (step === 3 && !applied) { OB[caller].bal += 500; applied = true; } } render(); });
+  $('s-prev').addEventListener('click', () => { if (step > 0) { if (step === 3 && applied) { OB[caller].bal -= 500; applied = false; } step--; } render(); });
+  function pick(n){ caller = n; step = 0; applied = false; render(); }
+  $('s-sbi').addEventListener('click', () => pick('sbi'));
+  $('s-hdfc').addEventListener('click', () => pick('hdfc'));
+  $('s-reset').addEventListener('click', () => { OB.sbi.bal = 25000; OB.hdfc.bal = 100000; step = 0; applied = false; render(); });
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  render();
+})();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

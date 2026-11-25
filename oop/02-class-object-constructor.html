@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Building an ATM: Class, Object and Constructor</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 2 of 10 · OOP in Python · CampusX</div>
+<h1>Building an ATM: Class, Object and Constructor</h1>
+<p class="lede">The theory clicks only when you build something, so he writes the software for an ATM machine as a class: two pieces of data (pin and balance) and a handful of methods. Along the way: why <code class="i">L.append()</code> is a method but <code class="i">len(L)</code> is a function, why attributes are created inside <code class="i">__init__</code>, and what a constructor is really for.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1305" target="_blank" rel="noopener">this part of the video on YouTube</a> (0:21:45–0:56:00 of a 4-hour video). Previous: <a href="01-why-oop-class-object.html">why OOP, classes and objects</a> · Next: <a href="03-self.html">what self really is</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The problem: ATM software, written OOP-style <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1324" target="_blank" rel="noopener">▶ 22:04</a></h2>
+<p>The class should represent how a customer behaves at an ATM. First question: <b>what data does it need?</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1351" target="_blank" rel="noopener">▶ 22:31</a></p>
+<ul>
+<li><b>balance</b>: withdrawing takes money out of it, depositing (some ATMs support it) adds to it, checking shows it.</li>
+<li><b>pin</b>: without it you can do nothing.</li>
+</ul>
+<p>And behaviour (methods): <b>create pin, deposit, withdraw, check balance, exit</b>, offered through a menu.</p>
+<div class="pair half">
+<div class="card mono" style="padding:0;margin:0">
+<div style="padding:6px 12px;border-bottom:1px solid var(--grid);text-align:center;font-weight:700">Atm</div>
+<div style="padding:6px 12px;border-bottom:1px solid var(--grid)">pin<br>balance</div>
+<div style="padding:6px 12px">__init__() · menu()<br>create_pin() · deposit()<br>withdraw() · check_balance()</div>
+</div>
+<div class="callout" style="margin:0">Class name in PascalCase (<code class="i">Atm</code>), methods in snake_case (<code class="i">check_balance</code>), exactly as in part 1.</div>
+</div>
+
+<h2>2 · Function vs method (a favourite interview point) <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1452" target="_blank" rel="noopener">▶ 24:12</a></h2>
+<p>You already know both <code class="i">len(L)</code> and <code class="i">L.append(4)</code>. Both are "functions", so why are they called differently?</p>
+<pre class="code">L = [<span class="st">1</span>, <span class="st">2</span>, <span class="st">3</span>]
+<span class="kw">print</span>(len(L))      <span class="cm"># function: L goes inside the brackets</span>
+L.append(<span class="st">4</span>)        <span class="cm"># method: called on the object with a dot</span>
+<span class="kw">print</span>(L)
+<span class="kw">print</span>(<span class="st">'append'</span> <span class="kw">in</span> dir(list), <span class="st">'len'</span> <span class="kw">in</span> dir(list))</pre>
+<pre class="out">3
+[1, 2, 3, 4]
+True False</pre>
+<table>
+<tr><th></th><th>Function</th><th>Method</th></tr>
+<tr><td>Where it is defined</td><td>Outside any class: general</td><td>Inside a particular class</td></tr>
+<tr><td>Who can use it</td><td>Anyone: <code class="i">len</code> works on strings, lists, dicts …</td><td>Only objects of that class</td></tr>
+<tr><td>How you call it</td><td><code class="i">len(L)</code></td><td><code class="i">L.append(4)</code></td></tr>
+</table>
+<div class="callout"><b>A method is a function defined inside a class.</b> Whenever you see <code class="i">object.something()</code>, that is a method. Everything we write inside <code class="i">Atm</code> is a method. He asks you to say "method" in interviews, because saying "function" there sounds technically loose.</div>
+
+<h2>3 · Attributes are created inside <code class="i">__init__</code> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1655" target="_blank" rel="noopener">▶ 27:35</a></h2>
+<p>Unlike Java, where variables are declared directly in the class body, in Python you create the object's variables <b>inside a special method called <code class="i">__init__</code></b>, written as <code class="i">self.pin = ''</code> and <code class="i">self.balance = 0</code>. Every method also receives <code class="i">self</code> as input. He promises to explain <code class="i">self</code> shortly (that is <a href="03-self.html">part 3</a>); for now, just write it.</p>
+
+<h2>4 · The constructor <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1760" target="_blank" rel="noopener">▶ 29:20</a></h2>
+<p><code class="i">__init__</code> is the <b>constructor</b>: a special method whose code <b>runs automatically the moment you create an object of the class</b>. Prove it <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1816" target="_blank" rel="noopener">▶ 30:16</a>:</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        <span class="kw">print</span>(<span class="st">'hello'</span>)
+
+sbi = Atm()
+hdfc = Atm()</pre>
+<pre class="out">hello
+hello</pre>
+<p>Nobody called <code class="i">__init__</code>; creating each object triggered it. (He saves the class in a file in the working folder and imports it in the notebook with <code class="i">from xyz import Atm</code>.)</p>
+<p><b>Python vs other languages</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1887" target="_blank" rel="noopener">▶ 31:27</a>: in Java/C++ the constructor has the same name as the class. In Python it must always be named <code class="i">__init__</code>, two underscores before and after. Misspell it and it is just an ordinary method that never runs automatically.</p>
+
+<h2>5 · The menu <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1922" target="_blank" rel="noopener">▶ 32:02</a></h2>
+<p>The plan: as soon as an object is made, create the two variables, then call <code class="i">menu()</code> from the constructor. The menu is a multi-line <code class="i">input()</code> (triple quotes), the way old ATMs talked to you through numbers. The user's answer comes back as a <b>string</b>, so compare with <code class="i">'1'</code>, not <code class="i">1</code>.</p>
+
+<h2>6 · The full class <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=2175" target="_blank" rel="noopener">▶ 36:15</a></h2>
+<p>Each method follows the real ATM: ask for the pin, compare with <code class="i">self.pin</code>, then act on <code class="i">self.balance</code>. <code class="i">int()</code> the amount, since <code class="i">input()</code> returns a string. Withdraw <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=2371" target="_blank" rel="noopener">▶ 39:31</a> adds one more check: you can only take out what you have. Check balance <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=2488" target="_blank" rel="noopener">▶ 41:28</a> just prints it after the pin check.</p>
+<pre class="code"><span class="kw">class</span> Atm:
+
+    <span class="cm"># constructor (special method / magic method)</span>
+    <span class="kw">def</span> __init__(self):
+        self.pin = <span class="st">''</span>
+        self.balance = <span class="st">0</span>
+        self.menu()
+
+    <span class="kw">def</span> menu(self):
+        user_input = input(<span class="st">"""
+    Hello, how would you like to proceed?
+    1. Enter 1 to create pin
+    2. Enter 2 to deposit
+    3. Enter 3 to withdraw
+    4. Enter 4 to check balance
+    5. Enter 5 to exit
+    """</span>)
+
+        <span class="kw">if</span> user_input == <span class="st">'1'</span>:
+            self.create_pin()
+        <span class="kw">elif</span> user_input == <span class="st">'2'</span>:
+            self.deposit()
+        <span class="kw">elif</span> user_input == <span class="st">'3'</span>:
+            self.withdraw()
+        <span class="kw">elif</span> user_input == <span class="st">'4'</span>:
+            self.check_balance()
+        <span class="kw">else</span>:
+            <span class="kw">print</span>(<span class="st">'bye'</span>)
+
+    <span class="kw">def</span> create_pin(self):
+        self.pin = input(<span class="st">'Enter your pin: '</span>)
+        <span class="kw">print</span>(<span class="st">'Pin set successfully'</span>)
+
+    <span class="kw">def</span> deposit(self):
+        temp = input(<span class="st">'Enter your pin: '</span>)
+        <span class="kw">if</span> temp == self.pin:
+            amount = int(input(<span class="st">'Enter the amount: '</span>))
+            self.balance = self.balance + amount
+            <span class="kw">print</span>(<span class="st">'Deposit successful'</span>)
+        <span class="kw">else</span>:
+            <span class="kw">print</span>(<span class="st">'Invalid pin'</span>)
+
+    <span class="kw">def</span> withdraw(self):
+        temp = input(<span class="st">'Enter your pin: '</span>)
+        <span class="kw">if</span> temp == self.pin:
+            amount = int(input(<span class="st">'Enter the amount: '</span>))
+            <span class="kw">if</span> amount &lt; self.balance:
+                self.balance = self.balance - amount
+                <span class="kw">print</span>(<span class="st">'Operation successful'</span>)
+            <span class="kw">else</span>:
+                <span class="kw">print</span>(<span class="st">'Insufficient funds'</span>)
+        <span class="kw">else</span>:
+            <span class="kw">print</span>(<span class="st">'Invalid pin'</span>)
+
+    <span class="kw">def</span> check_balance(self):
+        temp = input(<span class="st">'Enter your pin: '</span>)
+        <span class="kw">if</span> temp == self.pin:
+            <span class="kw">print</span>(self.balance)
+        <span class="kw">else</span>:
+            <span class="kw">print</span>(<span class="st">'Invalid pin'</span>)</pre>
+<p><b>His aside on repetition</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=2536" target="_blank" rel="noopener">▶ 42:16</a>: the pin check is copy-pasted three times. Better to write a separate method (say <code class="i">check_pin</code>) and call it every time; the code becomes shorter and easier. He calls this "a very basic ATM", with room for more creativity.</p>
+<div class="beyond"><b>Going beyond the video:</b> <code class="i">amount &lt; self.balance</code> refuses to let you withdraw your <i>entire</i> balance (withdrawing exactly 25000 from 25000 says "Insufficient funds"). Use <code class="i">&lt;=</code> if emptying the account should be allowed.</div>
+
+<h2>7 · Running it: two ATMs, two separate balances <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=2586" target="_blank" rel="noopener">▶ 43:06</a></h2>
+<p>Creating the object immediately shows the menu (the constructor called <code class="i">menu()</code>). After that, typing <code class="i">sbi.</code> + Tab lists every method he wrote, just as <code class="i">L.</code> lists list methods: whoever wrote the <code class="i">list</code> class coded it the same way. A session (typed values shown after each prompt):</p>
+<pre class="out">&gt;&gt;&gt; sbi = Atm()
+
+    Hello, how would you like to proceed?
+    1. Enter 1 to create pin
+    2. Enter 2 to deposit
+    3. Enter 3 to withdraw
+    4. Enter 4 to check balance
+    5. Enter 5 to exit
+    1
+Enter your pin: 1234
+Pin set successfully
+&gt;&gt;&gt; sbi.deposit()
+Enter your pin: 12
+Invalid pin
+&gt;&gt;&gt; sbi.deposit()
+Enter your pin: 1234
+Enter the amount: 50000
+Deposit successful
+&gt;&gt;&gt; sbi.check_balance()
+Enter your pin: 1234
+50000
+&gt;&gt;&gt; sbi.withdraw()
+Enter your pin: 1234
+Enter the amount: 25000
+Operation successful
+&gt;&gt;&gt; sbi.withdraw()
+Enter your pin: 1234
+Enter the amount: 99999
+Insufficient funds
+&gt;&gt;&gt; hdfc = Atm()
+
+    Hello, how would you like to proceed?
+    1. Enter 1 to create pin
+    2. Enter 2 to deposit
+    3. Enter 3 to withdraw
+    4. Enter 4 to check balance
+    5. Enter 5 to exit
+    1
+Enter your pin: 4321
+Pin set successfully
+&gt;&gt;&gt; hdfc.deposit()
+Enter your pin: 4321
+Enter the amount: 100000
+Deposit successful
+&gt;&gt;&gt; sbi.balance, hdfc.balance
+(25000, 100000)</pre>
+<p><b>Same class, different data</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=2705" target="_blank" rel="noopener">▶ 45:05</a>: there is one <code class="i">balance</code> variable in the code, but every object gets its own copy. Each object has its own value for every property of the class.</p>
+<p><b>A worrying detail</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=2744" target="_blank" rel="noopener">▶ 45:44</a>: you can reach the data directly, bypassing the pin entirely. He leaves the fix for later (encapsulation, <a href="05-encapsulation.html">part 5</a>).</p>
+<pre class="code">sbi.balance = <span class="st">1000000</span>   <span class="cm"># nothing stops this!</span>
+sbi.balance</pre>
+<pre class="out">1000000</pre>
+
+<h3>Try it: two ATM objects</h3>
+<div class="card">
+<p class="small muted" style="margin-top:0">Create objects, then call methods on the selected one. Watch the state table: the constructor sets <code class="i">pin=''</code>, <code class="i">balance=0</code> for each new object, and each method only ever touches the object it was called on. Outputs match the Python class above.</p>
+<div class="row"><button id="a-new-sbi">sbi = Atm()</button><button id="a-new-hdfc">hdfc = Atm()</button><button id="a-new-icici">icici = Atm()</button></div>
+<div class="row"><span class="small muted">call on:</span><span id="a-sel" class="row" style="margin:0"></span></div>
+<div class="row"><label>pin typed <input id="a-pin" value="1234" size="6"></label><label>amount <input id="a-amt" type="number" value="5000" style="width:100px"></label></div>
+<div class="row"><button id="a-create">.create_pin()</button><button id="a-dep">.deposit()</button><button id="a-wd">.withdraw()</button><button id="a-chk">.check_balance()</button><button id="a-hack">.balance = 1000000</button></div>
+<div class="pair">
+<div><table id="a-state"></table></div>
+<pre class="out" id="a-log" style="margin:0;max-height:260px;overflow-y:auto;white-space:pre-wrap"></pre>
+</div>
+</div>
+
+<h2>8 · Magic (dunder) methods <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=2874" target="_blank" rel="noopener">▶ 47:54</a></h2>
+<p>Python has a set of special methods, also called <b>magic methods</b> or <b>dunder methods</b> ("double underscore"). The constructor is one of them; search "magic methods in Python" and you will find many more.</p>
+<ul>
+<li><b>How to recognise one:</b> double underscore before <i>and</i> after the name (<code class="i">__init__</code>).</li>
+<li><b>You cannot invent them.</b> Renaming your <code class="i">menu</code> to <code class="i">__menu__</code> does not make it magic; the set is predefined by Python.</li>
+<li><b>Objects don't call them; they trigger automatically</b> in a given situation. You call <code class="i">sbi.deposit()</code> yourself, but the constructor fires on object creation.</li>
+</ul>
+<p>Notice <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=2985" target="_blank" rel="noopener">▶ 49:45</a>: after <code class="i">sbi.</code> + Tab the notebook suggests every method <i>except</i> the constructor. It isn't meant to be called by you.</p>
+<pre class="code">sbi = Atm()          <span class="cm"># menu answered with 5</span>
+<span class="kw">print</span>([m <span class="kw">for</span> m <span class="kw">in</span> dir(sbi) <span class="kw">if not</span> m.startswith(<span class="st">'_'</span>)])</pre>
+<pre class="out">bye
+['balance', 'check_balance', 'create_pin', 'deposit', 'menu', 'pin', 'withdraw']</pre>
+<div class="beyond"><b>Going beyond the video:</b> "can't call it" is true in spirit, not literally: <code class="i">sbi.__init__()</code> runs (it would reset the pin and balance), and <code class="i">dir(sbi)</code> does list <code class="i">__init__</code>. Tab completion just hides underscore names by default. Treat it as a convention: never call dunders yourself.</div>
+
+<h2>9 · What is a constructor actually for? <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3073" target="_blank" rel="noopener">▶ 51:13</a></h2>
+<p>Everyone can define a constructor; few can say when to use one. Think of the ATM as a real machine: there is a button for withdraw, a button for deposit, but <b>no button for the constructor</b>. Control over it is never given to the user.</p>
+<div class="callout"><b>Rule of thumb:</b> put in the constructor the code that must run when the app starts and that you <b>don't want to leave to the user</b>: configuration. Connecting to the internet, to a database, to hardware such as GPS. You wouldn't add a "please connect to the internet" button and hope the user presses it. (Asking for GPS permission when a cab app opens is that kind of start-up code.)</div>
+<p><b>A philosophical aside</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3266" target="_blank" rel="noopener">▶ 54:26</a>: if the world is a class, God the programmer and humans its objects, then what is in the constructor? The things outside our control. The moment you are born, one thing is already decided: you will die. In a very loose sense, that is how a constructor works.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Design a class by listing its <b>data</b> (ATM: <code class="i">pin</code>, <code class="i">balance</code>) and its <b>methods</b> (create pin, deposit, withdraw, check balance).</li>
+<li>A <b>method</b> is a function defined inside a class and called on an object (<code class="i">L.append(4)</code>); a <b>function</b> is general (<code class="i">len(L)</code>).</li>
+<li>In Python, instance variables are created inside <code class="i">__init__</code> as <code class="i">self.name = value</code>.</li>
+<li>The <b>constructor</b> <code class="i">__init__</code> runs automatically when an object is created; its name is fixed in Python.</li>
+<li>Every object has its <b>own copy</b> of the data: <code class="i">sbi.balance</code> and <code class="i">hdfc.balance</code> are independent.</li>
+<li><b>Magic/dunder methods</b> are predefined, have double underscores on both sides, and fire automatically. Use the constructor for start-up configuration the user should not control.</li>
+</ol>
+</main>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const objs = {}; const order = []; let cur = null;
+  const log = [];
+  function out(s){ log.push(s); if (log.length > 80) log.splice(0, log.length - 80); const el = $('a-log'); el.textContent = log.join('\n'); el.scrollTop = 1e6; }
+  function render(){
+    const sel = $('a-sel'); sel.innerHTML = '';
+    if (!order.length) { const s = document.createElement('span'); s.className = 'small muted'; s.textContent = '(no objects yet)'; sel.appendChild(s); }
+    order.forEach(n => { const b = document.createElement('button'); b.textContent = n; b.className = 'mono' + (n === cur ? ' on' : ''); b.addEventListener('click', () => { cur = n; render(); }); sel.appendChild(b); });
+    let h = '<tr><th>object</th><th>self.pin</th><th>self.balance</th></tr>';
+    order.forEach(n => { const o = objs[n]; h += '<tr' + (n === cur ? ' style="background:var(--tint)"' : '') + '><td class="mono">' + n + '</td><td class="mono">' + (o.pin === '' ? "''" : "'" + o.pin.replace(/[<>&]/g, '') + "'") + '</td><td class="mono">' + o.balance + '</td></tr>'; });
+    if (!order.length) h += '<tr><td colspan="3" class="muted">nothing in memory</td></tr>';
+    $('a-state').innerHTML = h;
+  }
+  function make(n){
+    out('>>> ' + n + ' = Atm()');
+    out('  __init__ runs automatically: self.pin = \'\', self.balance = 0, then self.menu()');
+    out('  (menu shown; use the method buttons instead of typing 1-4)');
+    objs[n] = {pin:'', balance:0};
+    if (order.indexOf(n) < 0) order.push(n);
+    cur = n; render();
+  }
+  function need(){ if (!cur) { out('NameError: create an object first (e.g. sbi = Atm())'); return false; } return true; }
+  function amount(){ const v = String($('a-amt').value).trim(); if (!/^-?\d+$/.test(v)) return null; return parseInt(v, 10); }
+  $('a-new-sbi').addEventListener('click', () => make('sbi'));
+  $('a-new-hdfc').addEventListener('click', () => make('hdfc'));
+  $('a-new-icici').addEventListener('click', () => make('icici'));
+  $('a-create').addEventListener('click', () => { if (!need()) return; const p = String($('a-pin').value); out('>>> ' + cur + '.create_pin()'); out('Enter your pin: ' + p); objs[cur].pin = p; out('Pin set successfully'); render(); });
+  function withPin(name, fn){ if (!need()) return; const p = String($('a-pin').value); out('>>> ' + cur + '.' + name + '()'); out('Enter your pin: ' + p); if (p !== objs[cur].pin) { out('Invalid pin'); return; } fn(objs[cur]); render(); }
+  $('a-dep').addEventListener('click', () => withPin('deposit', o => { const a = amount(); if (a === null) { out("Enter the amount: " + $('a-amt').value); out("ValueError: invalid literal for int() with base 10: '" + $('a-amt').value + "'"); return; } out('Enter the amount: ' + a); o.balance = o.balance + a; out('Deposit successful'); }));
+  $('a-wd').addEventListener('click', () => withPin('withdraw', o => { const a = amount(); if (a === null) { out("Enter the amount: " + $('a-amt').value); out("ValueError: invalid literal for int() with base 10: '" + $('a-amt').value + "'"); return; } out('Enter the amount: ' + a); if (a < o.balance) { o.balance = o.balance - a; out('Operation successful'); } else out('Insufficient funds'); }));
+  $('a-chk').addEventListener('click', () => withPin('check_balance', o => { out(String(o.balance)); }));
+  $('a-hack').addEventListener('click', () => { if (!need()) return; out('>>> ' + cur + '.balance = 1000000   # no pin asked!'); objs[cur].balance = 1000000; render(); });
+  render(); out('# Start by creating an object.');
+})();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

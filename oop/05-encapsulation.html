@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Encapsulation: Hiding Data, Name Mangling, Getters and Setters</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 5 of 10 · OOP in Python · CampusX</div>
+<h1>Encapsulation: Hiding Data, Name Mangling, Getters and Setters</h1>
+<p class="lede">If every attribute of your class is open, anyone using it can put garbage inside and break your class's own logic. Encapsulation fixes this in two moves: hide the data (a double underscore in front of the name), then give controlled access through a getter and a setter that check what comes in.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4995" target="_blank" rel="noopener">this part of the video on YouTube</a> (1:23:15–1:49:20 of a 4-hour video). Previous: <a href="04-fraction-data-type.html">building a Fraction data type</a> · Next: <a href="06-reference-variables.html">reference variables and pass by reference</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · First, a name: instance variables <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=5051" target="_blank" rel="noopener">▶ 1:24:11</a></h2>
+<p>He picks up the <code class="i">Atm</code> class from part 2. The variables created inside the constructor, <code class="i">self.pin</code> and <code class="i">self.balance</code>, have a proper name: <b>instance variables</b>. Their value is <b>different for every object</b>, which is exactly right: every customer has their own pin and their own balance.</p>
+<p class="small muted">His <code class="i">Atm</code> runs a text menu with <code class="i">input()</code> from <code class="i">__init__</code>. In the snippets below the methods take the pin and amount as arguments instead, so each snippet runs on its own; the logic is the same.</p>
+
+<h2>2 · The problem: everything is open <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=5108" target="_blank" rel="noopener">▶ 1:25:08</a></h2>
+<p>Create an object, type <code class="i">sbi.</code> and the editor offers every method (<code class="i">create_pin</code>, <code class="i">deposit</code>, <code class="i">withdraw</code>, <code class="i">check_balance</code>, <code class="i">menu</code>) and also the <b>data</b>: <code class="i">pin</code> and <code class="i">balance</code>. An object can reach everything in its class, methods and data alike. So anyone can do this:</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        self.pin = <span class="st">''</span>          <span class="cm"># instance variables:</span>
+        self.balance = 0       <span class="cm"># one copy per object</span>
+
+    <span class="kw">def</span> create_pin(self, pin):
+        self.pin = pin
+        print(<span class="st">'Pin set successfully'</span>)
+
+    <span class="kw">def</span> deposit(self, pin, amount):
+        <span class="kw">if</span> pin == self.pin:
+            self.balance = self.balance + amount
+            print(<span class="st">'Deposit successful'</span>)
+        <span class="kw">else</span>:
+            print(<span class="st">'Invalid pin'</span>)
+
+sbi = Atm()
+sbi.create_pin(<span class="st">'1234'</span>)</pre>
+<pre class="out">Pin set successfully</pre>
+<pre class="code">sbi.balance = <span class="st">'hehehe'</span>         <span class="cm"># nothing stops this...</span>
+sbi.deposit(<span class="st">'1234'</span>, 50000)     <span class="cm"># ...and now the class's own logic breaks</span></pre>
+<pre class="out">Traceback (most recent call last):
+  ...
+TypeError: can only concatenate str (not "int") to str</pre>
+<p>Nothing is wrong with <code class="i">deposit</code>: it adds the amount to the balance. But someone turned the balance into a string, and <code class="i">str + int</code> crashes. <b>Leaving your data open like this is not good practice</b>: a junior programmer on your team can, by mistake or otherwise, make a change that breaks your existing code.</p>
+
+<h2>3 · The fix, step 1: hide the data with <code class="i">__</code> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=5258" target="_blank" rel="noopener">▶ 1:27:38</a></h2>
+<p>In Java you would put an <b>access modifier</b> like <code class="i">private</code> in front of the data: then it can be used inside the class but not outside. <b>Python has no <code class="i">private</code> keyword.</b> Instead you put a <b>double underscore</b> in front of the name, and rename it everywhere it's used in the class (he asks if anyone knows how to find-and-replace in the editor). Methods can be hidden the same way, e.g. <code class="i">__menu</code>.</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        self.__pin = <span class="st">''</span>
+        self.__balance = 0
+
+    <span class="kw">def</span> __menu(self):          <span class="cm"># methods can be hidden too</span>
+        <span class="kw">pass</span>
+
+    <span class="kw">def</span> create_pin(self, pin):
+        self.__pin = pin
+        print(<span class="st">'Pin set successfully'</span>)
+
+    <span class="kw">def</span> deposit(self, pin, amount):
+        <span class="kw">if</span> pin == self.__pin:
+            self.__balance = self.__balance + amount
+            print(<span class="st">'Deposit successful'</span>)
+        <span class="kw">else</span>:
+            print(<span class="st">'Invalid pin'</span>)
+
+    <span class="kw">def</span> check_balance(self, pin):
+        <span class="kw">if</span> pin == self.__pin:
+            print(self.__balance)
+        <span class="kw">else</span>:
+            print(<span class="st">'Invalid pin'</span>)
+
+sbi = Atm()
+sbi.create_pin(<span class="st">'1234'</span>)</pre>
+<pre class="out">Pin set successfully</pre>
+<p>Now type <code class="i">sbi.</code> again: only the public methods show up (in his full class <code class="i">create_pin</code>, <code class="i">deposit</code>, <code class="i">withdraw</code>, <code class="i">check_balance</code>); <code class="i">pin</code>, <code class="i">balance</code> and <code class="i">menu</code> are gone. Only what you want the other person to see. <b>When you create a class, it's good practice to hide your data members</b>, and you can hide methods too if they're internal.</p>
+
+<h2>4 · Behind the scenes: name mangling <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=5465" target="_blank" rel="noopener">▶ 1:31:05</a></h2>
+<p>How does the hiding work? When the interpreter sees <code class="i">__pin</code> inside class <code class="i">Atm</code>, it <b>internally renames it to <code class="i">_Atm__pin</code></b> (underscore, class name, then the name). Look inside the object:</p>
+<pre class="code">print(sbi.__dict__)
+print([name <span class="kw">for</span> name <span class="kw">in</span> dir(sbi) <span class="kw">if</span> <span class="kw">not</span> name.endswith(<span class="st">'__'</span>)])</pre>
+<pre class="out">{'_Atm__pin': '1234', '_Atm__balance': 0}
+['_Atm__balance', '_Atm__menu', '_Atm__pin', 'check_balance', 'create_pin', 'deposit']</pre>
+<p>There is no attribute called <code class="i">__balance</code> any more, so asking for it fails:</p>
+<pre class="code">print(sbi.__balance)</pre>
+<pre class="out">Traceback (most recent call last):
+  ...
+AttributeError: 'Atm' object has no attribute '__balance'</pre>
+
+<h2>5 · Two experiments he runs <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=5547" target="_blank" rel="noopener">▶ 1:32:27</a></h2>
+<p><b>Experiment 1.</b> What if someone writes <code class="i">sbi.__balance = 'hehehe'</code>? Think before reading on: will the next deposit crash?</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        self.__pin = <span class="st">''</span>
+        self.__balance = 0
+
+    <span class="kw">def</span> create_pin(self, pin):
+        self.__pin = pin
+
+    <span class="kw">def</span> deposit(self, pin, amount):
+        <span class="kw">if</span> pin == self.__pin:
+            self.__balance = self.__balance + amount
+            print(<span class="st">'Deposit successful'</span>)
+
+    <span class="kw">def</span> check_balance(self, pin):
+        <span class="kw">if</span> pin == self.__pin:
+            print(self.__balance)
+
+sbi = Atm()
+sbi.create_pin(<span class="st">'1234'</span>)</pre>
+<pre class="code">sbi.__balance = <span class="st">'hehehe'</span>      <span class="cm"># outside the class: no mangling happens</span>
+print(sbi.__dict__)
+sbi.deposit(<span class="st">'1234'</span>, 50000)    <span class="cm"># works: the methods use _Atm__balance</span>
+sbi.check_balance(<span class="st">'1234'</span>)</pre>
+<pre class="out">{'_Atm__pin': '1234', '_Atm__balance': 0, '__balance': 'hehehe'}
+Deposit successful
+50000</pre>
+<p>No crash. Outside the class there is no renaming, so this line just <b>creates a brand-new attribute</b> called <code class="i">__balance</code>. None of the methods use it (they all use <code class="i">_Atm__balance</code>), so it does no harm to your existing logic.</p>
+<p><b>Experiment 2</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=5678" target="_blank" rel="noopener">▶ 1:34:38</a>. But if someone knows the mangled name:</p>
+<pre class="code">sbi._Atm__balance = <span class="st">'hehehe'</span>  <span class="cm"># the real (mangled) name</span>
+sbi.deposit(<span class="st">'1234'</span>, 50000)</pre>
+<pre class="out">Traceback (most recent call last):
+  ...
+TypeError: can only concatenate str (not "int") to str</pre>
+<p>The code crashes again. <b>Nothing in Python is truly private.</b> If someone finds out that your class has this variable, they can reach it through <code class="i">_ClassName__variable</code> and mess things up.</p>
+
+<h2>6 · Why Python lets you: "made for adults" <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=5738" target="_blank" rel="noopener">▶ 1:35:38</a></h2>
+<p>The first time he saw this, he was annoyed: Java gives you real privacy, why doesn't Python? Then he found an answer online that made him smile: <b>Python is a language made for adults</b>. If you work in a company and you've hidden a variable, that's an agreement: "don't use this". A colleague who goes around it deliberately has a different problem. And Python's designers don't hide things completely because someday you might genuinely need to get at them. The philosophy: hide it well enough that nobody reaches it <b>by accident</b>; if someone really goes looking, they'll find it.</p>
+<div class="beyond"><b>Going beyond the video.</b> The phrase usually quoted is "we are all consenting adults here". Python also has a weaker convention: a <b>single</b> leading underscore (<code class="i">_balance</code>) means "internal, please don't touch" but is not renamed at all. Double underscore's real job is avoiding name clashes when a subclass reuses the same attribute name; names with underscores at both ends (<code class="i">__init__</code>) are never mangled.</div>
+
+<h2>7 · The fix, step 2: getter and setter <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=5906" target="_blank" rel="noopener">▶ 1:38:26</a></h2>
+<p>Hiding alone isn't enough: a programmer using your class might genuinely need to see or change the pin. So for each data member you can write two methods: a <b>getter</b> to read it and a <b>setter</b> to change it.</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        self.__pin = <span class="st">''</span>
+        self.__balance = 0
+
+    <span class="kw">def</span> get_pin(self):
+        <span class="kw">return</span> self.__pin
+
+    <span class="kw">def</span> set_pin(self, new_pin):
+        <span class="kw">if</span> type(new_pin) == str:
+            self.__pin = new_pin
+            print(<span class="st">'Pin changed'</span>)
+        <span class="kw">else</span>:
+            print(<span class="st">'Not allowed'</span>)
+
+sbi = Atm()
+sbi.set_pin(<span class="st">'1234'</span>)
+print(sbi.get_pin())</pre>
+<pre class="out">Pin changed
+1234</pre>
+<p><b>His question <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=6108" target="_blank" rel="noopener">▶ 1:41:48</a>:</b> first we hid the data, then we gave a setter that changes it anyway. With <code class="i">set_pin</code> the other programmer can do exactly what <code class="i">sbi.pin = …</code> did. So what was the point?</p>
+<p>The point is that the change now goes <b>through your code</b>, so you can control it with your own logic. Say your rule is that a pin must always be a string:</p>
+<pre class="code">sbi.set_pin(5.6)      <span class="cm"># breaks our rule: pin must be a string</span>
+print(sbi.get_pin())</pre>
+<pre class="out">Not allowed
+1234</pre>
+<p>"You want to see it? Use my function. You want to set it? Go through my logic." The data stays usable <b>and</b> protected.</p>
+
+<h2>8 · So what is encapsulation? <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=6248" target="_blank" rel="noopener">▶ 1:44:08</a></h2>
+<div class="callout"><b>Encapsulation</b> = hide each data member (make it private with <code class="i">__</code>), then bundle it with a getter and a setter so it can still be read and updated, but only through your rules.</div>
+<p>Think of a medicine <b>capsule</b>: several powders packed together inside one shell. Here you pack a data member together with its two methods. The need for it: you can't leave data directly open, or someone's edit can break your existing code.</p>
+<table>
+<tr><th></th><th>Open data</th><th>Hidden only</th><th>Hidden + getter/setter</th></tr>
+<tr><td>Read it</td><td><code class="i">sbi.pin</code></td><td>not by accident</td><td><code class="i">sbi.get_pin()</code></td></tr>
+<tr><td>Change it</td><td>anything goes</td><td>not by accident</td><td><code class="i">sbi.set_pin(x)</code>, checked</td></tr>
+<tr><td>Bad value reaches your logic?</td><td>yes</td><td>only via <code class="i">_Atm__pin</code></td><td>no, the setter rejects it</td></tr>
+</table>
+
+<h3>Try it: poke at an ATM object</h3>
+<p>Pick a version of the class, then run lines against <code class="i">sbi</code> (already created, pin <code class="i">'1234'</code>). Watch what is really stored inside the object and when the class's own <code class="i">deposit</code> breaks.</p>
+<div class="card">
+  <div class="row"><span class="small muted">class version:</span><button id="vPub" class="on">open data (self.balance)</button><button id="vPriv">private + getter/setter</button></div>
+  <div class="row" id="cmds"></div>
+  <div class="pair half">
+    <div><div class="small muted">inside the object: <code class="i">sbi.__dict__</code></div><table id="dictT" class="mono"></table></div>
+    <div><div class="small muted">console</div><pre class="out" id="con" style="margin:4px 0;min-height:150px;white-space:pre-wrap"></pre></div>
+  </div>
+  <p class="small" id="why"></p>
+  <div class="legend"><span><i style="background:var(--s1)"></i>attributes the methods use</span><span><i style="background:var(--s2)"></i>extra attributes created from outside</span></div>
+</div>
+
+<h3>Try it: the name mangler</h3>
+<p>Type a class name and an attribute name, and say where the line is written. This is the rule Python applies.</p>
+<div class="card">
+  <div class="row"><label>class <input id="mCls" value="Atm" size="10" class="mono"></label><label>attribute <input id="mAttr" value="__pin" size="12" class="mono"></label></div>
+  <div class="row"><button id="mIn" class="on">written inside the class</button><button id="mOut">written outside (sbi.… = …)</button></div>
+  <div class="row"><div class="stat" style="min-width:220px"><div class="v mono" id="mRes" style="overflow-wrap:anywhere"></div><div class="l">name actually stored</div></div></div>
+  <p class="small" id="mWhy"></p>
+</div>
+
+<h2>9 · Encapsulation in a class diagram <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=6380" target="_blank" rel="noopener">▶ 1:46:20</a></h2>
+<p>He revisits the class diagram from earlier: a box with three parts, the <b>class name</b> on top, the <b>attributes</b> in the middle, the <b>methods</b> at the bottom. Now each entry gets a sign: <b>−</b> for private, <b>+</b> for public.</p>
+<div class="card" style="max-width:340px">
+<table class="mono">
+<tr><th style="text-align:center;color:var(--ink)">Atm</th></tr>
+<tr><td>− pin<br>− balance</td></tr>
+<tr><td>+ __init__()<br>− menu()<br>+ create_pin()<br>+ deposit()<br>+ withdraw()<br>+ check_balance()</td></tr>
+</table>
+</div>
+<p>This is used a lot in industry. A senior programmer who wants a class from you may hand you exactly this kind of diagram; you write the logic, but the diagram already tells you which members must be protected. It's also a common interview topic.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Instance variables (made in <code class="i">__init__</code> via <code class="i">self</code>) hold a different value for every object.</li>
+<li>Open data lets anyone break your class's logic (<code class="i">sbi.balance = 'hehehe'</code> then deposit crashes); hide it with a leading <code class="i">__</code>, for data and for internal methods.</li>
+<li>Python mangles <code class="i">__x</code> inside class <code class="i">C</code> to <code class="i">_C__x</code>. Assigning <code class="i">obj.__x</code> outside just makes a new, harmless attribute; <code class="i">obj._C__x</code> reaches the real one. Nothing is truly private: Python is "made for adults".</li>
+<li>Getters and setters give access on your terms: the setter validates (e.g. pin must be a <code class="i">str</code>) before storing.</li>
+<li>Encapsulation = private data + its getter/setter in one capsule. In a class diagram, <b>−</b> marks private and <b>+</b> public.</li>
+</ol>
+<div class="beyond"><b>Going beyond the video.</b> Idiomatic Python often replaces <code class="i">get_x()</code>/<code class="i">set_x()</code> with <code class="i">@property</code>, so the validation runs on plain-looking attribute access:
+<pre class="code"><span class="kw">class</span> Account:
+    <span class="kw">def</span> __init__(self):
+        self.__balance = 0
+
+    <span class="kw">@property</span>
+    <span class="kw">def</span> balance(self):
+        <span class="kw">return</span> self.__balance
+
+    <span class="kw">@balance.setter</span>
+    <span class="kw">def</span> balance(self, value):
+        <span class="kw">if</span> type(value) <span class="kw">in</span> (int, float) <span class="kw">and</span> value &gt;= 0:
+            self.__balance = value
+        <span class="kw">else</span>:
+            print(<span class="st">'Not allowed'</span>)
+
+a = Account()
+a.balance = 500       <span class="cm"># looks like plain assignment, runs the setter</span>
+a.balance = <span class="st">'hehehe'</span>
+print(a.balance)</pre>
+<pre class="out">Not allowed
+500</pre>
+</div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const repr = v => typeof v === 'string' ? "'" + v + "'" : String(v);
+
+let priv = false, dict, log, why = '';
+function reset(){
+  dict = priv ? {_Atm__pin: '1234', _Atm__balance: 0} : {pin: '1234', balance: 0};
+  log = ['>>> sbi = Atm()', ">>> sbi.create_pin('1234')", 'Pin set successfully'];
+  why = priv ? 'Private version: pin and balance are stored as _Atm__pin and _Atm__balance.' : 'Open version: pin and balance are stored under their plain names.';
+}
+const balKey = () => priv ? '_Atm__balance' : 'balance';
+const pinKey = () => priv ? '_Atm__pin' : 'pin';
+const noAttr = a => "AttributeError: 'Atm' object has no attribute '" + a + "'";
+const CMDS = [
+  ["sbi.deposit('1234', 500)", () => {
+    const b = dict[balKey()];
+    if (typeof b === 'string') { why = 'deposit() computes self.' + (priv ? '__balance' : 'balance') + ' + amount, but that attribute (really ' + balKey() + ') now holds a string: str + int fails. The class\'s own logic is broken.'; return ['Traceback (most recent call last):', '  ...', 'TypeError: can only concatenate str (not "int") to str']; }
+    dict[balKey()] = b + 500; why = 'deposit() read and updated ' + balKey() + '.'; return ['Deposit successful']; }],
+  ["sbi.check_balance('1234')", () => { why = 'check_balance() prints ' + balKey() + '.'; return [repr(dict[balKey()]).replace(/^'(.*)'$/, '$1')]; }],
+  ["sbi.balance = 'hehehe'", () => { dict.balance = 'hehehe';
+    why = priv ? 'A new attribute called balance appears. The methods never use it, so nothing breaks.' : 'This overwrote the real balance. Try a deposit now.'; return []; }],
+  ["sbi.__balance = 'hehehe'", () => { dict.__balance = 'hehehe';
+    why = 'Outside the class there is no mangling: this creates a NEW attribute literally named __balance. ' + (priv ? 'The methods use _Atm__balance, so no harm done.' : 'In the open version nothing uses it either.'); return []; }],
+  ["sbi._Atm__balance = 'hehehe'", () => { dict._Atm__balance = 'hehehe';
+    why = priv ? 'This is the real, mangled name the methods use. Nothing in Python is truly private: try a deposit now.' : 'The open version has no _Atm__balance, so this is just a new, unused attribute.'; return []; }],
+  ["print(sbi.__balance)", () => { if ('__balance' in dict) { why = 'It exists only because you created it from outside.'; return [String(dict.__balance)]; }
+    why = priv ? 'Inside the object the name is _Atm__balance, so __balance does not exist.' : 'The open version calls it balance, not __balance.'; return ['Traceback (most recent call last):', '  ...', noAttr('__balance')]; }],
+  ["sbi.set_pin(5.6)", () => { if (!priv) { why = 'The open version has no setter; switch to the private version.'; return ['Traceback (most recent call last):', '  ...', noAttr('set_pin')]; }
+    why = 'The setter checks type(new_pin) == str and refuses a float. The pin is unchanged.'; return ['Not allowed']; }],
+  ["sbi.set_pin('4321')", () => { if (!priv) { why = 'The open version has no setter; switch to the private version.'; return ['Traceback (most recent call last):', '  ...', noAttr('set_pin')]; }
+    dict._Atm__pin = '4321'; why = 'A valid string: the setter stores it in _Atm__pin.'; return ['Pin changed']; }],
+  ["print(sbi.get_pin())", () => { if (!priv) { why = 'The open version has no getter; switch to the private version.'; return ['Traceback (most recent call last):', '  ...', noAttr('get_pin')]; }
+    why = 'The getter returns self.__pin, i.e. _Atm__pin.'; return [dict._Atm__pin]; }],
+];
+function render(){
+  $('dictT').innerHTML = '<tr><th>key</th><th>value</th></tr>' + Object.keys(dict).map(k => {
+    const real = k === balKey() || k === pinKey();
+    return `<tr><td style="color:${real ? 'var(--s1)' : 'var(--s2)'}">${esc(k)}</td><td>${esc(repr(dict[k]))}</td></tr>`; }).join('');
+  $('con').textContent = log.slice(-10).join('\n');
+  $('why').textContent = why;
+}
+CMDS.forEach(([label, fn]) => { const b = document.createElement('button'); b.className = 'mono'; b.textContent = label; b.style.fontSize = '12px';
+  b.addEventListener('click', () => { log.push('>>> ' + label); log.push(...fn()); render(); }); $('cmds').appendChild(b); });
+const rb = document.createElement('button'); rb.textContent = 'reset'; rb.addEventListener('click', () => { reset(); render(); }); $('cmds').appendChild(rb);
+function setVer(p){ priv = p; $('vPub').classList.toggle('on', !p); $('vPriv').classList.toggle('on', p); reset(); render(); }
+$('vPub').addEventListener('click', () => setVer(false));
+$('vPriv').addEventListener('click', () => setVer(true));
+setVer(false);
+
+let inside = true;
+const ID = /^[A-Za-z_][A-Za-z0-9_]*$/;
+function mangle(){
+  const c = $('mCls').value.trim(), a = $('mAttr').value.trim();
+  let res, txt;
+  if (!ID.test(c) || !ID.test(a)) { res = '–'; txt = 'Both names must be valid Python identifiers (letters, digits, underscores; not starting with a digit).'; }
+  else if (!inside) { res = a; txt = 'Outside a class body Python never renames anything: obj.' + a + ' = … stores exactly "' + a + '".'; }
+  else if (!a.startsWith('__')) { res = a; txt = 'No leading double underscore, so no renaming. ' + (a.startsWith('_') ? 'A single underscore is only a "please don\'t touch" convention.' : 'This attribute is public.'); }
+  else if (a.endsWith('__')) { res = a; txt = 'Names with two underscores at BOTH ends (like __init__) are special "dunder" names and are never mangled.'; }
+  else if (c.replace(/_/g, '') === '') { res = a; txt = 'A class name made only of underscores leaves nothing to prefix, so Python does not mangle.'; }
+  else { const cc = c.replace(/^_+/, ''); res = '_' + cc + a; txt = 'Leading "__" and no trailing "__": Python stores it as _ + class name' + (cc !== c ? ' (leading underscores stripped)' : '') + ' + name. From outside you would reach it as obj.' + res + '.'; }
+  $('mRes').textContent = res; $('mWhy').textContent = txt;
+}
+['mCls', 'mAttr'].forEach(i => $(i).addEventListener('input', mangle));
+$('mIn').addEventListener('click', () => { inside = true; $('mIn').classList.add('on'); $('mOut').classList.remove('on'); mangle(); });
+$('mOut').addEventListener('click', () => { inside = false; $('mOut').classList.add('on'); $('mIn').classList.remove('on'); mangle(); });
+mangle();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Collections of Objects, Static Variables and Static Methods</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 7 of 10 · OOP in Python · CampusX</div>
+<h1>Collections of Objects, Static Variables and Static Methods</h1>
+<p class="lede">Objects can sit in lists, tuples and dicts and be looped over like any other value. And some data shouldn't belong to any one object: a counter that numbers every customer lives on the class itself, as a static (class) variable, and the methods that only touch it need no object at all.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7900" target="_blank" rel="noopener">this part of the video on YouTube</a> (2:11:40–2:31:05 of a 4-hour video). Previous: <a href="06-reference-variables.html">reference variables and pass by reference</a> · Next: <a href="08-aggregation-inheritance.html">aggregation and inheritance</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · A list of objects <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7901" target="_blank" rel="noopener">▶ 2:11:41</a></h2>
+<p>A small topic, but handy now and then. Make three customers and put them in a list, then loop over it exactly as you would over a normal list:</p>
+<pre class="code"><span class="kw">class</span> Customer:
+    <span class="kw">def</span> __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+c1 = Customer(<span class="st">'Nitish'</span>, 34)
+c2 = Customer(<span class="st">'Ankit'</span>, 45)
+c3 = Customer(<span class="st">'Neha'</span>, 32)
+
+L = [c1, c2, c3]
+<span class="kw">for</span> i <span class="kw">in</span> L:
+    print(i)</pre>
+<pre class="out">&lt;__main__.Customer object at 0x102f45fa0&gt;
+&lt;__main__.Customer object at 0x102f45f40&gt;
+&lt;__main__.Customer object at 0x102f45eb0&gt;</pre>
+<p>Printing an object just gives its class and memory location: the class never told Python how an object should look when printed, so all it can say is "I'm a <code class="i">Customer</code> object at this address". But each <code class="i">i</code> <b>is</b> an object, so you can use the dot on it <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8015" target="_blank" rel="noopener">▶ 2:13:35</a>:</p>
+<pre class="code"><span class="kw">for</span> i <span class="kw">in</span> L:
+    print(i.name, i.age)</pre>
+<pre class="out">Nitish 34
+Ankit 45
+Neha 32</pre>
+
+<h2>2 · Calling methods in the loop <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8066" target="_blank" rel="noopener">▶ 2:14:26</a></h2>
+<p>Not only attributes: methods work too. Give the class an <code class="i">intro</code> method and call it on each object. No <code class="i">print</code> around the call, since <code class="i">intro</code> prints by itself.</p>
+<pre class="code"><span class="kw">class</span> Customer:
+    <span class="kw">def</span> __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    <span class="kw">def</span> intro(self):
+        print(<span class="st">'I am'</span>, self.name, <span class="st">'and I am'</span>, self.age)
+
+L = [Customer(<span class="st">'Nitish'</span>, 34), Customer(<span class="st">'Ankit'</span>, 45), Customer(<span class="st">'Neha'</span>, 32)]
+<span class="kw">for</span> i <span class="kw">in</span> L:
+    i.intro()</pre>
+<pre class="out">I am Nitish and I am 34
+I am Ankit and I am 45
+I am Neha and I am 32</pre>
+
+<h2>3 · Dicts and tuples too <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8146" target="_blank" rel="noopener">▶ 2:15:46</a></h2>
+<p>The same works with any collection: a dictionary or a tuple can hold objects of your class, and the loop code reads exactly the same as with normal values.</p>
+<pre class="code">d = {<span class="st">'gold'</span>: L[0], <span class="st">'silver'</span>: L[1]}
+<span class="kw">for</span> tier, cust <span class="kw">in</span> d.items():
+    print(tier, <span class="st">'-&gt;'</span>, cust.name)
+
+t = (L[0], L[2])
+<span class="kw">for</span> cust <span class="kw">in</span> t:
+    cust.intro()</pre>
+<pre class="out">gold -&gt; Nitish
+silver -&gt; Ankit
+I am Nitish and I am 34
+I am Neha and I am 32</pre>
+<p>For sets he raises a question to think about: a set accepts only immutable items, and we've just seen that our objects are mutable.</p>
+<div class="beyond"><b>Going beyond the video.</b> What a set really requires is that items be <b>hashable</b>. Objects of your own class are hashable by default: their hash comes from their identity, not their contents, so they go into a set fine, and editing an attribute doesn't disturb the set. (That changes if you define <code class="i">__eq__</code> without <code class="i">__hash__</code>: then they become unhashable.)
+<pre class="code"><span class="kw">class</span> Customer:
+    <span class="kw">def</span> __init__(self, name):
+        self.name = name
+
+c1, c2 = Customer(<span class="st">'Nitish'</span>), Customer(<span class="st">'Ankit'</span>)
+s = {c1, c2, c1}           <span class="cm"># objects hash by identity by default</span>
+print(len(s))
+c1.name = <span class="st">'Nitesh'</span>         <span class="cm"># mutating doesn't change the hash</span>
+print(c1 <span class="kw">in</span> s)</pre>
+<pre class="out">2
+True</pre>
+</div>
+
+<h3>Try it: loop over a list of objects</h3>
+<p>Pick a loop body and step through the loop. The loop variable <code class="i">i</code> refers to each object in turn.</p>
+<div class="card">
+  <div class="row" id="bodies"></div>
+  <pre class="code" id="loopSrc" style="font-size:12px"></pre>
+  <div class="row" id="objs"></div>
+  <div class="row"><button id="lStep">next iteration ▶</button><button id="lReset">restart</button><span class="small muted" id="lInfo"></span></div>
+  <pre class="out" id="lOut" style="margin:4px 0;min-height:4.6em;white-space:pre-wrap"></pre>
+</div>
+
+<h2>4 · The manager's request: a serial number for every customer <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8225" target="_blank" rel="noopener">▶ 2:17:05</a></h2>
+<p>Back to the ATM. You show your manager the finished code; it works, but they want one improvement: <b>every customer gets a serial number</b>. The first object created is customer 1, the next is 2, then 3, and so on. Try it yourself before reading his first attempt <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8273" target="_blank" rel="noopener">▶ 2:17:53</a>:</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    <span class="kw">def</span> __init__(self):
+        self.pin = <span class="st">''</span>
+        self.balance = 0
+        self.sno = 0
+        self.sno += 1
+
+c1 = Atm()
+c2 = Atm()
+c3 = Atm()
+print(c1.sno, c2.sno, c3.sno)</pre>
+<pre class="out">1 1 1</pre>
+<p>Doesn't work. The constructor runs <b>every</b> time an object is made, and each time it creates a fresh <code class="i">sno</code> for that object, starting at 0. Incrementing it gets you 1, for everyone.</p>
+
+<h2>5 · Two kinds of variables <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8349" target="_blank" rel="noopener">▶ 2:19:09</a></h2>
+<p>So far we've only had <b>instance variables</b>, whose value is different for every object: pin, balance. Pick any customer and their pin and balance are their own, as they should be. But sometimes you need a variable whose value is the <b>same for all objects</b>: a counter that starts at 1, gives the first customer 1, then becomes 2, gives the next customer 2, and so on. Before each new object gets its serial number, you look at the shared counter, use its value, and add 1.</p>
+<table>
+<tr><th></th><th>Instance variable</th><th>Static (class) variable</th></tr>
+<tr><td>Value</td><td>different for every object</td><td>one value, shared by all objects</td></tr>
+<tr><td>Where you create it</td><td>inside the constructor, on <code class="i">self</code></td><td>inside the class, <b>outside</b> the constructor</td></tr>
+<tr><td>How you access it</td><td><code class="i">self.pin</code>, <code class="i">sbi.pin</code></td><td><code class="i">Atm.counter</code> (class name)</td></tr>
+<tr><td>Examples</td><td>pin, balance, name</td><td>the counter, a bank's name, a branch's IFSC code, a college name</td></tr>
+</table>
+<p class="small">If an interviewer asks "what's the difference between an instance variable and a static variable?", that's the answer: an instance variable's value is different for every object; a static variable's value is the same for every object <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8489" target="_blank" rel="noopener">▶ 2:21:29</a>. It is also called a <b>class variable</b>.</p>
+
+<h2>6 · Creating and using a static variable <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8531" target="_blank" rel="noopener">▶ 2:22:11</a></h2>
+<p>Create it in the class but outside the constructor, and access it through the <b>class name</b>:</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    counter = 1                    <span class="cm"># static / class variable</span>
+
+    <span class="kw">def</span> __init__(self):
+        self.pin = <span class="st">''</span>              <span class="cm"># instance variables</span>
+        self.balance = 0
+        self.sno = Atm.counter
+        Atm.counter = Atm.counter + 1
+
+c1 = Atm()
+c2 = Atm()
+c3 = Atm()
+print(c1.sno, c2.sno, c3.sno)
+print(Atm.counter)
+print(c1.counter)</pre>
+<pre class="out">1 2 3
+4
+4</pre>
+<p>Every object got its own serial number, and the counter is now 4, ready for the next customer. You don't even need an object to read it: <code class="i">Atm.counter</code> works directly <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8680" target="_blank" rel="noopener">▶ 2:24:40</a>. Reading it through an object (<code class="i">c1.counter</code>) also gives 4, since there's just one value, but the correct way to reach a static variable is the class name.</p>
+<div class="beyond"><b>Going beyond the video.</b> Why insist on the class name? Reading <code class="i">self.counter</code> finds the class variable, but <b>assigning</b> <code class="i">self.counter = …</code> silently creates an instance variable on that one object, and the class's counter never moves:
+<pre class="code"><span class="kw">class</span> Atm:
+    counter = 1
+
+    <span class="kw">def</span> __init__(self):
+        self.sno = self.counter
+        self.counter = self.counter + 1   <span class="cm"># creates an instance attribute!</span>
+
+c1 = Atm()
+c2 = Atm()
+print(c1.sno, c2.sno, Atm.counter, c1.counter)</pre>
+<pre class="out">1 1 1 2</pre>
+</div>
+
+<h2>7 · Protect it: private static variable <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8753" target="_blank" rel="noopener">▶ 2:25:53</a></h2>
+<p>Enter the junior programmer again. The counter is open, so:</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    counter = 1
+
+    <span class="kw">def</span> __init__(self):
+        self.sno = Atm.counter
+        Atm.counter = Atm.counter + 1
+
+Atm.counter = <span class="st">'hello'</span>      <span class="cm"># a junior programmer "helps"</span>
+c1 = Atm()</pre>
+<pre class="out">Traceback (most recent call last):
+  ...
+TypeError: can only concatenate str (not "int") to str</pre>
+<p>The fix is the one from <a href="05-encapsulation.html">encapsulation</a>: make it <code class="i">__counter</code> (and rename every use), and if other programmers should still be able to read or change it, give them a getter and a setter <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8780" target="_blank" rel="noopener">▶ 2:26:20</a>. Written the usual way, though, the getter fails when called on the class:</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    __counter = 1
+
+    <span class="kw">def</span> __init__(self):
+        self.sno = Atm.__counter
+        Atm.__counter = Atm.__counter + 1
+
+    <span class="kw">def</span> get_counter(self):      <span class="cm"># but it never uses self...</span>
+        <span class="kw">return</span> Atm.__counter
+
+Atm.get_counter()               <span class="cm"># call it on the class, no object</span></pre>
+<pre class="out">Traceback (most recent call last):
+  ...
+TypeError: get_counter() missing 1 required positional argument: 'self'</pre>
+
+<h2>8 · Static methods <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=8895" target="_blank" rel="noopener">▶ 2:28:15</a></h2>
+<p>Listen carefully here. Every method so far took <code class="i">self</code> because it used the object. <code class="i">get_counter</code> is called on the <b>class</b> (<code class="i">Atm.get_counter()</code>), not on an object, so there's no object to pass in. And its code never needs <code class="i">self</code> anyway; it only needs the class. So you simply don't take <code class="i">self</code>.</p>
+<div class="callout">A method that works without an object, typically one that deals with static variables, is a <b>static method</b>. It takes no <code class="i">self</code>, and you mark it with the <code class="i">@staticmethod</code> decorator to show it needs no object.</div>
+<pre class="code"><span class="kw">class</span> Atm:
+    __counter = 1
+
+    <span class="kw">def</span> __init__(self):
+        self.pin = <span class="st">''</span>
+        self.balance = 0
+        self.sno = Atm.__counter
+        Atm.__counter = Atm.__counter + 1
+
+    <span class="kw">@staticmethod</span>
+    <span class="kw">def</span> get_counter():
+        <span class="kw">return</span> Atm.__counter
+
+    <span class="kw">@staticmethod</span>
+    <span class="kw">def</span> set_counter(new):
+        <span class="kw">if</span> type(new) == int:
+            Atm.__counter = new
+        <span class="kw">else</span>:
+            print(<span class="st">'Not allowed'</span>)
+
+c1 = Atm()
+c2 = Atm()
+print(Atm.get_counter())
+Atm.set_counter(<span class="st">'hello'</span>)
+Atm.set_counter(100)
+c3 = Atm()
+print(c3.sno, Atm.get_counter())
+print(c1.get_counter())</pre>
+<pre class="out">3
+Not allowed
+100 101
+101</pre>
+<p>The setter validates, just like <code class="i">set_pin</code> did: only an <code class="i">int</code> is allowed. And a static method can still be called through an object (last line); it just doesn't need one.</p>
+<p><b>One last slip <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=9036" target="_blank" rel="noopener">▶ 2:30:36</a>.</b> While testing, he trips over the double underscores himself: a line that seemed to set the counter had really <b>created a new variable</b> ("sorry for this"). The trap is the same one as <code class="i">sbi.__balance</code>: outside a class there's no name mangling, so <code class="i">Atm.__counter = …</code> makes a new class attribute and the real counter is untouched:</p>
+<pre class="code"><span class="kw">class</span> Atm:
+    __counter = 1
+
+    <span class="kw">def</span> __init__(self):
+        self.sno = Atm.__counter
+        Atm.__counter = Atm.__counter + 1
+
+    <span class="kw">@staticmethod</span>
+    <span class="kw">def</span> get_counter():
+        <span class="kw">return</span> Atm.__counter
+
+Atm.__counter = <span class="st">'oops'</span>     <span class="cm"># outside the class: a NEW attribute, no harm done</span>
+c1 = Atm()
+print(c1.sno, Atm.get_counter())
+print(Atm.__counter)</pre>
+<pre class="out">1 2
+oops</pre>
+
+<h3>Try it: instance vs static counter</h3>
+<p>Choose how the class numbers its customers, then create some. The class box shows what lives on the class (one copy); each card shows what lives on that object.</p>
+<div class="card">
+  <div class="row" id="modes"></div>
+  <pre class="code" id="cSrc" style="font-size:12px"></pre>
+  <div class="row"><button id="mk">c = Atm()</button><button id="gc" class="mono">Atm.get_counter()</button><button id="sc100" class="mono">Atm.set_counter(100)</button><button id="scH" class="mono">Atm.set_counter('hello')</button><button id="cReset">reset</button></div>
+  <div class="pair">
+    <div><div class="small muted">class Atm (one copy)</div><div id="clsBox" class="stat mono" style="width:100%;margin-top:4px"></div></div>
+    <div><div class="small muted">objects (one card each)</div><div class="row" id="cards" style="margin-top:4px"></div></div>
+  </div>
+  <pre class="out" id="cOut" style="margin:8px 0 4px;min-height:2.2em;white-space:pre-wrap"></pre>
+  <p class="small" id="cWhy"></p>
+</div>
+
+<h2>9 · What's next: more than one class <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=9063" target="_blank" rel="noopener">▶ 2:31:03</a></h2>
+<p>Every program so far has had a single class working alone: <code class="i">Atm</code> in the ATM project, <code class="i">Fraction</code> in the fraction one. Real applications have many: an e-commerce site has <code class="i">Product</code>, <code class="i">Customer</code>, <code class="i">Address</code>, <code class="i">Review</code> and more, with relationships between them. That's where the <a href="08-aggregation-inheritance.html">next part</a> begins.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Lists, tuples and dicts can hold your objects; loop over them as usual and use <code class="i">i.attribute</code> or <code class="i">i.method()</code> on each.</li>
+<li>Printing an object shows only its class and address unless the class says how to display it.</li>
+<li>Instance variable: different for every object, created on <code class="i">self</code> in the constructor. Static (class) variable: one value shared by all objects, created in the class outside the constructor, accessed as <code class="i">ClassName.var</code>.</li>
+<li>A shared counter (<code class="i">self.sno = Atm.counter; Atm.counter += 1</code>) gives each object a serial number; make it <code class="i">__counter</code> with a getter/setter to protect it.</li>
+<li>A static method takes no <code class="i">self</code>, is marked <code class="i">@staticmethod</code>, and can be called on the class: <code class="i">Atm.get_counter()</code>.</li>
+<li><code class="i">Atm.__counter = …</code> written outside the class creates a new attribute; it doesn't touch the private one.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// ---- loop over objects
+const PEOPLE = [['c1', 'Nitish', 34, '0x…fd0'], ['c2', 'Ankit', 45, '0x…f70'], ['c3', 'Neha', 32, '0x…ee0']];
+const BODIES = {
+  'print(i)': p => `<__main__.Customer object at ${p[3]}>`,
+  'print(i.name, i.age)': p => `${p[1]} ${p[2]}`,
+  'i.intro()': p => `I am ${p[1]} and I am ${p[2]}`,
+};
+let body = 'print(i)', it = -1, lout = [];
+Object.keys(BODIES).forEach(b => { const e = document.createElement('button'); e.className = 'mono'; e.textContent = b; e.dataset.b = b;
+  e.addEventListener('click', () => { body = b; it = -1; lout = []; drawLoop(); }); $('bodies').appendChild(e); });
+function drawLoop(){
+  document.querySelectorAll('#bodies button').forEach(e => e.classList.toggle('on', e.dataset.b === body));
+  $('loopSrc').textContent = 'L = [c1, c2, c3]\nfor i in L:\n    ' + body;
+  $('objs').innerHTML = PEOPLE.map((p, j) => `<div class="stat" style="min-width:110px;${j === it ? 'border-color:var(--s2);background:var(--tint)' : ''}"><div class="l">${p[0]}${j === it ? ' &larr; i' : ''}</div><div class="mono small">name = '${p[1]}'<br>age = ${p[2]}</div></div>`).join('');
+  $('lInfo').textContent = it < 0 ? 'not started' : it >= PEOPLE.length - 1 ? 'loop finished' : `iteration ${it + 1}: i is ${PEOPLE[it][0]}`;
+  if (it === PEOPLE.length - 1) $('lInfo').textContent = `iteration ${it + 1}: i is ${PEOPLE[it][0]} (last one)`;
+  $('lStep').disabled = it >= PEOPLE.length - 1;
+  $('lOut').textContent = lout.join('\n');
+}
+$('lStep').addEventListener('click', () => { if (it < PEOPLE.length - 1) { it++; lout.push(BODIES[body](PEOPLE[it])); drawLoop(); } });
+$('lReset').addEventListener('click', () => { it = -1; lout = []; drawLoop(); });
+drawLoop();
+
+// ---- instance vs static counter
+const MODES = {
+  inst: {label: 'instance only (his first try)', src: 'class Atm:\n    def __init__(self):\n        self.sno = 0\n        self.sno += 1'},
+  stat: {label: 'private static + @staticmethod', src: 'class Atm:\n    __counter = 1\n    def __init__(self):\n        self.sno = Atm.__counter\n        Atm.__counter = Atm.__counter + 1\n    @staticmethod\n    def get_counter(): ...\n    @staticmethod\n    def set_counter(new): ...   # int only'},
+  self: {label: 'self.counter += 1 (going beyond: a gotcha)', src: 'class Atm:\n    counter = 1\n    def __init__(self):\n        self.sno = self.counter\n        self.counter = self.counter + 1'},
+};
+let mode = 'stat', objs = [], counter = 1, cout = [], cwhy = '';
+Object.keys(MODES).forEach(m => { const e = document.createElement('button'); e.textContent = MODES[m].label; e.dataset.m = m;
+  e.addEventListener('click', () => { mode = m; resetC(); drawC(); }); $('modes').appendChild(e); });
+function resetC(){ objs = []; counter = 1; cout = []; cwhy = mode === 'inst' ? 'Every object runs the constructor from scratch.' : mode === 'stat' ? 'One counter lives on the class, stored as _Atm__counter.' : 'Watch where the + 1 ends up.'; }
+function drawC(){
+  document.querySelectorAll('#modes button').forEach(e => e.classList.toggle('on', e.dataset.m === mode));
+  $('cSrc').textContent = MODES[mode].src;
+  const st = mode === 'stat';
+  ['gc', 'sc100', 'scH'].forEach(i => { $(i).disabled = !st; });
+  $('clsBox').innerHTML = mode === 'inst' ? '<span class="small muted">no class variables</span>' : mode === 'stat' ? `_Atm__counter = <b>${esc(counter)}</b>` : `counter = <b>${esc(counter)}</b>`;
+  $('cards').innerHTML = objs.length ? objs.map((o, j) => `<div class="stat mono" style="min-width:96px"><div class="l">c${j + 1}</div>sno = <b>${esc(o.sno)}</b>${o.counter !== undefined ? `<br><span style="color:var(--s2)">counter = ${esc(o.counter)}</span>` : ''}</div>`).join('') : '<span class="small muted">none yet: press c = Atm()</span>';
+  $('cOut').textContent = cout.slice(-6).join('\n');
+  $('cWhy').textContent = cwhy;
+}
+$('mk').addEventListener('click', () => {
+  const n = objs.length + 1; cout.push(`>>> c${n} = Atm()`);
+  if (mode === 'inst') { objs.push({sno: 1}); cwhy = `c${n}.sno is 1: a fresh sno = 0 was created on this object, then incremented. Every customer gets 1.`; }
+  else if (mode === 'stat') {
+    if (typeof counter !== 'number') { cout.push('TypeError'); cwhy = 'Unreachable: the setter never lets a non-int in.'; }
+    else { objs.push({sno: counter}); cwhy = `c${n}.sno took the shared counter (${counter}); then the class counter went up to ${counter + 1}.`; counter += 1; }
+  } else { objs.push({sno: counter, counter: counter + 1}); cwhy = `c${n}.sno = ${counter} was read from the class, but self.counter = … created an instance variable counter = ${counter + 1} on c${n} only. The class counter is still ${counter}, so every customer gets sno ${counter}.`; }
+  drawC(); });
+$('gc').addEventListener('click', () => { cout.push('>>> Atm.get_counter()', String(counter)); cwhy = 'A static method: called on the class, no object and no self needed.'; drawC(); });
+$('sc100').addEventListener('click', () => { cout.push('>>> Atm.set_counter(100)'); counter = 100; cwhy = 'An int passes the setter\'s check: the next customer will get serial number 100.'; drawC(); });
+$('scH').addEventListener('click', () => { cout.push(">>> Atm.set_counter('hello')", 'Not allowed'); cwhy = 'The setter checks type(new) == int, so the string is refused and the counter is safe.'; drawC(); });
+$('cReset').addEventListener('click', () => { resetC(); drawC(); });
+resetC(); drawC();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

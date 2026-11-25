@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your Own Data Type: Fraction</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 4 of 10 · OOP in Python · CampusX</div>
+<h1>Your Own Data Type: Fraction</h1>
+<p class="lede">This is OOP's headline promise made concrete: he builds a <code class="i">Fraction</code> data type that you can print and add, subtract, multiply and divide with ordinary operators. The trick is a handful of magic methods: <code class="i">__str__</code> decides what <code class="i">print</code> shows, and <code class="i">__add__</code>, <code class="i">__sub__</code>, <code class="i">__mul__</code>, <code class="i">__truediv__</code> decide what <code class="i">+ − * /</code> do.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3978" target="_blank" rel="noopener">this part of the video on YouTube</a> (1:06:18–1:23:15 of a 4-hour video). Previous: <a href="03-self.html">what self really is</a> · Next: <a href="05-encapsulation.html">encapsulation</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · The problem: no fraction type <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3978" target="_blank" rel="noopener">▶ 1:06:18</a></h2>
+<p>Write five-sixths and Python immediately turns it into a decimal:</p>
+<pre class="code">x = <span class="st">5</span>/<span class="st">6</span>
+<span class="kw">print</span>(x)</pre>
+<pre class="out">0.8333333333333334</pre>
+<p>Python (like most languages) has no built-in data type that keeps fractions as fractions. So we build one: a class that supports addition, subtraction, multiplication and division of fractions, and anything else you would do with fractions in maths.</p>
+<div class="beyond"><b>Going beyond the video:</b> the standard library does ship one, <code class="i">from fractions import Fraction</code>, which also reduces automatically (<code class="i">Fraction(4, 5) * Fraction(5, 6)</code> gives <code class="i">2/3</code>). Building our own is still the best way to see how such a type works.</div>
+
+<h2>2 · Data first: a parameterised constructor <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4023" target="_blank" rel="noopener">▶ 1:07:03</a></h2>
+<p>What data does a fraction object need? A <b>numerator</b> and a <b>denominator</b>. Whoever creates the object should hand over these two numbers, so the constructor takes two inputs besides <code class="i">self</code> and stores them on the object:</p>
+<pre class="code"><span class="kw">class</span> Fraction:
+    <span class="kw">def</span> __init__(self, x, y):
+        self.num = x
+        self.den = y
+
+x = Fraction(<span class="st">4</span>, <span class="st">5</span>)
+<span class="kw">print</span>(type(x))
+L = [<span class="st">1</span>, <span class="st">2</span>, <span class="st">3</span>, x]       <span class="cm"># usable like any other object</span>
+<span class="kw">print</span>(len(L))
+<span class="kw">print</span>(x)</pre>
+<pre class="out">&lt;class '__main__.Fraction'&gt;
+4
+&lt;__main__.Fraction object at 0x1026d6ee0&gt;</pre>
+<p>He saves it as <code class="i">fraction.py</code> and imports it (<code class="i">from fraction import Fraction</code>), so the notebook shows <code class="i">&lt;class 'fraction.Fraction'&gt;</code>. Typing <code class="i">Fraction(</code> in the notebook shows the hint that the constructor wants two numbers. <code class="i">x</code> is now a genuine object of type <code class="i">Fraction</code>, as real as an int or a string: you can put it in a list, pass it around. But <b>printing it shows gibberish</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4155" target="_blank" rel="noopener">▶ 1:09:15</a>: Python doesn't know what a Fraction should look like, and only the class's author can tell it. All it can say is "a Fraction object, at this memory location".</p>
+
+<h2>3 · <code class="i">__str__</code>: what <code class="i">print</code> shows <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4201" target="_blank" rel="noopener">▶ 1:10:01</a></h2>
+<p>Recall the magic methods: not called by the object, triggered automatically in a given situation. The constructor triggers on creation. <code class="i">__str__</code> triggers <b>whenever you put an object of your class inside <code class="i">print()</code></b>: Python goes into your class, finds this method, and prints what it <b>returns</b> (it must return a string). First, a silly version:</p>
+<pre class="code"><span class="kw">class</span> Fraction:
+    <span class="kw">def</span> __init__(self, x, y):
+        self.num = x
+        self.den = y
+
+    <span class="kw">def</span> __str__(self):
+        <span class="kw">return</span> <span class="st">'hello'</span>
+
+x = Fraction(<span class="st">4</span>, <span class="st">5</span>)
+y = Fraction(<span class="st">1</span>, <span class="st">2</span>)
+<span class="kw">print</span>(x)
+<span class="kw">print</span>(y)</pre>
+<pre class="out">hello
+hello</pre>
+<p>Every fraction prints "hello", because that is the logic we wrote. The proper version uses string formatting <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4304" target="_blank" rel="noopener">▶ 1:11:44</a>: <code class="i">return '{}/{}'.format(self.num, self.den)</code>, after which <code class="i">print(x)</code> shows <code class="i">4/5</code>. <i>You</i> decide how your data type looks.</p>
+
+<h2>4 · <code class="i">x + y</code> fails, and so does adding two sets <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4346" target="_blank" rel="noopener">▶ 1:12:26</a></h2>
+<p>Guess what happens if you add two fraction objects. Nothing works, because you never told Python <i>how</i> to add two of them. Built-in types have the same limit: the author of <code class="i">set</code> never wrote logic for adding two sets.</p>
+<pre class="code">x = Fraction(<span class="st">4</span>, <span class="st">5</span>)
+y = Fraction(<span class="st">5</span>, <span class="st">6</span>)
+x + y</pre>
+<pre class="out">TypeError: unsupported operand type(s) for +: 'Fraction' and 'Fraction'</pre>
+<pre class="code">{<span class="st">1</span>, <span class="st">2</span>, <span class="st">3</span>} + {<span class="st">4</span>, <span class="st">5</span>, <span class="st">6</span>}</pre>
+<pre class="out">TypeError: unsupported operand type(s) for +: 'set' and 'set'</pre>
+
+<h2>5 · <code class="i">__add__</code>: teaching Python what + means <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4411" target="_blank" rel="noopener">▶ 1:13:31</a></h2>
+<p>The third magic method in your life: <code class="i">__add__</code>. As soon as you put <code class="i">+</code> between two objects of your class, Python goes into your code, finds this method and runs it. <code class="i">+</code> is a <b>binary operator</b>, it needs two operands, so the method receives two Fraction objects: the one on the left (<code class="i">x</code>) arrives as <code class="i">self</code>, the one on the right (<code class="i">y</code>) as <code class="i">other</code>. Both have a <code class="i">num</code> and a <code class="i">den</code>.</p>
+<p>The school maths <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4482" target="_blank" rel="noopener">▶ 1:14:42</a>: cross-multiply for the new numerator, multiply the denominators.</p>
+<p style="text-align:center" class="mono">a/b + c/d = (a·d + c·b) / (b·d)</p>
+<pre class="code">    <span class="kw">def</span> __add__(self, other):
+        temp_num = self.num * other.den + other.num * self.den
+        temp_den = self.den * other.den
+        <span class="kw">return</span> <span class="st">'{}/{}'</span>.format(temp_num, temp_den)</pre>
+<p>He returns the answer in the same <code class="i">'num/den'</code> format. And reducing it to lowest terms? "That's your job": write one more method (a simplify step) and call it at the end; he leaves it as an exercise.</p>
+
+<h2>6 · Subtract, multiply, divide <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4667" target="_blank" rel="noopener">▶ 1:17:47</a></h2>
+<p><code class="i">x - y</code> also fails until you add the fourth magic method, <code class="i">__sub__</code>: copy <code class="i">__add__</code> and flip the plus to a minus. Multiplication (<code class="i">__mul__</code>): numerators times numerators, denominators times denominators. Division (<code class="i">__truediv__</code>): flip the second fraction and multiply. The complete class:</p>
+<pre class="code"><span class="kw">class</span> Fraction:
+
+    <span class="cm"># parameterized constructor</span>
+    <span class="kw">def</span> __init__(self, x, y):
+        self.num = x
+        self.den = y
+
+    <span class="kw">def</span> __str__(self):
+        <span class="kw">return</span> <span class="st">'{}/{}'</span>.format(self.num, self.den)
+
+    <span class="kw">def</span> __add__(self, other):
+        temp_num = self.num * other.den + other.num * self.den
+        temp_den = self.den * other.den
+        <span class="kw">return</span> <span class="st">'{}/{}'</span>.format(temp_num, temp_den)
+
+    <span class="kw">def</span> __sub__(self, other):
+        temp_num = self.num * other.den - other.num * self.den
+        temp_den = self.den * other.den
+        <span class="kw">return</span> <span class="st">'{}/{}'</span>.format(temp_num, temp_den)
+
+    <span class="kw">def</span> __mul__(self, other):
+        temp_num = self.num * other.num
+        temp_den = self.den * other.den
+        <span class="kw">return</span> <span class="st">'{}/{}'</span>.format(temp_num, temp_den)
+
+    <span class="kw">def</span> __truediv__(self, other):
+        temp_num = self.num * other.den
+        temp_den = self.den * other.num
+        <span class="kw">return</span> <span class="st">'{}/{}'</span>.format(temp_num, temp_den)</pre>
+<p>Run it <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4768" target="_blank" rel="noopener">▶ 1:19:28</a>:</p>
+<pre class="code"><span class="kw">from</span> fraction <span class="kw">import</span> Fraction
+
+x = Fraction(<span class="st">4</span>, <span class="st">5</span>)
+y = Fraction(<span class="st">5</span>, <span class="st">6</span>)
+<span class="kw">print</span>(x)
+<span class="kw">print</span>(y)
+<span class="kw">print</span>(x + y)
+<span class="kw">print</span>(x - y)
+<span class="kw">print</span>(x * y)
+<span class="kw">print</span>(x / y)</pre>
+<pre class="out">4/5
+5/6
+49/30
+-1/30
+20/30
+24/25</pre>
+<div class="callout"><b>The pattern:</b> an operator between two of your objects is translated into a call of a magic method on the <b>left</b> object, with the right object as the argument: <code class="i">x + y</code> → <code class="i">x.__add__(y)</code> → <code class="i">Fraction.__add__(x, y)</code>, so <code class="i">self</code> is <code class="i">x</code> and <code class="i">other</code> is <code class="i">y</code>.</div>
+
+<h3>Try it: the Fraction calculator</h3>
+<div class="card">
+<p class="small muted" style="margin-top:0">Type two fractions and pick an operator. You'll see which magic method Python calls, what <code class="i">self</code> and <code class="i">other</code> are, the arithmetic from his class, and what <code class="i">print</code> shows. The number line places x, y and the result.</p>
+<div class="row mono">
+<span>x = Fraction(</span><input id="c-a" type="number" value="4" style="width:58px">,<input id="c-b" type="number" value="5" style="width:58px"><span>)</span>
+<span style="width:12px"></span>
+<span>y = Fraction(</span><input id="c-c" type="number" value="5" style="width:58px">,<input id="c-d" type="number" value="6" style="width:58px"><span>)</span>
+</div>
+<div class="row" id="c-ops"></div>
+<div class="row"><label><input type="checkbox" id="c-str" checked> class defines <code class="i">__str__</code></label><label><input type="checkbox" id="c-simp"> also show reduced form (beyond the video)</label></div>
+<pre class="code" id="c-trace" style="white-space:pre-wrap"></pre>
+<pre class="out" id="c-out"></pre>
+<canvas id="c-cv" height="90"></canvas>
+</div>
+
+<h2>7 · Where to go from here <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4817" target="_blank" rel="noopener">▶ 1:20:17</a></h2>
+<p>All four operations work, and you could keep going: fraction to decimal, decimal to fraction, anything you want. You don't have to do anything clever: <b>find the right magic method and implement it</b>. Building an integer-like type? There are magic methods for <code class="i">%</code> (mod), <code class="i">**</code> (power), <code class="i">&gt;</code>, <code class="i">&lt;</code>, <code class="i">==</code>, <code class="i">!=</code>, and beyond arithmetic, for converting to hexadecimal, octal, complex, and for type conversion.</p>
+<div class="callout"><b>Two student stories</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4881" target="_blank" rel="noopener">▶ 1:21:21</a>. One student built a <b>coordinate-geometry</b> data type: create point and line objects, then the distance between two points, the distance from a point to a line, whether a point lies on a line, whether three points form an equilateral triangle. Another built a complete <b>matrix</b> class. Both got placed partly on the strength of it: they could say "I built a data type anyone can use"; drop the file into a library and people use its objects just like built-ins.</div>
+<p>His closing advice: when you design a type, think logically about <b>which magic methods you need</b>, and with that you can build almost anything. Make your own data type, post it publicly, and show it in interviews; it is quite impressive.</p>
+<div class="beyond"><b>Going beyond the video:</b> his methods return <i>strings</i>, so the result is no longer a Fraction: <code class="i">print(type(x + y))</code> gives <code class="i">&lt;class 'str'&gt;</code>, and chaining <code class="i">x + y + Fraction(1, 30)</code> fails with <code class="i">TypeError: can only concatenate str (not "Fraction") to str</code>. Return a new <code class="i">Fraction</code> instead, and reduce in the constructor with <code class="i">math.gcd</code> (his "simplify" exercise):
+<pre class="code"><span class="kw">from</span> math <span class="kw">import</span> gcd
+
+<span class="kw">class</span> Fraction:
+    <span class="kw">def</span> __init__(self, x, y):
+        g = gcd(x, y)
+        self.num = x // g
+        self.den = y // g
+
+    <span class="kw">def</span> __str__(self):
+        <span class="kw">return</span> <span class="st">'{}/{}'</span>.format(self.num, self.den)
+
+    <span class="kw">def</span> __add__(self, other):
+        <span class="kw">return</span> Fraction(self.num * other.den + other.num * self.den,
+                        self.den * other.den)
+
+x = Fraction(<span class="st">4</span>, <span class="st">5</span>)
+y = Fraction(<span class="st">5</span>, <span class="st">6</span>)
+z = x + y + Fraction(<span class="st">1</span>, <span class="st">30</span>)     <span class="cm"># chaining works: x + y is a Fraction now</span>
+<span class="kw">print</span>(z)
+<span class="kw">print</span>(Fraction(<span class="st">20</span>, <span class="st">30</span>))</pre>
+<pre class="out">5/3
+2/3</pre></div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Python has no fraction literal (<code class="i">5/6</code> becomes a float), so a <code class="i">Fraction</code> class is a perfect "build your own data type" exercise.</li>
+<li>A <b>parameterised constructor</b> <code class="i">__init__(self, x, y)</code> receives the data and stores it as <code class="i">self.num</code>, <code class="i">self.den</code>.</li>
+<li><code class="i">__str__</code> runs when the object is printed and must return a string; without it you get <code class="i">&lt;… object at 0x…&gt;</code>.</li>
+<li>Operators call magic methods on the left operand: <code class="i">x + y</code> → <code class="i">x.__add__(y)</code>, with <code class="i">self</code> = x and <code class="i">other</code> = y. Likewise <code class="i">__sub__</code>, <code class="i">__mul__</code>, <code class="i">__truediv__</code>.</li>
+<li>Without the matching magic method you get <code class="i">TypeError: unsupported operand type(s)</code>, even for built-ins like <code class="i">set + set</code>.</li>
+<li>Designing a type = deciding which magic methods it needs. Your own data types make strong portfolio and interview material.</li>
+</ol>
+</main>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const OPS = [
+    {s:'+', m:'__add__', f:(a,b,c,d)=>[a*d + c*b, b*d], t:'temp_num = self.num * other.den + other.num * self.den\n         = {a} * {d} + {c} * {b} = {n}\ntemp_den = self.den * other.den\n         = {b} * {d} = {D}'},
+    {s:'-', m:'__sub__', f:(a,b,c,d)=>[a*d - c*b, b*d], t:'temp_num = self.num * other.den - other.num * self.den\n         = {a} * {d} - {c} * {b} = {n}\ntemp_den = self.den * other.den\n         = {b} * {d} = {D}'},
+    {s:'*', m:'__mul__', f:(a,b,c,d)=>[a*c, b*d], t:'temp_num = self.num * other.num\n         = {a} * {c} = {n}\ntemp_den = self.den * other.den\n         = {b} * {d} = {D}'},
+    {s:'/', m:'__truediv__', f:(a,b,c,d)=>[a*d, b*c], t:'temp_num = self.num * other.den\n         = {a} * {d} = {n}\ntemp_den = self.den * other.num\n         = {b} * {c} = {D}'}
+  ];
+  let op = 0; const btns = [];
+  OPS.forEach((o, i) => { const b = document.createElement('button'); b.className = 'mono'; b.textContent = 'x ' + o.s + ' y'; b.addEventListener('click', () => { op = i; render(); }); $('c-ops').appendChild(b); btns.push(b); });
+  function rd(id){ const v = String($(id).value).trim(); if (!/^-?\d{1,4}$/.test(v)) return null; return parseInt(v, 10); }
+  function gcd(p, q){ p = Math.abs(p); q = Math.abs(q); while (q) { const t = p % q; p = q; q = t; } return p; }
+  function fill(t, o){ return t.replace(/\{(\w)\}/g, (_, k) => String(o[k])); }
+  let pts = [];
+  function render(){
+    btns.forEach((b, i) => b.classList.toggle('on', i === op));
+    const a = rd('c-a'), b = rd('c-b'), c = rd('c-c'), d = rd('c-d');
+    const o = OPS[op];
+    if (a === null || b === null || c === null || d === null) { $('c-trace').textContent = 'Enter whole numbers (up to 4 digits) in all four boxes.'; $('c-out').textContent = ''; pts = []; draw(); return; }
+    if (b === 0 || d === 0) { $('c-trace').textContent = 'A denominator is 0. His class would store it without complaint (it does no checking), but n/0 is not a number, so this demo stops here.'; $('c-out').textContent = ''; pts = []; draw(); return; }
+    const r = o.f(a, b, c, d), n = r[0], D = r[1];
+    let tr = '# Python sees x ' + o.s + ' y with two Fraction objects\n';
+    tr += 'x ' + o.s + ' y  →  x.' + o.m + '(y)  →  Fraction.' + o.m + '(x, y)\n';
+    tr += '# inside ' + o.m + ': self = x (' + a + '/' + b + '), other = y (' + c + '/' + d + ')\n';
+    tr += fill(o.t, {a:a, b:b, c:c, d:d, n:n, D:D}) + '\n';
+    tr += "return '{}/{}'.format(temp_num, temp_den)   →   '" + n + '/' + D + "'";
+    $('c-trace').textContent = tr;
+    const showStr = $('c-str').checked;
+    let out = '>>> print(x)\n' + (showStr ? a + '/' + b : '<fraction.Fraction object at 0x10e5b2d90>') + '\n';
+    out += '>>> print(x ' + o.s + ' y)\n' + n + '/' + D;
+    if (D === 0) out += '\n# denominator 0 (dividing by a zero fraction): his class returns this string; it is not a valid fraction';
+    else if ($('c-simp').checked) { const g = gcd(n, D) || 1; let rn = n / g, rD = D / g; if (rD < 0) { rn = -rn; rD = -rD; } out += '\n# reduced (beyond the video): ' + rn + '/' + rD + '  =  ' + (rn / rD).toFixed(4); }
+    if (!showStr) out += '\n# without __str__ the operator still works (it returns a str); only print(x) loses its look';
+    $('c-out').textContent = out;
+    pts = [{l:'x', v:a / b, k:'--s1'}, {l:'y', v:c / d, k:'--s3'}];
+    if (D !== 0) pts.push({l:'x' + o.s + 'y', v:n / D, k:'--s2'});
+    draw();
+  }
+  const cv = $('c-cv');
+  function draw(){
+    const W = cv.clientWidth || 600, H = 90, dpr = window.devicePixelRatio || 1;
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.height = H + 'px';
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    if (!pts.length) return;
+    let lo = Math.min(0, ...pts.map(p => p.v)), hi = Math.max(1, ...pts.map(p => p.v));
+    lo = Math.floor(lo); hi = Math.ceil(hi); if (hi - lo > 40) { lo = Math.max(lo, -20); hi = Math.min(hi, 20); }
+    const pad = 22, X = v => pad + (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (W - 2 * pad), y0 = 50;
+    g.strokeStyle = cssv('--grid'); g.lineWidth = 2; g.beginPath(); g.moveTo(pad, y0); g.lineTo(W - pad, y0); g.stroke();
+    g.fillStyle = cssv('--muted'); g.font = '11px system-ui'; g.textAlign = 'center';
+    const stepT = Math.max(1, Math.ceil((hi - lo) / Math.max(2, Math.floor((W - 2 * pad) / 40))));
+    for (let t = lo; t <= hi; t += stepT) { g.fillRect(X(t) - 0.5, y0 - 4, 1, 8); g.fillText(String(t), X(t), y0 + 18); }
+    pts.forEach((p, i) => {
+      const x = X(p.v), col = cssv(p.k);
+      g.fillStyle = col; g.beginPath(); g.arc(x, y0, 5, 0, 7); g.fill();
+      g.font = '600 12px ui-monospace,Menlo,monospace'; g.fillText(p.l, x, y0 - 12 - (i % 2) * 14);
+    });
+    g.textAlign = 'left';
+  }
+  ['c-a','c-b','c-c','c-d'].forEach(id => $(id).addEventListener('input', render));
+  $('c-str').addEventListener('change', render); $('c-simp').addEventListener('change', render);
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(draw, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  render();
+})();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

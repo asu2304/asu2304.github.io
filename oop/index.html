@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OOP in Python (Notes) · Ashutosh Patidar</title>
+<meta name="description" content="Revision notes on object-oriented programming in Python, following CampusX's Complete OOP in Python video by Nitish Singh, with interactive demos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(', '\\)']],
+    displayMath: [['\\[', '\\]']],
+    processEscapes: false,
+    tags: 'none',
+    macros: {
+      bm: ['\\boldsymbol{#1}', 1],
+      T: '^{\\mathsf{T}}',
+      R: '\\mathbb{R}',
+      tr: '\\operatorname{tr}',
+      rank: '\\operatorname{rank}',
+      diag: '\\operatorname{diag}'
+    }
+  },
+  chtml: { scale: 1.0, matchFontHeight: true },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre','code'] }
+};
+</script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js"></script>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="../index.html">Ashutosh Patidar <span>· notes</span></a>
+    <nav class="top-nav">
+      <a href="../linear-algebra/index.html">Linear Algebra</a>
+      <a href="../machine-learning/index.html">Machine Learning</a>
+      <a href="../deep-learning/index.html">Deep Learning</a>
+      <a href="https://github.com/asu2304">GitHub</a>
+    </nav>
+  </div>
+</header>
+<div class="wrap layout">
+
+<main class="content"><h1>OOP in Python (source: Nitish Singh, CampusX)</h1><p class="lede">Revision notes on object-oriented programming in Python: why OOP, classes and objects, constructors and <code>self</code>, building your own data type, encapsulation, reference variables, static members, aggregation and inheritance, <code>super()</code> and method resolution order, and overloading, ending with a small project. Every code snippet has been run, and each page has interactive demos and links to the exact moment in the video.</p><div class="credit-box" style="border:1px solid var(--rule);border-left:4px solid var(--ml);background:var(--ml-soft);border-radius:10px;padding:12px 16px;margin:16px 0"><p style="margin:0"><strong>Credit.</strong> These notes follow <strong>Nitish Singh</strong>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his. These are my personal, unofficial notes, written in English from a Hindi lecture; the demos and the orange "going beyond the video" boxes are my own, so check the video for the definitive treatment.</p></div><h2 class="section-title">Complete OOP in Python</h2><p class="legend" style="margin:4px 0 8px">Full video: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python in 1 Video</a> (CampusX, 4 hours).</p><ol class="toc"><li><a href="01-why-oop-class-object.html"><span class="num">1</span>Why OOP and classes vs objects: Everything is an object, building your own data types, the class as a blueprint, and objects as instances</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=0" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="02-class-object-constructor.html"><span class="num">2</span>Building an ATM: Function vs method, attributes in __init__, the constructor, and magic (dunder) methods</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1305" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="03-self.html"><span class="num">3</span>What self is: The id() experiment, the object passed automatically, and why methods reach each other only through self</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3360" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="04-fraction-data-type.html"><span class="num">4</span>Your own data type: A Fraction class with a parameterised constructor, __str__, and __add__/__sub__/__mul__/__truediv__</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=3978" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="05-encapsulation.html"><span class="num">5</span>Encapsulation: Hiding data with __, name mangling (_Atm__pin), getters and setters with validation, and private members in class diagrams</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=4995" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="06-reference-variables.html"><span class="num">6</span>Reference variables: Atm() vs sbi = Atm(), passing and returning objects, mutable vs immutable arguments, and cloning a list</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=6560" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="07-collections-static.html"><span class="num">7</span>Collections and static members: Lists and dicts of objects, instance vs static variables, a serial-number counter, and @staticmethod</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=7900" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="08-aggregation-inheritance.html"><span class="num">8</span>Aggregation and inheritance: Has-a vs is-a, Customer/Address delegation, code reuse, inherited constructors, and private members</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=9065" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="09-polymorphism-super-mro.html"><span class="num">9</span>Overriding, super() and MRO: Method overriding, inheritance puzzles, super() for methods and constructors, five inheritance types, and C3 MRO</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10860" style="font-size:13px" target="_blank" rel="noopener">video</a></li><li><a href="10-overloading-project.html"><span class="num">10</span>Overloading and project: Method overloading via default arguments, operator overloading with magic methods, and a mini IRCTC app</a> <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12935" style="font-size:13px" target="_blank" rel="noopener">video</a></li></ol>
+</main>
+</div>
+<script>if (window.innerWidth < 900) document.querySelectorAll('.sidebar details').forEach(d => d.removeAttribute('open'));</script>
+<footer class="site-footer"><div class="wrap">© 2026 Ashutosh Patidar · Deep learning notes following Prof. Mitesh M. Khapra's lectures (IIT Madras).</div></footer>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

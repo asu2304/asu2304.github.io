@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Overloading and a Mini IRCTC Project</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 10 of 10 · OOP in Python · CampusX</div>
+<h1>Overloading and a Mini IRCTC Project</h1>
+<p class="lede">The last two kinds of polymorphism. Method overloading means one method name that behaves differently for different inputs; Python doesn't support it directly, but default arguments get you there. Operator overloading means giving <code class="i">+</code>, <code class="i">*</code> and friends your own meaning through magic methods. Then a small project: a train-information app built as a class around a web API.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12935" target="_blank" rel="noopener">this part of the video on YouTube</a> (3:35:35–4:02:57 of a 4-hour video). Previous: <a href="09-polymorphism-super-mro.html">polymorphism, super() and MRO</a> · Next: this is the last page (back to <a href="index.html">the OOP index</a>).</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Polymorphism: many forms <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12935" target="_blank" rel="noopener">▶ 3:35:35</a></h2>
+<p><i>Poly</i> means many, <i>morph</i> means forms: one thing, many forms. In OOP it comes in three kinds:</p>
+<table>
+<tr><th>Kind</th><th>One name…</th><th>…many forms</th><th>Where</th></tr>
+<tr><td><b>Method overriding</b></td><td><code class="i">buy()</code> in Phone and SmartPhone</td><td>the object's own class decides</td><td><a href="09-polymorphism-super-mro.html">page 9</a></td></tr>
+<tr><td><b>Method overloading</b></td><td><code class="i">area()</code></td><td>the inputs decide</td><td>section 2</td></tr>
+<tr><td><b>Operator overloading</b></td><td><code class="i">+</code></td><td>the operand types decide</td><td>section 3</td></tr>
+</table>
+
+<h2>2 · Method overloading <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12981" target="_blank" rel="noopener">▶ 3:36:21</a></h2>
+<p>Method overloading means one method that can be implemented in different ways: give it different inputs and it behaves differently. His example <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12997" target="_blank" rel="noopener">▶ 3:36:37</a>: you're writing code that calculates areas. Every shape's area is computed differently, but for readability you want every one of those functions to be called <code class="i">area</code>, so the name alone tells you what it does. Only the inputs differ: one number (a radius) means a circle, two numbers (length and breadth) mean a rectangle.</p>
+<pre class="code"><span class="kw">class</span> Geometry:
+
+    <span class="kw">def</span> area(self, radius):
+        <span class="kw">return</span> 3.14 * radius * radius
+
+    <span class="kw">def</span> area(self, l, b):
+        <span class="kw">return</span> l * b
+
+obj = Geometry()
+print(obj.area(4))</pre>
+<pre class="out">Traceback (most recent call last):
+  ...
+TypeError: area() missing 1 required positional argument: 'b'</pre>
+<p>Written in <b>Java</b>, this exact code works perfectly: <code class="i">area(4)</code> would pick the one-argument version. In Python it fails <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13121" target="_blank" rel="noopener">▶ 3:38:41</a>. The second <code class="i">def area</code> with the same name simply <b>replaces</b> the first, so only the two-argument version exists, and calling it with one argument is an error. You can't make several methods with the same name and pick one by its inputs. Technically speaking, <b>Python doesn't support method overloading.</b></p>
+<p><b>The jugaad</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13185" target="_blank" rel="noopener">▶ 3:39:45</a>. With a little cleverness you can get the same behaviour: <b>one</b> method, with a default value on the second parameter, that branches on what it received.</p>
+<pre class="code"><span class="kw">class</span> Geometry:
+
+    <span class="kw">def</span> area(self, a, b=0):
+        <span class="kw">if</span> b == 0:
+            <span class="kw">return</span> <span class="st">'Circle'</span>, 3.14 * a * a
+        <span class="kw">else</span>:
+            <span class="kw">return</span> <span class="st">'Rectangle'</span>, a * b
+
+obj = Geometry()
+print(obj.area(4))
+print(obj.area(4, 5))</pre>
+<pre class="out">('Circle', 50.24)
+('Rectangle', 20)</pre>
+<p>By definition this is still method overloading: one method behaves differently depending on its input. Its limit, which he points out: if each case's logic grows large (imagine circle, rectangle, cylinder… all in one method), it becomes hard to manage, and separate functions may read better. So Python doesn't have the feature, but you can achieve the behaviour.</p>
+<div class="card">
+  <div class="row">
+    <label>a <input type="number" id="olA" value="4" min="0" max="1000" step="1" style="width:80px"></label>
+    <label>b <input type="number" id="olB" value="" min="0" max="1000" step="1" placeholder="leave empty" style="width:110px"></label>
+    <button id="olJ" class="on">one area(self, a, b=0)</button><button id="olT">two defs, Java style</button>
+  </div>
+  <div class="mono" id="olCall" style="margin:6px 0"></div>
+  <pre class="out" id="olOut" style="margin:0 0 6px"></pre>
+  <p class="small" id="olWhy"></p>
+</div>
+<div class="beyond"><b>Going beyond the video:</b> other ways to get the same effect are <code class="i">*args</code> (branch on <code class="i">len(args)</code>) or <code class="i">functools.singledispatchmethod</code>, which picks an implementation by the <i>type</i> of the first argument. Default arguments, as in the video, are the most common.</div>
+
+<h2>3 · Operator overloading <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13332" target="_blank" rel="noopener">▶ 3:42:12</a></h2>
+<p>Programming languages have operators (arithmetic, relational, logical), and every operator has a default behaviour. Give <code class="i">+</code> two numbers and it adds them mathematically. But you've already used <code class="i">+</code> for something else:</p>
+<pre class="code">print(5 + 6)
+print(<span class="st">'hello'</span> + <span class="st">'world'</span>)
+print([1, 2] + [3, 4])</pre>
+<pre class="out">11
+helloworld
+[1, 2, 3, 4]</pre>
+<p>Between two strings, <code class="i">+</code> doesn't do mathematical addition; it joins them. Whoever built the string class told <code class="i">+</code>: don't add, do <i>this</i> instead. That's <b>operator overloading</b>, and you did it yourself with the Fraction class <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13406" target="_blank" rel="noopener">▶ 3:43:26</a> (<a href="04-fraction-data-type.html">page 4</a>):</p>
+<pre class="code"><span class="kw">class</span> Fraction:
+
+    <span class="kw">def</span> __init__(self, n, d):
+        self.num = n
+        self.den = d
+
+    <span class="kw">def</span> __str__(self):
+        <span class="kw">return</span> <span class="st">'{}/{}'</span>.format(self.num, self.den)
+
+    <span class="kw">def</span> __add__(self, other):
+        temp_num = self.num * other.den + other.num * self.den
+        temp_den = self.den * other.den
+        <span class="kw">return</span> Fraction(temp_num, temp_den)
+
+x = Fraction(3, 4)
+y = Fraction(5, 6)
+print(x + y)
+print(x.__add__(y))</pre>
+<pre class="out">38/24
+38/24</pre>
+<p><code class="i">x + y</code> isn't mathematical addition here; it's fraction addition, and you wrote that logic. You overrode the behaviour of <code class="i">+</code> in your class with your own custom logic, using <b>magic methods</b> (dunder methods): Python turns <code class="i">x + y</code> into <code class="i">x.__add__(y)</code>, as the second print shows.</p>
+<p><b>Operator explorer.</b> Pick a left value, an operator and a right value. You see what <code class="i">print(x op y)</code> outputs and which magic method handled it. Every cell is real Python output, with a Fraction class like page 4's (this one has <code class="i">__add__</code>, <code class="i">__sub__</code>, <code class="i">__mul__</code>, <code class="i">__truediv__</code> and <code class="i">__str__</code>, but no <code class="i">__eq__</code>).</p>
+<div class="card">
+  <div class="row"><span class="small muted">x =</span> <span id="opL" class="row" style="margin:0"></span></div>
+  <div class="row"><span class="small muted">op</span> <span id="opO" class="row" style="margin:0"></span></div>
+  <div class="row"><span class="small muted">y =</span> <span id="opR" class="row" style="margin:0"></span></div>
+  <div class="mono" id="opCall" style="margin:8px 0;font-size:14px"></div>
+  <pre class="out" id="opOut" style="margin:0 0 6px"></pre>
+  <p class="small" id="opWhy"></p>
+</div>
+<div class="beyond"><b>Going beyond the video:</b> the explorer shows two rules worth knowing. (1) If the left operand's method returns <code class="i">NotImplemented</code>, Python tries the right operand's <i>reflected</i> method: <code class="i">5 * 'yo'</code> works through <code class="i">str.__rmul__</code>. (2) Without <code class="i">__eq__</code>, <code class="i">==</code> only checks whether both sides are the same object, so two equal-looking Fractions compare <code class="i">False</code>. Fraction also breaks with plain ints (<code class="i">'int' object has no attribute 'den'</code>); a sturdier version would convert them first.</div>
+
+<h2>4 · Project: a mini IRCTC <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13465" target="_blank" rel="noopener">▶ 3:44:25</a></h2>
+<p>After many hours of theory, a small project: a little application like IRCTC or MakeMyTrip that does train-related operations. With a train number you could check its live status, with a PNR number its booking, plus which trains are at a station right now, seat availability on a given day, and the fare.</p>
+<p><b>Where does the data come from?</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13504" target="_blank" rel="noopener">▶ 3:45:04</a> From a website called Indian Rail API, which provides <b>APIs</b>. An API is like a function whose job is to fetch someone else's data and hand it to you: send the right input and it returns Indian Railways data. For example, its <b>train schedule</b> API: put a train number in the URL and you get back the list of stations the train passes through. To use it you create an account, log in, and get your own <b>API key</b>, which goes into the URL.</p>
+<p><b>What comes back</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13628" target="_blank" rel="noopener">▶ 3:47:08</a>. Paste the URL in a browser with train 12222 (Howrah–Pune Duronto Express) and you get data in <b>JSON</b>, a very famous data format that APIs commonly return. Raw JSON is hard to read, so he pastes it into an online JSON viewer to see its tree structure. It reads exactly like a Python dictionary:</p>
+<table>
+<tr><th>Key</th><th>Value</th></tr>
+<tr><td class="mono">ResponseCode</td><td>200</td></tr>
+<tr><td class="mono">Status</td><td>SUCCESS</td></tr>
+<tr><td class="mono">Message</td><td>null</td></tr>
+<tr><td class="mono">Route</td><td>a <b>list</b> of dictionaries, one per station: Howrah, Tatanagar, Bilaspur, … Pune</td></tr>
+</table>
+<p>Change the train number in the URL and you get another train's route. The plan is to do all of this from Python: hit the API, receive the data, pull out the station names and display them.</p>
+
+<h2>5 · Setup <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13751" target="_blank" rel="noopener">▶ 3:49:11</a></h2>
+<ul>
+<li>Install the <b>requests</b> library: <code class="i">pip install requests</code>. If it's already on your machine pip says "requirement already satisfied"; otherwise it downloads and installs.</li>
+<li>Use a proper IDE such as <b>PyCharm</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13799" target="_blank" rel="noopener">▶ 3:49:59</a>. For quick tests and teaching, IDLE or a notebook is fine, but when you build a proper application an IDE means fewer chances of mistakes.</li>
+<li>Create a new file, <code class="i">app.py</code>.</li>
+</ul>
+
+<h2>6 · The code <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13835" target="_blank" rel="noopener">▶ 3:50:35</a></h2>
+<p>The whole app is one class, <code class="i">IRCTC</code>. Its constructor shows a menu and routes the choice. Only the train schedule is built; the other options just print a placeholder:</p>
+<pre class="code"><span class="kw">import</span> requests
+
+<span class="kw">class</span> IRCTC:
+
+    <span class="kw">def</span> __init__(self):
+        user_input = input(<span class="st">"""How would you like to proceed?
+1. Enter 1 to check live train status
+2. Enter 2 to check PNR
+3. Enter 3 to check train schedule
+"""</span>)
+        <span class="kw">if</span> user_input == <span class="st">"1"</span>:
+            print(<span class="st">"live train status"</span>)
+        <span class="kw">elif</span> user_input == <span class="st">"2"</span>:
+            print(<span class="st">"PNR"</span>)
+        <span class="kw">else</span>:
+            self.train_schedule()
+
+    <span class="kw">def</span> train_schedule(self):
+        train_no = input(<span class="st">"Enter the train number: "</span>)
+        self.fetch_data(train_no)
+
+    <span class="kw">def</span> fetch_data(self, train_no):
+        url = (<span class="st">"https://indianrailapi.com/api/v2/TrainSchedule/"</span>
+               <span class="st">"apikey/YOUR_API_KEY/TrainNumber/{}/"</span>).format(train_no)
+        data = requests.get(url)
+        data = data.json()
+        <span class="kw">for</span> i <span class="kw">in</span> data[<span class="st">'Route'</span>]:
+            print(i[<span class="st">'StationName'</span>], i[<span class="st">'ArrivalTime'</span>],
+                  i[<span class="st">'DepartureTime'</span>], i[<span class="st">'Distance'</span>], <span class="st">'KMS'</span>)
+
+obj = IRCTC()</pre>
+<p>How it grew, step by step:</p>
+<ol class="steps">
+<li><b>Menu in the constructor.</b> Creating the object (<code class="i">obj = IRCTC()</code>) runs <code class="i">__init__</code>, which asks how you'd like to proceed. None of the code runs until an object exists.</li>
+<li><b>train_schedule</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=13973" target="_blank" rel="noopener">▶ 3:52:53</a> asks for the train number and passes it to another method whose only job is to fetch the data.</li>
+<li><b>fetch_data</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=14013" target="_blank" rel="noopener">▶ 3:53:33</a>: <code class="i">requests.get(url)</code> hits the API, and the server sends data back; <code class="i">.json()</code> converts it into Python dictionaries and lists. His first version just printed it, to check it's the same dictionary seen in the browser.</li>
+<li><b>Find the path to the data</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=14104" target="_blank" rel="noopener">▶ 3:55:04</a>. Think about which key leads to the station names: ResponseCode, Status, Message or Route? It's <code class="i">Route</code>. <code class="i">data['Route']</code> is a list, and each item is a dictionary for one station.</li>
+<li><b>Loop and pick</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=14187" target="_blank" rel="noopener">▶ 3:56:27</a>. <code class="i">for i in data['Route']: print(i)</code> prints each whole station dictionary; <code class="i">print(i['StationName'])</code> prints just the name. Later he added arrival time, departure time and distance <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=14316" target="_blank" rel="noopener">▶ 3:58:36</a>, the version above.</li>
+</ol>
+
+<h2>7 · The bug: a hardcoded train number <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=14257" target="_blank" rel="noopener">▶ 3:57:37</a></h2>
+<p>The first run with 12222 printed a route from <b>Ajmer to Agra Fort</b>. That's wrong: 12222 is the Howrah–Pune Duronto. In fact, <i>any</i> number gave Ajmer → Agra Fort. Can you spot why before reading on?</p>
+<p>The URL had been pasted from the browser with a train number already inside it, so <code class="i">train_no</code> was never used. The fix: put <code class="i">{}</code> where the number goes and call <code class="i">.format(train_no)</code> on the string, which is what <code class="i">fetch_data</code> above does. After that, 12222 gave Howrah → Pune and 12024 gave the Jan Shatabdi Express from Patna to Howrah.</p>
+<div class="card">
+  <div class="row"><span class="small muted">menu choice:</span> <button id="pc1">1</button><button id="pc2">2</button><button id="pc3" class="on">3</button>
+  <label>train no. <input id="pTrain" value="12024" maxlength="5" style="width:80px" class="mono"></label></div>
+  <div class="row"><button id="pFix" class="on">URL uses .format(train_no)</button><span class="small muted">toggle off to see the bug (URL pasted with 12222 inside)</span></div>
+  <pre class="out" id="pOut" style="margin:6px 0;white-space:pre-wrap;word-break:break-all"></pre>
+</div>
+
+<h2>8 · Running it, and what's next <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=14316" target="_blank" rel="noopener">▶ 3:58:36</a></h2>
+<p>In the video the final run for 12222 lists every station with its times and distance: it leaves Howrah at 8:30 (0 km) and reaches Pune at 11:00 the next day, after 2030 km. That's a well-formatted, information-rich result from about thirty lines of code. Without his API key (and without network access) the run below uses a stand-in <code class="i">requests</code> module that returns only those two endpoint stations, with <code class="i">--</code> where no time applies:</p>
+<pre class="out">How would you like to proceed?
+1. Enter 1 to check live train status
+2. Enter 2 to check PNR
+3. Enter 3 to check train schedule
+3
+Enter the train number: 12222
+HOWRAH JN -- 08:30 0 KMS
+PUNE JN 11:00 -- 2030 KMS</pre>
+<p><b>Ideas to extend it</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=14429" target="_blank" rel="noopener">▶ 4:00:29</a>. It's a console application, which can't look pretty, but you can easily turn it into a website. Add more features from the same site. He tried two more endpoints: <b>live station</b> (a station code such as HWH for Howrah plus a window of hours, e.g. 2–4, for the trains due there) and <b>trains between stations</b> (HWH → NDLS). Neither returned data at the time. Trains weren't running normally, or he may have hit the daily request limit on his free account. Try with your own key, see what data comes back, and work out how to pull the right parts from it. That's how you create applications in Python using APIs.</p>
+<div class="beyond"><b>Going beyond the video:</b> third-party APIs change or disappear, so the URL format and key names above (<code class="i">Route</code>, <code class="i">StationName</code>, …) may no longer match the live service. Three habits for real code: keep the API key out of the source (read it from an environment variable), pass <code class="i">timeout=10</code> to <code class="i">requests.get</code>, and check <code class="i">response.status_code</code> (and the API's own <code class="i">Status</code> field) before indexing into the data. An f-string, <code class="i">f".../TrainNumber/{train_no}/"</code>, does the same job as <code class="i">.format</code>.</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Polymorphism ("many forms") has three kinds: method overriding, method overloading and operator overloading.</li>
+<li>Python has no true method overloading: a second <code class="i">def</code> with the same name replaces the first. Get the behaviour with default arguments and a branch inside one method.</li>
+<li>Operator overloading gives an operator a custom meaning for your class through magic methods: <code class="i">x + y</code> becomes <code class="i">x.__add__(y)</code>. <code class="i">str</code>'s <code class="i">+</code> already does it.</li>
+<li>The project wraps an API in a class: the constructor shows a menu, methods ask for input, <code class="i">requests.get(url).json()</code> fetches the data, and you walk the dictionaries and lists to pick out what you need.</li>
+<li>Build URLs from variables (<code class="i">.format</code> or f-strings); a hardcoded value pasted from the browser makes every query return the same answer.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// ---- overloading lab ----
+let olMode = 'j';
+function pyNum(x) { return Number.isInteger(x) ? x.toFixed(1) : String(x); }
+function olCompute(a, b, mode) {
+  // a: int, b: int or null. Returns {call, out, why}
+  const call = 'print(obj.area(' + a + (b === null ? '' : ', ' + b) + '))';
+  if (mode === 'j') {
+    if (b === null || b === 0) return { call, out: "('Circle', " + pyNum(3.14 * a * a) + ')', why: (b === null ? 'b was not passed, so it takes its default 0' : 'b is 0') + ', and the if-branch treats a as a radius: 3.14 × a × a.' };
+    return { call, out: "('Rectangle', " + (a * b) + ')', why: 'b is non-zero, so the else-branch computes length × breadth.' };
+  }
+  if (b === null) return { call, out: "Traceback (most recent call last):\n  ...\nTypeError: area() missing 1 required positional argument: 'b'", why: 'The second def replaced the first, so only area(self, l, b) exists: one argument is not enough.' };
+  return { call, out: String(a * b), why: 'Only the last def survives, so two arguments always mean l × b. The radius version is gone.' };
+}
+function readInt(el) {
+  const v = el.value.trim(); if (v === '') return null;
+  let n = Math.round(Number(v)); if (!isFinite(n) || n < 0) n = 0; if (n > 1000) n = 1000; return n;
+}
+function renderOl() {
+  let a = readInt($('olA')); if (a === null) a = 0;
+  const b = readInt($('olB'));
+  const r = olCompute(a, b, olMode);
+  $('olCall').textContent = r.call; $('olOut').textContent = r.out; $('olWhy').textContent = r.why;
+  $('olJ').className = olMode === 'j' ? 'on' : ''; $('olT').className = olMode === 't' ? 'on' : '';
+}
+$('olA').addEventListener('input', renderOl); $('olB').addEventListener('input', renderOl);
+$('olJ').addEventListener('click', () => { olMode = 'j'; renderOl(); });
+$('olT').addEventListener('click', () => { olMode = 't'; renderOl(); });
+renderOl();
+
+// ---- operator explorer (results generated by running Python) ----
+const OPD = {"00+":["7",null,"fwd"],"00-":["3",null,"fwd"],"00*":["10",null,"fwd"],"00/":["2.5",null,"fwd"],"00==":["False",null,"fwd"],"01+":[null,"TypeError: unsupported operand type(s) for +: 'int' and 'str'","none"],"01-":[null,"TypeError: unsupported operand type(s) for -: 'int' and 'str'","none"],"01*":["yoyoyoyoyo",null,"rev"],"01/":[null,"TypeError: unsupported operand type(s) for /: 'int' and 'str'","none"],"01==":["False",null,"identity"],"02+":[null,"TypeError: unsupported operand type(s) for +: 'int' and 'list'","none"],"02-":[null,"TypeError: unsupported operand type(s) for -: 'int' and 'list'","none"],"02*":["[3, 3, 3, 3, 3]",null,"rev"],"02/":[null,"TypeError: unsupported operand type(s) for /: 'int' and 'list'","none"],"02==":["False",null,"identity"],"03+":[null,"TypeError: unsupported operand type(s) for +: 'int' and 'Fraction'","none"],"03-":[null,"TypeError: unsupported operand type(s) for -: 'int' and 'Fraction'","none"],"03*":[null,"TypeError: unsupported operand type(s) for *: 'int' and 'Fraction'","none"],"03/":[null,"TypeError: unsupported operand type(s) for /: 'int' and 'Fraction'","none"],"03==":["False",null,"identity"],"10+":[null,"TypeError: can only concatenate str (not \"int\") to str","fwd-raise"],"10-":[null,"TypeError: unsupported operand type(s) for -: 'str' and 'int'","none"],"10*":["hihi",null,"fwd"],"10/":[null,"TypeError: unsupported operand type(s) for /: 'str' and 'int'","none"],"10==":["False",null,"identity"],"11+":["hiyo",null,"fwd"],"11-":[null,"TypeError: unsupported operand type(s) for -: 'str' and 'str'","none"],"11*":[null,"TypeError: can't multiply sequence by non-int of type 'str'","fwd-raise"],"11/":[null,"TypeError: unsupported operand type(s) for /: 'str' and 'str'","none"],"11==":["False",null,"fwd"],"12+":[null,"TypeError: can only concatenate str (not \"list\") to str","fwd-raise"],"12-":[null,"TypeError: unsupported operand type(s) for -: 'str' and 'list'","none"],"12*":[null,"TypeError: can't multiply sequence by non-int of type 'list'","fwd-raise"],"12/":[null,"TypeError: unsupported operand type(s) for /: 'str' and 'list'","none"],"12==":["False",null,"identity"],"13+":[null,"TypeError: can only concatenate str (not \"Fraction\") to str","fwd-raise"],"13-":[null,"TypeError: unsupported operand type(s) for -: 'str' and 'Fraction'","none"],"13*":[null,"TypeError: can't multiply sequence by non-int of type 'Fraction'","fwd-raise"],"13/":[null,"TypeError: unsupported operand type(s) for /: 'str' and 'Fraction'","none"],"13==":["False",null,"identity"],"20+":[null,"TypeError: can only concatenate list (not \"int\") to list","fwd-raise"],"20-":[null,"TypeError: unsupported operand type(s) for -: 'list' and 'int'","none"],"20*":["[1, 2, 1, 2]",null,"fwd"],"20/":[null,"TypeError: unsupported operand type(s) for /: 'list' and 'int'","none"],"20==":["False",null,"identity"],"21+":[null,"TypeError: can only concatenate list (not \"str\") to list","fwd-raise"],"21-":[null,"TypeError: unsupported operand type(s) for -: 'list' and 'str'","none"],"21*":[null,"TypeError: can't multiply sequence by non-int of type 'str'","fwd-raise"],"21/":[null,"TypeError: unsupported operand type(s) for /: 'list' and 'str'","none"],"21==":["False",null,"identity"],"22+":["[1, 2, 3]",null,"fwd"],"22-":[null,"TypeError: unsupported operand type(s) for -: 'list' and 'list'","none"],"22*":[null,"TypeError: can't multiply sequence by non-int of type 'list'","fwd-raise"],"22/":[null,"TypeError: unsupported operand type(s) for /: 'list' and 'list'","none"],"22==":["False",null,"fwd"],"23+":[null,"TypeError: can only concatenate list (not \"Fraction\") to list","fwd-raise"],"23-":[null,"TypeError: unsupported operand type(s) for -: 'list' and 'Fraction'","none"],"23*":[null,"TypeError: can't multiply sequence by non-int of type 'Fraction'","fwd-raise"],"23/":[null,"TypeError: unsupported operand type(s) for /: 'list' and 'Fraction'","none"],"23==":["False",null,"identity"],"30+":[null,"AttributeError: 'int' object has no attribute 'den'","fwd-raise"],"30-":[null,"AttributeError: 'int' object has no attribute 'den'","fwd-raise"],"30*":[null,"AttributeError: 'int' object has no attribute 'num'","fwd-raise"],"30/":[null,"AttributeError: 'int' object has no attribute 'den'","fwd-raise"],"30==":["False",null,"identity"],"31+":[null,"AttributeError: 'str' object has no attribute 'den'","fwd-raise"],"31-":[null,"AttributeError: 'str' object has no attribute 'den'","fwd-raise"],"31*":[null,"AttributeError: 'str' object has no attribute 'num'","fwd-raise"],"31/":[null,"AttributeError: 'str' object has no attribute 'den'","fwd-raise"],"31==":["False",null,"identity"],"32+":[null,"AttributeError: 'list' object has no attribute 'den'","fwd-raise"],"32-":[null,"AttributeError: 'list' object has no attribute 'den'","fwd-raise"],"32*":[null,"AttributeError: 'list' object has no attribute 'num'","fwd-raise"],"32/":[null,"AttributeError: 'list' object has no attribute 'den'","fwd-raise"],"32==":["False",null,"identity"],"33+":["38/24",null,"fwd"],"33-":["-2/24",null,"fwd"],"33*":["15/24",null,"fwd"],"33/":["18/20",null,"fwd"],"33==":["False",null,"identity"]};
+const LV = ['5', "'hi'", '[1, 2]', 'Fraction(3, 4)'], RV = ['2', "'yo'", '[3]', 'Fraction(5, 6)'];
+const TY = ['int', 'str', 'list', 'Fraction'];
+const OPS = [['+', 'add'], ['-', 'sub'], ['*', 'mul'], ['/', 'truediv'], ['==', 'eq']];
+let oL = 3, oO = 0, oR = 3;
+function btnRow(host, labels, cur, set) {
+  host.innerHTML = '';
+  labels.forEach((l, i) => { const b = document.createElement('button'); b.textContent = l; b.className = i === cur ? 'on mono' : 'mono'; b.addEventListener('click', () => { set(i); renderOp(); }); host.appendChild(b); });
+}
+function renderOp() {
+  btnRow($('opL'), LV, oL, i => oL = i); btnRow($('opO'), OPS.map(o => o[0]), oO, i => oO = i); btnRow($('opR'), RV, oR, i => oR = i);
+  const [sym, nm] = OPS[oO], d = OPD['' + oL + oR + sym];
+  const tl = TY[oL], tr = TY[oR], rn = nm === 'eq' ? '__eq__' : '__r' + nm + '__';
+  $('opCall').textContent = 'print(' + LV[oL] + ' ' + sym + ' ' + RV[oR] + ')';
+  $('opOut').textContent = d[1] ? 'Traceback (most recent call last):\n  ...\n' + d[1] : d[0];
+  const fw = tl + '.__' + nm + '__';
+  const why = {
+    fwd: 'Python calls <b>x.__' + nm + '__(y)</b>, and ' + fw + ' handles it.' + (tl === 'Fraction' ? ' That\'s your own code running.' : ''),
+    'fwd-raise': 'Python calls <b>x.__' + nm + '__(y)</b>; ' + fw + ' runs but fails on this kind of y.',
+    rev: fw + ' returns NotImplemented, so Python tries the reflected <b>y.' + rn + '(x)</b>, and ' + tr + ' handles it.',
+    'rev-raise': 'The reflected ' + tr + '.' + rn + ' was tried and raised.',
+    none: 'Neither ' + fw + ' nor ' + tr + '.' + rn + ' can handle these types, so Python raises TypeError.',
+    identity: 'No __eq__ understands this pair, so == falls back to identity: are x and y the same object? They aren\'t.'
+  }[d[2]];
+  $('opWhy').innerHTML = why;
+}
+renderOp();
+
+// ---- project URL demo ----
+let pChoice = 3, pFix = true;
+const KNOWN = { '12222': 'Howrah → Pune (Duronto Express)', '12024': 'Patna → Howrah (Jan Shatabdi Express)' };
+function renderP() {
+  ['pc1', 'pc2', 'pc3'].forEach((id, i) => $(id).className = pChoice === i + 1 ? 'on' : '');
+  $('pFix').className = pFix ? 'on' : ''; $('pFix').textContent = pFix ? 'URL uses .format(train_no)' : 'URL has 12222 hardcoded';
+  const t = $('pTrain').value.trim() || '(empty)';
+  const lines = ['How would you like to proceed?', '1. Enter 1 to check live train status', '2. Enter 2 to check PNR', '3. Enter 3 to check train schedule', String(pChoice)];
+  if (pChoice === 1) lines.push('live train status');
+  else if (pChoice === 2) lines.push('PNR');
+  else {
+    const used = pFix ? t : '12222';
+    lines.push('Enter the train number: ' + t, '', '# requests.get("https://indianrailapi.com/api/v2/TrainSchedule/apikey/YOUR_API_KEY/TrainNumber/' + used + '/")');
+    lines.push('# → the API answers for train ' + used + (KNOWN[used] ? ': ' + KNOWN[used] : '') + (used !== t ? '   ✗ not the train you asked for' : '   ✓'));
+  }
+  $('pOut').textContent = lines.join('\n');
+}
+['pc1', 'pc2', 'pc3'].forEach((id, i) => $(id).addEventListener('click', () => { pChoice = i + 1; renderP(); }));
+$('pFix').addEventListener('click', () => { pFix = !pFix; renderP(); });
+$('pTrain').addEventListener('input', renderP);
+renderP();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Class Relationships: Aggregation and Inheritance</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 8 of 10 · OOP in Python · CampusX</div>
+<h1>Class Relationships: Aggregation and Inheritance</h1>
+<p class="lede">Real programs are many classes working together, and two relationships cover most of it. Aggregation is <b>has-a</b>: a Customer has an Address and hands all address work to it. Inheritance is <b>is-a</b>: a Student is a User, so it gets the User's methods, data and constructor without rewriting them.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=9065" target="_blank" rel="noopener">this part of the video on YouTube</a> (2:31:05–3:01:00 of a 4-hour video). Previous: <a href="07-collections-static.html">collections of objects and static members</a> · Next: <a href="09-polymorphism-super-mro.html">polymorphism, super() and MRO</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · From one class to many <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=9065" target="_blank" rel="noopener">▶ 2:31:05</a></h2>
+<p>Every program so far had a single class doing all the work: <code class="i">Atm</code> in the ATM project, <code class="i">Fraction</code> in the fraction one. A real application is different. Build an e-commerce site and you immediately have <code class="i">Product</code>, <code class="i">Customer</code>, <code class="i">Address</code>, <code class="i">Review</code> and many more, and those classes <b>relate</b> to one another.</p>
+<p>There are a few kinds of class relationship, but two major ones show up everywhere:</p>
+<table>
+<tr><th>Relationship</th><th>Also called</th><th>Read it as</th><th>Example</th><th>In a class diagram</th></tr>
+<tr><td><b>Aggregation</b></td><td>has-a</td><td>"A <i>Customer</i> has an <i>Address</i>"</td><td>Customer ◇— Address</td><td>line with a hollow <b>diamond</b></td></tr>
+<tr><td><b>Inheritance</b></td><td>is-a</td><td>"A <i>SmartPhone</i> is a <i>Product</i>"</td><td>SmartPhone —▷ Product</td><td>line with a hollow <b>triangle</b></td></tr>
+</table>
+<div class="callout">Quick test: say the sentence out loud. If "X <b>is a</b> Y" sounds right, it's inheritance; everything a Product can do, a SmartPhone can do too. If "X <b>has a</b> Y" sounds right, it's aggregation; one object holds another.</div>
+
+<h2>2 · Aggregation: a Customer has an Address <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=9224" target="_blank" rel="noopener">▶ 2:33:44</a></h2>
+<p>The class diagram has two boxes. <code class="i">Customer</code> holds a name, a gender and an address, plus methods such as <code class="i">edit_profile</code>. <code class="i">Address</code> holds city, pincode and state. The line between them gets a <b>diamond on the Customer's side</b>, the side of the class that owns the other. Whenever you see that diamond, read "Customer has an Address".</p>
+<svg viewBox="0 0 520 150" style="width:100%;max-width:520px;display:block;margin:10px auto" role="img" aria-label="Class diagram: Customer box joined to Address box by a line with a hollow diamond at the Customer end">
+<g style="font:13px ui-monospace,Menlo,monospace">
+<rect x="10" y="10" width="190" height="128" rx="6" style="fill:var(--card);stroke:var(--ink)"/><line x1="10" y1="36" x2="200" y2="36" style="stroke:var(--ink)"/><line x1="10" y1="100" x2="200" y2="100" style="stroke:var(--ink)"/>
+<text x="105" y="28" text-anchor="middle" style="fill:var(--ink);font-weight:700">Customer</text>
+<text x="20" y="54" style="fill:var(--ink)">+ name</text><text x="20" y="72" style="fill:var(--ink)">+ gender</text><text x="20" y="90" style="fill:var(--ink)">+ address</text>
+<text x="20" y="122" style="fill:var(--ink)">+ edit_profile()</text>
+<rect x="320" y="10" width="190" height="128" rx="6" style="fill:var(--card);stroke:var(--ink)"/><line x1="320" y1="36" x2="510" y2="36" style="stroke:var(--ink)"/><line x1="320" y1="100" x2="510" y2="100" style="stroke:var(--ink)"/>
+<text x="415" y="28" text-anchor="middle" style="fill:var(--ink);font-weight:700">Address</text>
+<text x="330" y="54" style="fill:var(--ink)">+ city</text><text x="330" y="72" style="fill:var(--ink)">+ pincode</text><text x="330" y="90" style="fill:var(--ink)">+ state</text>
+<text x="330" y="122" style="fill:var(--ink)">+ change_address()</text>
+<line x1="226" y1="74" x2="320" y2="74" style="stroke:var(--s1);stroke-width:2"/>
+<polygon points="200,74 213,66 226,74 213,82" style="fill:var(--card);stroke:var(--s1);stroke-width:2"/>
+<text x="273" y="64" text-anchor="middle" style="fill:var(--muted);font-size:12px">has-a</text>
+</g></svg>
+<p>In code, aggregation is nothing more exotic than passing one object into another object's constructor, exactly as you would pass a string or a number. Build the <code class="i">Address</code> first, then hand the whole object to the <code class="i">Customer</code>:</p>
+<pre class="code"><span class="kw">class</span> Customer:
+
+    <span class="kw">def</span> __init__(self, name, gender, address):
+        self.name = name
+        self.gender = gender
+        self.address = address
+
+    <span class="kw">def</span> edit_profile(self, new_name, new_city, new_pin, new_state):
+        self.name = new_name
+        self.address.change_address(new_city, new_pin, new_state)
+
+<span class="kw">class</span> Address:
+
+    <span class="kw">def</span> __init__(self, city, pincode, state):
+        self.city = city
+        self.pincode = pincode
+        self.state = state
+
+    <span class="kw">def</span> change_address(self, new_city, new_pin, new_state):
+        self.city = new_city
+        self.pincode = new_pin
+        self.state = new_state
+
+add = Address(<span class="st">'Kolkata'</span>, 700156, <span class="st">'WB'</span>)
+cust = Customer(<span class="st">'Nitish'</span>, <span class="st">'Male'</span>, add)
+
+print(cust.address.city)
+print(cust.address.pincode)
+
+cust.edit_profile(<span class="st">'Ankit'</span>, <span class="st">'Gurgaon'</span>, 122011, <span class="st">'Haryana'</span>)
+print(cust.name, cust.address.city, cust.address.pincode, cust.address.state)</pre>
+<pre class="out">Kolkata
+700156
+Ankit Gurgaon 122011 Haryana</pre>
+<p>Two things he points out while running it:</p>
+<ul>
+<li><code class="i">print(cust.address)</code> on its own prints the whole Address object (something like <code class="i">&lt;__main__.Address object at 0x…&gt;</code>), because <code class="i">cust.address</code> <b>is</b> an object. To get the city you chain one more dot: <code class="i">cust.address.city</code>.</li>
+<li>Read <code class="i">cust.address.pincode</code> left to right: the customer object → its address attribute (an Address object) → that object's pincode.</li>
+</ul>
+
+<h2>3 · The point of aggregation: delegation <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=9601" target="_blank" rel="noopener">▶ 2:40:01</a></h2>
+<p>Now add an <b>Edit profile</b> feature. The customer may change their name and move house: a new city, pincode and state (he drops gender from the edit to keep it short). The name belongs to Customer, so Customer sets it. The address belongs to Address, so Customer doesn't touch city or pincode itself. It <b>calls Address's method</b>:</p>
+<pre class="code"><span class="kw">def</span> edit_profile(self, new_name, new_city, new_pin, new_state):
+    self.name = new_name
+    self.address.change_address(new_city, new_pin, new_state)</pre>
+<p>That's the last line of the output above: after <code class="i">cust.edit_profile('Ankit', 'Gurgaon', 122011, 'Haryana')</code> the name is Ankit and the address is in Gurgaon. In his words, the Customer class isn't doing the work itself; it's getting the Address class to do it. Anything address-related, now or later (say, adding a second address), goes through Address's methods. <b>That</b> relationship is aggregation.</p>
+<div class="beyond"><b>Going beyond the video:</b> UML separates a hollow diamond (aggregation: the part can live on its own, like an Address that exists before any Customer) from a filled diamond (composition: the part is created and destroyed with its owner). Also remember page 6: <code class="i">cust.address</code> is a reference. If two customers are given the <i>same</i> Address object, one <code class="i">change_address</code> moves both of them.</div>
+
+<h2>4 · Inheritance: the idea <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=9807" target="_blank" rel="noopener">▶ 2:43:27</a></h2>
+<p>Inheritance is a real-world concept before it's a programming one. Socially and legally, your father's property passes to you. Biologically, many of your facial features come from your parents, because genes carry information from one generation down to the next. OOP was designed to model real-world problems, so it borrowed this idea, and inheritance became one of its most important concepts.</p>
+<h3 style="font-size:17px;margin:18px 0 6px">What's the benefit? A Udemy-style site <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=9900" target="_blank" rel="noopener">▶ 2:45:00</a></h3>
+<p>Suppose you're building a course website like Udemy. It has two kinds of user: a <b>Student</b> who takes courses and an <b>Instructor</b> who creates them. List what each can do:</p>
+<table>
+<tr><th>Student can…</th><th>Instructor can…</th></tr>
+<tr><td><b>login</b>, <b>register</b>, enroll in a course, review a course, …</td><td><b>login</b>, <b>register</b>, create a course, answer questions, …</td></tr>
+</table>
+<p>A first plan: one class for each, with all of its data and methods. But login and register are <b>the same</b> in both: a student and an instructor log in to the same database in the same way. Writing them twice breaks a basic rule of good code, <b>DRY: Don't Repeat Yourself</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10043" target="_blank" rel="noopener">▶ 2:47:23</a>.</p>
+<p>With inheritance you plan it differently. Make a third class, <code class="i">User</code>, holding only login and register, and let <code class="i">Student</code> and <code class="i">Instructor</code> both inherit from it. Each keeps only its own specific methods; when a student logs in, it uses User's login.</p>
+<div class="callout"><b>Interview question:</b> what's the biggest benefit of inheritance? <b>Code reusability.</b> On a small example it may look like a minor win, but on a real, large application it saves a lot of time and keeps the code concise and optimised. In his words, you end up thanking yourself for having used it.</div>
+
+<h2>5 · The rules of inheritance <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10165" target="_blank" rel="noopener">▶ 2:49:25</a></h2>
+<p><b>It only flows upward.</b> Student can use User's login and register, but User can't use Student's enroll. Same as the analogy: your father's money is yours, but the money <i>you</i> earn isn't your father's; it goes to your children. (He jokes: don't say this to your father with too much confidence.)</p>
+<p><b>What does a child class inherit?</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10211" target="_blank" rel="noopener">▶ 2:50:11</a> When a child class inherits a parent class, it gets three things:</p>
+<ol class="steps">
+<li>all the <b>data members</b> (attributes),</li>
+<li>all the <b>member functions</b> (methods),</li>
+<li>the <b>constructor</b>.</li>
+</ol>
+<p>And one exception to always remember: <b>private members are not inherited.</b> Anything with a double underscore in the parent can't be reached from the child (section 9).</p>
+
+<h2>6 · Inheritance in code <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10292" target="_blank" rel="noopener">▶ 2:51:32</a></h2>
+<p>A stripped-down version of the Udemy example. There's no real logic inside the methods (we aren't building the app, just watching inheritance work), so each one prints its name. The only new syntax is the parent's name in brackets after the child's: <code class="i">class Student(User):</code> tells Python that <b>Student is a subclass of User</b>, so User is the parent and Student the child.</p>
+<pre class="code"><span class="kw">class</span> User:
+
+    <span class="kw">def</span> login(self):
+        print(<span class="st">'login'</span>)
+
+    <span class="kw">def</span> register(self):
+        print(<span class="st">'register'</span>)
+
+<span class="kw">class</span> Student(User):
+
+    <span class="kw">def</span> enroll(self):
+        print(<span class="st">'enroll'</span>)
+
+    <span class="kw">def</span> review(self):
+        print(<span class="st">'review'</span>)
+
+stu1 = Student()
+stu1.enroll()
+stu1.review()
+stu1.login()
+stu1.register()
+
+u = User()
+u.enroll()</pre>
+<pre class="out">enroll
+review
+login
+register
+Traceback (most recent call last):
+  ...
+AttributeError: 'User' object has no attribute 'enroll'</pre>
+<p>The student object called all four methods: two of its own, two from its parent. The last line shows the reverse is impossible: the User class has no method called <code class="i">enroll</code>, so a User object can't call it. Two lessons: how to make a class inherit, and that a parent can't reach the child's members.</p>
+
+<h2>7 · Inheritance in a class diagram <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10526" target="_blank" rel="noopener">▶ 2:55:26</a></h2>
+<p>You've already seen class diagrams with <code class="i">+</code> and <code class="i">-</code> for public and private members, and the diamond for aggregation. For inheritance, draw a line from the child to the parent ending in a <b>hollow triangle at the parent</b>: User at the top with its methods, Student below with its own. Whenever you see that triangle, read "Student inherits from User".</p>
+<p><b>Try it:</b> decide whether each pair is <i>has-a</i> or <i>is-a</i>. The diagram then shows the correct notation (diamond at the owner, or triangle at the parent).</p>
+<div class="card">
+  <div class="row"><span class="small muted">Pair <b id="qN"></b>:</span> <b id="qText" style="font-size:17px"></b></div>
+  <div class="row"><button id="bHas">has-a (aggregation)</button><button id="bIs">is-a (inheritance)</button><button id="bNext">next pair →</button><span class="small" id="score"></span></div>
+  <canvas id="dg" height="230" aria-label="Class diagram of the current pair"></canvas>
+  <p class="small" id="qFb" style="min-height:2.6em"></p>
+</div>
+
+<h2>8 · The constructor is inherited too <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10627" target="_blank" rel="noopener">▶ 2:57:07</a></h2>
+<p>New example, which carries on into the next page: a <code class="i">Phone</code> class and a <code class="i">SmartPhone</code> class that inherits from it. <code class="i">SmartPhone</code> has <b>no constructor</b> of its own; <code class="i">Phone</code> has one that takes price, brand and camera.</p>
+<pre class="code"><span class="kw">class</span> Phone:
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        print(<span class="st">"Inside phone constructor"</span>)
+        self.price = price
+        self.brand = brand
+        self.camera = camera
+
+<span class="kw">class</span> SmartPhone(Phone):
+    <span class="kw">pass</span>
+
+s = SmartPhone(20000, <span class="st">"Apple"</span>, 13)
+print(s.brand)</pre>
+<pre class="out">Inside phone constructor
+Apple</pre>
+<p>What Python does on <code class="i">SmartPhone(20000, "Apple", 13)</code>: it goes into SmartPhone looking for a constructor. There isn't one. It notices that SmartPhone inherits from Phone, goes there, finds Phone's constructor and gives it the three values. So "Inside phone constructor" prints and <code class="i">s.brand</code> is Apple.</p>
+<div class="callout"><b>Rule:</b> if class B inherits class A and B has no constructor, creating a B object calls A's constructor.</div>
+
+<h2>9 · Private members are not inherited <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10783" target="_blank" rel="noopener">▶ 2:59:43</a></h2>
+<p>Same code, one change: make brand private with a double underscore. Can the child-class object still reach it? By the rule above it shouldn't, since a child object can access only the parent's <b>public</b> attributes:</p>
+<pre class="code"><span class="kw">class</span> Phone:
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        print(<span class="st">"Inside phone constructor"</span>)
+        self.price = price
+        self.__brand = brand
+        self.camera = camera
+
+<span class="kw">class</span> SmartPhone(Phone):
+    <span class="kw">pass</span>
+
+s = SmartPhone(20000, <span class="st">"Apple"</span>, 13)
+print(s.__brand)</pre>
+<pre class="out">Inside phone constructor
+Traceback (most recent call last):
+  ...
+AttributeError: 'SmartPhone' object has no attribute '__brand'</pre>
+<p>The constructor still ran (it was inherited), but the private attribute isn't reachable from the child object. A child class's object can't access the parent's private members.</p>
+<div class="beyond"><b>Going beyond the video:</b> "not inherited" really means "hidden by name mangling" (page 5). The value <i>is</i> stored on the object, as <code class="i">_Phone__brand</code>, so <code class="i">s._Phone__brand</code> gives Apple. A trap that catches people: inside a <code class="i">SmartPhone</code> method, <code class="i">self.__brand</code> is mangled to <code class="i">self._SmartPhone__brand</code>, which doesn't exist. Use a public getter on the parent instead, as page 9's examples do.</div>
+<p><b>Lookup explorer.</b> Pick an object and a member to see where Python finds it: on the object's own class, up the chain in a parent, or nowhere (an error). It uses the Udemy hierarchy, with Instructor added as a second child of User.</p>
+<div class="card">
+  <div class="row"><span class="small muted">object:</span> <span id="objBtns" class="row" style="margin:0"></span></div>
+  <div class="row"><span class="small muted">call:</span> <span id="memBtns" class="row" style="margin:0"></span></div>
+  <div class="mono" id="lkCode" style="font-size:14px;margin:6px 0"></div>
+  <ol class="small" id="lkPath" style="margin:6px 0;padding-left:22px"></ol>
+  <p class="small" id="lkRes"></p>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li>Big programs have many classes; the two major relationships between them are <b>aggregation</b> (has-a) and <b>inheritance</b> (is-a).</li>
+<li>Aggregation means one object holding another (<code class="i">Customer(…, address)</code>) and <b>delegating</b> to it (<code class="i">self.address.change_address(…)</code>). Diagram: diamond at the owner.</li>
+<li>Inheritance (<code class="i">class Student(User):</code>) exists for <b>code reuse</b> (DRY). It flows upward only: a child can use the parent's members, never the reverse. Diagram: triangle at the parent.</li>
+<li>A child inherits the parent's data members, methods and constructor. If the child has no <code class="i">__init__</code>, the parent's runs.</li>
+<li>Private (<code class="i">__x</code>) members of the parent can't be accessed through the child.</li>
+</ol>
+</main>
+<script>
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const $ = id => document.getElementById(id);
+
+// ---- has-a / is-a sorter ----
+const PAIRS = [
+  { a: 'Customer', b: 'Address', rel: 'has', whole: 'Customer', am: ['name', 'address'], bm: ['city', 'pincode'], why: 'A Customer <b>has an</b> Address (his example). The diamond sits on Customer, the owner; Customer delegates address changes to Address.' },
+  { a: 'SmartPhone', b: 'Product', rel: 'is', parent: 'Product', am: ['os', 'ram'], bm: ['price', 'review()'], why: 'A SmartPhone <b>is a</b> Product (his example), so it gets everything a Product has. Triangle points at the parent, Product.' },
+  { a: 'Student', b: 'User', rel: 'is', parent: 'User', am: ['enroll()', 'review()'], bm: ['login()', 'register()'], why: 'A Student <b>is a</b> User and reuses login() and register() instead of rewriting them.' },
+  { a: 'Car', b: 'Engine', rel: 'has', whole: 'Car', am: ['model', 'engine'], bm: ['hp', 'start()'], why: 'A Car <b>has an</b> Engine; an Engine is not a kind of Car. Diamond at Car.' },
+  { a: 'Instructor', b: 'User', rel: 'is', parent: 'User', am: ['create_course()'], bm: ['login()', 'register()'], why: 'An Instructor <b>is a</b> User too: User now has two children, which page 9 calls hierarchical inheritance.' },
+  { a: 'Library', b: 'Book', rel: 'has', whole: 'Library', am: ['name', 'books'], bm: ['title', 'author'], why: 'A Library <b>has</b> Books (a list of Book objects, like page 7\'s collections). A Book is not a Library.' }
+];
+let qi = 0, answered = null, right = 0, tried = 0;
+function box(ctx, x, y, w, title, mem, hi) {
+  const lh = 17, h = 26 + mem.length * lh + 8;
+  ctx.fillStyle = cssv('--card'); ctx.strokeStyle = hi ? cssv('--s1') : cssv('--ink'); ctx.lineWidth = hi ? 2 : 1;
+  ctx.fillRect(x, y, w, h); ctx.strokeRect(x, y, w, h);
+  ctx.beginPath(); ctx.moveTo(x, y + 24); ctx.lineTo(x + w, y + 24); ctx.stroke();
+  ctx.fillStyle = cssv('--ink'); ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'center'; ctx.fillText(title, x + w / 2, y + 17);
+  ctx.font = '12px ui-monospace,Menlo,monospace'; ctx.textAlign = 'left';
+  mem.forEach((m, i) => ctx.fillText('+ ' + m, x + 8, y + 24 + lh * (i + 1)));
+  return h;
+}
+function drawDg() {
+  const cv = $('dg'), W = cv.clientWidth || 600, H = 230, dpr = window.devicePixelRatio || 1;
+  cv.width = W * dpr; cv.height = H * dpr; const ctx = cv.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  const p = PAIRS[qi], bw = Math.min(170, (W - 70) / 2);
+  const show = answered !== null;
+  const blue = cssv('--s1');
+  if (!show || p.rel === 'has') {
+    // side by side: a left, b right
+    const y = 50, xa = 10, xb = W - 10 - bw;
+    const ha = box(ctx, xa, y, bw, p.a, p.am, show && p.whole === p.a);
+    const hb = box(ctx, xb, y, bw, p.b, p.bm, false);
+    const my = y + 40;
+    ctx.strokeStyle = show ? blue : cssv('--faint'); ctx.lineWidth = 2; ctx.setLineDash(show ? [] : [5, 5]);
+    ctx.beginPath(); ctx.moveTo(xa + bw + (show ? 26 : 0), my); ctx.lineTo(xb, my); ctx.stroke(); ctx.setLineDash([]);
+    ctx.textAlign = 'center'; ctx.font = '13px system-ui';
+    if (show) {
+      const x0 = xa + bw;
+      ctx.beginPath(); ctx.moveTo(x0, my); ctx.lineTo(x0 + 13, my - 8); ctx.lineTo(x0 + 26, my); ctx.lineTo(x0 + 13, my + 8); ctx.closePath();
+      ctx.fillStyle = cssv('--card'); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = cssv('--muted'); ctx.fillText('has-a', (x0 + 26 + xb) / 2, my - 8);
+    } else { ctx.fillStyle = cssv('--muted'); ctx.fillText('?', (xa + bw + xb) / 2, my - 8); }
+    ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui';
+    ctx.fillText(show ? 'diamond at the owner (' + p.whole + ')' : 'how are these related?', W / 2, 26);
+  } else {
+    // stacked: parent top, child bottom
+    const parent = p.parent, child = p.a, pm = p.bm, cm = p.am, x = (W - bw) / 2;
+    const hp = box(ctx, x, 30, bw, parent, pm, true);
+    const cy = 30 + hp + 60;
+    box(ctx, x, cy, bw, child, cm, false);
+    const ax = W / 2, top = 30 + hp;
+    ctx.strokeStyle = blue; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ax, cy); ctx.lineTo(ax, top + 16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ax, top); ctx.lineTo(ax - 10, top + 16); ctx.lineTo(ax + 10, top + 16); ctx.closePath();
+    ctx.fillStyle = cssv('--card'); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = cssv('--muted'); ctx.font = '12px system-ui'; ctx.textAlign = 'left';
+    ctx.fillText('is-a: triangle at the parent', Math.min(ax + 16, W - 150), top + 36);
+  }
+}
+function renderQ() {
+  const p = PAIRS[qi];
+  $('qN').textContent = (qi + 1) + ' / ' + PAIRS.length;
+  $('qText').textContent = p.a + '  &  ' + p.b;
+  $('bHas').className = answered === 'has' ? 'on' : ''; $('bIs').className = answered === 'is' ? 'on' : '';
+  $('score').textContent = tried ? right + ' of ' + tried + ' right' : '';
+  if (answered === null) $('qFb').innerHTML = 'Say it out loud: "' + p.a + ' is a ' + p.b + '" or "' + p.a + ' has a ' + p.b + '"?';
+  else $('qFb').innerHTML = (answered === p.rel ? '<b style="color:var(--s3)">Right.</b> ' : '<b style="color:var(--s2)">Not quite.</b> ') + p.why;
+  drawDg();
+}
+function answer(r) { if (answered !== null) return; answered = r; tried++; if (r === PAIRS[qi].rel) right++; renderQ(); }
+$('bHas').addEventListener('click', () => answer('has'));
+$('bIs').addEventListener('click', () => answer('is'));
+$('bNext').addEventListener('click', () => { qi = (qi + 1) % PAIRS.length; answered = null; renderQ(); });
+
+// ---- lookup explorer ----
+const CLS = {
+  User: { parent: null, own: ['login', 'register'] },
+  Student: { parent: 'User', own: ['enroll', 'review'] },
+  Instructor: { parent: 'User', own: ['create_course', 'answer'] }
+};
+const OBJS = [['u', 'User'], ['stu1', 'Student'], ['ins1', 'Instructor']];
+const MEMS = ['login', 'register', 'enroll', 'review', 'create_course', 'answer'];
+let selObj = 1, selMem = 0;
+function mkBtns(host, labels, get, set) {
+  host.innerHTML = '';
+  labels.forEach((l, i) => { const b = document.createElement('button'); b.textContent = l; b.className = get() === i ? 'on' : ''; b.addEventListener('click', () => { set(i); renderLk(); }); host.appendChild(b); });
+}
+function renderLk() {
+  mkBtns($('objBtns'), OBJS.map(o => o[0] + ' = ' + o[1] + '()'), () => selObj, i => selObj = i);
+  mkBtns($('memBtns'), MEMS.map(m => m + '()'), () => selMem, i => selMem = i);
+  const [v, c] = OBJS[selObj], m = MEMS[selMem];
+  $('lkCode').textContent = v + '.' + m + '()';
+  const steps = []; let k = c, found = null;
+  while (k) {
+    const has = CLS[k].own.indexOf(m) >= 0;
+    steps.push('Look in <b>' + k + '</b>' + (k === c ? ' (the object\'s own class)' : ' (parent)') + ': ' + (has ? '<b style="color:var(--s3)">found</b>' : 'not here') + (has || !CLS[k].parent ? '' : ' → go up to ' + CLS[k].parent));
+    if (has) { found = k; break; }
+    k = CLS[k].parent;
+  }
+  if (!found) steps.push('No parent left to search.');
+  $('lkPath').innerHTML = steps.map(s => '<li>' + s + '</li>').join('');
+  $('lkRes').innerHTML = found ? 'Output: <code class="i">' + m + '</code>' + (found !== c ? ' (method of ' + found + ', inherited by ' + c + ')' : '')
+    : '<span style="color:var(--s2)">AttributeError: \'' + c + '\' object has no attribute \'' + m + '\'</span>' + (CLS[c].parent === null ? ', because a parent can\'t use its children\'s methods.' : ', because siblings don\'t share: ' + c + ' only gets what is in ' + CLS[c].parent + '.');
+}
+renderQ(); renderLk();
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawDg, 120); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawDg);
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

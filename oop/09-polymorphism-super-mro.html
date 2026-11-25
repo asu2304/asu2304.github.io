@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Method Overriding, super() and the MRO</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 9 of 10 · OOP in Python · CampusX</div>
+<h1>Method Overriding, super() and the MRO</h1>
+<p class="lede">When a child and its parent both define the same method, the child's version wins; that's method overriding, the first kind of polymorphism. <code class="i">super()</code> lets the child call the parent's method or constructor anyway, so common work stays in the parent. With multiple parents, the method resolution order (MRO) decides whose method runs.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10860" target="_blank" rel="noopener">this part of the video on YouTube</a> (3:01:00–3:35:35 of a 4-hour video). Previous: <a href="08-aggregation-inheritance.html">aggregation and inheritance</a> · Next: <a href="10-overloading-project.html">overloading and the project</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · Method overriding <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10860" target="_blank" rel="noopener">▶ 3:01:00</a></h2>
+<p>Back to Phone and SmartPhone. SmartPhone still has no constructor, but now <b>both</b> classes have a method with the same name, <code class="i">buy</code>. Creating the object runs Phone's constructor as before. Then <code class="i">s.buy()</code>: whose buy runs?</p>
+<pre class="code"><span class="kw">class</span> Phone:
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        print(<span class="st">"Inside phone constructor"</span>)
+        self.__price = price
+        self.brand = brand
+        self.camera = camera
+
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Buying a phone"</span>)
+
+<span class="kw">class</span> SmartPhone(Phone):
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Buying a smartphone"</span>)
+
+s = SmartPhone(20000, <span class="st">"Apple"</span>, 13)
+s.buy()</pre>
+<pre class="out">Inside phone constructor
+Buying a smartphone</pre>
+<p>SmartPhone's. Python starts looking in the object's own class, finds <code class="i">buy</code> there and stops. This is <b>method overriding</b>: if the parent and the child both have a method with the same name, a child object calling it always runs <b>its own</b> class's version.</p>
+<p><b>The real-world version</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10995" target="_blank" rel="noopener">▶ 3:03:15</a>. Your grandfather started a family business, your father runs it, your elder brother has joined it. You've decided to be a software developer. You had the option of the family business (the inherited method), but where the two conflict you follow your own choice. Same rule: if my parent has something and I have the same thing, I use mine.</p>
+<div class="callout">Method overriding belongs to <b>polymorphism</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=10962" target="_blank" rel="noopener">▶ 3:02:42</a>, which comes in three kinds: <b>method overriding</b> (here), <b>method overloading</b> and <b>operator overloading</b> (both on <a href="10-overloading-project.html">page 10</a>).</div>
+
+<h2>2 · Practice: what does this print? <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=11056" target="_blank" rel="noopener">▶ 3:04:16</a></h2>
+<p>He works through small inheritance puzzles of the kind that come up in tests. Predict each output before reading it.</p>
+<p><b>Puzzle 1.</b> Child has no constructor, Parent has one that stores a private number:</p>
+<pre class="code"><span class="kw">class</span> Parent:
+
+    <span class="kw">def</span> __init__(self, num):
+        self.__num = num
+
+    <span class="kw">def</span> get_num(self):
+        <span class="kw">return</span> self.__num
+
+<span class="kw">class</span> Child(Parent):
+
+    <span class="kw">def</span> show(self):
+        print(<span class="st">"This is in child class"</span>)
+
+son = Child(100)
+print(son.get_num())
+son.show()</pre>
+<pre class="out">100
+This is in child class</pre>
+<p>Child has no <code class="i">__init__</code>, so Parent's runs and stores 100 in the private <code class="i">__num</code>. <code class="i">get_num</code> is Parent's method, so it can read Parent's private attribute and returns 100. Simple.</p>
+<p><b>Puzzle 2</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=11158" target="_blank" rel="noopener">▶ 3:05:58</a>. This time <b>both</b> classes have a constructor:</p>
+<pre class="code"><span class="kw">class</span> Parent:
+
+    <span class="kw">def</span> __init__(self, num):
+        self.__num = num
+
+    <span class="kw">def</span> get_num(self):
+        <span class="kw">return</span> self.__num
+
+<span class="kw">class</span> Child(Parent):
+
+    <span class="kw">def</span> __init__(self, val, num):
+        self.__val = val
+
+    <span class="kw">def</span> get_val(self):
+        <span class="kw">return</span> self.__val
+
+son = Child(100, 10)
+print(<span class="st">"Parent: Num:"</span>, son.get_num())
+print(<span class="st">"Child: Val:"</span>, son.get_val())</pre>
+<pre class="out">Traceback (most recent call last):
+  ...
+AttributeError: 'Child' object has no attribute '_Parent__num'</pre>
+<p>Why? <code class="i">Child(100, 10)</code> runs the <b>Child's</b> constructor, which only sets <code class="i">__val</code>. Parent's constructor never runs, so the line that would create <code class="i">__num</code> never executes. When <code class="i">get_num</code> later looks for it, it simply doesn't exist (the error shows its mangled name, <code class="i">_Parent__num</code>).</p>
+<div class="callout"><b>Rule:</b> if the child has <b>no</b> constructor, the parent's constructor is called automatically. If the child has <b>its own</b> constructor, the parent's is <b>not</b> called. (Section 4 shows how to call it yourself.)</div>
+<p><b>Puzzle 3</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=11342" target="_blank" rel="noopener">▶ 3:09:02</a>. A trick question about which <code class="i">var1</code> gets printed:</p>
+<pre class="code"><span class="kw">class</span> A:
+    <span class="kw">def</span> __init__(self):
+        self.var1 = 100
+
+    <span class="kw">def</span> display1(self, var1):
+        print(<span class="st">"class A :"</span>, self.var1)
+
+<span class="kw">class</span> B(A):
+    <span class="kw">def</span> display2(self, var1):
+        print(<span class="st">"class B :"</span>, self.var1)
+
+obj = B()
+obj.display1(200)</pre>
+<pre class="out">class A : 100</pre>
+<p>The 200 goes into the <i>parameter</i> <code class="i">var1</code>, but the method prints <code class="i">self.var1</code>, the attribute the inherited constructor set to 100. Read carefully: a parameter and an attribute with the same name are different variables.</p>
+
+<h2>3 · super(): calling the parent's version <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=11420" target="_blank" rel="noopener">▶ 3:10:20</a></h2>
+<p>Overriding hides the parent's method. But what if the child wants to <b>add to</b> it rather than replace it? Use the <code class="i">super</code> keyword: from inside a child class, <code class="i">super()</code> lets you invoke the <b>parent's methods and the parent's constructor</b>.</p>
+<pre class="code"><span class="kw">class</span> Phone:
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        print(<span class="st">"Inside phone constructor"</span>)
+        self.__price = price
+        self.brand = brand
+        self.camera = camera
+
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Buying a phone"</span>)
+
+<span class="kw">class</span> SmartPhone(Phone):
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Buying a smartphone"</span>)
+        super().buy()
+
+s = SmartPhone(20000, <span class="st">"Apple"</span>, 13)
+s.buy()</pre>
+<pre class="out">Inside phone constructor
+Buying a smartphone
+Buying a phone</pre>
+<p>Trace it. Creating the object runs Phone's constructor. <code class="i">s.buy()</code> goes to SmartPhone's buy (overriding), which prints its line. Then <code class="i">super().buy()</code> sends control <b>up</b> to Phone's buy, which prints its line, and control returns to the child.</p>
+<p><b>super() only works inside the class</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=11528" target="_blank" rel="noopener">▶ 3:12:08</a>. You can't write <code class="i">s.super().buy()</code> from outside:</p>
+<pre class="code"><span class="kw">class</span> Phone:
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        print(<span class="st">"Inside phone constructor"</span>)
+        self.brand = brand
+
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Buying a phone"</span>)
+
+<span class="kw">class</span> SmartPhone(Phone):
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Buying a smartphone"</span>)
+
+s = SmartPhone(20000, <span class="st">"Apple"</span>, 13)
+s.super().buy()</pre>
+<pre class="out">Inside phone constructor
+Traceback (most recent call last):
+  ...
+AttributeError: 'SmartPhone' object has no attribute 'super'</pre>
+<p>If you ever see <code class="i">super</code> used outside a class in a problem, that's the bug. He also notes that super can reach the parent's <b>methods and constructor</b> but not its <b>attributes</b>:</p>
+<pre class="code"><span class="kw">class</span> Phone:
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        self.brand = brand
+
+<span class="kw">class</span> SmartPhone(Phone):
+    <span class="kw">def</span> show(self):
+        print(super().brand)
+
+s = SmartPhone(20000, <span class="st">"Apple"</span>, 13)
+s.show()</pre>
+<pre class="out">Traceback (most recent call last):
+  ...
+AttributeError: 'super' object has no attribute 'brand'</pre>
+<p>To read the parent's data, use <code class="i">self.brand</code>: the attribute was stored on the object itself (section 5).</p>
+<div class="beyond"><b>Going beyond the video:</b> the precise rule is that <code class="i">super()</code> looks things up on the <i>classes</i> further along the MRO, never on the object. Instance attributes such as <code class="i">brand</code> live on the object, so super can't see them; a <i>class</i> attribute defined in the parent (for example <code class="i">kind = "phone"</code>) <i>is</i> reachable as <code class="i">super().kind</code>.</div>
+
+<h2>4 · super() in the constructor <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=11574" target="_blank" rel="noopener">▶ 3:12:54</a></h2>
+<p>This is where super really earns its place. Now SmartPhone has its own constructor, which takes five values: price, brand and camera, plus os and ram. Price, brand and camera belong to <i>every</i> phone, so they're Phone's attributes; os and ram are smartphone-specific. So the child says: the common things I'll hand to my parent's constructor, the uncommon ones I'll handle myself.</p>
+<pre class="code"><span class="kw">class</span> Phone:
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        print(<span class="st">"Inside phone constructor"</span>)
+        self.__price = price
+        self.brand = brand
+        self.camera = camera
+
+<span class="kw">class</span> SmartPhone(Phone):
+    <span class="kw">def</span> __init__(self, price, brand, camera, os, ram):
+        print(<span class="st">"Inside smartphone constructor"</span>)
+        super().__init__(price, brand, camera)
+        self.os = os
+        self.ram = ram
+
+s = SmartPhone(20000, <span class="st">"Samsung"</span>, 12, <span class="st">"Android"</span>, 2)
+print(s.os)
+print(s.brand)</pre>
+<pre class="out">Inside smartphone constructor
+Inside phone constructor
+Android
+Samsung</pre>
+<p>Control flow: the child's constructor starts (first line printed) → <code class="i">super().__init__(…)</code> jumps up into Phone's constructor, which prints and sets price, brand and camera → control comes back down and sets os and ram. Both <code class="i">s.os</code> and <code class="i">s.brand</code> work. You'll see this pattern constantly in real code: the child does only the child-specific work and delegates everything already written to the parent via <code class="i">super()</code>. He calls it the most important use of super.</p>
+<div class="beyond"><b>Going beyond the video:</b> he advises putting the <code class="i">super().__init__(…)</code> call first in the child's constructor. That's a good habit (the parent's setup runs before the child builds on it), but unlike Java, Python doesn't enforce it: the call can go anywhere in <code class="i">__init__</code>, and any attribute the parent sets will overwrite one the child set earlier.</div>
+<p><b>Switchboard.</b> Toggle what SmartPhone defines; the code and its output update. Every combination was checked against real Python.</p>
+<div class="card">
+  <div class="row">
+    <button id="tInit">SmartPhone has __init__</button><button id="tSupInit">…calls super().__init__()</button>
+  </div>
+  <div class="row">
+    <button id="tBuy">SmartPhone has buy()</button><button id="tSupBuy">…calls super().buy()</button>
+  </div>
+  <div class="pair half">
+    <pre class="code" id="swCode" style="margin:0;font-size:12px"></pre>
+    <div><div class="small muted">output</div><pre class="out" id="swOut" style="margin:4px 0 8px"></pre><p class="small" id="swNote"></p></div>
+  </div>
+</div>
+
+<h2>5 · super() practice <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=11761" target="_blank" rel="noopener">▶ 3:16:01</a></h2>
+<p><b>Puzzle 2, fixed.</b> The child calls the parent's constructor through super, so <code class="i">__num</code> gets created:</p>
+<pre class="code"><span class="kw">class</span> Parent:
+
+    <span class="kw">def</span> __init__(self, num):
+        self.__num = num
+
+    <span class="kw">def</span> get_num(self):
+        <span class="kw">return</span> self.__num
+
+<span class="kw">class</span> Child(Parent):
+
+    <span class="kw">def</span> __init__(self, num, val):
+        super().__init__(num)
+        self.__val = val
+
+    <span class="kw">def</span> get_val(self):
+        <span class="kw">return</span> self.__val
+
+son = Child(100, 10)
+print(son.get_num())
+print(son.get_val())</pre>
+<pre class="out">100
+10</pre>
+<p><b>Can the child use <code class="i">self</code> to reach the parent's attribute?</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=11862" target="_blank" rel="noopener">▶ 3:17:42</a> Up to now we read parent attributes from outside, via the object. Here a child method reads <code class="i">self.num</code>, which the parent's constructor set:</p>
+<pre class="code"><span class="kw">class</span> Parent:
+    <span class="kw">def</span> __init__(self):
+        self.num = 100
+
+<span class="kw">class</span> Child(Parent):
+    <span class="kw">def</span> __init__(self):
+        super().__init__()
+        self.var = 200
+
+    <span class="kw">def</span> show(self):
+        print(self.num)
+        print(self.var)
+
+son = Child()
+son.show()</pre>
+<pre class="out">100
+200</pre>
+<p>The answer hides in knowing what <code class="i">self</code> is (page 3). Calling <code class="i">son.show()</code> passes <code class="i">son</code> in as <code class="i">self</code>. If the son object can access a parent attribute from outside, then <code class="i">self</code>, which <i>is</i> that object, can do the same from inside. Know who self is and you won't get this kind of question wrong.</p>
+<p><b>Parent object vs child object</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=11998" target="_blank" rel="noopener">▶ 3:19:58</a>:</p>
+<pre class="code"><span class="kw">class</span> Parent:
+    <span class="kw">def</span> __init__(self):
+        self.num = 100
+
+    <span class="kw">def</span> show(self):
+        print(<span class="st">"Parent:"</span>, self.num)
+
+<span class="kw">class</span> Child(Parent):
+    <span class="kw">def</span> __init__(self):
+        super().__init__()
+        self.var = 200
+
+    <span class="kw">def</span> show(self):
+        print(<span class="st">"Child:"</span>, self.var)
+
+dad = Parent()
+dad.show()
+son = Child()
+son.show()</pre>
+<pre class="out">Parent: 100
+Child: 200</pre>
+<p><code class="i">dad</code> is a Parent, so it uses Parent's show. <code class="i">son</code>'s constructor first calls the parent's (setting num to 100), then sets var to 200; <code class="i">son.show()</code> runs the child's show because of overriding.</p>
+<div class="callout"><b>Recap so far</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12101" target="_blank" rel="noopener">▶ 3:21:41</a>: what inheritance is and how its code works; what a child inherits (data, methods, constructor); the parent's constructor runs automatically only when the child has none; private members aren't accessible; overriding; and the super keyword.</div>
+
+<h2>6 · Types of inheritance <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12130" target="_blank" rel="noopener">▶ 3:22:10</a></h2>
+<table>
+<tr><th>Type</th><th>Shape</th><th>Meaning</th></tr>
+<tr><td><b>Single</b></td><td class="mono">Phone ← SmartPhone</td><td>One parent, one child. Everything so far.</td></tr>
+<tr><td><b>Multilevel</b></td><td class="mono">Product ← Phone ← SmartPhone</td><td>Grandpa → papa → child. The child can access everything of its parent <i>and</i> of the grandparent. The chain can be as long as you like.</td></tr>
+<tr><td><b>Hierarchical</b></td><td class="mono">Phone ← SmartPhone<br>Phone ← FeaturePhone</td><td>One parent, multiple children, like User → Student and Instructor on page 8.</td></tr>
+<tr><td><b>Multiple</b></td><td class="mono">Phone, Product ← SmartPhone</td><td>One child, two (or more) parents. <b>Java doesn't allow this; Python does.</b></td></tr>
+<tr><td><b>Hybrid</b></td><td class="mono">a mix</td><td>Any combination of the four above in one hierarchy.</td></tr>
+</table>
+<p><b>Multilevel</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12361" target="_blank" rel="noopener">▶ 3:26:01</a>: a SmartPhone object can call <code class="i">buy</code> (its parent's) and <code class="i">review</code> (its grandparent's). A Phone object can call <code class="i">review</code> too:</p>
+<pre class="code"><span class="kw">class</span> Product:
+    <span class="kw">def</span> review(self):
+        print(<span class="st">"Product customer review"</span>)
+
+<span class="kw">class</span> Phone(Product):
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        print(<span class="st">"Inside phone constructor"</span>)
+        self.brand = brand
+
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Buying a phone"</span>)
+
+<span class="kw">class</span> SmartPhone(Phone):
+    <span class="kw">pass</span>
+
+s = SmartPhone(20000, <span class="st">"Apple"</span>, 12)
+s.buy()
+s.review()
+
+p = Phone(1000, <span class="st">"Samsung"</span>, 2)
+p.review()</pre>
+<pre class="out">Inside phone constructor
+Buying a phone
+Product customer review
+Inside phone constructor
+Product customer review</pre>
+<p><b>Hierarchical</b> needs no demo: <code class="i">class SmartPhone(Phone)</code> and <code class="i">class FeaturePhone(Phone)</code>, and objects of both can call Phone's methods.</p>
+
+<h2>7 · Multiple inheritance and the MRO <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12490" target="_blank" rel="noopener">▶ 3:28:10</a></h2>
+<p>For multiple inheritance, list every parent in the brackets, separated by commas (add as many as you need). SmartPhone gets buy from Phone and review from Product:</p>
+<pre class="code"><span class="kw">class</span> Phone:
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        print(<span class="st">"Inside phone constructor"</span>)
+        self.brand = brand
+
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Buying a phone"</span>)
+
+<span class="kw">class</span> Product:
+    <span class="kw">def</span> review(self):
+        print(<span class="st">"Customer review"</span>)
+
+<span class="kw">class</span> SmartPhone(Phone, Product):
+    <span class="kw">pass</span>
+
+s = SmartPhone(20000, <span class="st">"Apple"</span>, 12)
+s.buy()
+s.review()</pre>
+<pre class="out">Inside phone constructor
+Buying a phone
+Customer review</pre>
+<p>SmartPhone has no constructor, so whose runs? <b>Phone's</b>, because Phone is written first. If Phone had none either, Product's would run.</p>
+<p><b>The conflict</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12570" target="_blank" rel="noopener">▶ 3:29:30</a>. Now <b>both</b> parents have a <code class="i">buy</code> method. Which one does a SmartPhone run?</p>
+<pre class="code"><span class="kw">class</span> Phone:
+    <span class="kw">def</span> __init__(self, price, brand, camera):
+        print(<span class="st">"Inside phone constructor"</span>)
+        self.brand = brand
+
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Buying a phone"</span>)
+
+<span class="kw">class</span> Product:
+    <span class="kw">def</span> buy(self):
+        print(<span class="st">"Product buy method"</span>)
+
+<span class="kw">class</span> SmartPhone(Product, Phone):
+    <span class="kw">pass</span>
+
+s = SmartPhone(20000, <span class="st">"Apple"</span>, 12)
+s.buy()
+print(SmartPhone.mro())</pre>
+<pre class="out">Inside phone constructor
+Product buy method
+[&lt;class '__main__.SmartPhone'&gt;, &lt;class '__main__.Product'&gt;, &lt;class '__main__.Phone'&gt;, &lt;class 'object'&gt;]</pre>
+<p>Product's, because Product is written first in <code class="i">class SmartPhone(Product, Phone)</code>. Swap the order to <code class="i">(Phone, Product)</code> and the answer flips:</p>
+<pre class="out">Inside phone constructor
+Buying a phone
+[&lt;class '__main__.SmartPhone'&gt;, &lt;class '__main__.Phone'&gt;, &lt;class '__main__.Product'&gt;, &lt;class 'object'&gt;]</pre>
+<p>(The constructor still comes from Phone in both cases: Product has no <code class="i">__init__</code>, so the search moves on.) The order in which you inherit decides priority, and this concept is called the <b>MRO, method resolution order</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12641" target="_blank" rel="noopener">▶ 3:30:41</a>. Nothing to fear: the class you inherit from first wins. <code class="i">SmartPhone.mro()</code> (the last line of each output) shows the full search order.</p>
+<div class="beyond"><b>Going beyond the video:</b> "first-listed parent wins" is exactly right for the flat case above. For deeper hierarchies Python uses the <b>C3 linearisation</b>: L[C] = C + merge(L[B1], …, L[Bn], [B1, …, Bn]). Repeatedly take the first head that doesn't appear in the <i>tail</i> of any list. That keeps two promises: a class always comes before its parents, and parents keep the order you listed them in. In a diamond (B and C both inherit A, D inherits both), A comes <i>after</i> both B and C. If no order can keep both promises, Python refuses to create the class.</div>
+<p><b>MRO calculator.</b> Write a hierarchy (one <code class="i">class</code> line each, parents defined above children), mark which classes define <code class="i">buy()</code>, and pick a class. You get its MRO, the C3 merge steps that produce it, and whose <code class="i">buy()</code> runs. It was tested against Python's own <code class="i">mro()</code> on 150,000 random hierarchies, errors included.</p>
+<div class="card">
+  <div class="row" id="presets"></div>
+  <textarea id="src" rows="6" spellcheck="false" aria-label="Class definitions" style="width:100%;font:13px/1.5 ui-monospace,Menlo,monospace;background:var(--surface);color:var(--ink);border:1px solid var(--grid);border-radius:8px;padding:8px"></textarea>
+  <p class="small" id="mErr" style="color:var(--s2);margin:4px 0"></p>
+  <div class="row"><span class="small muted">defines buy():</span> <span id="defBtns" class="row" style="margin:0"></span></div>
+  <div class="row"><span class="small muted">object of:</span> <span id="clsBtns" class="row" style="margin:0"></span></div>
+  <div class="mono" id="mroLine" style="margin:8px 0;overflow-x:auto"></div>
+  <p class="small" id="buyLine"></p>
+  <div class="small muted">C3 merge steps</div>
+  <ol class="mono" id="mSteps" style="font-size:12px;padding-left:22px;margin:4px 0;overflow-x:auto"></ol>
+</div>
+
+<h2>8 · Two tricky questions <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12662" target="_blank" rel="noopener">▶ 3:31:02</a></h2>
+<p><b>Question 1.</b> Three classes in a multilevel chain, with overriding at each level. Answer quickly:</p>
+<pre class="code"><span class="kw">class</span> A:
+    <span class="kw">def</span> m1(self):
+        <span class="kw">return</span> 20
+
+<span class="kw">class</span> B(A):
+    <span class="kw">def</span> m1(self):
+        <span class="kw">return</span> 30
+
+    <span class="kw">def</span> m2(self):
+        <span class="kw">return</span> 40
+
+<span class="kw">class</span> C(B):
+    <span class="kw">def</span> m2(self):
+        <span class="kw">return</span> 20
+
+obj1 = A()
+obj2 = B()
+obj3 = C()
+print(obj1.m1() + obj3.m1() + obj3.m2())</pre>
+<pre class="out">70</pre>
+<p><code class="i">obj1.m1()</code> is A's own: 20. <code class="i">obj3.m1()</code>: C has no m1, so look at the parent before the grandparent. B has one: 30. (If you don't have it but both your father and your grandfather do, your father's is used.) <code class="i">obj3.m2()</code>: C's own, 20. Total 70.</p>
+<p><b>Question 2</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=12795" target="_blank" rel="noopener">▶ 3:33:15</a>. Every class has m1, and the child methods build on each other:</p>
+<pre class="code"><span class="kw">class</span> A:
+    <span class="kw">def</span> m1(self):
+        <span class="kw">return</span> 20
+
+<span class="kw">class</span> B(A):
+    <span class="kw">def</span> m1(self):
+        val = super().m1() + 30
+        <span class="kw">return</span> val
+
+<span class="kw">class</span> C(B):
+    <span class="kw">def</span> m1(self):
+        val = self.m1() + 20
+        <span class="kw">return</span> val
+
+obj = C()
+print(obj.m1())</pre>
+<pre class="out">Traceback (most recent call last):
+  ...
+RecursionError: maximum recursion depth exceeded</pre>
+<p><code class="i">obj.m1()</code> runs C's m1 (overriding). C's m1 calls <code class="i">self.m1()</code>, and <b>self is the C object</b>, so that calls C's m1 again, which calls it again… There's no stopping condition, so you get infinite recursion and Python gives up with "maximum recursion depth exceeded". (Had C written <code class="i">super().m1()</code>, it would have been 20 + 30 + 20 = 70.) Once more, the key is knowing who self is: the same object you'd use outside the class.</p>
+
+<h2>Key takeaways</h2>
+<ol>
+<li><b>Overriding</b>: same method in parent and child → a child object runs the child's. It's one of polymorphism's three kinds (overriding, overloading, operator overloading).</li>
+<li>The parent's constructor runs automatically <b>only if the child has none</b>. A child with its own <code class="i">__init__</code> must call <code class="i">super().__init__(…)</code> or the parent's attributes never get created.</li>
+<li><code class="i">super()</code> works only inside a class and reaches the parent's methods and constructor, not instance attributes (use <code class="i">self.x</code> for those).</li>
+<li>Five types: single, multilevel, hierarchical, multiple (allowed in Python, not Java) and hybrid.</li>
+<li>With multiple parents, the <b>MRO</b> decides: the parent listed first wins; <code class="i">Class.mro()</code> shows the full order.</li>
+<li>Inside a method, <code class="i">self</code> is the calling object, so <code class="i">self.m1()</code> inside <code class="i">m1</code> calls itself forever.</li>
+</ol>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+// ---- super() switchboard ----
+const SW = { init: true, supInit: true, buy: true, supBuy: true };
+function swGen(o) {
+  const L = ['class Phone:', '    def __init__(self, price, brand, camera):', '        print("Inside phone constructor")', '        self.brand = brand', '',
+    '    def buy(self):', '        print("Buying a phone")', '', 'class SmartPhone(Phone):'];
+  if (o.init) {
+    L.push('    def __init__(self, price, brand, camera, os):', '        print("Inside smartphone constructor")');
+    if (o.supInit) L.push('        super().__init__(price, brand, camera)');
+    L.push('        self.os = os');
+  }
+  if (o.buy) {
+    if (o.init) L.push('');
+    L.push('    def buy(self):', '        print("Buying a smartphone")');
+    if (o.supBuy) L.push('        super().buy()');
+  }
+  if (!o.init && !o.buy) L.push('    pass');
+  L.push('', 's = SmartPhone(20000, "Apple", 13' + (o.init ? ', "Android"' : '') + ')', 's.buy()', 'print(s.brand)');
+  const out = [], notes = [];
+  let brand = false;
+  if (o.init) {
+    out.push('Inside smartphone constructor');
+    if (o.supInit) { out.push('Inside phone constructor'); brand = true; notes.push('Child __init__ runs, and super().__init__ sends control up to Phone\'s.'); }
+    else notes.push('Child has its own __init__, so Phone\'s constructor is <b>not</b> called and brand is never set.');
+  } else { out.push('Inside phone constructor'); brand = true; notes.push('No child __init__, so Phone\'s constructor runs automatically.'); }
+  if (o.buy) {
+    out.push('Buying a smartphone');
+    if (o.supBuy) { out.push('Buying a phone'); notes.push('buy is overridden, but super().buy() also runs the parent\'s.'); }
+    else notes.push('buy is overridden: only the child\'s runs.');
+  } else { out.push('Buying a phone'); notes.push('No child buy, so Phone\'s is inherited.'); }
+  if (brand) out.push('Apple');
+  else out.push('Traceback (most recent call last):', '  ...', "AttributeError: 'SmartPhone' object has no attribute 'brand'");
+  return { code: L.join('\n'), out: out.join('\n'), notes };
+}
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function hlPy(s) {
+  return esc(s).replace(/("[^"\n]*")|\b(class|def|pass)\b/g, (m, st, kw) => st ? '<span class="st">' + st + '</span>' : '<span class="kw">' + kw + '</span>');
+}
+function renderSw() {
+  const r = swGen(SW);
+  $('tInit').className = SW.init ? 'on' : ''; $('tBuy').className = SW.buy ? 'on' : '';
+  $('tSupInit').className = SW.init && SW.supInit ? 'on' : ''; $('tSupInit').disabled = !SW.init; $('tSupInit').style.opacity = SW.init ? 1 : 0.45;
+  $('tSupBuy').className = SW.buy && SW.supBuy ? 'on' : ''; $('tSupBuy').disabled = !SW.buy; $('tSupBuy').style.opacity = SW.buy ? 1 : 0.45;
+  $('swCode').innerHTML = hlPy(r.code); $('swOut').textContent = r.out; $('swNote').innerHTML = r.notes.join(' ');
+}
+[['tInit', 'init'], ['tSupInit', 'supInit'], ['tBuy', 'buy'], ['tSupBuy', 'supBuy']].forEach(([id, k]) =>
+  $(id).addEventListener('click', () => { SW[k] = !SW[k]; renderSw(); }));
+renderSw();
+
+// C3-BEGIN
+const PYKW = new Set('False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield'.split(' '));
+function parseProgram(src) {
+  const classes = [], mro = { object: ['object'] }, steps = {}, bases = {};
+  const lines = src.split('\n');
+  for (let ln = 0; ln < lines.length; ln++) {
+    const raw = lines[ln].replace(/#.*$/, '').trim();
+    if (!raw) continue;
+    const m = raw.match(/^class\s+([A-Za-z_]\w*)\s*(?:\(([^()]*)\))?\s*:?\s*(?:pass)?$/);
+    const at = 'line ' + (ln + 1) + ': ';
+    if (!m) return { classes, mro, steps, bases, error: at + 'write it as  class Name  or  class Name(Base1, Base2)', kind: 'parse' };
+    const name = m[1];
+    if (PYKW.has(name) || name === 'object') return { classes, mro, steps, bases, error: at + '"' + name + '" can\'t be used as a class name here', kind: 'parse' };
+    if (mro[name]) return { classes, mro, steps, bases, error: at + name + ' is already defined (this calculator wants each class once)', kind: 'parse' };
+    let bs = [];
+    if (m[2] !== undefined && m[2].trim() !== '') {
+      bs = m[2].split(',').map(s => s.trim());
+      if (bs[bs.length - 1] === '' && bs.length > 1) bs.pop();
+      for (const b of bs) {
+        if (!/^[A-Za-z_]\w*$/.test(b)) return { classes, mro, steps, bases, error: at + 'bad base list "' + m[2].trim() + '"', kind: 'parse' };
+        if (!mro[b]) return { classes, mro, steps, bases, error: at + 'NameError: name \'' + b + '\' is not defined (define it above; only your classes and object are known)', kind: 'name' };
+      }
+      const seen = new Set();
+      for (const b of bs) { if (seen.has(b)) return { classes, mro, steps, bases, error: at + 'TypeError: duplicate base class ' + b, kind: 'dup' }; seen.add(b); }
+    }
+    if (!bs.length) bs = ['object'];
+    const r = c3(name, bs, mro);
+    if (r.error) return { classes, mro, steps, bases, error: at + 'TypeError: Cannot create a consistent method resolution order (MRO) for bases ' + r.error.join(', '), kind: 'mro', failSteps: r.steps, failName: name, failBases: bs };
+    classes.push(name); mro[name] = r.mro; steps[name] = r.steps; bases[name] = bs;
+  }
+  return { classes, mro, steps, bases, error: null };
+}
+function c3(name, bs, mro) {
+  let seqs = bs.map(b => mro[b].slice()).concat([bs.slice()]);
+  const out = [name], steps = [];
+  for (;;) {
+    seqs = seqs.filter(s => s.length);
+    if (!seqs.length) return { mro: out, steps };
+    let pick = null;
+    for (const s of seqs) {
+      const h = s[0];
+      if (!seqs.some(t => t.indexOf(h) > 0)) { pick = h; break; }
+    }
+    const snap = seqs.map(s => s.slice());
+    if (pick === null) {
+      const heads = [];
+      seqs.forEach(s => { if (heads.indexOf(s[0]) < 0) heads.push(s[0]); });
+      steps.push({ seqs: snap, pick: null });
+      return { error: heads, steps };
+    }
+    steps.push({ seqs: snap, pick });
+    out.push(pick);
+    seqs.forEach(s => { if (s[0] === pick) s.shift(); });
+  }
+}
+// C3-END
+
+const PRESETS = [
+  { name: 'his example', src: 'class Phone\nclass Product\nclass SmartPhone(Product, Phone)', defs: ['Phone', 'Product'], sel: 'SmartPhone' },
+  { name: 'multilevel', src: 'class A\nclass B(A)\nclass C(B)', defs: ['A', 'B'], sel: 'C' },
+  { name: 'diamond', src: 'class A\nclass B(A)\nclass C(A)\nclass D(B, C)', defs: ['A', 'C'], sel: 'D' },
+  { name: 'impossible', src: 'class A\nclass B(A)\nclass C(A, B)', defs: ['A'], sel: 'C' },
+  { name: 'big one', src: 'class O\nclass A(O)\nclass B(O)\nclass C(O)\nclass D(O)\nclass E(O)\nclass K1(A, B, C)\nclass K2(D, B, E)\nclass K3(D, A)\nclass Z(K1, K2, K3)', defs: ['O', 'B', 'D'], sel: 'Z' }
+];
+let defs = new Set(PRESETS[0].defs), selC = PRESETS[0].sel, last = null;
+function chip(t, hi) { return '<span style="display:inline-block;padding:2px 8px;margin:2px;border-radius:12px;border:1px solid ' + (hi ? 'var(--s1)' : 'var(--grid)') + ';background:' + (hi ? 'var(--tint)' : 'var(--surface)') + '">' + esc(t) + '</span>'; }
+function fmtSeq(s) { return '[' + s.join(', ') + ']'; }
+function renderM() {
+  const r = parseProgram($('src').value); last = r;
+  $('mErr').textContent = r.error || '';
+  const cl = r.classes;
+  if (cl.indexOf(selC) < 0) selC = cl.length ? cl[cl.length - 1] : null;
+  const dh = $('defBtns'); dh.innerHTML = '';
+  cl.forEach(c => { const b = document.createElement('button'); b.textContent = c; b.className = defs.has(c) ? 'on' : ''; b.addEventListener('click', () => { defs.has(c) ? defs.delete(c) : defs.add(c); renderM(); }); dh.appendChild(b); });
+  const ch = $('clsBtns'); ch.innerHTML = '';
+  cl.forEach(c => { const b = document.createElement('button'); b.textContent = c + '()'; b.className = c === selC ? 'on' : ''; b.addEventListener('click', () => { selC = c; renderM(); }); ch.appendChild(b); });
+  if (!selC) {
+    $('mroLine').innerHTML = ''; $('buyLine').textContent = ''; $('mSteps').innerHTML = '';
+    if (r.kind === 'mro') showFail(r);
+    return;
+  }
+  const m = r.mro[selC], winner = m.find(k => defs.has(k));
+  $('mroLine').innerHTML = esc(selC) + '.mro() → ' + m.map(k => chip(k, k === winner)).join(' → ');
+  $('buyLine').innerHTML = winner ? esc(selC) + '().buy() runs <b>' + esc(winner) + '.buy</b>' + (winner === selC ? ' (its own).' : ': the first class in the MRO that defines it.')
+    : '<span style="color:var(--s2)">' + esc(selC) + '().buy() → AttributeError: no class in its MRO defines buy.</span>';
+  const st = r.steps[selC], bs = r.bases[selC];
+  let html = '<li>L[' + esc(selC) + '] = ' + esc(selC) + ' + merge(' + bs.map(b => 'L[' + esc(b) + ']').concat([esc(fmtSeq(bs))]).join(', ') + ')</li>';
+  st.forEach(s => { html += '<li>merge(' + esc(s.seqs.map(fmtSeq).join(', ')) + ') → take <b>' + esc(s.pick) + '</b></li>'; });
+  $('mSteps').innerHTML = html;
+  if (r.kind === 'mro') showFail(r, true);
+}
+function showFail(r, append) {
+  const s = r.failSteps[r.failSteps.length - 1];
+  const li = '<li style="color:var(--s2)">' + esc(r.failName) + ': merge(' + esc(s.seqs.map(fmtSeq).join(', ')) + ') → stuck: every head also sits in the tail of another list</li>';
+  $('mSteps').innerHTML = (append ? $('mSteps').innerHTML : '') + li;
+}
+PRESETS.forEach(p => { const b = document.createElement('button'); b.textContent = p.name; b.addEventListener('click', () => { $('src').value = p.src; defs = new Set(p.defs); selC = p.sel; renderM(); }); $('presets').appendChild(b); });
+$('src').value = PRESETS[0].src;
+$('src').addEventListener('input', renderM);
+renderM();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Why OOP? Classes and Objects</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+<style>
+:root{--surface:#fcfcfb;--card:#ffffff;--ink:#1f1e1d;--muted:#6b6a64;--faint:#9a998f;--grid:#e6e5e0;--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--tint:#eef4fc;--warn-bg:#fdf3e7;--accent:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}}
+:root[data-theme="dark"]{--surface:#1a1a19;--card:#222220;--ink:#f0efec;--muted:#c3c2b7;--faint:#8d8c84;--grid:#34332f;--s1:#3987e5;--s2:#d95926;--s3:#199e70;--tint:#1f2a38;--warn-bg:#2e2519;--accent:#5598e7}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:880px;margin:0 auto;padding:28px 16px 70px}
+h1{font-size:30px;line-height:1.2;margin:0 0 6px} h2{font-size:22px;margin:40px 0 8px;padding-top:18px;border-top:1px solid var(--grid)}
+p{margin:10px 0} a{color:var(--accent)}
+.kicker{color:var(--muted);font-size:14px;margin-bottom:6px} .lede{font-size:18px;color:var(--muted)}
+.muted{color:var(--muted)} .small{font-size:14px}
+.card{background:var(--card);border:1px solid var(--grid);border-radius:12px;padding:16px;margin:14px 0}
+.callout{background:var(--tint);border-radius:10px;padding:12px 16px;margin:14px 0}
+.beyond{background:var(--warn-bg);border-radius:10px;padding:10px 16px;margin:14px 0;font-size:14px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+button{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--grid);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--muted)} button.on{background:var(--tint);border-color:var(--s1)}
+input[type=range]{width:170px;accent-color:var(--s1)} label{font-size:14px}
+canvas{width:100%;display:block}
+.stat{display:inline-block;min-width:140px;padding:8px 12px;border:1px solid var(--grid);border-radius:8px;background:var(--surface)}
+.stat .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums} .stat .l{font-size:12px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:13px;color:var(--muted);flex-wrap:wrap;margin-top:6px}
+.legend i{display:inline-block;width:18px;height:3px;margin-right:6px;vertical-align:4px;border-radius:2px}
+.legend i.dot{width:12px;height:12px;border-radius:50%;vertical-align:-1px}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:10px 12px 10px 48px;margin:8px 0;background:var(--card);border:1px solid var(--grid);border-radius:10px}
+.steps li::before{content:counter(s);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:50%;background:var(--s1);color:#fff;font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center}
+table{border-collapse:collapse;font-size:14px;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--grid);text-align:left;vertical-align:top} th{color:var(--muted);font-weight:600}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px} @media (max-width:600px){.pair{grid-template-columns:1fr}}
+.pair.half{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} @media (max-width:600px){.pair.half{grid-template-columns:1fr}}
+.credit{border:1px solid var(--grid);border-left:4px solid var(--s3);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:14px;background:var(--card)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+:root{--lv0:#1d3f91;--lv1:#7a5aa8;--lv2:#e98a3c;--lv3:#ecc94b;--lv4:#9a998f}
+@media (max-width:600px){table{display:block;overflow-x:auto}}
+.katex{position:relative}
+.katex-display{position:relative;overflow-x:auto;overflow-y:hidden}
+</style>
+<style>
+pre.code{background:var(--card);border:1px solid var(--grid);border-radius:10px;padding:12px 14px;overflow-x:auto;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;margin:12px 0}
+pre.out{background:var(--tint);border-radius:10px;padding:8px 14px;overflow-x:auto;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;margin:-6px 0 12px}
+code.i{font:0.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--tint);border-radius:4px;padding:1px 5px}
+.kw{color:var(--s1);font-weight:600}.st{color:var(--s3)}.cm{color:var(--muted);font-style:italic}
+</style>
+</head>
+<body>
+<main>
+<p style="margin:0 0 14px;font-size:14px"><a href="index.html">← All notes · OOP in Python (CampusX)</a></p>
+<div class="kicker">Part 1 of 10 · OOP in Python · CampusX</div>
+<h1>Why OOP? Classes and Objects</h1>
+<p class="lede">In Python everything is an object, and every object belongs to a class: the class is the blueprint that says what data an object holds and which methods it can call. The core promise of object-oriented programming is that you can write your own classes, that is, build your own data types shaped exactly like the problem you are solving.</p>
+<p class="small muted">Source: <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=0" target="_blank" rel="noopener">this part of the video on YouTube</a> (0:00:00–0:21:45 of a 4-hour video). Previous: <a href="index.html">the OOP index</a> · Next: <a href="02-class-object-constructor.html">building an ATM: class, object and constructor</a>.</p>
+<div class="credit"><b>Credit.</b> These notes follow <b>Nitish Singh</b>'s <a href="https://www.youtube.com/watch?v=Mf2RdpEiXjU" target="_blank" rel="noopener">Complete OOP in Python</a> video on his channel <a href="https://www.youtube.com/@campusx-official" target="_blank" rel="noopener">CampusX</a>. The teaching, structure and examples are his; mistakes, and everything in the orange "going beyond" boxes, are mine.</div>
+
+<h2>1 · A puzzle: what are these error messages telling us? <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=84" target="_blank" rel="noopener">▶ 1:24</a></h2>
+<p>He opens with an observation, not a definition. Make a list and call a string method on it; make a string and call a list method on it; try the same on an integer:</p>
+<pre class="code">L = [<span class="st">1</span>, <span class="st">2</span>, <span class="st">3</span>]
+L.upper()</pre>
+<pre class="out">AttributeError: 'list' object has no attribute 'upper'</pre>
+<pre class="code">s = <span class="st">"hello"</span>
+s.append(<span class="st">"x"</span>)</pre>
+<pre class="out">AttributeError: 'str' object has no attribute 'append'</pre>
+<pre class="code">a = <span class="st">2</span>
+a.upper()</pre>
+<pre class="out">AttributeError: 'int' object has no attribute 'upper'</pre>
+<p>Every message says <b>"… object has no attribute …"</b>. The word <i>object</i> is not an accident: <b>in Python, everything is an object</b> (he had mentioned this earlier in the course while teaching functions, without explaining what an object is). To understand what an object is, you first have to understand the problem OOP solves.</p>
+
+<h2>2 · The problem: big, real-world code <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=207" target="_blank" rel="noopener">▶ 3:27</a></h2>
+<p>Around 2010, most of daily life was offline: going to the bank, booking train and movie tickets, choosing a hotel by physically visiting it. Fast-forward (and add a pandemic) and nearly everything is online. That happened because people <b>picked a piece of real life and turned it into software</b>: OYO (Ritesh Agarwal) put hotel photos online so you no longer inspect rooms in person, cab apps track you by GPS instead of you waiting on the roadside, photo-sharing apps replaced passing albums around.</p>
+<div class="callout"><b>His own story.</b> After college he built a LinkedIn-like platform for college students: login, profile pages, messaging and many more features. It took <b>six to eight months</b>, and by then the code was so large that adding any new feature confused him, because he had written it in the "normal" (procedural) style. He rewrote it with OOP, and redid roughly that much work in about <b>two months</b>. OOP pays off precisely when you build a real application with lots of code.</div>
+
+<h2>3 · The core idea: from generality to specificity <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=404" target="_blank" rel="noopener">▶ 6:44</a></h2>
+<p>His one-line definition of OOP's most fundamental feature: <b>you can make your own data types</b>. If you are building LinkedIn, you can build LinkedIn-shaped data, instead of forcing everything into the general-purpose types (int, str, list, tuple, dict).</p>
+<p><b>The Kali Linux analogy</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=460" target="_blank" rel="noopener">▶ 7:40</a>. Kali is an operating system made specifically for penetration testing (hacking): the tools come pre-installed and configured. You <i>can</i> hack from Windows, but a specialised tool makes you better at the specialised job. Same with code: you <i>can</i> build LinkedIn from general data types, but a data type made specifically for it serves you better.</p>
+<table>
+<tr><th></th><th>Generality (procedural)</th><th>Specificity (OOP)</th></tr>
+<tr><td>Building blocks</td><td>int, str, list, dict, tuple …</td><td>Your own types: <code class="i">User</code>, <code class="i">Post</code>, <code class="i">Atm</code> …</td></tr>
+<tr><td>Analogy</td><td>Hacking from Windows</td><td>Hacking from Kali Linux</td></tr>
+<tr><td>Fits best</td><td>Small scripts</td><td>Large, real-life applications</td></tr>
+</table>
+<p>Add the other ideas you have probably heard of, <b>encapsulation, polymorphism, inheritance</b>, and you get object-oriented programming: a different technique of writing code, well suited to real applications that solve real problems.</p>
+
+<h2>4 · The pillars of OOP <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=587" target="_blank" rel="noopener">▶ 9:47</a></h2>
+<p>He lists the core concepts the course will cover, all used when you build a proper application:</p>
+<div class="row">
+<span class="stat"><span class="v">Class</span><span class="l"> blueprint</span></span>
+<span class="stat"><span class="v">Object</span><span class="l"> instance</span></span>
+<span class="stat"><span class="v">Encapsulation</span></span>
+<span class="stat"><span class="v">Inheritance</span></span>
+<span class="stat"><span class="v">Polymorphism</span></span>
+<span class="stat"><span class="v">Abstraction</span></span>
+</div>
+<p class="small muted">Order in the course: class first, then object, then the others.</p>
+
+<h2>5 · Class: the blueprint <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=630" target="_blank" rel="noopener">▶ 10:30</a></h2>
+<p>First rule to remember: <b>an object is always an object of some class</b>. In real life too: this Dell mouse is an object of the class "mouse"; you are an object of the class "human"; India is an object of the class "country". So if everything in Python is an object, the question is: <i>of which class?</i> Ask Python <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=697" target="_blank" rel="noopener">▶ 11:37</a>:</p>
+<pre class="code">a = <span class="st">2</span>
+L = [<span class="st">1</span>, <span class="st">2</span>, <span class="st">3</span>]
+s = <span class="st">"hello"</span>
+<span class="kw">print</span>(type(a))
+<span class="kw">print</span>(type(L))
+<span class="kw">print</span>(type(s))</pre>
+<pre class="out">&lt;class 'int'&gt;
+&lt;class 'list'&gt;
+&lt;class 'str'&gt;</pre>
+<p>Focus on the word <b>class</b>. Somebody wrote the <code class="i">list</code> data type, and "writing a data type" means <b>defining its class</b>: its blueprint. Type <code class="i">L.</code> and press Tab, and you see a column of functions (<code class="i">append</code>, <code class="i">pop</code>, …). Whoever created <code class="i">list</code> put those functions inside the class, and only a list object can use them. Rename the variable to an integer and those functions vanish; a different set, for integers, appears.</p>
+<div class="callout">In simple words (literally true in Python): <b>a data type is a class, and a variable of that data type is an object.</b> <code class="i">L</code> is an object of class <code class="i">list</code>.</div>
+<p><b>Which takes more code to make, a class or an object?</b> The class, by far. Its author writes the blueprint of how every list will behave, so they write all the functions. Making an object is one line: <code class="i">L = [1, 2, 3]</code>.</p>
+<p>So: <b>a class is a blueprint of how an object will behave.</b></p>
+
+<h3>Try it: whose method is it?</h3>
+<div class="card">
+<p class="small muted" style="margin-top:0">Pick a value and a method. Python first looks up the object's class, then checks whether that class defines the method.</p>
+<div class="row" id="w-vals"></div>
+<div class="row" id="w-meths"></div>
+<pre class="code" id="w-code"></pre>
+<pre class="out" id="w-out"></pre>
+</div>
+
+<h2>6 · What lives inside a class: data and methods <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=863" target="_blank" rel="noopener">▶ 14:23</a></h2>
+<p>A class contains exactly two kinds of things:</p>
+<div class="pair half">
+<div class="card"><b>Data</b> = properties = attributes<br><span class="small muted">a description of the object: what it <i>has</i></span></div>
+<div class="card"><b>Functions</b> = methods<br><span class="small muted">the object's behaviour: what it <i>does</i></span></div>
+</div>
+<p>His example is the classic car <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=905" target="_blank" rel="noopener">▶ 15:05</a>. Every car has some number of wheels, a colour, an engine type, a brand: that is its data. Every car can calculate its mileage, calculate its average speed, open an airbag, show GPS navigation: those are its methods. Every car has <i>a</i> colour, but each car has <i>its own</i> colour.</p>
+
+<h2>7 · Syntax and naming conventions <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=954" target="_blank" rel="noopener">▶ 15:54</a></h2>
+<p>Write <code class="i">class</code>, then the class name, then inside it you put the two things: data and methods.</p>
+<table>
+<tr><th>What</th><th>Convention</th><th>Looks like</th></tr>
+<tr><td>Class name</td><td><b>PascalCase</b>: words joined, every first letter capital</td><td><code class="i">Car</code>, <code class="i">BankAccount</code></td></tr>
+<tr><td>Variables (data) and functions (methods)</td><td><b>snake_case</b>: lower case, words joined by <code class="i">_</code></td><td><code class="i">engine_type</code>, <code class="i">calculate_mileage</code></td></tr>
+<tr><td>(for contrast)</td><td>camelCase: like PascalCase but the first letter is small</td><td><code class="i">calculateMileage</code></td></tr>
+</table>
+
+<h2>8 · Drawing a class: the class diagram <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1044" target="_blank" rel="noopener">▶ 17:24</a></h2>
+<p>A class can also be represented as a diagram (you will meet this in college courses): a box with three compartments, the class name, its attributes, then its methods.</p>
+<div class="card mono" style="max-width:340px;padding:0">
+<div style="padding:8px 12px;border-bottom:1px solid var(--grid);text-align:center;font-weight:700">Car</div>
+<div style="padding:8px 12px;border-bottom:1px solid var(--grid)">- color<br>- mileage<br>- engine</div>
+<div style="padding:8px 12px">+ calculate_avg_speed()<br>+ open_airbag()<br>+ show_gps()</div>
+</div>
+<p><b>The + and − signs</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1137" target="_blank" rel="noopener">▶ 18:57</a>: <b>+</b> means the member is available to the outside world (public); <b>−</b> means it is private and cannot be used from outside. He flags this as something that can be asked about.</p>
+
+<h2>9 · Object: an instance of a class <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1189" target="_blank" rel="noopener">▶ 19:49</a></h2>
+<p>The data type is the class; the variable you make from it is the object. <b>An object is an instance of a class.</b> If "car" is a class, a particular car is its object; if "sport" is a class, gilli-danda is an object; if "animal" is a class, a langur is an object. Creating one in Python:</p>
+<pre class="code">objectname = ClassName()</pre>
+<pre class="code"><span class="kw">class</span> Car:
+    <span class="kw">pass</span>
+
+wagon_r = Car()
+<span class="kw">print</span>(type(wagon_r))</pre>
+<pre class="out">&lt;class '__main__.Car'&gt;</pre>
+<p><b>"If list is a class, why don't we write <code class="i">L = list()</code>?"</b> <a class="small" href="https://www.youtube.com/watch?v=Mf2RdpEiXjU&amp;t=1228" target="_blank" rel="noopener">▶ 20:28</a> You can! <code class="i">L = list()</code> and <code class="i">s = str()</code> work exactly as the syntax says. For <b>built-in classes</b> Python adds a convenience called an <b>object literal</b>: <code class="i">[1, 2, 3]</code> or <code class="i">"hello"</code> create the object for you. Internally an object of that class is still being made.</p>
+<pre class="code">L = list()
+s = str()
+<span class="kw">print</span>(L, repr(s))
+<span class="kw">print</span>(list((<span class="st">1</span>, <span class="st">2</span>, <span class="st">3</span>)))</pre>
+<pre class="out">[] ''
+[1, 2, 3]</pre>
+
+<h3>Try it: the class → object factory</h3>
+<div class="card">
+<p class="small muted" style="margin-top:0">The <code class="i">Car</code> blueprint is written once. Each click creates a new object with its <b>own</b> data; changing one object never touches another.</p>
+<div class="pair half">
+<div>
+<div class="row"><label>name <input id="f-name" value="wagon_r" size="10"></label></div>
+<div class="row"><label>brand <select id="f-brand"><option>Maruti</option><option>Tata</option><option>Hyundai</option><option>Mahindra</option></select></label>
+<label>color <select id="f-color"><option>red</option><option>white</option><option>black</option><option>blue</option></select></label></div>
+<div class="row"><label>wheels <input id="f-wheels" type="number" value="4" min="2" max="8" style="width:56px"></label>
+<label>engine <select id="f-engine"><option>petrol</option><option>diesel</option><option>CNG</option><option>electric</option></select></label></div>
+<div class="row"><button id="f-make" class="on">Create object</button><button id="f-clear">Clear</button></div>
+</div>
+<div class="card mono" style="margin:0;padding:0;align-self:start">
+<div style="padding:6px 12px;border-bottom:1px solid var(--grid);text-align:center;font-weight:700">class Car (the blueprint)</div>
+<div style="padding:6px 12px;border-bottom:1px solid var(--grid)">brand · color · wheels · engine</div>
+<div style="padding:6px 12px">calculate_mileage() · open_airbag()</div>
+</div>
+</div>
+<pre class="code" id="f-code"></pre>
+<div id="f-objs" class="row" style="align-items:stretch"></div>
+<p class="small muted" id="f-msg"></p>
+</div>
+
+<h2>Key takeaways</h2>
+<ol>
+<li><b>Everything in Python is an object</b>, which is why errors read "'list' object has no attribute …".</li>
+<li>OOP's core feature is <b>building your own data types</b>: move from general-purpose types to ones specific to your problem. It shines in large, real-world applications.</li>
+<li>A <b>class</b> is a blueprint of how an object will behave; it holds <b>data</b> (attributes) and <b>methods</b> (functions). Writing a class is the hard part.</li>
+<li>An <b>object</b> is an instance of a class: <code class="i">objectname = ClassName()</code>. A data type is a class; a variable of it is an object.</li>
+<li>Conventions: class names in <b>PascalCase</b>, variables and methods in <b>snake_case</b>. In class diagrams, <b>+</b> is public and <b>−</b> is private.</li>
+<li><code class="i">[1, 2, 3]</code> is an <b>object literal</b>, a shortcut for built-in classes; <code class="i">list()</code> works too.</li>
+</ol>
+</main>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  // whose-method demo (membership checked with Python 3)
+  const VALS = [
+    {lit:'[1, 2, 3]', cls:'list', has:['append','pop','count']},
+    {lit:"'hello'", cls:'str', has:['upper','split','count','title']},
+    {lit:'2', cls:'int', has:['bit_length']},
+    {lit:"{'a': 1}", cls:'dict', has:['pop','keys']}
+  ];
+  const METHS = ['upper','append','split','pop','keys','bit_length','count','title'];
+  let vi = 0, mi = 0;
+  const vb = [], mb = [];
+  VALS.forEach((v, i) => { const b = document.createElement('button'); b.textContent = 'x = ' + v.lit; b.addEventListener('click', () => { vi = i; drawW(); }); $('w-vals').appendChild(b); vb.push(b); });
+  METHS.forEach((m, i) => { const b = document.createElement('button'); b.textContent = '.' + m; b.className = 'mono'; b.addEventListener('click', () => { mi = i; drawW(); }); $('w-meths').appendChild(b); mb.push(b); });
+  function drawW(){
+    const v = VALS[vi], m = METHS[mi];
+    vb.forEach((b, i) => b.classList.toggle('on', i === vi));
+    mb.forEach((b, i) => b.classList.toggle('on', i === mi));
+    $('w-code').textContent = 'x = ' + v.lit + '\nprint(type(x))\nx.' + m;
+    const ok = v.has.indexOf(m) >= 0;
+    $('w-out').textContent = "<class '" + v.cls + "'>\n" + (ok
+      ? '✓ found: ' + m + ' is defined inside class ' + v.cls + ', so this ' + v.cls + ' object can call it'
+      : "AttributeError: '" + v.cls + "' object has no attribute '" + m + "'");
+  }
+  drawW();
+
+  // object factory
+  const objs = [];
+  const COLORS = ['red','white','black','blue','green','silver'];
+  function valid(n){ return /^[a-z_][a-z0-9_]*$/.test(n); }
+  function renderF(){
+    const box = $('f-objs'); box.innerHTML = '';
+    objs.forEach((o, i) => {
+      const c = document.createElement('div');
+      c.className = 'card mono'; c.style.margin = '0'; c.style.minWidth = '150px'; c.style.flex = '1 1 150px';
+      const sw = '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:1px solid var(--grid);background:' + o.color + '"></span>';
+      c.innerHTML = '<b>' + o.name + '</b> <span class="muted">: Car</span><br>brand = ' + o.brand + '<br>color = ' + sw + ' ' + o.color + '<br>wheels = ' + o.wheels + '<br>engine = ' + o.engine + '<br>';
+      const b = document.createElement('button'); b.textContent = 'repaint this one';
+      b.style.marginTop = '6px';
+      b.addEventListener('click', () => { if (objs.indexOf(o) < 0) return; o.color = COLORS[(COLORS.indexOf(o.color) + 1) % COLORS.length]; $('f-msg').textContent = 'Only ' + o.name + '.color changed (now ' + o.color + '). The other ' + (objs.length - 1) + ' object(s) keep their own color.'; renderF(); });
+      c.appendChild(b); box.appendChild(c);
+    });
+  }
+  $('f-make').addEventListener('click', () => {
+    let n = String($('f-name').value || '').trim();
+    if (!valid(n)) { $('f-msg').textContent = 'Use a snake_case variable name (lower case letters, digits, _).'; return; }
+    if (objs.some(o => o.name === n)) n = n + '_' + (objs.length + 1);
+    let w = parseInt($('f-wheels').value, 10); if (!(w >= 2 && w <= 8)) w = 4;
+    const o = {name:n, brand:$('f-brand').value || 'Maruti', color:$('f-color').value || 'red', wheels:w, engine:$('f-engine').value || 'petrol'};
+    if (objs.length >= 6) objs.shift();
+    objs.push(o);
+    $('f-code').textContent = n + ' = Car()   # one line per object; the blueprint was written once\n' + n + ".brand, " + n + ".color = '" + o.brand + "', '" + o.color + "'";
+    $('f-msg').textContent = objs.length + ' object(s) of class Car exist. Same blueprint, separate data.';
+    const names = ['swift','nexon','creta','thar','alto','punch'];
+    $('f-name').value = names[objs.length % names.length];
+    renderF();
+  });
+  $('f-clear').addEventListener('click', () => { objs.length = 0; renderF(); $('f-code').textContent = '# no objects yet'; $('f-msg').textContent = ''; });
+  $('f-code').textContent = '# no objects yet: pick values and press "Create object"';
+})();
+</script>
+<script src="../assets/video-links.js" defer></script>
+</body>
+</html>
